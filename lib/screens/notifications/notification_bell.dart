@@ -1,0 +1,117 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../core/api_client.dart';
+import '../../core/format.dart';
+import '../../core/socket_service.dart';
+import '../../models/notification_item.dart';
+import '../../theme/app_colors.dart';
+
+/// Mirrors src/components/NotificationBell.jsx — fetches recent
+/// notifications, shows an unread badge, and bumps in real time on the
+/// `notification:new` socket event pushed by notifyUser() server-side.
+class NotificationBell extends StatefulWidget {
+  const NotificationBell({super.key});
+
+  @override
+  State<NotificationBell> createState() => _NotificationBellState();
+}
+
+class _NotificationBellState extends State<NotificationBell> {
+  List<NotificationItem> _items = [];
+  bool _bound = false;
+
+  int get _unreadCount => _items.where((n) => !n.isRead).length;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _load();
+    _bindSocket();
+  }
+
+  Future<void> _load() async {
+    try {
+      final data = await ApiClient.get('/notifications');
+      if (!mounted) return;
+      setState(() {
+        _items = (data as List).map((e) => NotificationItem.fromJson(e as Map<String, dynamic>)).toList();
+      });
+    } catch (_) {
+      // Best-effort — bell just stays empty on failure.
+    }
+  }
+
+  void _bindSocket() {
+    if (_bound) return;
+    final socket = context.read<SocketService>().socket;
+    if (socket == null) return;
+    _bound = true;
+    socket.on('notification:new', (data) {
+      if (!mounted || data is! Map) return;
+      setState(() {
+        _items = [NotificationItem.fromJson(Map<String, dynamic>.from(data)), ..._items];
+      });
+    });
+  }
+
+  Future<void> _markAllRead() async {
+    try {
+      await ApiClient.post('/notifications/read-all');
+      if (!mounted) return;
+      setState(() {
+        _items = _items
+            .map((n) => NotificationItem(
+                  id: n.id,
+                  type: n.type,
+                  title: n.title,
+                  body: n.body,
+                  data: n.data,
+                  isRead: true,
+                  createdAt: n.createdAt,
+                ))
+            .toList();
+      });
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<void>(
+      icon: Badge(
+        isLabelVisible: _unreadCount > 0,
+        label: Text('$_unreadCount'),
+        backgroundColor: AppColors.primary,
+        child: const Text('🔔'),
+      ),
+      color: AppColors.surface2,
+      itemBuilder: (context) {
+        if (_items.isEmpty) {
+          return [const PopupMenuItem<void>(enabled: false, child: Text('No notifications yet', style: TextStyle(color: AppColors.textFaint)))];
+        }
+        return [
+          PopupMenuItem<void>(
+            onTap: _markAllRead,
+            child: const Text('Mark all read', style: TextStyle(color: AppColors.primary, fontSize: 12)),
+          ),
+          ..._items.take(10).map(
+                (n) => PopupMenuItem<void>(
+                  child: SizedBox(
+                    width: 260,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(n.title, style: TextStyle(color: AppColors.text, fontWeight: n.isRead ? FontWeight.normal : FontWeight.bold, fontSize: 13)),
+                        if (n.body.isNotEmpty)
+                          Text(n.body, style: const TextStyle(color: AppColors.textDim, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
+                        Text(formatRelativeTime(n.createdAt), style: const TextStyle(color: AppColors.textFaint, fontSize: 10)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+        ];
+      },
+    );
+  }
+}

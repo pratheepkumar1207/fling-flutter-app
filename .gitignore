@@ -1,0 +1,47 @@
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+*.g.dart
+
+# Platform build artifacts only — the platform folders themselves (android/,
+# ios/, web/, ...) are real source (build.gradle, AndroidManifest.xml,
+# Info.plist, etc.) and must stay tracked.
+**/android/.gradle/
+**/android/local.properties
+**/android/key.properties
+**/android/**/build/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/**/gradle-wrapper.jar
+*.jks
+
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/DerivedData/
+**/ios/**/*.xcuserdata
+
+**/windows/flutter/ephemeral/
+**/linux/flutter/ephemeral/
+**/macos/Flutter/ephemeral/
+**/macos/Pods/
+
+lib/generated_plugin_registrant.dart
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Misc
+.DS_Store

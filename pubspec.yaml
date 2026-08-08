@@ -1,0 +1,62 @@
+name: fling
+description: Fling — watch parties, swipe matching, social feed, chat, and calls.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+
+  # Networking / realtime
+  http: ^1.2.1
+  socket_io_client: ^2.0.3+1
+
+  # State management
+  provider: ^6.1.2
+
+  # Persistence
+  shared_preferences: ^2.2.3
+
+  # Media
+  image_picker: ^1.1.2
+  file_picker: ^8.1.2
+  cached_network_image: ^3.3.1
+  youtube_player_flutter: ^9.0.4
+  video_player: ^2.9.2
+
+  # Voice chat
+  # Pinned exactly (not ^) — every version tried (6.3.2, 6.5.4, 6.6.3) ships
+  # native SDK AARs with a structural namespace collision (two modules both
+  # declare `io.agora.rtc`) that breaks Android's manifest merger under
+  # modern AGP — confirmed via Agora's own GitHub issues, not fixable from
+  # this project's build.gradle. Blocks `flutter build apk` specifically;
+  # doesn't affect the web build or the Dart code itself. See README.
+  agora_rtc_engine: 6.3.2
+  permission_handler: ^11.3.1
+
+  # Utilities
+  intl: ^0.19.0
+  url_launcher: ^6.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+# youtube_player_flutter pulls in flutter_inappwebview, whose Android
+# implementation (1.1.3, under the latest stable 6.1.5) still uses the
+# deprecated getDefaultProguardFile('proguard-android.txt') API that modern
+# AGP/R8 rejects outright. Overriding just the _android sub-package broke
+# the federated plugin's own internal version matching (its other
+# sub-packages stayed pinned to versions incompatible with the newer
+# _android release) — override the top-level package instead so pub
+# resolves a consistent set of federated sub-package versions together.
+dependency_overrides:
+  flutter_inappwebview: ^6.2.0-beta.3
+
+flutter:
+  uses-material-design: true
