@@ -17,7 +17,7 @@ class RoomSocketController extends ChangeNotifier {
   String? hostId;
   String? joinError;
   bool kicked = false;
-  Map<String, dynamic> call = {'policyOpen': false, 'activeMics': []};
+  Map<String, dynamic> call = {'activeMics': [], 'pendingRequests': [], 'maxSlots': 8};
   String? micDenied;
   Map<String, dynamic>? game;
   Map<String, dynamic>? typeChange;
@@ -161,10 +161,28 @@ class RoomSocketController extends ChangeNotifier {
     if (isHost) socket?.emit('room:kick', {'roomId': roomId, 'targetUserId': targetUserId});
   }
 
-  void micOn() => socket?.emit('call:micOn', {'roomId': roomId});
+  void micOn() {
+    if (isHost) socket?.emit('call:micOn', {'roomId': roomId});
+  }
+
   void micOff() => socket?.emit('call:micOff', {'roomId': roomId});
-  void setMicPolicy(bool open) {
-    if (isHost) socket?.emit('call:setPolicy', {'roomId': roomId, 'open': open});
+  void requestMic() => socket?.emit('call:requestMic', {'roomId': roomId});
+  void cancelMicRequest() => socket?.emit('call:cancelMicRequest', {'roomId': roomId});
+
+  void approveMic(String targetUserId) {
+    if (isHost) socket?.emit('call:approveMic', {'roomId': roomId, 'targetUserId': targetUserId});
+  }
+
+  void denyMic(String targetUserId) {
+    if (isHost) socket?.emit('call:denyMic', {'roomId': roomId, 'targetUserId': targetUserId});
+  }
+
+  void inviteMic(String targetUserId) {
+    if (isHost) socket?.emit('call:inviteMic', {'roomId': roomId, 'targetUserId': targetUserId});
+  }
+
+  void removeMic(String targetUserId) {
+    if (isHost) socket?.emit('call:removeMic', {'roomId': roomId, 'targetUserId': targetUserId});
   }
 
   void createPoll(String question, List<String> options) {

@@ -10,6 +10,9 @@ class RosterSheet extends StatelessWidget {
   final String? myUserId;
   final void Function(String userId) onKick;
   final void Function(String userId) onMakeHost;
+  final String? roomType;
+  final List<String>? activeMics;
+  final void Function(String userId)? onInviteMic;
 
   const RosterSheet({
     super.key,
@@ -19,6 +22,9 @@ class RosterSheet extends StatelessWidget {
     required this.myUserId,
     required this.onKick,
     required this.onMakeHost,
+    this.roomType,
+    this.activeMics,
+    this.onInviteMic,
   });
 
   @override
@@ -45,6 +51,7 @@ class RosterSheet extends StatelessWidget {
                   final r = roster[i];
                   final isRowHost = r.userId == hostId;
                   final isMe = r.userId == myUserId;
+                  final canInviteMic = isHost && roomType == 'voice' && onInviteMic != null && !(activeMics?.contains(r.userId) ?? false);
                   return ListTile(
                     leading: Avatar(src: r.avatarUrl, name: r.name, size: AvatarSize.sm),
                     title: Text('${r.name}${isRowHost ? ' 👑' : ''}${isMe ? ' (you)' : ''}', style: const TextStyle(color: AppColors.text)),
@@ -52,6 +59,8 @@ class RosterSheet extends StatelessWidget {
                         ? Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              if (canInviteMic)
+                                TextButton(onPressed: () => onInviteMic!(r.userId), child: const Text('🎙️ Invite', style: TextStyle(color: AppColors.gold, fontSize: 12))),
                               TextButton(onPressed: () => onMakeHost(r.userId), child: const Text('Make host', style: TextStyle(color: AppColors.primary, fontSize: 12))),
                               TextButton(onPressed: () => onKick(r.userId), child: const Text('Kick', style: TextStyle(color: AppColors.danger, fontSize: 12))),
                             ],

@@ -21,6 +21,7 @@ class QueueSheetScreen extends StatefulWidget {
   final void Function(int index) onRemove;
   final void Function(int fromIndex, int toIndex) onReorder;
   final VoidCallback onOpenRoster;
+  final bool audioOnly;
 
   const QueueSheetScreen({
     super.key,
@@ -32,6 +33,7 @@ class QueueSheetScreen extends StatefulWidget {
     required this.onRemove,
     required this.onReorder,
     required this.onOpenRoster,
+    this.audioOnly = false,
   });
 
   @override
@@ -48,7 +50,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> with SingleTickerPr
   }
 
   void _addToQueue({required String videoUrl, required String title, String? thumbnail, required String mediaMode, String sourceType = 'youtube'}) {
-    widget.onAdd({'sourceType': sourceType, 'videoUrl': videoUrl, 'title': title, 'thumbnail': thumbnail, 'mediaMode': mediaMode});
+    widget.onAdd({'sourceType': sourceType, 'videoUrl': videoUrl, 'title': title, 'thumbnail': thumbnail, 'mediaMode': widget.audioOnly ? 'audio' : mediaMode});
   }
 
   @override
@@ -83,7 +85,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> with SingleTickerPr
             child: TabBarView(
               controller: _tabController,
               children: [
-                _SearchTab(onAdd: _addToQueue),
+                _SearchTab(onAdd: _addToQueue, audioOnly: widget.audioOnly),
                 _SongListTab(endpoint: '/liked-songs', onAdd: _addToQueue),
                 _SongListTab(endpoint: '/song-history', onAdd: _addToQueue),
                 _PlaylistsTab(onAdd: _addToQueue),
@@ -173,7 +175,8 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> with SingleTickerPr
 
 class _SearchTab extends StatefulWidget {
   final void Function({required String videoUrl, required String title, String? thumbnail, required String mediaMode}) onAdd;
-  const _SearchTab({required this.onAdd});
+  final bool audioOnly;
+  const _SearchTab({required this.onAdd, this.audioOnly = false});
 
   @override
   State<_SearchTab> createState() => _SearchTabState();
@@ -260,23 +263,30 @@ class _SearchTabState extends State<_SearchTab> {
                         ],
                       ),
                     ),
-                    Column(
-                      children: [
-                        _smallButton('+ Video', () => widget.onAdd(
-                              videoUrl: 'https://www.youtube.com/watch?v=${item['videoId']}',
-                              title: item['title'] as String? ?? '',
-                              thumbnail: item['thumbnail'] as String?,
-                              mediaMode: 'video',
-                            )),
-                        const SizedBox(height: 4),
-                        _smallButton('🎧 Audio', () => widget.onAdd(
+                    widget.audioOnly
+                        ? _smallButton('🎧 + Add', () => widget.onAdd(
                               videoUrl: 'https://www.youtube.com/watch?v=${item['videoId']}',
                               title: item['title'] as String? ?? '',
                               thumbnail: item['thumbnail'] as String?,
                               mediaMode: 'audio',
-                            )),
-                      ],
-                    ),
+                            ))
+                        : Column(
+                            children: [
+                              _smallButton('+ Video', () => widget.onAdd(
+                                    videoUrl: 'https://www.youtube.com/watch?v=${item['videoId']}',
+                                    title: item['title'] as String? ?? '',
+                                    thumbnail: item['thumbnail'] as String?,
+                                    mediaMode: 'video',
+                                  )),
+                              const SizedBox(height: 4),
+                              _smallButton('🎧 Audio', () => widget.onAdd(
+                                    videoUrl: 'https://www.youtube.com/watch?v=${item['videoId']}',
+                                    title: item['title'] as String? ?? '',
+                                    thumbnail: item['thumbnail'] as String?,
+                                    mediaMode: 'audio',
+                                  )),
+                            ],
+                          ),
                   ],
                 ),
               );

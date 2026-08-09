@@ -14,6 +14,7 @@ import '../../widgets/poll_bottom_sheet.dart';
 import '../../widgets/poll_creator_bottom_sheet.dart';
 import '../../widgets/room_settings_sheet.dart';
 import '../../widgets/spinner.dart';
+import '../../widgets/voice_stage_view.dart';
 import '../lobby/invite_screen.dart';
 import 'chat_panel.dart';
 import 'live_broadcast_controller.dart';
@@ -212,12 +213,16 @@ class _PartyScreenState extends State<PartyScreen> {
         myUserId: context.read<AuthProvider>().user?.id,
         onKick: rs.kick,
         onMakeHost: rs.makeHost,
+        roomType: _room?['roomType'] as String?,
+        activeMics: (rs.call['activeMics'] as List?)?.cast<String>(),
+        onInviteMic: rs.inviteMic,
       ),
     );
   }
 
   void _openQueue() {
     final rs = _rs!;
+    final isVoice = _room?['roomType'] == 'voice';
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => AnimatedBuilder(
         animation: rs,
@@ -230,6 +235,7 @@ class _PartyScreenState extends State<PartyScreen> {
           onRemove: rs.queueRemove,
           onReorder: rs.queueReorder,
           onOpenRoster: _openRoster,
+          audioOnly: isVoice,
         ),
       ),
     ));
@@ -278,11 +284,28 @@ class _PartyScreenState extends State<PartyScreen> {
     final playerVideoUrl = currentItem?['videoUrl'] as String? ?? room['videoUrl'] as String?;
     final isWatch = room['roomType'] == 'watch';
     final isGame = room['roomType'] == 'game';
+    final isVoice = room['roomType'] == 'voice';
     final myId = context.read<AuthProvider>().user?.id;
-    final myMicOn = myId != null && (rs.call['activeMics'] as List? ?? []).contains(myId);
-    final canUseMic = rs.isHost || rs.call['policyOpen'] == true;
+    final activeMics = (rs.call['activeMics'] as List? ?? []).cast<String>();
+    final pendingRequests = (rs.call['pendingRequests'] as List? ?? []).cast<String>();
+    final maxSlots = rs.call['maxSlots'] as int? ?? 8;
+    final myMicOn = myId != null && activeMics.contains(myId);
+    final myMicRequested = myId != null && pendingRequests.contains(myId);
 
     _voice?.setMicEnabled(myMicOn);
+
+    void handleMicTap() {
+      if (myMicOn) {
+        rs.micOff();
+      } else if (rs.isHost) {
+        rs.micOn();
+      } else if (myMicRequested) {
+        rs.cancelMicRequest();
+      } else {
+        rs.requestMic();
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Request sent to the host')));
+      }
+    }
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -382,7 +405,46 @@ class _PartyScreenState extends State<PartyScreen> {
                                 ),
                             ],
                           )
-                        : AspectRatio(
+                        : isVoice
+                            ? Column(
+                                children: [
+                                  VoiceStageView(
+                                    roster: rs.roster,
+                                    activeMics: activeMics,
+                                    pendingRequests: pendingRequests,
+                                    maxSlots: maxSlots,
+                                    hostId: rs.hostId,
+                                    myUserId: myId,
+                                    isHost: rs.isHost,
+                                    onApprove: rs.approveMic,
+                                    onDeny: rs.denyMic,
+                                    onRemove: rs.removeMic,
+                                  ),
+                                  // Compact audio-only music player — same
+                                  // queue/playback system as a watch party.
+                                  if (currentItem != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 12),
+                                      child: SyncVideoPlayer(
+                                        videoUrl: playerVideoUrl,
+                                        isHost: rs.isHost,
+                                        playback: rs.playback,
+                                        mediaMode: 'audio',
+                                        title: currentItem['title'] as String? ?? room['title'] as String?,
+                                        thumbnail: currentItem['thumbnail'] as String?,
+                                        onPlay: rs.play,
+                                        onPause: rs.pause,
+                                        onSeek: rs.seek,
+                                        onRequestState: rs.requestState,
+                                        onEnded: rs.queueNext,
+                                        onSkip: rs.queueNext,
+                                        liked: _likedUrls.contains(currentItem['videoUrl']),
+                                        onToggleLike: () => _toggleLike(currentItem),
+                                      ),
+                                    ),
+                                ],
+                              )
+                            : AspectRatio(
                         aspectRatio: 16 / 9,
                         child: Container(
                           decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
@@ -421,29 +483,26 @@ class _PartyScreenState extends State<PartyScreen> {
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: myMicOn
-                        ? rs.micOff
-                        : canUseMic
-                            ? rs.micOn
-                            : () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("The host hasn't enabled mic access yet"))),
+                    onTap: handleMicTap,
                     child: Container(
                       width: 40,
                       height: 40,
                       margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(color: myMicOn ? AppColors.danger : Colors.black, shape: BoxShape.circle),
+                      decoration: BoxDecoration(
+                        color: myMicOn ? AppColors.danger : (myMicRequested ? AppColors.gold : Colors.black),
+                        shape: BoxShape.circle,
+                      ),
                       alignment: Alignment.center,
                       child: Icon(myMicOn ? Icons.mic : Icons.mic_off, color: Colors.white, size: 18),
                     ),
                   ),
-                  if (rs.isHost)
-                    _iconButton(rs.call['policyOpen'] == true ? '🔓' : '🔒', () => rs.setMicPolicy(rs.call['policyOpen'] != true)),
                   if (rs.isHost) _iconButton('🚀', _boost, color: AppColors.gold),
                   _iconButton('🎁', () => showGiftBottomSheet(context, toUserId: room['hostId'] as String? ?? '', roomId: widget.roomId, targetKey: _hostKey), color: AppColors.gold),
                   if (rs.isHost)
                     _iconButton('📊', () => showPollCreatorBottomSheet(context, onCreate: rs.createPoll))
                   else if (rs.poll['active'] == true)
                     _iconButton('📊', () => showPollBottomSheet(context, poll: rs.poll, myUserId: myId ?? '', isHost: rs.isHost, onVote: rs.votePoll, onReset: rs.resetPoll)),
-                  if (isWatch || isGame)
+                  if (isWatch || isGame || isVoice)
                     _iconButton('📑', _openQueue, badge: items.isEmpty ? null : items.length),
                   _iconButton('🔗', _shareRoom),
                   _iconButton('👥➕', _openInvite),
