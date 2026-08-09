@@ -9,6 +9,7 @@ const _kGameTypes = [
   ['truth_or_dare', '🎲 Truth or Dare'],
   ['ludo', '🟢 Ludo'],
   ['chess', '♞ Chess'],
+  ['uno', '🃏 UNO'],
 ];
 
 /// Host-only: switch an already-created room between watch/voice/game

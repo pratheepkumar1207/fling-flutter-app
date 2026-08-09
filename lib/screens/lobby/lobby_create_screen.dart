@@ -122,6 +122,8 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
                   _gameTypeButton('ludo', '🟢 Ludo', available: true),
                   const SizedBox(height: 8),
                   _gameTypeButton('chess', '♞ Chess', available: true),
+                  const SizedBox(height: 8),
+                  _gameTypeButton('uno', '🃏 UNO', available: true),
                 ],
               ),
             ),

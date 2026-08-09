@@ -4,6 +4,7 @@ import 'chess_board.dart';
 import 'ludo_board.dart';
 import 'tic_tac_toe_board.dart';
 import 'truth_or_dare_panel.dart';
+import 'uno_board.dart';
 
 /// Renders in the same media-area slot SyncVideoPlayer/LiveVideoView
 /// occupy for 'watch'/'live' rooms, switched by the room's gameType.
@@ -63,6 +64,10 @@ class GameBoardView extends StatelessWidget {
 
     if (gameType == 'chess') {
       return ChessBoard(game: game!, myUserId: myUserId, isHost: isHost, onJoin: onJoin, onMove: onMove, onReset: onReset);
+    }
+
+    if (gameType == 'uno') {
+      return UnoBoard(game: game!, myUserId: myUserId, isHost: isHost, onJoin: onJoin, onMove: onMove, onReset: onReset);
     }
 
     return AspectRatio(
