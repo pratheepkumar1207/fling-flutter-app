@@ -34,6 +34,7 @@ class PartyScreen extends StatefulWidget {
 
 class _PartyScreenState extends State<PartyScreen> {
   final _hostKey = GlobalKey();
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   Map<String, dynamic>? _room;
   bool _loading = true;
   String? _error;
@@ -206,22 +207,7 @@ class _PartyScreenState extends State<PartyScreen> {
   }
 
   void _openRoster() {
-    final rs = _rs!;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surface2,
-      builder: (_) => RosterSheet(
-        roster: rs.roster,
-        hostId: rs.hostId,
-        isHost: rs.isHost,
-        myUserId: context.read<AuthProvider>().user?.id,
-        onKick: rs.kick,
-        onMakeHost: rs.makeHost,
-        roomType: _room?['roomType'] as String?,
-        activeMics: (rs.call['activeMics'] as List?)?.cast<String>(),
-        onInviteMic: rs.inviteMic,
-      ),
-    );
+    _scaffoldKey.currentState?.openEndDrawer();
   }
 
   void _openQueue() {
@@ -316,7 +302,19 @@ class _PartyScreenState extends State<PartyScreen> {
     }
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: AppColors.bg,
+      endDrawer: RosterSheet(
+        roster: rs.roster,
+        hostId: rs.hostId,
+        isHost: rs.isHost,
+        myUserId: myId,
+        onKick: rs.kick,
+        onMakeHost: rs.makeHost,
+        roomType: room['roomType'] as String?,
+        activeMics: activeMics,
+        onInviteMic: rs.inviteMic,
+      ),
       appBar: AppBar(
         leading: BackButton(onPressed: () => Navigator.of(context).pop()),
         title: Text(room['title'] as String? ?? '', key: _hostKey, style: const TextStyle(fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
