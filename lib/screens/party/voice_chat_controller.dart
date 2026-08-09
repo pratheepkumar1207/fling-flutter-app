@@ -28,16 +28,16 @@ class VoiceChatController {
   }
 
   Future<void> _init() async {
-    await Permission.microphone.request();
-    final engine = createAgoraRtcEngine();
-    await engine.initialize(RtcEngineContext(appId: kAgoraAppId));
-    await engine.setChannelProfile(ChannelProfileType.channelProfileCommunication);
-    await engine.disableVideo();
-    await engine.enableAudio();
-    await engine.muteLocalAudioStream(true);
-    _engine = engine;
-
     try {
+      await Permission.microphone.request();
+      final engine = createAgoraRtcEngine();
+      await engine.initialize(RtcEngineContext(appId: kAgoraAppId));
+      await engine.setChannelProfile(ChannelProfileType.channelProfileCommunication);
+      await engine.disableVideo();
+      await engine.enableAudio();
+      await engine.muteLocalAudioStream(true);
+      _engine = engine;
+
       final uid = Random().nextInt(1000000);
       final data = await ApiClient.post('/calls/token', body: {'roomId': roomId, 'uid': uid}) as Map<String, dynamic>;
       await engine.joinChannel(

@@ -123,6 +123,8 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
                   _gameTypeButton('truth_or_dare', '🎲 Truth or Dare', available: true),
                   const SizedBox(height: 8),
                   _gameTypeButton('ludo', '🟢 Ludo', available: true),
+                  const SizedBox(height: 8),
+                  _gameTypeButton('chess', '♞ Chess', available: true),
                 ],
               ),
             ),

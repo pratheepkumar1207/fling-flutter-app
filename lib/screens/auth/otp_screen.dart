@@ -6,11 +6,8 @@ import '../../theme/glass.dart';
 const _kLength = 6;
 
 /// "Sigil" slot-style OTP screen — Dart port of src/pages/OtpPage.jsx.
-/// Reached after a real Firebase OTP is sent (see login_screen.dart's
-/// kFirebaseConfigured flag). [onVerify] receives the assembled code; wire
-/// it to firebase_auth's confirmationResult.confirm once
-/// `flutterfire configure` has been run for this project. Dev-login is the
-/// functional path until then.
+/// Reached after login_screen.dart sends a real Firebase OTP. [onVerify]
+/// receives the assembled code and confirms it via firebase_auth.
 class OtpScreen extends StatefulWidget {
   final String phone;
   final Future<void> Function(String code)? onVerify;
@@ -68,6 +65,7 @@ class _OtpScreenState extends State<OtpScreen> {
     });
     try {
       await widget.onVerify!(_code);
+      if (mounted) Navigator.of(context).pop();
     } catch (e) {
       setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
       _triggerShake();

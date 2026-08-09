@@ -3,7 +3,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/glass.dart';
 
 class NavItemData {
-  final String icon;
+  final IconData icon;
   final String label;
   const NavItemData(this.icon, this.label);
 }
@@ -66,7 +66,11 @@ class LiquidGlassBottomNav extends StatelessWidget {
                                   duration: const Duration(milliseconds: 500),
                                   curve: kSpringCurve,
                                   scale: selected ? 1.15 : 1.0,
-                                  child: Text(items[i].icon, style: const TextStyle(fontSize: 18)),
+                                  child: Icon(
+                                    items[i].icon,
+                                    size: 20,
+                                    color: selected ? AppColors.primary : AppColors.textFaint,
+                                  ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(

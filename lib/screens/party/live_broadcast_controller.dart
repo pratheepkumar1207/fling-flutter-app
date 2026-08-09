@@ -26,29 +26,29 @@ class LiveBroadcastController extends ChangeNotifier {
   }
 
   Future<void> _init() async {
-    await Permission.camera.request();
-    await Permission.microphone.request();
-    final engine = createAgoraRtcEngine();
-    await engine.initialize(RtcEngineContext(appId: kAgoraAppId));
-    await engine.enableVideo();
-    await engine.enableAudio();
-    engine.registerEventHandler(RtcEngineEventHandler(
-      onUserJoined: (connection, uid, elapsed) {
-        if (!isHost && _remoteUid == null) {
-          _remoteUid = uid;
-          notifyListeners();
-        }
-      },
-      onUserOffline: (connection, uid, reason) {
-        if (_remoteUid == uid) {
-          _remoteUid = null;
-          notifyListeners();
-        }
-      },
-    ));
-    _engine = engine;
-
     try {
+      await Permission.camera.request();
+      await Permission.microphone.request();
+      final engine = createAgoraRtcEngine();
+      await engine.initialize(RtcEngineContext(appId: kAgoraAppId));
+      await engine.enableVideo();
+      await engine.enableAudio();
+      engine.registerEventHandler(RtcEngineEventHandler(
+        onUserJoined: (connection, uid, elapsed) {
+          if (!isHost && _remoteUid == null) {
+            _remoteUid = uid;
+            notifyListeners();
+          }
+        },
+        onUserOffline: (connection, uid, reason) {
+          if (_remoteUid == uid) {
+            _remoteUid = null;
+            notifyListeners();
+          }
+        },
+      ));
+      _engine = engine;
+
       final uid = Random().nextInt(1000000);
       final data = await ApiClient.post('/calls/token', body: {'roomId': roomId, 'uid': uid}) as Map<String, dynamic>;
       await engine.joinChannel(

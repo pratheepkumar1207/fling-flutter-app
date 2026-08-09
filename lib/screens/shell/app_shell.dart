@@ -32,10 +32,10 @@ class _AppShellState extends State<AppShell> {
   ];
 
   static const _items = [
-    NavItemData('🏠', 'Home'),
-    NavItemData('📰', 'Feed'),
-    NavItemData('🔥', 'Discover'),
-    NavItemData('🎬', 'Rooms'),
+    NavItemData(Icons.home_rounded, 'Home'),
+    NavItemData(Icons.article_rounded, 'Feed'),
+    NavItemData(Icons.local_fire_department_rounded, 'Discover'),
+    NavItemData(Icons.theaters_rounded, 'Rooms'),
   ];
 
   @override

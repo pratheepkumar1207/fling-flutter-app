@@ -5,16 +5,18 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  static const bg = Color(0xFF0A0A12);
-  static const surface = Color(0xFF15151F);
-  static const surface2 = Color(0xFF1E1E2C);
-  static const surface3 = Color(0xFF292940);
+  // Flat matte dark — Spotify-reference palette. Neutral greys (no blue
+  // undertone) instead of the earlier glass-purple-leaning surfaces.
+  static const bg = Color(0xFF121212);
+  static const surface = Color(0xFF181818);
+  static const surface2 = Color(0xFF212121);
+  static const surface3 = Color(0xFF2A2A2A);
   static const border = Color(0x14FFFFFF);
-  static const primary = Color(0xFFFF4D6D);
-  static const primaryDim = Color(0xFFE0435F);
-  // Warm coral-orange — replaces an earlier violet accent so the whole
-  // palette stays in one pink→orange→gold "sunset" family, no purple.
-  static const accent = Color(0xFFFF8A3D);
+  // Brand green (distinct from Spotify's own trademark shade) replaces the
+  // earlier pink primary.
+  static const primary = Color(0xFF1ED760);
+  static const primaryDim = Color(0xFF14A84A);
+  static const accent = Color(0xFF0EA5A0);
   static const gold = Color(0xFFFFC94D);
   static const text = Color(0xFFF5F5FA);
   static const textDim = Color(0xFFA8A8BD);

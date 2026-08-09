@@ -12,6 +12,7 @@ import '../../widgets/live_video_view.dart';
 import '../../widgets/participant_avatar_row.dart';
 import '../../widgets/poll_bottom_sheet.dart';
 import '../../widgets/poll_creator_bottom_sheet.dart';
+import '../../widgets/room_settings_sheet.dart';
 import '../../widgets/spinner.dart';
 import '../lobby/invite_screen.dart';
 import 'chat_panel.dart';
@@ -31,6 +32,7 @@ class PartyScreen extends StatefulWidget {
 }
 
 class _PartyScreenState extends State<PartyScreen> {
+  final _hostKey = GlobalKey();
   Map<String, dynamic>? _room;
   bool _loading = true;
   String? _error;
@@ -40,6 +42,7 @@ class _PartyScreenState extends State<PartyScreen> {
   Set<String> _likedUrls = {};
   String? _loggedHistoryFor;
   bool _seededQueue = false;
+  Map<String, dynamic>? _lastHandledTypeChange;
   // Purely local — lets this viewer watch a "video" queue item as audio-only
   // (or vice versa) without changing what anyone else in the room sees.
   // null means "follow the queue item's own mediaMode".
@@ -111,6 +114,13 @@ class _PartyScreenState extends State<PartyScreen> {
     if (rs.micDenied != null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(rs.micDenied!)));
       rs.clearMicDenied();
+    }
+
+    // The host changed the room's type elsewhere (or another device) — pick
+    // up the new fields so the video/voice/game UI switches over live.
+    if (rs.typeChange != null && !identical(rs.typeChange, _lastHandledTypeChange)) {
+      _lastHandledTypeChange = rs.typeChange;
+      setState(() => _room = {...?_room, ...rs.typeChange!});
     }
 
     // Seed the queue with the room's own video once, host-only — mirrors
@@ -267,6 +277,7 @@ class _PartyScreenState extends State<PartyScreen> {
     final currentItem = (items.isNotEmpty && currentIndex < items.length) ? Map<String, dynamic>.from(items[currentIndex] as Map) : null;
     final playerVideoUrl = currentItem?['videoUrl'] as String? ?? room['videoUrl'] as String?;
     final isWatch = room['roomType'] == 'watch';
+    final isGame = room['roomType'] == 'game';
     final myId = context.read<AuthProvider>().user?.id;
     final myMicOn = myId != null && (rs.call['activeMics'] as List? ?? []).contains(myId);
     final canUseMic = rs.isHost || rs.call['policyOpen'] == true;
@@ -278,6 +289,7 @@ class _PartyScreenState extends State<PartyScreen> {
       appBar: AppBar(
         leading: BackButton(onPressed: () => Navigator.of(context).pop()),
         title: Column(
+          key: _hostKey,
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -299,6 +311,12 @@ class _PartyScreenState extends State<PartyScreen> {
               ),
             ),
           TextButton(onPressed: _openRoster, child: Text('👥 ${rs.roster.length}', style: const TextStyle(color: AppColors.textDim))),
+          if (rs.isHost && room['roomType'] != 'live')
+            IconButton(
+              tooltip: 'Room settings',
+              onPressed: () => showRoomSettingsSheet(context, room: room, onChanged: _loadRoom),
+              icon: const Icon(Icons.settings_outlined, color: AppColors.textDim),
+            ),
         ],
       ),
       body: Column(
@@ -325,15 +343,44 @@ class _PartyScreenState extends State<PartyScreen> {
                   )
                 : room['roomType'] == 'live' && _live != null
                     ? LiveVideoView(controller: _live!, isHost: rs.isHost)
-                    : room['roomType'] == 'game'
-                        ? GameBoardView(
-                            gameType: room['gameType'] as String?,
-                            game: rs.game,
-                            myUserId: myId,
-                            isHost: rs.isHost,
-                            onJoin: rs.gameJoin,
-                            onMove: rs.gameMove,
-                            onReset: rs.gameReset,
+                    : isGame
+                        ? Column(
+                            children: [
+                              GameBoardView(
+                                gameType: room['gameType'] as String?,
+                                game: rs.game,
+                                myUserId: myId,
+                                isHost: rs.isHost,
+                                onJoin: rs.gameJoin,
+                                onMove: rs.gameMove,
+                                onReset: rs.gameReset,
+                              ),
+                              // Music while you play — same queue/playback
+                              // system as a watch party, just always shown as
+                              // the compact audio bar since the game board
+                              // owns the visual space. Only appears once
+                              // someone's actually queued a song.
+                              if (currentItem != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 12),
+                                  child: SyncVideoPlayer(
+                                    videoUrl: playerVideoUrl,
+                                    isHost: rs.isHost,
+                                    playback: rs.playback,
+                                    mediaMode: 'audio',
+                                    title: currentItem['title'] as String? ?? room['title'] as String?,
+                                    thumbnail: currentItem['thumbnail'] as String?,
+                                    onPlay: rs.play,
+                                    onPause: rs.pause,
+                                    onSeek: rs.seek,
+                                    onRequestState: rs.requestState,
+                                    onEnded: rs.queueNext,
+                                    onSkip: rs.queueNext,
+                                    liked: _likedUrls.contains(currentItem['videoUrl']),
+                                    onToggleLike: () => _toggleLike(currentItem),
+                                  ),
+                                ),
+                            ],
                           )
                         : AspectRatio(
                         aspectRatio: 16 / 9,
@@ -391,12 +438,12 @@ class _PartyScreenState extends State<PartyScreen> {
                   if (rs.isHost)
                     _iconButton(rs.call['policyOpen'] == true ? '🔓' : '🔒', () => rs.setMicPolicy(rs.call['policyOpen'] != true)),
                   if (rs.isHost) _iconButton('🚀', _boost, color: AppColors.gold),
-                  _iconButton('🎁', () => showGiftBottomSheet(context, toUserId: room['hostId'] as String? ?? '', roomId: widget.roomId), color: AppColors.gold),
+                  _iconButton('🎁', () => showGiftBottomSheet(context, toUserId: room['hostId'] as String? ?? '', roomId: widget.roomId, targetKey: _hostKey), color: AppColors.gold),
                   if (rs.isHost)
                     _iconButton('📊', () => showPollCreatorBottomSheet(context, onCreate: rs.createPoll))
                   else if (rs.poll['active'] == true)
                     _iconButton('📊', () => showPollBottomSheet(context, poll: rs.poll, myUserId: myId ?? '', isHost: rs.isHost, onVote: rs.votePoll, onReset: rs.resetPoll)),
-                  if (isWatch)
+                  if (isWatch || isGame)
                     _iconButton('📑', _openQueue, badge: items.isEmpty ? null : items.length),
                   _iconButton('🔗', _shareRoom),
                   _iconButton('👥➕', _openInvite),

@@ -15,9 +15,10 @@ import 'app_colors.dart';
 const Curve kSpringCurve = Cubic(0.34, 1.56, 0.64, 1);
 const Curve kGlassCurve = Cubic(0.16, 1.0, 0.3, 1.0);
 
-/// Frosted-glass surface: blurred backdrop + translucent tint + hairline
-/// border + soft outer shadow. Wrap any child in this instead of a plain
-/// Container when a screen calls for the "liquid glass" look.
+/// Flat matte card: mostly-opaque tint + hairline border + soft outer
+/// shadow, with just a hint of backdrop blur — Spotify-reference look
+/// rather than a true frosted-glass surface. Wrap any child in this instead
+/// of a plain Container when a screen calls for the shared card style.
 class GlassSurface extends StatelessWidget {
   final Widget child;
   final BorderRadius borderRadius;
@@ -29,7 +30,7 @@ class GlassSurface extends StatelessWidget {
     super.key,
     required this.child,
     this.borderRadius = const BorderRadius.all(Radius.circular(20)),
-    this.blurSigma = 20,
+    this.blurSigma = 6,
     this.tint,
     this.padding,
   });
@@ -43,11 +44,11 @@ class GlassSurface extends StatelessWidget {
         child: Container(
           padding: padding,
           decoration: BoxDecoration(
-            color: (tint ?? AppColors.surface2).withValues(alpha: 0.55),
+            color: (tint ?? AppColors.surface2).withValues(alpha: 0.92),
             borderRadius: borderRadius,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 32, offset: const Offset(0, 8)),
+              BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 24, offset: const Offset(0, 8)),
             ],
           ),
           child: child,

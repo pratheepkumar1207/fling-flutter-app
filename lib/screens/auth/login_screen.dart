@@ -1,15 +1,12 @@
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/auth_provider.dart';
+import '../../core/firebase_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/glass.dart';
 import '../../widgets/mascot_eyes.dart';
-
-/// Flips to true once `flutterfire configure` has been run and firebase_auth
-/// wired up for real phone-OTP sign-in — mirrors firebaseConfigured in the
-/// web app's src/lib/firebase.js. Until then, dev-login is the only path
-/// (same as the web app defaults to when Firebase env vars are unset).
-const bool kFirebaseConfigured = false;
+import 'otp_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -23,7 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _phoneFocus = FocusNode();
   String _error = '';
   bool _loading = false;
-  bool _devMode = !kFirebaseConfigured;
+  bool _devMode = !firebaseConfigured;
   bool _fieldFocused = false;
 
   @override
@@ -48,9 +45,35 @@ class _LoginScreenState extends State<LoginScreen> {
       if (_devMode) {
         await context.read<AuthProvider>().devLogin(_normalizedPhone);
       } else {
-        // TODO: once flutterfire configure has been run, send a real OTP here
-        // via firebase_auth's verifyPhoneNumber and push OtpScreen.
-        throw Exception('Real phone verification isn\'t configured yet — use dev login.');
+        final phone = _normalizedPhone;
+        final authProvider = context.read<AuthProvider>();
+        await FirebaseAuth.instance.verifyPhoneNumber(
+          phoneNumber: phone,
+          verificationCompleted: (PhoneAuthCredential credential) async {
+            final cred = await FirebaseAuth.instance.signInWithCredential(credential);
+            final idToken = await cred.user?.getIdToken();
+            if (idToken != null) await authProvider.loginWithFirebaseIdToken(idToken);
+          },
+          verificationFailed: (FirebaseAuthException e) {
+            if (mounted) setState(() => _error = e.message ?? 'Verification failed');
+          },
+          codeSent: (String verificationId, int? resendToken) {
+            if (!mounted) return;
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => OtpScreen(
+                phone: phone,
+                onVerify: (code) async {
+                  final credential = PhoneAuthProvider.credential(verificationId: verificationId, smsCode: code);
+                  final cred = await FirebaseAuth.instance.signInWithCredential(credential);
+                  final idToken = await cred.user?.getIdToken();
+                  if (idToken == null) throw Exception('Could not verify code.');
+                  await authProvider.loginWithFirebaseIdToken(idToken);
+                },
+              ),
+            ));
+          },
+          codeAutoRetrievalTimeout: (String verificationId) {},
+        );
       }
     } catch (e) {
       setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
@@ -128,7 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: Text(_loading ? 'Sending…' : (_devMode ? 'Continue (dev login)' : 'Send code')),
                           ),
                         ),
-                        if (kFirebaseConfigured)
+                        if (firebaseConfigured)
                           TextButton(
                             onPressed: () => setState(() => _devMode = !_devMode),
                             child: Text(

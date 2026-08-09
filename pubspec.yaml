@@ -15,6 +15,10 @@ dependencies:
   http: ^1.2.1
   socket_io_client: ^2.0.3+1
 
+  # Firebase phone auth (mirrors src/lib/firebase.js on the web app)
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+
   # State management
   provider: ^6.1.2
 

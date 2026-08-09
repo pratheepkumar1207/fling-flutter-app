@@ -20,6 +20,7 @@ class RoomSocketController extends ChangeNotifier {
   Map<String, dynamic> call = {'policyOpen': false, 'activeMics': []};
   String? micDenied;
   Map<String, dynamic>? game;
+  Map<String, dynamic>? typeChange;
 
   bool get isHost => hostId != null && myUserId != null && hostId == myUserId;
 
@@ -88,6 +89,14 @@ class RoomSocketController extends ChangeNotifier {
       game = data == null ? null : Map<String, dynamic>.from(data);
       notifyListeners();
     });
+    // The host changed the room's type (see PATCH /rooms/:id/type) —
+    // re-join so the server's lazy game-state seeding (in room:join) runs
+    // again for whatever the new gameType is, same as a fresh page load.
+    s.on('room:typeChanged', (data) {
+      typeChange = Map<String, dynamic>.from(data);
+      notifyListeners();
+      s.emit('room:join', {'roomId': roomId});
+    });
   }
 
   void leave() {
@@ -106,6 +115,7 @@ class RoomSocketController extends ChangeNotifier {
     socket?.off('call:state');
     socket?.off('call:denied');
     socket?.off('game:state');
+    socket?.off('room:typeChanged');
   }
 
   void clearMicDenied() {

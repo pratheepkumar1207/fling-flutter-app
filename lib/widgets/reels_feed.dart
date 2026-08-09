@@ -5,6 +5,54 @@ import '../theme/app_colors.dart';
 import 'avatar.dart';
 import 'share_row.dart';
 
+// Transparent by default — a plain white outline icon sitting directly on
+// the video with a soft shadow for legibility, no filled backdrop circle.
+// Toggling "on" fills the icon and adds a glow instead of a background
+// swap, so the button never looks like a flat colored chip.
+class _ReelIconButton extends StatelessWidget {
+  final IconData icon;
+  final bool active;
+  final Color activeColor;
+  final VoidCallback onTap;
+  final int? count;
+
+  const _ReelIconButton({
+    required this.icon,
+    this.active = false,
+    this.activeColor = AppColors.primary,
+    required this.onTap,
+    this.count,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 28,
+              color: active ? activeColor : Colors.white,
+              shadows: active
+                  ? [Shadow(color: activeColor, blurRadius: 12), Shadow(color: activeColor, blurRadius: 24)]
+                  : const [Shadow(color: Colors.black54, blurRadius: 3, offset: Offset(0, 1))],
+            ),
+            if (count != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text('$count', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ReelCard extends StatefulWidget {
   final Post post;
   final ValueChanged<Post> onLike;
@@ -102,13 +150,28 @@ class _ReelCardState extends State<_ReelCard> {
                     ),
                     Column(
                       children: [
-                        IconButton(onPressed: () => widget.onLike(post), icon: Text(post.likedByMe ? '❤️' : '🤍', style: const TextStyle(fontSize: 22))),
-                        Text('${post.likesCount}', style: const TextStyle(color: Colors.white, fontSize: 11)),
-                        IconButton(onPressed: () => widget.onOpenComments(post), icon: const Text('💬', style: TextStyle(fontSize: 22))),
-                        Text('${post.commentsCount}', style: const TextStyle(color: Colors.white, fontSize: 11)),
-                        IconButton(onPressed: () => widget.onSave(post), icon: Text(post.savedByMe ? '🔖' : '📑', style: const TextStyle(fontSize: 20))),
+                        _ReelIconButton(
+                          icon: post.likedByMe ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                          active: post.likedByMe,
+                          onTap: () => widget.onLike(post),
+                          count: post.likesCount,
+                        ),
+                        _ReelIconButton(
+                          icon: Icons.mode_comment_outlined,
+                          onTap: () => widget.onOpenComments(post),
+                          count: post.commentsCount,
+                        ),
+                        _ReelIconButton(
+                          icon: post.savedByMe ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                          active: post.savedByMe,
+                          activeColor: AppColors.gold,
+                          onTap: () => widget.onSave(post),
+                        ),
                         ShareRow(text: post.text),
-                        IconButton(onPressed: _toggleMute, icon: Text(_muted ? '🔇' : '🔊', style: const TextStyle(fontSize: 20))),
+                        _ReelIconButton(
+                          icon: _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                          onTap: _toggleMute,
+                        ),
                       ],
                     ),
                   ],

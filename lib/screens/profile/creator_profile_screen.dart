@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
+import '../../core/smart_play_song.dart';
 import '../../models/photo.dart';
 import '../../models/playlist.dart';
 import '../../models/song.dart';
@@ -10,6 +11,7 @@ import '../../widgets/cola_profile_card.dart';
 import '../../widgets/gift_bottom_sheet.dart';
 import '../../widgets/spinner.dart';
 import '../messages/message_thread_screen.dart';
+import '../party/party_screen.dart';
 
 class CreatorProfileScreen extends StatefulWidget {
   final String userId;
@@ -20,6 +22,7 @@ class CreatorProfileScreen extends StatefulWidget {
 }
 
 class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
+  final _avatarKey = GlobalKey();
   Map<String, dynamic>? _profile;
   List<Photo> _gallery = [];
   List<Playlist> _playlists = [];
@@ -148,6 +151,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           ColaProfileCard(
+            key: _avatarKey,
             avatarUrl: p['avatarUrl'] as String?,
             name: p['name'] as String?,
             username: p['username'] as String?,
@@ -155,13 +159,14 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [AppColors.primary, AppColors.accent, Color(0xFFC2410C)],
+              colors: [AppColors.primary, AppColors.accent, Color(0xFF0D3B3A)],
             ),
             badges: [
               if (p['isVerified'] == true) _badge('Verified', AppColors.success),
               if (p['isVip'] == true) _badge('VIP', AppColors.gold),
               if (p['isCreator'] == true) _badge('Creator', AppColors.accent),
             ],
+            insideAction: (p['activeRoom'] as Map?) != null ? _activeRoomBadge(p['activeRoom'] as Map) : null,
             stats: [
               ColaStat('Followers', p['followerCount']),
               ColaStat('Following', p['followingCount']),
@@ -181,7 +186,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
               OutlinedButton(onPressed: _addFriend, style: OutlinedButton.styleFrom(shape: const StadiumBorder()), child: const Text('Add friend')),
               OutlinedButton(
                 style: OutlinedButton.styleFrom(foregroundColor: AppColors.gold, side: const BorderSide(color: AppColors.gold), shape: const StadiumBorder()),
-                onPressed: () => showGiftBottomSheet(context, toUserId: widget.userId),
+                onPressed: () => showGiftBottomSheet(context, toUserId: widget.userId, targetKey: _avatarKey),
                 child: const Text('🎁 Gift'),
               ),
               OutlinedButton(
@@ -242,6 +247,30 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                   children: [
                     Text(pl.name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600)),
                     Text('${pl.songs.length} song${pl.songs.length == 1 ? '' : 's'}', style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
+                    if (pl.songs.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 48,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: pl.songs.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 8),
+                          itemBuilder: (context, i) {
+                            final s = pl.songs[i];
+                            return GestureDetector(
+                              onTap: () => playSongSmart(context, s),
+                              child: Container(
+                                width: 64,
+                                height: 48,
+                                decoration: BoxDecoration(color: AppColors.surface3, borderRadius: BorderRadius.circular(8)),
+                                clipBehavior: Clip.antiAlias,
+                                child: s.thumbnail != null ? AppImage(source: s.thumbnail, fit: BoxFit.cover) : const Center(child: Text('🎵')),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -261,27 +290,48 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
         child: Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
       );
 
+  // Only ever populated by the backend when the viewer is VIP — seeing
+  // someone's live room activity is a VIP perk.
+  Widget _activeRoomBadge(Map activeRoom) => GestureDetector(
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: activeRoom['roomId'] as String))),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.25), borderRadius: BorderRadius.circular(999)),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 6, height: 6, decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.success)),
+              const SizedBox(width: 6),
+              Text('Active in "${activeRoom['title']}"', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+      );
+
   Widget _sectionTitle(String title) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Text(title, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.bold, fontSize: 15)),
       );
 
-  Widget _songTile(Song s) => Container(
-        margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
-        child: Row(
-          children: [
-            Container(
-              width: 56,
-              height: 40,
-              decoration: BoxDecoration(color: AppColors.surface3, borderRadius: BorderRadius.circular(8)),
-              clipBehavior: Clip.antiAlias,
-              child: s.thumbnail != null ? AppImage(source: s.thumbnail, fit: BoxFit.cover) : const Center(child: Text('🎵')),
-            ),
-            const SizedBox(width: 10),
-            Expanded(child: Text(s.title ?? 'Untitled', style: const TextStyle(color: AppColors.text, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis)),
-          ],
+  Widget _songTile(Song s) => GestureDetector(
+        onTap: () => playSongSmart(context, s),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 6),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
+          child: Row(
+            children: [
+              Container(
+                width: 56,
+                height: 40,
+                decoration: BoxDecoration(color: AppColors.surface3, borderRadius: BorderRadius.circular(8)),
+                clipBehavior: Clip.antiAlias,
+                child: s.thumbnail != null ? AppImage(source: s.thumbnail, fit: BoxFit.cover) : const Center(child: Text('🎵')),
+              ),
+              const SizedBox(width: 10),
+              Expanded(child: Text(s.title ?? 'Untitled', style: const TextStyle(color: AppColors.text, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis)),
+            ],
+          ),
         ),
       );
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import 'chess_board.dart';
 import 'ludo_board.dart';
 import 'tic_tac_toe_board.dart';
 import 'truth_or_dare_panel.dart';
@@ -58,6 +59,10 @@ class GameBoardView extends StatelessWidget {
 
     if (gameType == 'ludo') {
       return LudoBoard(game: game!, myUserId: myUserId, isHost: isHost, onJoin: onJoin, onMove: onMove, onReset: onReset);
+    }
+
+    if (gameType == 'chess') {
+      return ChessBoard(game: game!, myUserId: myUserId, isHost: isHost, onJoin: onJoin, onMove: onMove, onReset: onReset);
     }
 
     return AspectRatio(
