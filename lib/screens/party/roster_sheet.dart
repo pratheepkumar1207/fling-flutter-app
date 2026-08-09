@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/api_client.dart';
 import '../../models/room_models.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/avatar.dart';
@@ -6,7 +7,7 @@ import '../../widgets/avatar.dart';
 /// The room's participant list — opened as a right-side Drawer (see
 /// party_screen.dart's endDrawer + _scaffoldKey.currentState?.openEndDrawer())
 /// rather than a bottom sheet, so it reads like Discord's member list.
-class RosterSheet extends StatelessWidget {
+class RosterSheet extends StatefulWidget {
   final List<RosterEntry> roster;
   final String? hostId;
   final bool isHost;
@@ -31,6 +32,82 @@ class RosterSheet extends StatelessWidget {
   });
 
   @override
+  State<RosterSheet> createState() => _RosterSheetState();
+}
+
+class _RosterSheetState extends State<RosterSheet> {
+  // userId -> {'status': 'none'|'pending_sent'|'pending_received'|'friends', 'requestId': String?}
+  Map<String, Map<String, dynamic>> _friendStatuses = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFriendStatuses();
+  }
+
+  Future<void> _loadFriendStatuses() async {
+    final otherIds = widget.roster.where((r) => r.userId != widget.myUserId).map((r) => r.userId).toList();
+    if (otherIds.isEmpty) return;
+    try {
+      final data = await ApiClient.post('/friends/status', body: {'userIds': otherIds}) as Map<String, dynamic>;
+      if (!mounted) return;
+      setState(() {
+        _friendStatuses = data.map((k, v) => MapEntry(k, Map<String, dynamic>.from(v as Map)));
+      });
+    } catch (_) {
+      // non-critical — rows just fall back to showing no friend icon
+    }
+  }
+
+  Future<void> _sendFriendRequest(String userId) async {
+    setState(() => _friendStatuses[userId] = {'status': 'pending_sent'});
+    try {
+      await ApiClient.post('/friends/request', body: {'toUserId': userId});
+    } catch (_) {
+      if (mounted) {
+        setState(() => _friendStatuses[userId] = {'status': 'none'});
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to send friend request')));
+      }
+    }
+  }
+
+  Future<void> _acceptFriendRequest(String userId, String requestId) async {
+    setState(() => _friendStatuses[userId] = {'status': 'friends'});
+    try {
+      await ApiClient.post('/friends/$requestId/accept');
+    } catch (_) {
+      if (mounted) {
+        setState(() => _friendStatuses[userId] = {'status': 'pending_received', 'requestId': requestId});
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to accept friend request')));
+      }
+    }
+  }
+
+  Widget? _friendAction(String userId) {
+    final friend = _friendStatuses[userId];
+    final status = friend?['status'] as String?;
+    if (status == null || status == 'friends') return null;
+    if (status == 'pending_sent') {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 6),
+        child: Text('⏳', style: TextStyle(fontSize: 13)),
+      );
+    }
+    if (status == 'pending_received') {
+      return TextButton(
+        onPressed: () => _acceptFriendRequest(userId, friend!['requestId'] as String),
+        child: const Text('Accept', style: TextStyle(color: AppColors.primary, fontSize: 12)),
+      );
+    }
+    return IconButton(
+      onPressed: () => _sendFriendRequest(userId),
+      tooltip: 'Add friend',
+      icon: const Text('👤➕', style: TextStyle(fontSize: 14)),
+      visualDensity: VisualDensity.compact,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Drawer(
       backgroundColor: AppColors.surface2,
@@ -50,26 +127,30 @@ class RosterSheet extends StatelessWidget {
               ),
               Expanded(
                 child: ListView.builder(
-                  itemCount: roster.length,
+                  itemCount: widget.roster.length,
                   itemBuilder: (context, i) {
-                    final r = roster[i];
-                    final isRowHost = r.userId == hostId;
-                    final isMe = r.userId == myUserId;
-                    final canInviteMic = isHost && roomType == 'voice' && onInviteMic != null && !(activeMics?.contains(r.userId) ?? false);
+                    final r = widget.roster[i];
+                    final isRowHost = r.userId == widget.hostId;
+                    final isMe = r.userId == widget.myUserId;
+                    final canInviteMic = widget.isHost && widget.roomType == 'voice' && widget.onInviteMic != null && !(widget.activeMics?.contains(r.userId) ?? false);
+                    final friendAction = isMe ? null : _friendAction(r.userId);
                     return ListTile(
                       leading: Avatar(src: r.avatarUrl, name: r.name, size: AvatarSize.sm),
-                      title: Text('${r.name}${isRowHost ? ' 👑' : ''}${isMe ? ' (you)' : ''}', style: const TextStyle(color: AppColors.text)),
-                      trailing: (isHost && !isMe)
-                          ? Row(
+                      title: Text('${r.name}${isRowHost ? ' 👑' : ''}${isMe ? ' (you)' : ''}', style: const TextStyle(color: AppColors.text), overflow: TextOverflow.ellipsis),
+                      trailing: isMe
+                          ? null
+                          : Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                if (canInviteMic)
-                                  TextButton(onPressed: () => onInviteMic!(r.userId), child: const Text('🎙️ Invite', style: TextStyle(color: AppColors.gold, fontSize: 12))),
-                                TextButton(onPressed: () => onMakeHost(r.userId), child: const Text('Make host', style: TextStyle(color: AppColors.primary, fontSize: 12))),
-                                TextButton(onPressed: () => onKick(r.userId), child: const Text('Kick', style: TextStyle(color: AppColors.danger, fontSize: 12))),
+                                if (friendAction != null) friendAction,
+                                if (widget.isHost) ...[
+                                  if (canInviteMic)
+                                    TextButton(onPressed: () => widget.onInviteMic!(r.userId), child: const Text('🎙️', style: TextStyle(color: AppColors.gold, fontSize: 14))),
+                                  TextButton(onPressed: () => widget.onMakeHost(r.userId), child: const Text('Host', style: TextStyle(color: AppColors.primary, fontSize: 12))),
+                                  TextButton(onPressed: () => widget.onKick(r.userId), child: const Text('Kick', style: TextStyle(color: AppColors.danger, fontSize: 12))),
+                                ],
                               ],
-                            )
-                          : null,
+                            ),
                     );
                   },
                 ),
