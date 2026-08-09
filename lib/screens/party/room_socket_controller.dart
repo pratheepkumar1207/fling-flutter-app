@@ -21,8 +21,11 @@ class RoomSocketController extends ChangeNotifier {
   String? micDenied;
   Map<String, dynamic>? game;
   Map<String, dynamic>? typeChange;
+  Map<String, dynamic> settings = {'micEnabled': true, 'songPermission': 'anyone', 'autoPlay': true, 'pinPermission': 'host'};
+  String? queueDenied;
 
   bool get isHost => hostId != null && myUserId != null && hostId == myUserId;
+  bool get canPin => isHost || settings['pinPermission'] == 'anyone';
 
   RoomSocketController({required this.socket, required this.roomId, required this.myUserId}) {
     _bind();
@@ -97,6 +100,14 @@ class RoomSocketController extends ChangeNotifier {
       notifyListeners();
       s.emit('room:join', {'roomId': roomId});
     });
+    s.on('room:settingsChanged', (data) {
+      settings = {...settings, ...Map<String, dynamic>.from(data)};
+      notifyListeners();
+    });
+    s.on('queue:denied', (data) {
+      queueDenied = data['reason'] as String?;
+      notifyListeners();
+    });
   }
 
   void leave() {
@@ -116,10 +127,17 @@ class RoomSocketController extends ChangeNotifier {
     socket?.off('call:denied');
     socket?.off('game:state');
     socket?.off('room:typeChanged');
+    socket?.off('room:settingsChanged');
+    socket?.off('queue:denied');
   }
 
   void clearMicDenied() {
     micDenied = null;
+    notifyListeners();
+  }
+
+  void clearQueueDenied() {
+    queueDenied = null;
     notifyListeners();
   }
 
@@ -141,7 +159,7 @@ class RoomSocketController extends ChangeNotifier {
   void queueAdd(Map<String, dynamic> item) => socket?.emit('queue:add', {'roomId': roomId, 'item': item});
   void queueInit(Map<String, dynamic> item) => socket?.emit('queue:init', {'roomId': roomId, 'item': item});
   void queueJump(int index) {
-    if (isHost) socket?.emit('queue:jump', {'roomId': roomId, 'index': index});
+    if (canPin) socket?.emit('queue:jump', {'roomId': roomId, 'index': index});
   }
 
   void queueRemove(int index) {
@@ -149,6 +167,10 @@ class RoomSocketController extends ChangeNotifier {
   }
 
   void queueNext() => socket?.emit('queue:next', {'roomId': roomId});
+  void queueSkip() {
+    if (isHost) socket?.emit('queue:skip', {'roomId': roomId});
+  }
+
   void queueReorder(int fromIndex, int toIndex) {
     if (isHost) socket?.emit('queue:reorder', {'roomId': roomId, 'fromIndex': fromIndex, 'toIndex': toIndex});
   }

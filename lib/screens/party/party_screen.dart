@@ -116,6 +116,10 @@ class _PartyScreenState extends State<PartyScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(rs.micDenied!)));
       rs.clearMicDenied();
     }
+    if (rs.queueDenied != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(rs.queueDenied!)));
+      rs.clearQueueDenied();
+    }
 
     // The host changed the room's type elsewhere (or another device) — pick
     // up the new fields so the video/voice/game UI switches over live.
@@ -236,6 +240,8 @@ class _PartyScreenState extends State<PartyScreen> {
           onReorder: rs.queueReorder,
           onOpenRoster: _openRoster,
           audioOnly: isVoice,
+          canPin: rs.canPin,
+          canAddSongs: rs.settings['songPermission'] != 'host' || rs.isHost,
         ),
       ),
     ));
@@ -301,6 +307,8 @@ class _PartyScreenState extends State<PartyScreen> {
         rs.micOn();
       } else if (myMicRequested) {
         rs.cancelMicRequest();
+      } else if (rs.settings['micEnabled'] == false) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('The host has disabled mics for now')));
       } else {
         rs.requestMic();
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Request sent to the host')));
@@ -311,15 +319,7 @@ class _PartyScreenState extends State<PartyScreen> {
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         leading: BackButton(onPressed: () => Navigator.of(context).pop()),
-        title: Column(
-          key: _hostKey,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(room['title'] as String? ?? '', style: const TextStyle(fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
-            Text('Hosted by ${room['hostName'] ?? 'Unknown'}', style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
-          ],
-        ),
+        title: Text(room['title'] as String? ?? '', key: _hostKey, style: const TextStyle(fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
           if (isWatch)
             IconButton(
@@ -360,7 +360,7 @@ class _PartyScreenState extends State<PartyScreen> {
                     onSeek: rs.seek,
                     onRequestState: rs.requestState,
                     onEnded: rs.queueNext,
-                    onSkip: rs.queueNext,
+                    onSkip: rs.queueSkip,
                     liked: currentItem != null && _likedUrls.contains(currentItem['videoUrl']),
                     onToggleLike: () => _toggleLike(currentItem),
                   )
@@ -398,7 +398,7 @@ class _PartyScreenState extends State<PartyScreen> {
                                     onSeek: rs.seek,
                                     onRequestState: rs.requestState,
                                     onEnded: rs.queueNext,
-                                    onSkip: rs.queueNext,
+                                    onSkip: rs.queueSkip,
                                     liked: _likedUrls.contains(currentItem['videoUrl']),
                                     onToggleLike: () => _toggleLike(currentItem),
                                   ),
@@ -430,6 +430,7 @@ class _PartyScreenState extends State<PartyScreen> {
                                         isHost: rs.isHost,
                                         playback: rs.playback,
                                         mediaMode: 'audio',
+                                        compact: true,
                                         title: currentItem['title'] as String? ?? room['title'] as String?,
                                         thumbnail: currentItem['thumbnail'] as String?,
                                         onPlay: rs.play,
@@ -437,7 +438,7 @@ class _PartyScreenState extends State<PartyScreen> {
                                         onSeek: rs.seek,
                                         onRequestState: rs.requestState,
                                         onEnded: rs.queueNext,
-                                        onSkip: rs.queueNext,
+                                        onSkip: rs.queueSkip,
                                         liked: _likedUrls.contains(currentItem['videoUrl']),
                                         onToggleLike: () => _toggleLike(currentItem),
                                       ),

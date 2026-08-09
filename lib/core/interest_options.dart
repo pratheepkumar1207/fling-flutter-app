@@ -1,0 +1,41 @@
+/// Curated interest tags (Hinge/Bumble-style multi-select chips instead of
+/// free text) — mirrors src/lib/interestOptions.js, shared between
+/// CompleteProfileScreen's onboarding step and ProfileScreen's edit sheet.
+const kInterestOptions = [
+  ['music', 'Music', '🎵'],
+  ['travel', 'Travel', '✈️'],
+  ['movies', 'Movies', '🎬'],
+  ['reading', 'Reading', '📚'],
+  ['fitness', 'Fitness', '🏋️'],
+  ['yoga', 'Yoga', '🧘'],
+  ['foodie', 'Foodie', '🍕'],
+  ['coffee', 'Coffee', '☕'],
+  ['coding', 'Coding', '💻'],
+  ['photography', 'Photography', '📸'],
+  ['art', 'Art', '🎨'],
+  ['dancing', 'Dancing', '💃'],
+  ['gaming', 'Gaming', '🎮'],
+  ['hiking', 'Hiking', '🥾'],
+  ['nature', 'Nature', '🌿'],
+  ['pets', 'Pets', '🐶'],
+  ['sports', 'Sports', '⚽'],
+  ['cricket', 'Cricket', '🏏'],
+  ['cooking', 'Cooking', '🍳'],
+  ['fashion', 'Fashion', '👗'],
+  ['wine', 'Wine', '🍷'],
+  ['karaoke', 'Karaoke', '🎤'],
+  ['meditation', 'Meditation', '🧘‍♂️'],
+  ['volunteering', 'Volunteering', '🤝'],
+  ['cars', 'Cars', '🚗'],
+  ['startups', 'Startups', '🚀'],
+  ['comedy', 'Comedy', '🎭'],
+  ['spirituality', 'Spirituality', '🙏'],
+  ['beach', 'Beach', '🏖️'],
+  ['cycling', 'Cycling', '🚴'],
+  ['swimming', 'Swimming', '🏊'],
+  ['anime', 'Anime', '🍥'],
+  ['history', 'History', '🏛️'],
+  ['poetry', 'Poetry', '✍️'],
+];
+
+const kMinInterests = 3;

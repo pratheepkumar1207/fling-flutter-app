@@ -15,6 +15,10 @@ import '../../theme/app_colors.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/cola_profile_card.dart';
+import '../../widgets/interest_picker.dart';
+import '../../widgets/photo_verification.dart';
+import '../../widgets/profile_completeness_meter.dart';
+import '../../widgets/prompt_editor.dart';
 import '../../widgets/spinner.dart';
 import '../achievements/achievements_screen.dart';
 import '../auth/login_screen.dart';
@@ -229,6 +233,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ColaStat('Friends', _stats!['friends']),
                           ],
                   ),
+                  const SizedBox(height: 16),
+                  if (user != null) ProfileCompletenessMeter(percent: user.completenessPercent),
+                  const SizedBox(height: 12),
+                  PhotoVerification(status: user?.photoVerificationStatus ?? 'none', onSubmitted: () => context.read<AuthProvider>().refreshUser()),
                   const SizedBox(height: 16),
                   if (_gam != null) _gamificationCard(),
                   const SizedBox(height: 20),
@@ -559,8 +567,15 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
   late final TextEditingController _bio;
   late final TextEditingController _city;
   late final TextEditingController _age;
-  late final TextEditingController _interests;
+  late final TextEditingController _height;
+  late final TextEditingController _religion;
+  List<String> _interests = [];
+  List<Map<String, dynamic>> _prompts = [];
   String? _gender;
+  String? _orientation;
+  String? _smoking;
+  String? _drinking;
+  String? _hasKids;
   String? _avatarDataUri;
   bool _saving = false;
   bool _hideOnlineStatus = false;
@@ -582,8 +597,15 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
     _bio = TextEditingController(text: user?.bio ?? '');
     _city = TextEditingController(text: user?.city ?? '');
     _age = TextEditingController(text: user?.age?.toString() ?? '');
-    _interests = TextEditingController(text: (user?.interests ?? []).join(', '));
+    _height = TextEditingController(text: user?.height?.toString() ?? '');
+    _religion = TextEditingController(text: user?.religion ?? '');
+    _interests = List<String>.from(user?.interests ?? []);
+    _prompts = List<Map<String, dynamic>>.from(user?.prompts ?? []);
     _gender = user?.gender;
+    _orientation = user?.orientation;
+    _smoking = user?.smoking;
+    _drinking = user?.drinking;
+    _hasKids = user?.hasKids;
     _avatarDataUri = user?.avatarUrl;
     _hideOnlineStatus = user?.hideOnlineStatus ?? false;
     _safeModeEnabled = user?.safeModeEnabled ?? false;
@@ -606,7 +628,14 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
         'city': _city.text.trim(),
         'age': _age.text.trim().isEmpty ? null : int.tryParse(_age.text.trim()),
         'gender': _gender,
-        'interests': _interests.text.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList(),
+        'interests': _interests,
+        'height': _height.text.trim().isEmpty ? null : int.tryParse(_height.text.trim()),
+        'orientation': _orientation,
+        'smoking': _smoking,
+        'drinking': _drinking,
+        'hasKids': _hasKids,
+        'religion': _religion.text.trim(),
+        'prompts': _prompts,
         'hideOnlineStatus': _hideOnlineStatus,
         'safeModeEnabled': _safeModeEnabled,
         if (_avatarDataUri != null) 'avatarUrl': _avatarDataUri,
@@ -708,7 +737,123 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
             onChanged: (v) => setState(() => _gender = v),
           ),
           const SizedBox(height: 12),
-          _field('Interests (comma separated)', _interests),
+          Row(
+            children: [
+              Expanded(child: _field('Height (cm)', _height, keyboardType: TextInputType.number)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Orientation', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    DropdownButton<String?>(
+                      value: _orientation,
+                      isExpanded: true,
+                      dropdownColor: AppColors.surface2,
+                      hint: const Text('Prefer not to say', style: TextStyle(color: AppColors.textFaint, fontSize: 12)),
+                      items: const [
+                        DropdownMenuItem(value: null, child: Text('Prefer not to say')),
+                        DropdownMenuItem(value: 'straight', child: Text('Straight')),
+                        DropdownMenuItem(value: 'gay', child: Text('Gay')),
+                        DropdownMenuItem(value: 'lesbian', child: Text('Lesbian')),
+                        DropdownMenuItem(value: 'bisexual', child: Text('Bisexual')),
+                        DropdownMenuItem(value: 'other', child: Text('Other')),
+                      ],
+                      onChanged: (v) => setState(() => _orientation = v),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text('Interests', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+          const SizedBox(height: 6),
+          InterestPicker(selected: _interests, onChanged: (v) => setState(() => _interests = v)),
+          const SizedBox(height: 12),
+          const Text('Prompts', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+          const SizedBox(height: 6),
+          PromptEditor(prompts: _prompts, onChanged: (v) => setState(() => _prompts = v)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Smoking', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    DropdownButton<String?>(
+                      value: _smoking,
+                      isExpanded: true,
+                      dropdownColor: AppColors.surface2,
+                      hint: const Text('Prefer not to say', style: TextStyle(color: AppColors.textFaint, fontSize: 12)),
+                      items: const [
+                        DropdownMenuItem(value: null, child: Text('Prefer not to say')),
+                        DropdownMenuItem(value: 'never', child: Text('Never')),
+                        DropdownMenuItem(value: 'sometimes', child: Text('Sometimes')),
+                        DropdownMenuItem(value: 'regularly', child: Text('Regularly')),
+                      ],
+                      onChanged: (v) => setState(() => _smoking = v),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Drinking', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    DropdownButton<String?>(
+                      value: _drinking,
+                      isExpanded: true,
+                      dropdownColor: AppColors.surface2,
+                      hint: const Text('Prefer not to say', style: TextStyle(color: AppColors.textFaint, fontSize: 12)),
+                      items: const [
+                        DropdownMenuItem(value: null, child: Text('Prefer not to say')),
+                        DropdownMenuItem(value: 'never', child: Text('Never')),
+                        DropdownMenuItem(value: 'socially', child: Text('Socially')),
+                        DropdownMenuItem(value: 'regularly', child: Text('Regularly')),
+                      ],
+                      onChanged: (v) => setState(() => _drinking = v),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Kids', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    DropdownButton<String?>(
+                      value: _hasKids,
+                      isExpanded: true,
+                      dropdownColor: AppColors.surface2,
+                      hint: const Text('Prefer not to say', style: TextStyle(color: AppColors.textFaint, fontSize: 12)),
+                      items: const [
+                        DropdownMenuItem(value: null, child: Text('Prefer not to say')),
+                        DropdownMenuItem(value: 'no', child: Text("Don't have kids")),
+                        DropdownMenuItem(value: 'yes', child: Text('Have kids')),
+                      ],
+                      onChanged: (v) => setState(() => _hasKids = v),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: _field('Religion', _religion)),
+            ],
+          ),
+          const SizedBox(height: 12),
           CheckboxListTile(
             value: _hideOnlineStatus,
             onChanged: (v) => setState(() => _hideOnlineStatus = v ?? false),
@@ -751,5 +896,17 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _username.dispose();
+    _bio.dispose();
+    _city.dispose();
+    _age.dispose();
+    _height.dispose();
+    _religion.dispose();
+    super.dispose();
   }
 }

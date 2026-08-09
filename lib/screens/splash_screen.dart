@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import '../core/auth_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/spinner.dart';
+import 'auth/complete_profile_screen.dart';
 import 'auth/login_screen.dart';
+import 'auth/safety_guidelines_screen.dart';
 import 'shell/app_shell.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -51,6 +53,19 @@ class _SplashScreenState extends State<SplashScreen> {
           case AuthStatus.anon:
             return const LoginScreen();
           case AuthStatus.authed:
+            // New (or not-yet-finished) accounts must fill in "looking
+            // for", interests, and a real gallery before anything else —
+            // see CompleteProfileScreen and profileComplete in
+            // GET/PATCH /auth/me.
+            if (auth.user != null && !auth.user!.profileComplete) {
+              return const CompleteProfileScreen();
+            }
+            // One-time safety/notifications screen, shown right after
+            // profile completion — see SafetyGuidelinesScreen and
+            // POST /auth/safety-seen.
+            if (auth.user != null && auth.user!.profileComplete && auth.user!.safetyGuidelinesSeenAt == null) {
+              return const SafetyGuidelinesScreen();
+            }
             return const AppShell();
         }
       },

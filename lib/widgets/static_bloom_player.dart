@@ -21,6 +21,8 @@ class StaticBloomPlayer extends StatefulWidget {
   final bool isHost;
   final ValueChanged<double>? onSeekChanged;
   final ValueChanged<double>? onSeekEnd;
+  final bool compact;
+  final VoidCallback? onSkip;
 
   const StaticBloomPlayer({
     super.key,
@@ -35,6 +37,8 @@ class StaticBloomPlayer extends StatefulWidget {
     this.isHost = false,
     this.onSeekChanged,
     this.onSeekEnd,
+    this.compact = false,
+    this.onSkip,
   });
 
   @override
@@ -70,9 +74,12 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
+    final c = widget.compact;
+    final discSize = c ? 32.0 : 56.0;
+    final bloomSize = c ? 36.0 : 64.0;
     return GlassSurface(
       borderRadius: BorderRadius.circular(20),
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(c ? 8 : 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -86,8 +93,8 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer> with SingleTicker
                 builder: (context, child) {
                   final bloom = widget.playing ? 0.55 + 0.3 * (0.5 - (0.5 - _controller.value).abs()) * 2 : 0.35;
                   return Container(
-                    width: 64,
-                    height: 64,
+                    width: bloomSize,
+                    height: bloomSize,
                     decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.accent.withValues(alpha: bloom)),
                   );
                 },
@@ -95,62 +102,81 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer> with SingleTicker
               RotationTransition(
                 turns: _controller,
                 child: Container(
-                  width: 56,
-                  height: 56,
+                  width: discSize,
+                  height: discSize,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: AppColors.surface3,
-                    boxShadow: [
-                      BoxShadow(color: Colors.white.withValues(alpha: 0.4), blurRadius: 0, spreadRadius: 1),
-                      BoxShadow(color: Colors.white.withValues(alpha: 0.25), blurRadius: 16, spreadRadius: 1),
-                    ],
+                    boxShadow: c
+                        ? null
+                        : [
+                            BoxShadow(color: Colors.white.withValues(alpha: 0.4), blurRadius: 0, spreadRadius: 1),
+                            BoxShadow(color: Colors.white.withValues(alpha: 0.25), blurRadius: 16, spreadRadius: 1),
+                          ],
                   ),
                   clipBehavior: Clip.antiAlias,
                   alignment: Alignment.center,
                   child: (widget.thumbnail != null && widget.thumbnail!.isNotEmpty)
                       ? AppImage(source: widget.thumbnail, fit: BoxFit.cover)
-                      : const Text('🎵', style: TextStyle(fontSize: 20)),
+                      : Text('🎵', style: TextStyle(fontSize: c ? 12 : 20)),
                 ),
               ),
             ],
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: c ? 8 : 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.title ?? 'Playing audio only', style: const TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                const Text('Video hidden to save data — sound keeps playing', style: TextStyle(color: AppColors.textFaint, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(widget.title ?? 'Playing audio only', style: TextStyle(color: AppColors.text, fontSize: c ? 12 : 14, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                if (!c) ...[
+                  const SizedBox(height: 2),
+                  const Text('Video hidden to save data — sound keeps playing', style: TextStyle(color: AppColors.textFaint, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+                ],
               ],
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: c ? 6 : 10),
           GestureDetector(
             onTap: widget.onTogglePlay,
             child: Container(
-              width: 40,
-              height: 40,
+              width: c ? 28 : 40,
+              height: c ? 28 : 40,
               decoration: BoxDecoration(color: widget.onTogglePlay == null ? AppColors.primary.withValues(alpha: 0.4) : AppColors.primary, shape: BoxShape.circle),
               alignment: Alignment.center,
-              child: Icon(widget.playing ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 20),
+              child: Icon(widget.playing ? Icons.pause : Icons.play_arrow, color: Colors.white, size: c ? 14 : 20),
             ),
           ),
-          const SizedBox(width: 10),
-          Column(
-            children: [
-              Text('${widget.volume}', style: const TextStyle(color: AppColors.textFaint, fontSize: 10)),
-              const SizedBox(height: 4),
-              VolumeDots(volume: widget.volume, onVolumeChange: widget.onVolumeChange),
-              const SizedBox(height: 4),
-              const Text('VOL', style: TextStyle(color: AppColors.textFaint, fontSize: 9, letterSpacing: 0.5)),
-            ],
-          ),
+          if (widget.isHost && widget.onSkip != null) ...[
+            SizedBox(width: c ? 6 : 10),
+            GestureDetector(
+              onTap: widget.onSkip,
+              child: Container(
+                width: c ? 28 : 40,
+                height: c ? 28 : 40,
+                decoration: const BoxDecoration(color: AppColors.surface3, shape: BoxShape.circle),
+                alignment: Alignment.center,
+                child: Icon(Icons.skip_next, color: AppColors.text, size: c ? 16 : 22),
+              ),
+            ),
+          ],
+          if (!c) ...[
+            const SizedBox(width: 10),
+            Column(
+              children: [
+                Text('${widget.volume}', style: const TextStyle(color: AppColors.textFaint, fontSize: 10)),
+                const SizedBox(height: 4),
+                VolumeDots(volume: widget.volume, onVolumeChange: widget.onVolumeChange),
+                const SizedBox(height: 4),
+                const Text('VOL', style: TextStyle(color: AppColors.textFaint, fontSize: 9, letterSpacing: 0.5)),
+              ],
+            ),
+          ],
             ],
           ),
           if (widget.duration > 0)
             Padding(
-              padding: const EdgeInsets.only(top: 10),
+              padding: EdgeInsets.only(top: c ? 4 : 10),
               child: Row(
                 children: [
                   SizedBox(width: 34, child: Text(_formatTime(widget.currentTime), textAlign: TextAlign.right, style: const TextStyle(color: AppColors.textFaint, fontSize: 10))),

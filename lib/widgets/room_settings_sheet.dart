@@ -42,6 +42,12 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
   bool _searching = false;
   bool _saving = false;
 
+  late String _visibility = widget.room['visibility'] == 'subscribers' ? 'public' : (widget.room['visibility'] as String? ?? 'public');
+  late bool _micEnabled = widget.room['micEnabled'] != false;
+  late String _songPermission = widget.room['songPermission'] as String? ?? 'anyone';
+  late bool _autoPlay = widget.room['autoPlay'] != false;
+  late String _pinPermission = widget.room['pinPermission'] as String? ?? 'host';
+
   Future<void> _search(String q) async {
     if (q.trim().isEmpty) {
       setState(() => _results = []);
@@ -79,6 +85,13 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
         'videoUrl': _roomType == 'watch' ? _urlController.text.trim() : null,
         'gameType': _roomType == 'game' ? _gameType : null,
       });
+      await ApiClient.patch('/rooms/${widget.room['id']}/settings', body: {
+        'visibility': _visibility,
+        'micEnabled': _micEnabled,
+        'songPermission': _songPermission,
+        'autoPlay': _autoPlay,
+        'pinPermission': _pinPermission,
+      });
       widget.onChanged();
       if (mounted) Navigator.of(context).pop();
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Room updated')));
@@ -93,6 +106,32 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
   void dispose() {
     _urlController.dispose();
     super.dispose();
+  }
+
+  Widget _optionRow({required List<List<String>> options, required String value, required ValueChanged<String> onChanged}) {
+    return Row(
+      children: [
+        for (final o in options)
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: GestureDetector(
+                onTap: () => onChanged(o[0]),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: value == o[0] ? AppColors.primary.withValues(alpha: 0.15) : AppColors.surface,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: value == o[0] ? AppColors.primary : AppColors.border),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(o[1], textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: value == o[0] ? AppColors.primary : AppColors.textDim)),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
   }
 
   @override
@@ -198,6 +237,52 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
                     ),
                 ],
               ],
+              const SizedBox(height: 16),
+              const Divider(color: AppColors.border),
+              const SizedBox(height: 8),
+              const Text('LOBBY VISIBILITY', style: TextStyle(color: AppColors.textFaint, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+              const SizedBox(height: 8),
+              _optionRow(
+                options: const [['public', 'Public'], ['friends', 'Friends only'], ['private', 'Private']],
+                value: _visibility,
+                onChanged: (v) => setState(() => _visibility = v),
+              ),
+              const SizedBox(height: 14),
+              const Text('MIC', style: TextStyle(color: AppColors.textFaint, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+              const SizedBox(height: 8),
+              _optionRow(
+                options: const [['on', 'Enabled for all'], ['off', 'Disabled for all']],
+                value: _micEnabled ? 'on' : 'off',
+                onChanged: (v) => setState(() => _micEnabled = v == 'on'),
+              ),
+              const SizedBox(height: 14),
+              const Text('WHO CAN ADD SONGS', style: TextStyle(color: AppColors.textFaint, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+              const SizedBox(height: 8),
+              _optionRow(
+                options: const [['anyone', 'Anyone'], ['host', "Leader's choice only"]],
+                value: _songPermission,
+                onChanged: (v) => setState(() => _songPermission = v),
+              ),
+              const SizedBox(height: 14),
+              const Text('WHO CAN PIN A SONG TO PLAY NOW', style: TextStyle(color: AppColors.textFaint, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+              const SizedBox(height: 8),
+              _optionRow(
+                options: const [['host', 'Host only'], ['anyone', 'Anyone can pin']],
+                value: _pinPermission,
+                onChanged: (v) => setState(() => _pinPermission = v),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Auto-play next song', style: TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w500)),
+                    Switch(value: _autoPlay, onChanged: (v) => setState(() => _autoPlay = v), activeThumbColor: AppColors.primary),
+                  ],
+                ),
+              ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _saving ? null : _save,

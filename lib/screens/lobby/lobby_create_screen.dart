@@ -17,7 +17,6 @@ class LobbyCreateScreen extends StatefulWidget {
 class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
   String _roomType = 'watch';
   String _gameType = 'tictactoe';
-  final _titleController = TextEditingController();
   final _topicController = TextEditingController();
   String _visibility = 'public';
   String _sourceType = 'youtube';
@@ -61,7 +60,6 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
   }
 
   Future<void> _create() async {
-    if (_titleController.text.trim().isEmpty) return;
     if (_roomType == 'watch' && _sourceType == 'youtube' && _pinnedVideo == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Search and pin a video first')));
       return;
@@ -72,7 +70,6 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
           ? (_sourceType == 'youtube' ? 'https://www.youtube.com/watch?v=${_pinnedVideo!['videoId']}' : _driveUrlController.text.trim())
           : null;
       final room = await ApiClient.post('/rooms', body: {
-        'title': _titleController.text.trim(),
         'roomType': _roomType,
         if (_roomType == 'watch') 'sourceType': _sourceType,
         if (_roomType == 'watch') 'videoUrl': videoUrl,
@@ -129,10 +126,8 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
               ),
             ),
           ],
-          const SizedBox(height: 16),
-          _field('Title', TextField(controller: _titleController, style: const TextStyle(color: AppColors.text))),
           if (_roomType == 'watch') ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             _field(
               'Source',
               DropdownButton<String>(
@@ -296,7 +291,6 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
   @override
   void dispose() {
     _debounce?.cancel();
-    _titleController.dispose();
     _topicController.dispose();
     _driveUrlController.dispose();
     _ytQueryController.dispose();

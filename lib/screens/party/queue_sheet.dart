@@ -22,6 +22,8 @@ class QueueSheetScreen extends StatefulWidget {
   final void Function(int fromIndex, int toIndex) onReorder;
   final VoidCallback onOpenRoster;
   final bool audioOnly;
+  final bool canPin;
+  final bool canAddSongs;
 
   const QueueSheetScreen({
     super.key,
@@ -34,7 +36,9 @@ class QueueSheetScreen extends StatefulWidget {
     required this.onReorder,
     required this.onOpenRoster,
     this.audioOnly = false,
-  });
+    bool? canPin,
+    this.canAddSongs = true,
+  }) : canPin = canPin ?? isHost;
 
   @override
   State<QueueSheetScreen> createState() => _QueueSheetScreenState();
@@ -85,10 +89,10 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> with SingleTickerPr
             child: TabBarView(
               controller: _tabController,
               children: [
-                _SearchTab(onAdd: _addToQueue, audioOnly: widget.audioOnly),
-                _SongListTab(endpoint: '/liked-songs', onAdd: _addToQueue),
-                _SongListTab(endpoint: '/song-history', onAdd: _addToQueue),
-                _PlaylistsTab(onAdd: _addToQueue),
+                _SearchTab(onAdd: _addToQueue, audioOnly: widget.audioOnly, canAddSongs: widget.canAddSongs),
+                _SongListTab(endpoint: '/liked-songs', onAdd: _addToQueue, canAddSongs: widget.canAddSongs),
+                _SongListTab(endpoint: '/song-history', onAdd: _addToQueue, canAddSongs: widget.canAddSongs),
+                _PlaylistsTab(onAdd: _addToQueue, canAddSongs: widget.canAddSongs),
               ],
             ),
           ),
@@ -151,10 +155,10 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> with SingleTickerPr
                                 ],
                               ),
                             ),
-                            if (widget.isHost && !isCurrent) ...[
+                            if (!isCurrent && widget.canPin)
                               TextButton(onPressed: () => widget.onJump(i), child: const Text('Play', style: TextStyle(fontSize: 11))),
+                            if (!isCurrent && widget.isHost)
                               IconButton(onPressed: () => widget.onRemove(i), icon: const Icon(Icons.close, color: AppColors.danger, size: 16)),
-                            ],
                           ],
                         ),
                       );
@@ -176,7 +180,8 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> with SingleTickerPr
 class _SearchTab extends StatefulWidget {
   final void Function({required String videoUrl, required String title, String? thumbnail, required String mediaMode}) onAdd;
   final bool audioOnly;
-  const _SearchTab({required this.onAdd, this.audioOnly = false});
+  final bool canAddSongs;
+  const _SearchTab({required this.onAdd, this.audioOnly = false, this.canAddSongs = true});
 
   @override
   State<_SearchTab> createState() => _SearchTabState();
@@ -263,30 +268,31 @@ class _SearchTabState extends State<_SearchTab> {
                         ],
                       ),
                     ),
-                    widget.audioOnly
-                        ? _smallButton('🎧 + Add', () => widget.onAdd(
-                              videoUrl: 'https://www.youtube.com/watch?v=${item['videoId']}',
-                              title: item['title'] as String? ?? '',
-                              thumbnail: item['thumbnail'] as String?,
-                              mediaMode: 'audio',
-                            ))
-                        : Column(
-                            children: [
-                              _smallButton('+ Video', () => widget.onAdd(
-                                    videoUrl: 'https://www.youtube.com/watch?v=${item['videoId']}',
-                                    title: item['title'] as String? ?? '',
-                                    thumbnail: item['thumbnail'] as String?,
-                                    mediaMode: 'video',
-                                  )),
-                              const SizedBox(height: 4),
-                              _smallButton('🎧 Audio', () => widget.onAdd(
-                                    videoUrl: 'https://www.youtube.com/watch?v=${item['videoId']}',
-                                    title: item['title'] as String? ?? '',
-                                    thumbnail: item['thumbnail'] as String?,
-                                    mediaMode: 'audio',
-                                  )),
-                            ],
-                          ),
+                    if (widget.canAddSongs)
+                      widget.audioOnly
+                          ? _smallButton('🎧 + Add', () => widget.onAdd(
+                                videoUrl: 'https://www.youtube.com/watch?v=${item['videoId']}',
+                                title: item['title'] as String? ?? '',
+                                thumbnail: item['thumbnail'] as String?,
+                                mediaMode: 'audio',
+                              ))
+                          : Column(
+                              children: [
+                                _smallButton('+ Video', () => widget.onAdd(
+                                      videoUrl: 'https://www.youtube.com/watch?v=${item['videoId']}',
+                                      title: item['title'] as String? ?? '',
+                                      thumbnail: item['thumbnail'] as String?,
+                                      mediaMode: 'video',
+                                    )),
+                                const SizedBox(height: 4),
+                                _smallButton('🎧 Audio', () => widget.onAdd(
+                                      videoUrl: 'https://www.youtube.com/watch?v=${item['videoId']}',
+                                      title: item['title'] as String? ?? '',
+                                      thumbnail: item['thumbnail'] as String?,
+                                      mediaMode: 'audio',
+                                    )),
+                              ],
+                            ),
                   ],
                 ),
               );
@@ -317,7 +323,8 @@ class _SearchTabState extends State<_SearchTab> {
 class _SongListTab extends StatefulWidget {
   final String endpoint;
   final void Function({required String videoUrl, required String title, String? thumbnail, required String mediaMode}) onAdd;
-  const _SongListTab({required this.endpoint, required this.onAdd});
+  final bool canAddSongs;
+  const _SongListTab({required this.endpoint, required this.onAdd, this.canAddSongs = true});
 
   @override
   State<_SongListTab> createState() => _SongListTabState();
@@ -370,10 +377,11 @@ class _SongListTabState extends State<_SongListTab> {
               ),
               const SizedBox(width: 8),
               Expanded(child: Text(s.title ?? 'Untitled', style: const TextStyle(color: AppColors.text, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis)),
-              TextButton(
-                onPressed: () => widget.onAdd(videoUrl: s.videoUrl ?? '', title: s.title ?? '', thumbnail: s.thumbnail, mediaMode: 'video'),
-                child: const Text('+ Add', style: TextStyle(color: AppColors.primary, fontSize: 12)),
-              ),
+              if (widget.canAddSongs)
+                TextButton(
+                  onPressed: () => widget.onAdd(videoUrl: s.videoUrl ?? '', title: s.title ?? '', thumbnail: s.thumbnail, mediaMode: 'video'),
+                  child: const Text('+ Add', style: TextStyle(color: AppColors.primary, fontSize: 12)),
+                ),
             ],
           ),
         );
@@ -384,7 +392,8 @@ class _SongListTabState extends State<_SongListTab> {
 
 class _PlaylistsTab extends StatefulWidget {
   final void Function({required String videoUrl, required String title, String? thumbnail, required String mediaMode}) onAdd;
-  const _PlaylistsTab({required this.onAdd});
+  final bool canAddSongs;
+  const _PlaylistsTab({required this.onAdd, this.canAddSongs = true});
 
   @override
   State<_PlaylistsTab> createState() => _PlaylistsTabState();
@@ -430,10 +439,12 @@ class _PlaylistsTabState extends State<_PlaylistsTab> {
                 .map((s) => ListTile(
                       dense: true,
                       title: Text(s.title ?? 'Untitled', style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
-                      trailing: TextButton(
-                        onPressed: () => widget.onAdd(videoUrl: s.videoUrl ?? '', title: s.title ?? '', thumbnail: s.thumbnail, mediaMode: 'video'),
-                        child: const Text('+ Add', style: TextStyle(color: AppColors.primary, fontSize: 12)),
-                      ),
+                      trailing: widget.canAddSongs
+                          ? TextButton(
+                              onPressed: () => widget.onAdd(videoUrl: s.videoUrl ?? '', title: s.title ?? '', thumbnail: s.thumbnail, mediaMode: 'video'),
+                              child: const Text('+ Add', style: TextStyle(color: AppColors.primary, fontSize: 12)),
+                            )
+                          : null,
                     ))
                 .toList(),
           ),

@@ -10,6 +10,18 @@ class User {
   final String? city;
   final int? age;
   final String? gender;
+  final String? lookingFor;
+  final int? height;
+  final String? orientation;
+  final String? smoking;
+  final String? drinking;
+  final String? hasKids;
+  final String? religion;
+  final List<Map<String, dynamic>> prompts;
+  final bool ageConfirmed18;
+  final DateTime? safetyGuidelinesSeenAt;
+  final String photoVerificationStatus;
+  final String? verificationSelfieUrl;
   final bool hideOnlineStatus;
   final bool safeModeEnabled;
   final DateTime? usernameChangedAt;
@@ -19,6 +31,9 @@ class User {
   final DateTime? vipExpiresAt;
   final bool isVerified;
   final double coinBalance;
+  final int galleryCount;
+  final bool profileComplete;
+  final int completenessPercent;
 
   User({
     required this.id,
@@ -31,6 +46,18 @@ class User {
     this.city,
     this.age,
     this.gender,
+    this.lookingFor,
+    this.height,
+    this.orientation,
+    this.smoking,
+    this.drinking,
+    this.hasKids,
+    this.religion,
+    this.prompts = const [],
+    this.ageConfirmed18 = false,
+    this.safetyGuidelinesSeenAt,
+    this.photoVerificationStatus = 'none',
+    this.verificationSelfieUrl,
     this.hideOnlineStatus = false,
     this.safeModeEnabled = false,
     this.usernameChangedAt,
@@ -40,6 +67,9 @@ class User {
     this.vipExpiresAt,
     this.isVerified = false,
     this.coinBalance = 0,
+    this.galleryCount = 0,
+    this.profileComplete = true,
+    this.completenessPercent = 100,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -54,6 +84,18 @@ class User {
       city: json['city'] as String?,
       age: json['age'] as int?,
       gender: json['gender'] as String?,
+      lookingFor: json['lookingFor'] as String?,
+      height: json['height'] as int?,
+      orientation: json['orientation'] as String?,
+      smoking: json['smoking'] as String?,
+      drinking: json['drinking'] as String?,
+      hasKids: json['hasKids'] as String?,
+      religion: json['religion'] as String?,
+      prompts: (json['prompts'] as List?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? const [],
+      ageConfirmed18: json['ageConfirmed18'] as bool? ?? false,
+      safetyGuidelinesSeenAt: json['safetyGuidelinesSeenAt'] != null ? DateTime.tryParse(json['safetyGuidelinesSeenAt'] as String) : null,
+      photoVerificationStatus: json['photoVerificationStatus'] as String? ?? 'none',
+      verificationSelfieUrl: json['verificationSelfieUrl'] as String?,
       hideOnlineStatus: json['hideOnlineStatus'] as bool? ?? false,
       safeModeEnabled: json['safeModeEnabled'] as bool? ?? false,
       usernameChangedAt: json['usernameChangedAt'] != null ? DateTime.tryParse(json['usernameChangedAt'] as String) : null,
@@ -63,6 +105,12 @@ class User {
       vipExpiresAt: json['vipExpiresAt'] != null ? DateTime.tryParse(json['vipExpiresAt']) : null,
       isVerified: json['isVerified'] as bool? ?? false,
       coinBalance: _parseDouble(json['coinBalance']),
+      galleryCount: json['galleryCount'] as int? ?? 0,
+      // Older cached responses (or endpoints that don't compute it) won't
+      // have this field at all — default true so we don't wrongly gate an
+      // existing account behind the completion screen.
+      profileComplete: json['profileComplete'] as bool? ?? true,
+      completenessPercent: json['completenessPercent'] as int? ?? 100,
     );
   }
 

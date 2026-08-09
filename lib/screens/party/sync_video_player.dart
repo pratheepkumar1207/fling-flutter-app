@@ -27,6 +27,7 @@ class SyncVideoPlayer extends StatefulWidget {
   final VoidCallback onSkip;
   final bool liked;
   final VoidCallback onToggleLike;
+  final bool compact;
 
   const SyncVideoPlayer({
     super.key,
@@ -44,6 +45,7 @@ class SyncVideoPlayer extends StatefulWidget {
     required this.onSkip,
     required this.liked,
     required this.onToggleLike,
+    this.compact = false,
   });
 
   @override
@@ -273,6 +275,8 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer> {
               isHost: widget.isHost,
               onSeekChanged: _handleSeekChanged,
               onSeekEnd: _handleSeekEnd,
+              compact: widget.compact,
+              onSkip: widget.isHost ? widget.onSkip : null,
             );
           },
         ),
