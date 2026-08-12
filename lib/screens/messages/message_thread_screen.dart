@@ -3,11 +3,13 @@ import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
+import '../../core/chat_stickers.dart';
 import '../../core/socket_service.dart';
 import '../../models/message.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/spinner.dart';
+import '../calls/call_screen.dart';
 
 class MessageThreadScreen extends StatefulWidget {
   final String userId;
@@ -58,6 +60,56 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       setState(() => _messages = [..._messages, msg]);
       _scrollToBottom();
     });
+    socket?.on('dm:deleted', (data) {
+      if (!mounted || data is! Map) return;
+      if (data['otherUserId'] != widget.userId) return;
+      setState(() => _messages = _messages.where((m) => m.id != data['id']).toList());
+    });
+  }
+
+  Future<void> _deleteMessage(DirectMessage message) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete message?'),
+        content: const Text('This removes it for both of you.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final previous = _messages;
+    setState(() => _messages = _messages.where((m) => m.id != message.id).toList());
+    try {
+      await ApiClient.delete('/messages/${message.id}');
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _messages = previous);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  Widget _messageContent(DirectMessage m, bool mine) {
+    if (m.messageType == 'sticker' && m.mediaUrl != null) {
+      return Text(m.mediaUrl!, style: const TextStyle(fontSize: 40));
+    }
+    if (m.messageType == 'gif' && m.mediaUrl != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Image.network(
+          m.mediaUrl!,
+          width: 160,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const Padding(
+            padding: EdgeInsets.all(8),
+            child: Text('Could not load GIF', style: TextStyle(color: AppColors.textFaint, fontSize: 12)),
+          ),
+        ),
+      );
+    }
+    return Text(m.text, style: TextStyle(color: mine ? Colors.white : AppColors.text));
   }
 
   void _scrollToBottom() {
@@ -71,23 +123,92 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   Future<void> _send() async {
     final text = _textController.text.trim();
     if (text.isEmpty || _sending) return;
+    await _sendBody({'text': text}, clearText: true);
+  }
+
+  Future<void> _sendSticker(String emoji) async {
+    Navigator.of(context).pop(); // close the picker sheet
+    await _sendBody({'messageType': 'sticker', 'mediaUrl': emoji});
+  }
+
+  Future<void> _pasteGifLink() async {
+    final controller = TextEditingController();
+    final url = await showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Paste a GIF link'),
+        content: TextField(controller: controller, autofocus: true, decoration: const InputDecoration(hintText: 'https://…')),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(context).pop(controller.text.trim()), child: const Text('Send')),
+        ],
+      ),
+    );
+    if (url == null || url.isEmpty || !mounted) return;
+    await _sendBody({'messageType': 'gif', 'mediaUrl': url});
+  }
+
+  Future<void> _startCall(bool video) async {
+    try {
+      final data = await ApiClient.post('/calls/direct-invite', body: {'toUserId': widget.userId, 'mode': video ? 'video' : 'audio'}) as Map<String, dynamic>;
+      if (!mounted) return;
+      await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => CallScreen(
+          channelName: data['channelName'] as String,
+          token: data['token'] as String,
+          uid: data['uid'] as int,
+          video: video,
+          isCaller: true,
+          peerName: widget.name,
+          peerAvatarUrl: widget.avatarUrl,
+        ),
+      ));
+    } on ApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  Future<void> _sendBody(Map<String, dynamic> body, {bool clearText = false}) async {
+    if (_sending) return;
     setState(() {
       _sending = true;
       _error = null;
     });
     try {
-      final data = await ApiClient.post('/messages/${widget.userId}', body: {'text': text});
+      final data = await ApiClient.post('/messages/${widget.userId}', body: body);
       final msg = DirectMessage.fromJson(data as Map<String, dynamic>);
       setState(() {
         _messages = [..._messages, msg];
-        _textController.clear();
+        if (clearText) _textController.clear();
       });
       _scrollToBottom();
     } on ApiException catch (e) {
-      setState(() => _error = e.message);
+      if (mounted) setState(() => _error = e.message);
     } finally {
       if (mounted) setState(() => _sending = false);
     }
+  }
+
+  void _openStickerPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface2,
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: kChatStickers
+                .map((e) => GestureDetector(
+                      onTap: () => _sendSticker(e),
+                      child: Text(e, style: const TextStyle(fontSize: 32)),
+                    ))
+                .toList(),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -103,6 +224,10 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
             Text(widget.name),
           ],
         ),
+        actions: [
+          IconButton(onPressed: () => _startCall(false), icon: const Icon(Icons.call_rounded, color: AppColors.primary), tooltip: 'Audio call'),
+          IconButton(onPressed: () => _startCall(true), icon: const Icon(Icons.videocam_rounded, color: AppColors.primary), tooltip: 'Video call'),
+        ],
       ),
       body: Column(
         children: [
@@ -120,15 +245,18 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                           final mine = m.senderId == myId;
                           return Align(
                             alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(vertical: 3),
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-                              decoration: BoxDecoration(
-                                color: mine ? AppColors.primary : AppColors.surface2,
-                                borderRadius: BorderRadius.circular(16),
+                            child: GestureDetector(
+                              onLongPress: mine ? () => _deleteMessage(m) : null,
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(vertical: 3),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                                decoration: BoxDecoration(
+                                  color: mine ? AppColors.primary : AppColors.surface2,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: _messageContent(m, mine),
                               ),
-                              child: Text(m.text, style: TextStyle(color: mine ? Colors.white : AppColors.text)),
                             ),
                           );
                         },
@@ -144,6 +272,16 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
+                  IconButton(
+                    onPressed: _sending ? null : _openStickerPicker,
+                    icon: const Icon(Icons.emoji_emotions_outlined, color: AppColors.textDim),
+                    tooltip: 'Sticker',
+                  ),
+                  IconButton(
+                    onPressed: _sending ? null : _pasteGifLink,
+                    icon: const Icon(Icons.gif_box_outlined, color: AppColors.textDim),
+                    tooltip: 'GIF',
+                  ),
                   Expanded(
                     child: TextField(
                       controller: _textController,

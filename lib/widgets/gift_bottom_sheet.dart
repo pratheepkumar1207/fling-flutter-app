@@ -2,25 +2,10 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../core/api_client.dart';
 import '../core/api_exception.dart';
+import '../models/gift.dart';
 import '../theme/app_colors.dart';
 import '../theme/glass.dart';
-
-class _GiftDef {
-  final String type;
-  final String label;
-  final String name;
-  final int coins;
-  const _GiftDef(this.type, this.label, this.name, this.coins);
-}
-
-const _kGifts = [
-  _GiftDef('rose', '🌹', 'Rose', 10),
-  _GiftDef('heart', '💖', 'Heart', 25),
-  _GiftDef('star', '🌟', 'Star', 50),
-  _GiftDef('crown', '👑', 'Crown', 100),
-  _GiftDef('diamond', '💎', 'Diamond', 500),
-  _GiftDef('rocket', '🚀', 'Rocket', 1000),
-];
+import 'spinner.dart';
 
 const _kAnimDuration = Duration(milliseconds: 1000);
 const _kCoinCount = 10;
@@ -61,8 +46,25 @@ class _GiftSheet extends StatefulWidget {
 
 class _GiftSheetState extends State<_GiftSheet> {
   String? _sending;
+  List<Gift>? _gifts;
 
-  Future<void> _send(_GiftDef gift, GlobalKey tileKey) async {
+  @override
+  void initState() {
+    super.initState();
+    _loadGifts();
+  }
+
+  Future<void> _loadGifts() async {
+    try {
+      final data = await ApiClient.get('/wallet/gifts');
+      if (!mounted) return;
+      setState(() => _gifts = (data as List).map((e) => Gift.fromJson(e as Map<String, dynamic>)).toList());
+    } catch (_) {
+      if (mounted) setState(() => _gifts = []);
+    }
+  }
+
+  Future<void> _send(Gift gift, GlobalKey tileKey) async {
     if (_sending != null) return;
     setState(() => _sending = gift.type);
     final messenger = ScaffoldMessenger.of(context);
@@ -83,7 +85,9 @@ class _GiftSheetState extends State<_GiftSheet> {
     overlayState.insert(entry);
 
     try {
-      await ApiClient.post('/wallet/gift', body: {'roomId': widget.roomId, 'toUserId': widget.toUserId, 'coins': gift.coins, 'giftType': gift.type});
+      // No `coins` in the body — the server looks up the price from the
+      // Gift catalog by type, not from whatever the client sends.
+      await ApiClient.post('/wallet/gift', body: {'roomId': widget.roomId, 'toUserId': widget.toUserId, 'giftType': gift.type});
       widget.onSent?.call();
     } on ApiException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
@@ -111,38 +115,43 @@ class _GiftSheetState extends State<_GiftSheet> {
             ),
             const Text('Send a gift', style: TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
-            GridView.count(
-              crossAxisCount: 3,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 0.95,
-              children: _kGifts.map((gift) {
-                final tileKey = GlobalKey();
-                final disabled = _sending != null;
-                return GestureDetector(
-                  key: tileKey,
-                  onTap: disabled ? null : () => _send(gift, tileKey),
-                  child: Opacity(
-                    opacity: disabled ? 0.5 : 1,
-                    child: Container(
-                      decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
-                      alignment: Alignment.center,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(gift.label, style: const TextStyle(fontSize: 28)),
-                          const SizedBox(height: 2),
-                          Text(gift.name, style: const TextStyle(color: AppColors.text, fontSize: 11, fontWeight: FontWeight.w600)),
-                          Text('${gift.coins} coins', style: const TextStyle(color: AppColors.gold, fontSize: 10)),
-                        ],
+            if (_gifts == null)
+              const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Center(child: Spinner(size: 20)))
+            else if (_gifts!.isEmpty)
+              const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Center(child: Text('No gifts available right now.', style: TextStyle(color: AppColors.textFaint))))
+            else
+              GridView.count(
+                crossAxisCount: 3,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                childAspectRatio: 0.95,
+                children: _gifts!.map((gift) {
+                  final tileKey = GlobalKey();
+                  final disabled = _sending != null;
+                  return GestureDetector(
+                    key: tileKey,
+                    onTap: disabled ? null : () => _send(gift, tileKey),
+                    child: Opacity(
+                      opacity: disabled ? 0.5 : 1,
+                      child: Container(
+                        decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+                        alignment: Alignment.center,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(gift.emoji, style: const TextStyle(fontSize: 28)),
+                            const SizedBox(height: 2),
+                            Text(gift.name, style: const TextStyle(color: AppColors.text, fontSize: 11, fontWeight: FontWeight.w600)),
+                            Text('${gift.coins} coins', style: const TextStyle(color: AppColors.gold, fontSize: 10)),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              }).toList(),
-            ),
+                  );
+                }).toList(),
+              ),
           ],
         ),
         ),

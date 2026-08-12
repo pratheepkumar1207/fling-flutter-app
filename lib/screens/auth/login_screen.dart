@@ -18,10 +18,13 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _phoneController = TextEditingController();
   final _phoneFocus = FocusNode();
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
   String _error = '';
   bool _loading = false;
   bool _devMode = !firebaseConfigured;
   bool _fieldFocused = false;
+  bool _fakeLoginMode = false;
 
   @override
   void initState() {
@@ -42,7 +45,9 @@ class _LoginScreenState extends State<LoginScreen> {
       _loading = true;
     });
     try {
-      if (_devMode) {
+      if (_fakeLoginMode) {
+        await context.read<AuthProvider>().loginFake(_usernameController.text.trim(), _passwordController.text);
+      } else if (_devMode) {
         await context.read<AuthProvider>().devLogin(_normalizedPhone);
       } else {
         final phone = _normalizedPhone;
@@ -129,15 +134,34 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             child: Text(_error, style: const TextStyle(color: AppColors.danger, fontSize: 13)),
                           ),
-                        const Text('Phone number', style: TextStyle(color: AppColors.textDim, fontSize: 13, fontWeight: FontWeight.w500)),
-                        const SizedBox(height: 6),
-                        TextField(
-                          controller: _phoneController,
-                          focusNode: _phoneFocus,
-                          keyboardType: TextInputType.phone,
-                          style: const TextStyle(color: AppColors.text),
-                          decoration: const InputDecoration(hintText: '+91XXXXXXXXXX'),
-                        ),
+                        if (_fakeLoginMode) ...[
+                          const Text('Username', style: TextStyle(color: AppColors.textDim, fontSize: 13, fontWeight: FontWeight.w500)),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: _usernameController,
+                            style: const TextStyle(color: AppColors.text),
+                            decoration: const InputDecoration(hintText: 'username'),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text('Password', style: TextStyle(color: AppColors.textDim, fontSize: 13, fontWeight: FontWeight.w500)),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: _passwordController,
+                            obscureText: true,
+                            style: const TextStyle(color: AppColors.text),
+                            decoration: const InputDecoration(hintText: 'password'),
+                          ),
+                        ] else ...[
+                          const Text('Phone number', style: TextStyle(color: AppColors.textDim, fontSize: 13, fontWeight: FontWeight.w500)),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: _phoneController,
+                            focusNode: _phoneFocus,
+                            keyboardType: TextInputType.phone,
+                            style: const TextStyle(color: AppColors.text),
+                            decoration: const InputDecoration(hintText: '+91XXXXXXXXXX'),
+                          ),
+                        ],
                         const SizedBox(height: 16),
                         SizedBox(
                           width: double.infinity,
@@ -148,26 +172,37 @@ class _LoginScreenState extends State<LoginScreen> {
                               shape: const StadiumBorder(),
                               padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
-                            child: Text(_loading ? 'Sending…' : (_devMode ? 'Continue (dev login)' : 'Send code')),
+                            child: Text(_loading ? 'Signing in…' : (_fakeLoginMode ? 'Log in' : (_devMode ? 'Continue (dev login)' : 'Send code'))),
                           ),
                         ),
-                        if (firebaseConfigured)
-                          TextButton(
-                            onPressed: () => setState(() => _devMode = !_devMode),
-                            child: Text(
-                              _devMode ? 'Use real phone verification' : 'Use dev login instead',
-                              style: const TextStyle(color: AppColors.textFaint, fontSize: 12),
+                        if (!_fakeLoginMode)
+                          if (firebaseConfigured)
+                            TextButton(
+                              onPressed: () => setState(() => _devMode = !_devMode),
+                              child: Text(
+                                _devMode ? 'Use real phone verification' : 'Use dev login instead',
+                                style: const TextStyle(color: AppColors.textFaint, fontSize: 12),
+                              ),
+                            )
+                          else
+                            const Padding(
+                              padding: EdgeInsets.only(top: 12),
+                              child: Text(
+                                'Firebase isn\'t configured yet — using dev login.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: AppColors.textFaint, fontSize: 11),
+                              ),
                             ),
-                          )
-                        else
-                          const Padding(
-                            padding: EdgeInsets.only(top: 12),
-                            child: Text(
-                              'Firebase isn\'t configured yet — using dev login.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: AppColors.textFaint, fontSize: 11),
-                            ),
+                        TextButton(
+                          onPressed: () => setState(() {
+                            _fakeLoginMode = !_fakeLoginMode;
+                            _error = '';
+                          }),
+                          child: Text(
+                            _fakeLoginMode ? 'Use phone number instead' : 'Have a test account? Log in with username',
+                            style: const TextStyle(color: AppColors.textFaint, fontSize: 12),
                           ),
+                        ),
                       ],
                     ),
                   ),
@@ -184,6 +219,8 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _phoneController.dispose();
     _phoneFocus.dispose();
+    _usernameController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 }

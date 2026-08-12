@@ -3,6 +3,8 @@ class DirectMessage {
   final String senderId;
   final String recipientId;
   final String text;
+  final String messageType; // 'text' | 'sticker' | 'gif'
+  final String? mediaUrl;
   final DateTime createdAt;
   final DateTime? readAt;
 
@@ -11,6 +13,8 @@ class DirectMessage {
     required this.senderId,
     required this.recipientId,
     required this.text,
+    this.messageType = 'text',
+    this.mediaUrl,
     required this.createdAt,
     this.readAt,
   });
@@ -21,6 +25,8 @@ class DirectMessage {
       senderId: json['senderId'] as String,
       recipientId: json['recipientId'] as String,
       text: json['text'] as String? ?? '',
+      messageType: json['messageType'] as String? ?? 'text',
+      mediaUrl: json['mediaUrl'] as String?,
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
       readAt: json['readAt'] != null ? DateTime.tryParse(json['readAt'].toString()) : null,
     );

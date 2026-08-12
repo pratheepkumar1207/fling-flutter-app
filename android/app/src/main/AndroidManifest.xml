@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Map-based Discover — opt-in only (see User.locationSharingEnabled
+         on the backend); the permission prompt only fires when the user
+         turns that setting on in Profile, not on every app launch. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <application
         android:label="Insync"
         android:name="${applicationName}"

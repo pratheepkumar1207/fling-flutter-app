@@ -8,6 +8,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   firebase_auth
   firebase_core
   flutter_inappwebview_windows
+  geolocator_windows
   iris_method_channel
   permission_handler_windows
   url_launcher_windows

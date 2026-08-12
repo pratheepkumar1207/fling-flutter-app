@@ -5,7 +5,11 @@ import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
+import '../../core/dynamic_options_cache.dart';
 import '../../core/format.dart';
+import '../../core/interest_options.dart';
+import '../../core/language_options.dart';
+import '../../core/location_service.dart';
 import '../../core/smart_play_song.dart';
 import '../../models/photo.dart';
 import '../../models/playlist.dart';
@@ -30,6 +34,8 @@ import '../friends/friends_screen.dart';
 import '../leaderboards/leaderboards_screen.dart';
 import '../messages/messages_screen.dart';
 import '../search/search_screen.dart';
+import '../wallet/livestream_dashboard_screen.dart';
+import '../wallet/vip_store_screen.dart';
 
 const _kMoreNav = [
   {'label': 'Messages', 'icon': '💬'},
@@ -41,6 +47,8 @@ const _kMoreNav = [
   {'label': 'Leaderboards', 'icon': '🏆'},
   {'label': 'Achievements', 'icon': '🎖️'},
   {'label': 'Challenges', 'icon': '🎯'},
+  {'label': 'Livestream', 'icon': '🔴'},
+  {'label': 'VIP Store', 'icon': '🖼️'},
 ];
 
 class ProfileScreen extends StatefulWidget {
@@ -335,6 +343,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'Leaderboards' => const LeaderboardsScreen(),
           'Achievements' => const AchievementsScreen(),
           'Challenges' => const ChallengesScreen(),
+          'Livestream' => const LivestreamDashboardScreen(),
+          'VIP Store' => const VipStoreScreen(),
           _ => null,
         };
         if (screen != null) Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
@@ -570,6 +580,8 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
   late final TextEditingController _height;
   late final TextEditingController _religion;
   List<String> _interests = [];
+  List<String> _languages = [];
+  List<List<String>> _interestOptions = kInterestOptions;
   List<Map<String, dynamic>> _prompts = [];
   String? _gender;
   String? _orientation;
@@ -580,6 +592,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
   bool _saving = false;
   bool _hideOnlineStatus = false;
   bool _safeModeEnabled = false;
+  bool _locationSharingEnabled = false;
   DateTime? _usernameChangedAt;
 
   static const _usernameCooldown = Duration(days: 30);
@@ -600,6 +613,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
     _height = TextEditingController(text: user?.height?.toString() ?? '');
     _religion = TextEditingController(text: user?.religion ?? '');
     _interests = List<String>.from(user?.interests ?? []);
+    _languages = List<String>.from(user?.languages ?? []);
     _prompts = List<Map<String, dynamic>>.from(user?.prompts ?? []);
     _gender = user?.gender;
     _orientation = user?.orientation;
@@ -609,7 +623,11 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
     _avatarDataUri = user?.avatarUrl;
     _hideOnlineStatus = user?.hideOnlineStatus ?? false;
     _safeModeEnabled = user?.safeModeEnabled ?? false;
+    _locationSharingEnabled = user?.locationSharingEnabled ?? false;
     _usernameChangedAt = user?.usernameChangedAt;
+    InterestOptionsCache.load().then((options) {
+      if (mounted) setState(() => _interestOptions = options);
+    });
   }
 
   Future<void> _pickAvatar() async {
@@ -629,6 +647,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
         'age': _age.text.trim().isEmpty ? null : int.tryParse(_age.text.trim()),
         'gender': _gender,
         'interests': _interests,
+        'languages': _languages,
         'height': _height.text.trim().isEmpty ? null : int.tryParse(_height.text.trim()),
         'orientation': _orientation,
         'smoking': _smoking,
@@ -638,6 +657,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
         'prompts': _prompts,
         'hideOnlineStatus': _hideOnlineStatus,
         'safeModeEnabled': _safeModeEnabled,
+        'locationSharingEnabled': _locationSharingEnabled,
         if (_avatarDataUri != null) 'avatarUrl': _avatarDataUri,
         if (payToChangeNow) 'payToChangeNow': true,
       };
@@ -648,6 +668,12 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
       await ApiClient.patch('/auth/me', body: _buildPatch());
       if (!mounted) return;
       await context.read<AuthProvider>().refreshUser();
+      // Only actually requests the OS permission prompt + sends a position
+      // when this was just turned on — the server no-ops POST /auth/location
+      // for anyone with the flag off, so there'd be nothing to gain calling
+      // it otherwise.
+      if (_locationSharingEnabled) LocationService.requestPermissionAndPing();
+      if (!mounted) return;
       Navigator.of(context).pop();
     } on ApiException catch (e) {
       if (e.status == 403 && e.data is Map && (e.data as Map)['costCoins'] != null) {
@@ -770,7 +796,11 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
           const SizedBox(height: 12),
           const Text('Interests', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
           const SizedBox(height: 6),
-          InterestPicker(selected: _interests, onChanged: (v) => setState(() => _interests = v)),
+          InterestPicker(selected: _interests, onChanged: (v) => setState(() => _interests = v), options: _interestOptions),
+          const SizedBox(height: 12),
+          const Text('Languages', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+          const SizedBox(height: 6),
+          InterestPicker(selected: _languages, onChanged: (v) => setState(() => _languages = v), options: kLanguageOptions),
           const SizedBox(height: 12),
           const Text('Prompts', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
           const SizedBox(height: 6),
@@ -871,6 +901,16 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
             dense: true,
             activeColor: AppColors.primary,
             title: const Text('Safe mode (only show verified profiles in Discover)', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+          ),
+          CheckboxListTile(
+            value: _locationSharingEnabled,
+            onChanged: (v) => setState(() => _locationSharingEnabled = v ?? false),
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            activeColor: AppColors.primary,
+            title: const Text('Share precise location for map-based Discover', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+            subtitle: const Text('Off by default — turning this on asks for location access.', style: TextStyle(color: AppColors.textFaint, fontSize: 11)),
           ),
           const SizedBox(height: 20),
           ElevatedButton(onPressed: _saving ? null : _save, child: Text(_saving ? 'Saving…' : 'Save changes')),

@@ -283,7 +283,7 @@ class _FeedScreenState extends State<FeedScreen> {
               GestureDetector(
                 onTap: () => _toggleLike(post),
                 child: Row(children: [
-                  Text(post.likedByMe ? '❤️' : '🤍'),
+                  Icon(post.likedByMe ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: post.likedByMe ? AppColors.danger : AppColors.textDim, size: 20),
                   const SizedBox(width: 4),
                   Text('${post.likesCount}', style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
                 ]),
@@ -292,16 +292,17 @@ class _FeedScreenState extends State<FeedScreen> {
               GestureDetector(
                 onTap: () => _openComments(post),
                 child: Row(children: [
-                  const Text('💬'),
+                  const Icon(Icons.mode_comment_outlined, color: AppColors.textDim, size: 19),
                   const SizedBox(width: 4),
                   Text('${post.commentsCount}', style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
                 ]),
               ),
               const Spacer(),
               ShareRow(text: post.text),
+              const SizedBox(width: 4),
               GestureDetector(
                 onTap: () => _toggleSave(post),
-                child: Text(post.savedByMe ? '🔖' : '📑', style: const TextStyle(fontSize: 16)),
+                child: Icon(post.savedByMe ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, color: post.savedByMe ? AppColors.primary : AppColors.textDim, size: 20),
               ),
             ],
           ),

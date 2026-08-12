@@ -5,6 +5,8 @@ import '../../core/api_client.dart';
 import '../../core/auth_provider.dart';
 import '../../core/socket_service.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/club_room_colors.dart';
+import '../../theme/vola_party_colors.dart';
 import '../../widgets/banner_carousel.dart';
 import '../../widgets/gift_bottom_sheet.dart';
 import '../../widgets/game_board_view.dart';
@@ -139,19 +141,28 @@ class _PartyScreenState extends State<PartyScreen> {
     }
 
     // Seed the queue with the room's own video once, host-only — mirrors
-    // PartyPage.jsx's seededQueue effect.
+    // PartyPage.jsx's seededQueue effect. Skipped entirely for WebView-only
+    // platforms (Netflix/Hotstar/etc.): those never have a real fetched
+    // video title, and falling back to room['title'] (the room's own
+    // auto-generated name, e.g. "Alex's Watch Party") made "now playing"
+    // show the room name instead of an actual song — which then got
+    // permanently logged into the viewer's song-history below. There's no
+    // synced "song" for these platforms at all, so showing nothing is
+    // correct, not a gap.
     final room = _room;
     final items = (rs.queue['items'] as List?) ?? [];
-    if (room != null && room['roomType'] == 'watch' && rs.isHost && !_seededQueue && items.isEmpty) {
-      // room['title'] is the ROOM's own auto-generated name (e.g. "Alex's
-      // Watch Party"), never the video's — falling back to it here used to
-      // make the "now playing" display show the room's name instead of the
-      // actual video until a real song got added. videoTitle/videoThumbnail
-      // are the picked video's own metadata (see watch_room_creator.dart).
+    final roomSourceType = room?['sourceType'] as String?;
+    if (room != null &&
+        room['roomType'] == 'watch' &&
+        rs.isHost &&
+        !_seededQueue &&
+        items.isEmpty &&
+        !_webviewSourceTypes.contains(roomSourceType) &&
+        room['videoTitle'] != null) {
       rs.queueInit({
-        'sourceType': room['sourceType'],
+        'sourceType': roomSourceType,
         'videoUrl': room['videoUrl'],
-        'title': room['videoTitle'] ?? room['title'],
+        'title': room['videoTitle'],
         'thumbnail': room['videoThumbnail'],
       });
       _seededQueue = true;
@@ -229,6 +240,20 @@ class _PartyScreenState extends State<PartyScreen> {
     _scaffoldKey.currentState?.openEndDrawer();
   }
 
+  // Lets the unified source picker's in-room "switch source" tiles (see
+  // SourcePickerBody) replace what a streaming-platform room is set to
+  // without everyone leaving — mirrors RoomSettingsSheet's own PATCH
+  // /rooms/:id/type call. Reloads afterward rather than trusting the
+  // socket round-trip alone, same as RoomSettingsSheet's onChanged does.
+  Future<void> _switchRoomSource(String sourceType, String videoUrl) async {
+    await ApiClient.patch('/rooms/${widget.roomId}/type', body: {
+      'roomType': 'watch',
+      'sourceType': sourceType,
+      'videoUrl': videoUrl,
+    });
+    await _loadRoom();
+  }
+
   void _openQueue() {
     final rs = _rs!;
     final isVoice = _room?['roomType'] == 'voice';
@@ -236,6 +261,7 @@ class _PartyScreenState extends State<PartyScreen> {
       builder: (_) => AnimatedBuilder(
         animation: rs,
         builder: (context, _) => QueueSheetScreen(
+          roomId: widget.roomId,
           queue: rs.queue,
           isHost: rs.isHost,
           participantCount: rs.roster.length,
@@ -244,6 +270,7 @@ class _PartyScreenState extends State<PartyScreen> {
           onRemove: rs.queueRemove,
           onReorder: rs.queueReorder,
           onOpenRoster: _openRoster,
+          onSwitchSource: _switchRoomSource,
           audioOnly: isVoice,
           canPin: rs.canPin,
           canAddSongs: rs.settings['songPermission'] != 'host' || rs.isHost,
@@ -360,6 +387,20 @@ class _PartyScreenState extends State<PartyScreen> {
     final isWatch = room['roomType'] == 'watch';
     final isGame = room['roomType'] == 'game';
     final isVoice = room['roomType'] == 'voice';
+    // Voice Room and Watch Party each get their own dedicated reskin (see
+    // club_room_colors.dart / vola_party_colors.dart) — every other room
+    // type keeps the app's normal claymorphism theme via AppColors,
+    // unchanged below. Watch Party's background is an actual gradient
+    // (see roomBgGradient), not a flat color, so roomBg only matters for
+    // Voice/default.
+    final roomBg = isVoice ? ClubRoomColors.bg : AppColors.bg;
+    final roomBgGradient = isWatch ? VolaPartyColors.bgGradient : null;
+    final roomSurface = isVoice ? ClubRoomColors.surface : (isWatch ? VolaPartyColors.surface : AppColors.surface);
+    final roomBorder = isVoice ? ClubRoomColors.border : (isWatch ? VolaPartyColors.border : AppColors.border);
+    final roomTextDim = isVoice ? ClubRoomColors.textDim : (isWatch ? VolaPartyColors.textDim : AppColors.textDim);
+    final roomPrimary = isVoice ? ClubRoomColors.primary : (isWatch ? VolaPartyColors.primary : AppColors.primary);
+    final roomGold = isVoice ? ClubRoomColors.gold : (isWatch ? VolaPartyColors.gold : AppColors.gold);
+    final roomDanger = isVoice ? ClubRoomColors.danger : (isWatch ? VolaPartyColors.danger : AppColors.danger);
     final myId = context.read<AuthProvider>().user?.id;
     final activeMics = (rs.call['activeMics'] as List? ?? []).cast<String>();
     final pendingRequests = (rs.call['pendingRequests'] as List? ?? []).cast<String>();
@@ -394,7 +435,7 @@ class _PartyScreenState extends State<PartyScreen> {
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: AppColors.bg,
+      backgroundColor: isWatch ? Colors.transparent : roomBg,
       endDrawer: RosterSheet(
         roster: rs.roster,
         hostId: rs.hostId,
@@ -407,6 +448,8 @@ class _PartyScreenState extends State<PartyScreen> {
         onInviteMic: rs.inviteMic,
       ),
       appBar: AppBar(
+        backgroundColor: isVoice ? ClubRoomColors.surface.withValues(alpha: 0.85) : (isWatch ? VolaPartyColors.surface.withValues(alpha: 0.7) : null),
+        foregroundColor: isVoice ? ClubRoomColors.text : (isWatch ? VolaPartyColors.text : null),
         leading: BackButton(onPressed: () => Navigator.of(context).pop()),
         title: Text(room['title'] as String? ?? '', key: _hostKey, style: const TextStyle(fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
@@ -419,25 +462,27 @@ class _PartyScreenState extends State<PartyScreen> {
               }),
               icon: Icon(
                 (_viewModeOverride ?? (currentItem?['mediaMode'] as String? ?? 'video')) == 'audio' ? Icons.movie_outlined : Icons.headphones,
-                color: AppColors.textDim,
+                color: roomTextDim,
               ),
             ),
           if (isWatch || isGame || isVoice)
             IconButton(
               tooltip: 'Find a song',
               onPressed: _openQueue,
-              icon: const Icon(Icons.search, color: AppColors.textDim),
+              icon: Icon(Icons.search, color: roomTextDim),
             ),
-          TextButton(onPressed: _openRoster, child: Text('👥 ${rs.roster.length}', style: const TextStyle(color: AppColors.textDim))),
+          TextButton(onPressed: _openRoster, child: Text('👥 ${rs.roster.length}', style: TextStyle(color: roomTextDim))),
           if (rs.isHost && room['roomType'] != 'live')
             IconButton(
               tooltip: 'Room settings',
               onPressed: () => showRoomSettingsSheet(context, room: room, onChanged: _loadRoom),
-              icon: const Icon(Icons.settings_outlined, color: AppColors.textDim),
+              icon: Icon(Icons.settings_outlined, color: roomTextDim),
             ),
         ],
       ),
-      body: Column(
+      body: Container(
+        decoration: roomBgGradient != null ? BoxDecoration(gradient: roomBgGradient) : null,
+        child: Column(
         children: [
           const Padding(padding: EdgeInsets.fromLTRB(12, 12, 12, 0), child: BannerCarousel(placement: 'room')),
           // Room-type-specific content — free to change shape however it
@@ -511,12 +556,12 @@ class _PartyScreenState extends State<PartyScreen> {
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.primary.withValues(alpha: 0.3))),
-                  child: const Row(
+                  decoration: BoxDecoration(color: roomPrimary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12), border: Border.all(color: roomPrimary.withValues(alpha: 0.3))),
+                  child: Row(
                     children: [
-                      Text('📊', style: TextStyle(fontSize: 16)),
-                      SizedBox(width: 8),
-                      Text('Poll Active', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 13)),
+                      const Text('📊', style: TextStyle(fontSize: 16)),
+                      const SizedBox(width: 8),
+                      Text('Poll Active', style: TextStyle(color: roomPrimary, fontWeight: FontWeight.w600, fontSize: 13)),
                     ],
                   ),
                 ),
@@ -535,23 +580,29 @@ class _PartyScreenState extends State<PartyScreen> {
                       height: 40,
                       margin: const EdgeInsets.only(right: 8),
                       decoration: BoxDecoration(
-                        color: myMicOn ? AppColors.danger : (myMicRequested ? AppColors.gold : Colors.black),
+                        color: myMicOn ? roomDanger : (myMicRequested ? roomGold : Colors.black),
                         shape: BoxShape.circle,
                       ),
                       alignment: Alignment.center,
                       child: Icon(myMicOn ? Icons.mic : Icons.mic_off, color: Colors.white, size: 18),
                     ),
                   ),
-                  if (rs.isHost) _iconButton('🚀', _boost, color: AppColors.gold),
-                  _iconButton('🎁', () => showGiftBottomSheet(context, toUserId: room['hostId'] as String? ?? '', roomId: widget.roomId, targetKey: _hostKey), color: AppColors.gold),
+                  if (rs.isHost) _iconButton('🚀', _boost, color: roomGold, borderColor: roomBorder, badgeColor: roomPrimary),
+                  _iconButton(
+                    '🎁',
+                    () => showGiftBottomSheet(context, toUserId: room['hostId'] as String? ?? '', roomId: widget.roomId, targetKey: _hostKey),
+                    color: roomGold,
+                    borderColor: roomBorder,
+                    badgeColor: roomPrimary,
+                  ),
                   if (rs.isHost)
-                    _iconButton('📊', () => showPollCreatorBottomSheet(context, onCreate: rs.createPoll))
+                    _iconButton('📊', () => showPollCreatorBottomSheet(context, onCreate: rs.createPoll), borderColor: roomBorder, badgeColor: roomPrimary)
                   else if (rs.poll['active'] == true)
-                    _iconButton('📊', () => showPollBottomSheet(context, poll: rs.poll, myUserId: myId ?? '', isHost: rs.isHost, onVote: rs.votePoll, onReset: rs.resetPoll)),
+                    _iconButton('📊', () => showPollBottomSheet(context, poll: rs.poll, myUserId: myId ?? '', isHost: rs.isHost, onVote: rs.votePoll, onReset: rs.resetPoll), borderColor: roomBorder, badgeColor: roomPrimary),
                   if (isWatch || isGame || isVoice)
-                    _iconButton('📑', _openQueue, badge: items.isEmpty ? null : items.length),
-                  _iconButton('🔗', _shareRoom),
-                  _iconButton('👥➕', _openInvite),
+                    _iconButton('📑', _openQueue, badge: items.isEmpty ? null : items.length, borderColor: roomBorder, badgeColor: roomPrimary),
+                  _iconButton('🔗', _shareRoom, borderColor: roomBorder, badgeColor: roomPrimary),
+                  _iconButton('👥➕', _openInvite, borderColor: roomBorder, badgeColor: roomPrimary),
                 ],
               ),
             ),
@@ -560,16 +611,17 @@ class _PartyScreenState extends State<PartyScreen> {
           Expanded(
             child: Container(
               margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-              decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
-              child: ChatPanel(messages: rs.messages, onSend: rs.sendMessage),
+              decoration: BoxDecoration(color: roomSurface, borderRadius: BorderRadius.circular(14), border: Border.all(color: roomBorder)),
+              child: ChatPanel(messages: rs.messages, onSend: rs.sendMessage, clubRoomTheme: isVoice),
             ),
           ),
         ],
+        ),
       ),
     );
   }
 
-  Widget _iconButton(String label, VoidCallback onTap, {Color? color, int? badge}) {
+  Widget _iconButton(String label, VoidCallback onTap, {Color? color, int? badge, Color? borderColor, Color? badgeColor}) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: GestureDetector(
@@ -580,7 +632,7 @@ class _PartyScreenState extends State<PartyScreen> {
             Container(
               width: 40,
               height: 40,
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: borderColor ?? AppColors.border)),
               alignment: Alignment.center,
               child: Text(label, style: TextStyle(color: color ?? AppColors.textDim, fontSize: 16)),
             ),
@@ -590,7 +642,7 @@ class _PartyScreenState extends State<PartyScreen> {
                 right: -4,
                 child: Container(
                   padding: const EdgeInsets.all(3),
-                  decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: badgeColor ?? AppColors.primary, shape: BoxShape.circle),
                   constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
                   child: Text('$badge', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
                 ),

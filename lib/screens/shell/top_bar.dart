@@ -41,7 +41,7 @@ class FlingTopBar extends StatelessWidget implements PreferredSizeWidget {
                 children: [
                   GestureDetector(
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileScreen())),
-                    child: Avatar(src: user?.avatarUrl, name: user?.name, size: AvatarSize.sm, ring: true),
+                    child: Avatar(src: user?.avatarUrl, name: user?.name, size: AvatarSize.sm, ring: true, frameId: user?.equippedFrameId),
                   ),
                   const SizedBox(width: 10),
                   ShaderMask(

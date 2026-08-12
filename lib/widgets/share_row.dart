@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../theme/app_colors.dart';
+import '../theme/clay_colors.dart';
 
-/// Share/WhatsApp/Instagram row — Dart port of ShareRow.jsx. No public
-/// per-post/reel/room-broadcast detail page exists to deep-link into, so
-/// sharing always points at the app itself plus a text caption.
+/// Single share entry point — a proper share icon that opens a small sheet
+/// with Copy link / WhatsApp / Instagram, instead of three ambiguous emoji
+/// buttons sitting directly in the post's action row.
 class ShareRow extends StatelessWidget {
   final String? text;
   final String? url;
@@ -37,33 +39,75 @@ class ShareRow extends StatelessWidget {
     await launchUrl(Uri.parse('https://instagram.com'), mode: LaunchMode.externalApplication);
   }
 
+  void _openSheet(BuildContext context) {
+    final clay = ClayColors.of(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => SafeArea(
+        child: Container(
+          margin: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(color: clay.surface2, borderRadius: BorderRadius.circular(22), border: Border.all(color: clay.border)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _shareOption(
+                icon: Icons.link_rounded,
+                iconColor: clay.textDim,
+                label: 'Copy link',
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _copyLink(context);
+                },
+              ),
+              _shareOption(
+                icon: Icons.chat_rounded,
+                iconColor: const Color(0xFF25D366),
+                label: 'WhatsApp',
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _openWhatsapp(context);
+                },
+              ),
+              _shareOption(
+                icon: Icons.camera_alt_rounded,
+                iconColor: AppColors.accent,
+                label: 'Instagram',
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _openInstagram(context);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _shareOption({required IconData icon, required Color iconColor, required String label, required VoidCallback onTap}) {
+    return Builder(
+      builder: (context) {
+        final clay = ClayColors.of(context);
+        return ListTile(
+          leading: Icon(icon, color: iconColor),
+          title: Text(label, style: TextStyle(color: clay.text, fontSize: 14, fontWeight: FontWeight.w500)),
+          onTap: onTap,
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          onPressed: () => _copyLink(context),
-          icon: const Text('🔗', style: TextStyle(fontSize: 16)),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-          tooltip: 'Share',
-        ),
-        IconButton(
-          onPressed: () => _openWhatsapp(context),
-          icon: const Text('💚', style: TextStyle(fontSize: 16)),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-          tooltip: 'Share to WhatsApp',
-        ),
-        IconButton(
-          onPressed: () => _openInstagram(context),
-          icon: const Text('📸', style: TextStyle(fontSize: 16)),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-          tooltip: 'Share to Instagram',
-        ),
-      ],
+    final clay = ClayColors.of(context);
+    return IconButton(
+      onPressed: () => _openSheet(context),
+      icon: Icon(Icons.share_rounded, color: clay.textDim, size: 20),
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+      tooltip: 'Share',
     );
   }
 }

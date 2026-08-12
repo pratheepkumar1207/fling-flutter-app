@@ -17,7 +17,12 @@ class DriveBrowseScreen extends StatefulWidget {
   final String visibility;
   final String? topic;
 
-  const DriveBrowseScreen({super.key, required this.visibility, this.topic});
+  /// When set, picking a file calls this instead of creating a room — used
+  /// by the unified source picker's in-room "add to queue" path (see
+  /// SourcePickerBody in source_picker_screen.dart).
+  final void Function(Map<String, dynamic> item)? onSelectOverride;
+
+  const DriveBrowseScreen({super.key, required this.visibility, this.topic, this.onSelectOverride});
 
   @override
   State<DriveBrowseScreen> createState() => _DriveBrowseScreenState();
@@ -89,6 +94,10 @@ class _DriveBrowseScreenState extends State<DriveBrowseScreen> {
 
   void _selectVideo(Map<String, dynamic> item) {
     if (_creatingRoom) return;
+    if (widget.onSelectOverride != null) {
+      widget.onSelectOverride!(item);
+      return;
+    }
     setState(() => _creatingRoom = true);
     createWatchRoomAndEnter(
       context,

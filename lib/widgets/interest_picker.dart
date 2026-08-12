@@ -11,7 +11,12 @@ class InterestPicker extends StatelessWidget {
   final List<String> selected;
   final ValueChanged<List<String>> onChanged;
 
-  const InterestPicker({super.key, required this.selected, required this.onChanged});
+  /// Same chip UI backs both interests and languages — pass
+  /// `kLanguageOptions` (see language_options.dart) to reuse this for the
+  /// language picker instead of duplicating the widget.
+  final List<List<String>> options;
+
+  const InterestPicker({super.key, required this.selected, required this.onChanged, this.options = kInterestOptions});
 
   void _toggle(String label) {
     if (selected.contains(label)) {
@@ -26,7 +31,7 @@ class InterestPicker extends StatelessWidget {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: kInterestOptions.map((o) {
+      children: options.map((o) {
         final label = o[1];
         final active = selected.contains(label);
         return GestureDetector(

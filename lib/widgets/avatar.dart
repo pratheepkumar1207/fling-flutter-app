@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/avatar_frame_cache.dart';
 import '../core/format.dart';
 import '../theme/app_colors.dart';
 import 'app_image.dart';
@@ -12,10 +13,18 @@ class Avatar extends StatelessWidget {
 
   /// Wraps the avatar in the brand-gradient "story ring" — Instagram's
   /// signature avatar treatment. Off by default; opt in per call site
-  /// (e.g. the top bar) rather than everywhere at once.
+  /// (e.g. the top bar) rather than everywhere at once. Ignored when
+  /// [frameId] resolves to a purchased VIP frame — that takes priority.
   final bool ring;
 
-  const Avatar({super.key, this.src, this.name, this.size = AvatarSize.md, this.ring = false});
+  /// A purchased VIP cosmetic frame (see AvatarFrameCache, GET
+  /// /store/avatar-frames) — resolved synchronously from the in-memory
+  /// cache, so call AvatarFrameCache.load() once early (e.g. app start)
+  /// for this to actually render on first paint rather than needing a
+  /// second rebuild.
+  final String? frameId;
+
+  const Avatar({super.key, this.src, this.name, this.size = AvatarSize.md, this.ring = false, this.frameId});
 
   double get _dimension {
     switch (size) {
@@ -41,6 +50,21 @@ class Avatar extends StatelessWidget {
             : _fallback(d),
       ),
     );
+    final frameUrl = AvatarFrameCache.urlFor(frameId);
+    if (frameUrl != null) {
+      const frameOverhang = 1.25; // frame art extends past the avatar's own edge
+      return SizedBox(
+        width: d * frameOverhang,
+        height: d * frameOverhang,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            avatar,
+            Positioned.fill(child: AppImage(source: frameUrl, fit: BoxFit.contain)),
+          ],
+        ),
+      );
+    }
     if (!ring) return avatar;
     const ringWidth = 2.5;
     return Container(

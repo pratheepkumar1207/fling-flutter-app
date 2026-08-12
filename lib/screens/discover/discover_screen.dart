@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
+import '../../core/api_exception.dart';
+import '../../core/auth_provider.dart';
+import '../../core/language_options.dart';
 import '../../models/user.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/interest_picker.dart';
 import '../../widgets/spinner.dart';
+import 'map_explore_screen.dart';
+import 'random_match_screen.dart';
 import 'swipe_card.dart';
 
 class DiscoverScreen extends StatefulWidget {
@@ -17,11 +24,16 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   bool _loading = true;
   bool _showFilters = false;
   String? _matchName;
+  DiscoverProfile? _lastSwiped;
+  bool _undoing = false;
 
   final _cityController = TextEditingController();
   final _minAgeController = TextEditingController();
   final _maxAgeController = TextEditingController();
+  final _religionController = TextEditingController();
   String? _gender;
+  String? _lookingFor;
+  List<String> _languages = [];
   bool _onlineOnly = false;
 
   @override
@@ -37,6 +49,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     if (_minAgeController.text.trim().isNotEmpty) params['minAge'] = _minAgeController.text.trim();
     if (_maxAgeController.text.trim().isNotEmpty) params['maxAge'] = _maxAgeController.text.trim();
     if (_gender != null) params['gender'] = _gender!;
+    if (_lookingFor != null) params['lookingFor'] = _lookingFor!;
+    if (_religionController.text.trim().isNotEmpty) params['religion'] = _religionController.text.trim();
+    if (_languages.isNotEmpty) params['languages'] = _languages.join(',');
     if (_onlineOnly) params['onlineOnly'] = 'true';
     final query = params.entries.map((e) => '${e.key}=${Uri.encodeQueryComponent(e.value)}').join('&');
     try {
@@ -55,14 +70,42 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     final deck = _deck;
     if (deck == null || deck.isEmpty) return;
     final top = deck.last;
-    setState(() => _deck = deck.sublist(0, deck.length - 1));
+    setState(() {
+      _deck = deck.sublist(0, deck.length - 1);
+      _lastSwiped = top;
+    });
     try {
       final res = await ApiClient.post('/swipe', body: {'toUserId': top.id, 'action': action}) as Map<String, dynamic>;
+      if (!mounted) return;
       if (res['matched'] == true) {
-        setState(() => _matchName = top.name);
+        setState(() {
+          _matchName = top.name;
+          _lastSwiped = null; // matched swipes can't be undone — see /swipe/undo
+        });
       }
     } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Something went wrong')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Something went wrong')));
+    }
+  }
+
+  // Coin-gated "reverse swipe" — see POST /swipe/undo. Puts the most
+  // recently swiped profile back on top of the deck.
+  Future<void> _undoLastSwipe() async {
+    final lastSwiped = _lastSwiped;
+    if (lastSwiped == null || _undoing) return;
+    setState(() => _undoing = true);
+    try {
+      await ApiClient.post('/swipe/undo');
+      if (!mounted) return;
+      setState(() {
+        _deck = [...(_deck ?? []), lastSwiped];
+        _lastSwiped = null;
+      });
+      await context.read<AuthProvider>().refreshUser();
+    } on ApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _undoing = false);
     }
   }
 
@@ -79,9 +122,21 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Discover', style: TextStyle(color: AppColors.text, fontSize: 20, fontWeight: FontWeight.bold)),
-                  TextButton(
-                    onPressed: () => setState(() => _showFilters = !_showFilters),
-                    child: const Text('Filters', style: TextStyle(color: AppColors.primary)),
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RandomMatchScreen())),
+                        child: const Text('🎲 Random', style: TextStyle(color: AppColors.primary)),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MapExploreScreen())),
+                        child: const Text('🗺️ Map', style: TextStyle(color: AppColors.primary)),
+                      ),
+                      TextButton(
+                        onPressed: () => setState(() => _showFilters = !_showFilters),
+                        child: const Text('Filters', style: TextStyle(color: AppColors.primary)),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -114,6 +169,29 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                       ],
                       onChanged: (v) => setState(() => _gender = v),
                     ),
+                    const SizedBox(height: 8),
+                    DropdownButton<String?>(
+                      value: _lookingFor,
+                      isExpanded: true,
+                      dropdownColor: AppColors.surface2,
+                      hint: const Text('Any relationship goal', style: TextStyle(color: AppColors.textFaint)),
+                      items: const [
+                        DropdownMenuItem(value: null, child: Text('Any relationship goal')),
+                        DropdownMenuItem(value: 'friends', child: Text('🤝 Friends')),
+                        DropdownMenuItem(value: 'explore', child: Text('✨ Explore')),
+                        DropdownMenuItem(value: 'short_term', child: Text('💫 Short-term')),
+                        DropdownMenuItem(value: 'long_term', child: Text('💍 Long-term')),
+                        DropdownMenuItem(value: 'not_sure', child: Text('🤔 Not sure yet')),
+                      ],
+                      onChanged: (v) => setState(() => _lookingFor = v),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(controller: _religionController, style: const TextStyle(color: AppColors.text), decoration: const InputDecoration(hintText: 'Religion')),
+                    const SizedBox(height: 8),
+                    const Align(alignment: Alignment.centerLeft, child: Text('Languages', style: TextStyle(color: AppColors.textFaint, fontSize: 12))),
+                    const SizedBox(height: 6),
+                    InterestPicker(selected: _languages, onChanged: (v) => setState(() => _languages = v), options: kLanguageOptions),
+                    const SizedBox(height: 8),
                     CheckboxListTile(
                       value: _onlineOnly,
                       onChanged: (v) => setState(() => _onlineOnly = v ?? false),
@@ -155,6 +233,10 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    if (_lastSwiped != null) ...[
+                      _roundButton('↺', AppColors.gold, _undoing ? () {} : _undoLastSwipe, small: true),
+                      const SizedBox(width: 14),
+                    ],
                     _roundButton('✕', AppColors.danger, () => _handleSwipe('pass')),
                     const SizedBox(width: 20),
                     _roundButton('★', AppColors.accent, () => _handleSwipe('superlike')),
@@ -190,15 +272,16 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     );
   }
 
-  Widget _roundButton(String label, Color color, VoidCallback onTap) {
+  Widget _roundButton(String label, Color color, VoidCallback onTap, {bool small = false}) {
+    final size = small ? 42.0 : 56.0;
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 56,
-        height: 56,
+        width: size,
+        height: size,
         decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.surface, border: Border.all(color: AppColors.border)),
         alignment: Alignment.center,
-        child: Text(label, style: TextStyle(color: color, fontSize: 24)),
+        child: Text(label, style: TextStyle(color: color, fontSize: small ? 18 : 24)),
       ),
     );
   }
@@ -208,6 +291,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     _cityController.dispose();
     _minAgeController.dispose();
     _maxAgeController.dispose();
+    _religionController.dispose();
     super.dispose();
   }
 }

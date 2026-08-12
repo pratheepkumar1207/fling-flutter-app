@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/club_room_colors.dart';
 import '../../widgets/avatar.dart';
 
 class ChatPanel extends StatefulWidget {
   final List<Map<String, dynamic>> messages;
   final void Function(String text) onSend;
 
-  const ChatPanel({super.key, required this.messages, required this.onSend});
+  /// Voice Room's ClubRoom-matched palette instead of the app's normal
+  /// theme — see club_room_colors.dart and party_screen.dart's isVoice.
+  final bool clubRoomTheme;
+
+  const ChatPanel({super.key, required this.messages, required this.onSend, this.clubRoomTheme = false});
 
   @override
   State<ChatPanel> createState() => _ChatPanelState();
@@ -35,11 +40,16 @@ class _ChatPanelState extends State<ChatPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final club = widget.clubRoomTheme;
+    final textFaint = club ? ClubRoomColors.textFaint : AppColors.textFaint;
+    final text = club ? ClubRoomColors.text : AppColors.text;
+    final textDim = club ? ClubRoomColors.textDim : AppColors.textDim;
+    final primary = club ? ClubRoomColors.primary : AppColors.primary;
     return Column(
       children: [
         Expanded(
           child: widget.messages.isEmpty
-              ? const Center(child: Text('Say hi 👋', style: TextStyle(color: AppColors.textFaint, fontSize: 12)))
+              ? Center(child: Text('Say hi 👋', style: TextStyle(color: textFaint, fontSize: 12)))
               : ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.all(10),
@@ -50,7 +60,7 @@ class _ChatPanelState extends State<ChatPanel> {
                     if (isSystem) {
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Center(child: Text(m['text'] as String? ?? '', style: const TextStyle(color: AppColors.textFaint, fontSize: 11))),
+                        child: Center(child: Text(m['text'] as String? ?? '', style: TextStyle(color: textFaint, fontSize: 11))),
                       );
                     }
                     return Padding(
@@ -64,8 +74,8 @@ class _ChatPanelState extends State<ChatPanel> {
                             child: RichText(
                               text: TextSpan(
                                 children: [
-                                  TextSpan(text: '${m['name'] ?? 'Someone'}  ', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 12)),
-                                  TextSpan(text: m['text'] as String? ?? '', style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
+                                  TextSpan(text: '${m['name'] ?? 'Someone'}  ', style: TextStyle(color: text, fontWeight: FontWeight.w600, fontSize: 12)),
+                                  TextSpan(text: m['text'] as String? ?? '', style: TextStyle(color: textDim, fontSize: 12)),
                                 ],
                               ),
                             ),
@@ -83,12 +93,12 @@ class _ChatPanelState extends State<ChatPanel> {
               Expanded(
                 child: TextField(
                   controller: _controller,
-                  style: const TextStyle(color: AppColors.text, fontSize: 13),
+                  style: TextStyle(color: text, fontSize: 13),
                   decoration: const InputDecoration(hintText: 'Message…', isDense: true),
                   onSubmitted: (_) => _send(),
                 ),
               ),
-              IconButton(onPressed: _send, icon: const Icon(Icons.send, size: 18, color: AppColors.primary)),
+              IconButton(onPressed: _send, icon: Icon(Icons.send, size: 18, color: primary)),
             ],
           ),
         ),

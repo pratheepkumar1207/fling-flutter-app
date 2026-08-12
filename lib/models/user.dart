@@ -7,6 +7,7 @@ class User {
   final String? avatarUrl;
   final String? bio;
   final List<String> interests;
+  final List<String> languages;
   final String? city;
   final int? age;
   final String? gender;
@@ -22,14 +23,18 @@ class User {
   final DateTime? safetyGuidelinesSeenAt;
   final String photoVerificationStatus;
   final String? verificationSelfieUrl;
+  final String livestreamStatus;
   final bool hideOnlineStatus;
   final bool safeModeEnabled;
+  final bool locationSharingEnabled;
   final DateTime? usernameChangedAt;
   final int xp;
   final int level;
   final bool isVip;
   final DateTime? vipExpiresAt;
   final bool isVerified;
+  final bool isFake;
+  final String? equippedFrameId;
   final double coinBalance;
   final int galleryCount;
   final bool profileComplete;
@@ -43,6 +48,7 @@ class User {
     this.avatarUrl,
     this.bio,
     this.interests = const [],
+    this.languages = const [],
     this.city,
     this.age,
     this.gender,
@@ -58,14 +64,18 @@ class User {
     this.safetyGuidelinesSeenAt,
     this.photoVerificationStatus = 'none',
     this.verificationSelfieUrl,
+    this.livestreamStatus = 'none',
     this.hideOnlineStatus = false,
     this.safeModeEnabled = false,
+    this.locationSharingEnabled = false,
     this.usernameChangedAt,
     this.xp = 0,
     this.level = 1,
     this.isVip = false,
     this.vipExpiresAt,
     this.isVerified = false,
+    this.isFake = false,
+    this.equippedFrameId,
     this.coinBalance = 0,
     this.galleryCount = 0,
     this.profileComplete = true,
@@ -81,6 +91,7 @@ class User {
       avatarUrl: json['avatarUrl'] as String?,
       bio: json['bio'] as String?,
       interests: (json['interests'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      languages: (json['languages'] as List?)?.map((e) => e.toString()).toList() ?? const [],
       city: json['city'] as String?,
       age: json['age'] as int?,
       gender: json['gender'] as String?,
@@ -96,14 +107,18 @@ class User {
       safetyGuidelinesSeenAt: json['safetyGuidelinesSeenAt'] != null ? DateTime.tryParse(json['safetyGuidelinesSeenAt'] as String) : null,
       photoVerificationStatus: json['photoVerificationStatus'] as String? ?? 'none',
       verificationSelfieUrl: json['verificationSelfieUrl'] as String?,
+      livestreamStatus: json['livestreamStatus'] as String? ?? 'none',
       hideOnlineStatus: json['hideOnlineStatus'] as bool? ?? false,
       safeModeEnabled: json['safeModeEnabled'] as bool? ?? false,
+      locationSharingEnabled: json['locationSharingEnabled'] as bool? ?? false,
       usernameChangedAt: json['usernameChangedAt'] != null ? DateTime.tryParse(json['usernameChangedAt'] as String) : null,
       xp: json['xp'] as int? ?? 0,
       level: json['level'] as int? ?? 1,
       isVip: json['isVip'] as bool? ?? false,
       vipExpiresAt: json['vipExpiresAt'] != null ? DateTime.tryParse(json['vipExpiresAt']) : null,
       isVerified: json['isVerified'] as bool? ?? false,
+      isFake: json['isFake'] as bool? ?? false,
+      equippedFrameId: json['equippedFrameId'] as String?,
       coinBalance: _parseDouble(json['coinBalance']),
       galleryCount: json['galleryCount'] as int? ?? 0,
       // Older cached responses (or endpoints that don't compute it) won't
@@ -135,11 +150,15 @@ class DiscoverProfile {
   final String? avatarUrl;
   final String? bio;
   final List<String> interests;
+  final List<String> languages;
+  final String? religion;
+  final String? lookingFor;
   final String? city;
   final int? age;
   final String? gender;
   final bool online;
   final int sharedInterests;
+  final String? equippedFrameId;
 
   DiscoverProfile({
     required this.id,
@@ -148,11 +167,15 @@ class DiscoverProfile {
     this.avatarUrl,
     this.bio,
     this.interests = const [],
+    this.languages = const [],
+    this.religion,
+    this.lookingFor,
     this.city,
     this.age,
     this.gender,
     this.online = false,
     this.sharedInterests = 0,
+    this.equippedFrameId,
   });
 
   factory DiscoverProfile.fromJson(Map<String, dynamic> json) {
@@ -163,11 +186,15 @@ class DiscoverProfile {
       avatarUrl: json['avatarUrl'] as String?,
       bio: json['bio'] as String?,
       interests: (json['interests'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      languages: (json['languages'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      religion: json['religion'] as String?,
+      lookingFor: json['lookingFor'] as String?,
       city: json['city'] as String?,
       age: json['age'] as int?,
       gender: json['gender'] as String?,
       online: json['online'] as bool? ?? false,
       sharedInterests: json['sharedInterests'] as int? ?? 0,
+      equippedFrameId: json['equippedFrameId'] as String?,
     );
   }
 }

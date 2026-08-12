@@ -34,6 +34,15 @@ class WebviewBrowseScreen extends StatefulWidget {
   final String visibility;
   final String? topic;
 
+  /// When set (the unified source picker's in-room "switch source" path —
+  /// see SourcePickerBody in source_picker_screen.dart), landing here and
+  /// confirming calls this instead of creating a new room. Streaming
+  /// platforms have no sync/queue, so "adding to queue" doesn't make sense
+  /// for them the way it does for YouTube/Drive — the only sensible in-room
+  /// action is replacing what the whole room is currently set to, which is
+  /// why this prompts for confirmation first (see _startHere).
+  final Future<void> Function(String sourceType, String videoUrl)? onConfirmOverride;
+
   const WebviewBrowseScreen({
     super.key,
     required this.platform,
@@ -41,6 +50,7 @@ class WebviewBrowseScreen extends StatefulWidget {
     required this.homeUrl,
     required this.visibility,
     this.topic,
+    this.onConfirmOverride,
   });
 
   @override
@@ -57,7 +67,6 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
     if (controller == null || _creatingRoom) return;
     final url = await controller.getUrl();
     if (url == null || !mounted) return;
-    setState(() => _creatingRoom = true);
 
     var sourceType = widget.platform;
     var videoUrl = url.toString();
@@ -71,6 +80,27 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
       }
     }
 
+    final onConfirmOverride = widget.onConfirmOverride;
+    if (onConfirmOverride != null) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Switch this room\'s source?'),
+          content: Text("Everyone in the room will switch to ${widget.label} — this replaces what's currently playing."),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Switch')),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+      setState(() => _creatingRoom = true);
+      await onConfirmOverride(sourceType, videoUrl);
+      if (mounted) setState(() => _creatingRoom = false);
+      return;
+    }
+
+    setState(() => _creatingRoom = true);
     createWatchRoomAndEnter(
       context,
       sourceType: sourceType,
@@ -118,7 +148,7 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
             child: ElevatedButton(
               onPressed: _creatingRoom ? null : _startHere,
               style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
-              child: Text(_creatingRoom ? 'Starting…' : 'Start watch party here'),
+              child: Text(_creatingRoom ? 'Starting…' : (widget.onConfirmOverride != null ? 'Switch room to this' : 'Start watch party here')),
             ),
           ),
         ],

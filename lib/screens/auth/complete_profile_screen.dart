@@ -4,7 +4,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_provider.dart';
+import '../../core/dynamic_options_cache.dart';
 import '../../core/interest_options.dart';
+import '../../core/language_options.dart';
 import '../../models/photo.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/interest_picker.dart';
@@ -33,6 +35,8 @@ class CompleteProfileScreen extends StatefulWidget {
 
 class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   List<String> _interests = [];
+  List<String> _languages = [];
+  List<List<String>> _interestOptions = kInterestOptions;
   String _lookingFor = '';
   final _ageController = TextEditingController();
   bool _ageConfirmed18 = false;
@@ -45,10 +49,14 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     super.initState();
     final user = context.read<AuthProvider>().user;
     _interests = List<String>.from(user?.interests ?? []);
+    _languages = List<String>.from(user?.languages ?? []);
     _lookingFor = user?.lookingFor ?? '';
     _ageController.text = user?.age?.toString() ?? '';
     _ageConfirmed18 = user?.ageConfirmed18 ?? false;
     _loadGallery();
+    InterestOptionsCache.load().then((options) {
+      if (mounted) setState(() => _interestOptions = options);
+    });
   }
 
   int? get _age => int.tryParse(_ageController.text.trim());
@@ -101,6 +109,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     try {
       await ApiClient.patch('/auth/me', body: {
         'interests': _interests,
+        'languages': _languages,
         'lookingFor': _lookingFor,
         'age': _age,
         'ageConfirmed18': _ageConfirmed18,
@@ -197,9 +206,14 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                 const SizedBox(height: 16),
                 Text('Your interests (${_interests.length}/$kMinInterests min)', style: const TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
-                InterestPicker(selected: _interests, onChanged: (v) => setState(() => _interests = v)),
+                InterestPicker(selected: _interests, onChanged: (v) => setState(() => _interests = v), options: _interestOptions),
                 const SizedBox(height: 4),
                 Text('Pick at least $kMinInterests — this helps match you with people who vibe with you.', style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
+
+                const SizedBox(height: 16),
+                const Text('Languages you speak (optional)', style: TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                InterestPicker(selected: _languages, onChanged: (v) => setState(() => _languages = v), options: kLanguageOptions),
 
                 const SizedBox(height: 20),
                 Row(

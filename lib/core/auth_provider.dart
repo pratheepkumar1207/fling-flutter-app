@@ -61,6 +61,18 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Admin-created fake/bot accounts (see POST /admin/fake-users) log in
+  /// with a username+password instead of phone OTP.
+  Future<void> loginFake(String username, String password) async {
+    final data = await ApiClient.post('/auth/login-fake', body: {'username': username, 'password': password}, skipAuth: true);
+    final map = data as Map<String, dynamic>;
+    _token = map['token'] as String;
+    _user = User.fromJson(map['user'] as Map<String, dynamic>);
+    _status = AuthStatus.authed;
+    await _persistToken(_token!);
+    notifyListeners();
+  }
+
   Future<void> loginWithFirebaseIdToken(String idToken) async {
     final data = await ApiClient.post('/auth/firebase', body: {'idToken': idToken}, skipAuth: true);
     final map = data as Map<String, dynamic>;

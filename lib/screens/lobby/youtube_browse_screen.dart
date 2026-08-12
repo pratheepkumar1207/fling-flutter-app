@@ -18,7 +18,13 @@ class YoutubeBrowseScreen extends StatefulWidget {
   final String visibility;
   final String? topic;
 
-  const YoutubeBrowseScreen({super.key, required this.visibility, this.topic});
+  /// When set, picking a video calls this instead of creating a room — the
+  /// in-room "add to queue" path from the unified source picker (see
+  /// SourcePickerBody in source_picker_screen.dart) reuses this same
+  /// screen rather than duplicating YouTube search/playlists/liked.
+  final void Function(Map<String, dynamic> item)? onSelectOverride;
+
+  const YoutubeBrowseScreen({super.key, required this.visibility, this.topic, this.onSelectOverride});
 
   @override
   State<YoutubeBrowseScreen> createState() => _YoutubeBrowseScreenState();
@@ -30,6 +36,10 @@ class _YoutubeBrowseScreenState extends State<YoutubeBrowseScreen> with SingleTi
 
   void _selectVideo(Map<String, dynamic> item) {
     if (_creatingRoom) return;
+    if (widget.onSelectOverride != null) {
+      widget.onSelectOverride!(item);
+      return;
+    }
     setState(() => _creatingRoom = true);
     createWatchRoomAndEnter(
       context,

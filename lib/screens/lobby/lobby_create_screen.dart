@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
+import '../../core/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../party/party_screen.dart';
 import 'source_picker_screen.dart';
@@ -18,6 +20,21 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
   final _topicController = TextEditingController();
   String _visibility = 'public';
   bool _saving = false;
+  bool _applying = false;
+
+  Future<void> _applyToGoLive() async {
+    setState(() => _applying = true);
+    try {
+      await ApiClient.post('/creators/me/livestream-apply');
+      if (!mounted) return;
+      await context.read<AuthProvider>().refreshUser();
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Application submitted — you\'ll be notified once reviewed.')));
+    } on ApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _applying = false);
+    }
+  }
 
   Future<void> _create() async {
     setState(() => _saving = true);
@@ -47,6 +64,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final livestreamStatus = context.watch<AuthProvider>().user?.livestreamStatus ?? 'none';
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(title: const Text('Start a room')),
@@ -105,12 +123,38 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
               onChanged: (v) => setState(() => _visibility = v ?? 'public'),
             ),
           ),
+          if (_roomType == 'live' && livestreamStatus != 'approved') ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    switch (livestreamStatus) {
+                      'pending' => 'Your application to go live is pending review.',
+                      'rejected' => 'Your last application to go live was rejected. You can apply again.',
+                      _ => 'Going live needs approval first — apply below.',
+                    },
+                    style: const TextStyle(color: AppColors.textDim, fontSize: 13),
+                  ),
+                  if (livestreamStatus != 'pending') ...[
+                    const SizedBox(height: 10),
+                    ElevatedButton(onPressed: _applying ? null : _applyToGoLive, child: Text(_applying ? 'Applying…' : 'Apply to go live')),
+                  ],
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
           // Watch parties skip the button below entirely — picking a video in
           // the Rave-style source picker creates the room automatically (see
           // watch_room_creator.dart), so there's nothing left to confirm here.
           if (_roomType == 'watch')
             ElevatedButton(onPressed: _openSourcePicker, child: const Text('Choose what to watch'))
+          else if (_roomType == 'live' && livestreamStatus != 'approved')
+            const SizedBox.shrink()
           else
             ElevatedButton(onPressed: _saving ? null : _create, child: Text(_saving ? 'Creating…' : 'Create room')),
         ],
