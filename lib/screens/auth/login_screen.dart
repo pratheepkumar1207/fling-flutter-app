@@ -107,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Center(child: MascotEyes(covering: _fieldFocused)),
                         const SizedBox(height: 16),
                         const Text(
-                          'Fling',
+                          'Insync',
                           textAlign: TextAlign.center,
                           style: TextStyle(color: AppColors.primary, fontSize: 32, fontWeight: FontWeight.w900),
                         ),

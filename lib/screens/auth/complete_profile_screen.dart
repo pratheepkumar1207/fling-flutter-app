@@ -145,7 +145,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                 if (_ageController.text.isNotEmpty && !_isAdult)
                   const Padding(
                     padding: EdgeInsets.only(top: 4),
-                    child: Text('You must be at least 18 to use Fling.', style: TextStyle(color: AppColors.danger, fontSize: 11)),
+                    child: Text('You must be at least 18 to use Insync.', style: TextStyle(color: AppColors.danger, fontSize: 11)),
                   ),
                 Padding(
                   padding: const EdgeInsets.only(top: 12),

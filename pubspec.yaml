@@ -1,5 +1,5 @@
 name: fling
-description: Fling — watch parties, swipe matching, social feed, chat, and calls.
+description: Insync — watch parties, swipe matching, social feed, chat, and calls.
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -21,6 +21,11 @@ dependencies:
   # Push notifications — requests permission + FCM token, registered via
   # POST /auth/fcm-token (see SafetyGuidelinesScreen).
   firebase_messaging: ^15.1.3
+  # "Connect Google account" for the Rave-style YouTube/Drive source picker
+  # (see source_picker_screen.dart) — separate from firebase_auth's phone
+  # login above; this requests youtube.readonly + drive.readonly scopes and
+  # hands the resulting serverAuthCode to POST /auth/google/connect.
+  google_sign_in: ^6.2.2
 
   # State management
   provider: ^6.1.2
@@ -34,6 +39,14 @@ dependencies:
   cached_network_image: ^3.3.1
   youtube_player_flutter: ^9.0.4
   video_player: ^2.9.2
+  # Already resolved transitively via youtube_player_flutter (see the
+  # dependency_overrides note below) — declared directly too since
+  # webview_browse_screen.dart / netflix_amazon_player.dart import it for
+  # the Netflix/Prime "browse together" rooms (real embedded browser
+  # navigation, not an <iframe>, so their anti-embedding headers don't
+  # apply — see Room.js's sourceType comment for why there's no playback
+  # sync for these two).
+  flutter_inappwebview: ^6.2.0-beta.3
 
   # Voice chat
   # Pinned exactly (not ^) — every version tried (6.3.2, 6.5.4, 6.6.3) ships
@@ -53,6 +66,12 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  # One-off codegen tool for the Insync rebrand — generates every Android
+  # mipmap density + iOS AppIcon.appiconset size from the single source
+  # image below. Re-run `dart run flutter_launcher_icons` if the logo
+  # changes again; the generated files are what actually ship, this
+  # package doesn't run at app runtime.
+  flutter_launcher_icons: ^0.13.1
 
 # youtube_player_flutter pulls in flutter_inappwebview, whose Android
 # implementation (1.1.3, under the latest stable 6.1.5) still uses the
@@ -67,3 +86,11 @@ dependency_overrides:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icon/insync-icon.png
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/insync-icon.png"
+  min_sdk_android: 21

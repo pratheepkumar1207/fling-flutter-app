@@ -37,7 +37,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Fling',
+                      'Insync',
                       style: TextStyle(
                         color: AppColors.primary,
                         fontSize: 40,

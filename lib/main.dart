@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'core/auth_provider.dart';
 import 'core/firebase_service.dart';
 import 'core/socket_service.dart';
+import 'core/theme_controller.dart';
 import 'screens/splash_screen.dart';
 import 'theme/app_theme.dart';
 
@@ -21,14 +22,17 @@ class FlingApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => SocketService()),
+        ChangeNotifierProvider(create: (_) => ThemeController()..load()),
       ],
-      child: MaterialApp(
-        title: 'Fling',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.dark,
-        darkTheme: AppTheme.dark,
-        themeMode: ThemeMode.dark,
-        home: const SplashScreen(),
+      child: Consumer<ThemeController>(
+        builder: (context, themeController, _) => MaterialApp(
+          title: 'Insync',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: themeController.mode,
+          home: const SplashScreen(),
+        ),
       ),
     );
   }

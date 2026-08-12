@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/clay_colors.dart';
 import '../../theme/glass.dart';
 
 class NavItemData {
@@ -22,8 +23,9 @@ class LiquidGlassBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final clay = ClayColors.of(context);
     return Container(
-      color: AppColors.bg,
+      color: clay.bg,
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: SafeArea(
         top: false,
@@ -46,9 +48,13 @@ class LiquidGlassBottomNav extends StatelessWidget {
                       width: segmentWidth,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.2),
+                          gradient: LinearGradient(
+                            colors: AppGradients.brand.map((c) => c.withValues(alpha: 0.22)).toList(),
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                           borderRadius: BorderRadius.circular(999),
-                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+                          border: Border.all(color: clay.primary.withValues(alpha: 0.45)),
                         ),
                       ),
                     ),
@@ -69,7 +75,7 @@ class LiquidGlassBottomNav extends StatelessWidget {
                                   child: Icon(
                                     items[i].icon,
                                     size: 20,
-                                    color: selected ? AppColors.primary : AppColors.textFaint,
+                                    color: selected ? clay.primary : clay.textFaint,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -78,7 +84,7 @@ class LiquidGlassBottomNav extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w500,
-                                    color: selected ? AppColors.primary : AppColors.textFaint,
+                                    color: selected ? clay.primary : clay.textFaint,
                                   ),
                                 ),
                               ],

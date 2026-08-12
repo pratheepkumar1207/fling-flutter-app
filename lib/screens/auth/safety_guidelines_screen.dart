@@ -9,7 +9,7 @@ const _kTips = [
   ['🔒', "Keep personal details (address, workplace, financial info) private until you've built real trust."],
   ['📍', "Meet new people in public places first, and tell a friend where you're going."],
   ['🚩', 'Report or block anyone who pressures you, asks for money, or makes you uncomfortable — no explanation needed.'],
-  ['🧑‍⚖️', 'Fling never asks for payment to "unlock" a match or conversation — that request is always a scam.'],
+  ['🧑‍⚖️', 'Insync never asks for payment to "unlock" a match or conversation — that request is always a scam.'],
 ];
 
 /// Shown once, right after CompleteProfileScreen — see SplashScreen, which

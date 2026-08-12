@@ -1,13 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'app_colors.dart';
+import 'clay_colors.dart';
 
-/// Spatial / glass design system — Dart counterpart to the web app's
-/// `.glass` / `.glow-ring` / `--ease-spring` CSS additions in index.css.
-/// Shared building blocks for the "classy" redesign pass (liquid-glass
-/// nav, mascot login, sigil OTP, hot-wings slider, cola profile card,
-/// static-bloom player) — keep new bespoke screens drawing from these
-/// instead of inventing one-off blur/glow values per screen.
+/// Claymorphism design system — soft, matte, "extruded" surfaces instead
+/// of the earlier frosted-glass look. Every existing GlassSurface call
+/// site keeps working unchanged; the shape stays the same, only the
+/// rendering underneath switched from blur+tint to a dual soft shadow.
 
 /// Matches CSS `cubic-bezier(0.34, 1.56, 0.64, 1)` — a slight overshoot
 /// then settle, the "liquid melt" feel used throughout the reference
@@ -15,10 +13,11 @@ import 'app_colors.dart';
 const Curve kSpringCurve = Cubic(0.34, 1.56, 0.64, 1);
 const Curve kGlassCurve = Cubic(0.16, 1.0, 0.3, 1.0);
 
-/// Flat matte card: mostly-opaque tint + hairline border + soft outer
-/// shadow, with just a hint of backdrop blur — Spotify-reference look
-/// rather than a true frosted-glass surface. Wrap any child in this instead
-/// of a plain Container when a screen calls for the shared card style.
+/// A soft "clay" card: opaque tint, fully rounded, with a light shadow on
+/// one side and a dark shadow on the other so it reads as gently pressed
+/// out of the background rather than flat or glassy. Named GlassSurface
+/// still (rather than renamed to ClaySurface) so every existing screen
+/// picks up the new look with zero call-site changes.
 class GlassSurface extends StatelessWidget {
   final Widget child;
   final BorderRadius borderRadius;
@@ -37,23 +36,28 @@ class GlassSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: borderRadius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            color: (tint ?? AppColors.surface2).withValues(alpha: 0.92),
-            borderRadius: borderRadius,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 24, offset: const Offset(0, 8)),
-            ],
+    final clay = ClayColors.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: tint ?? clay.surface2,
+        borderRadius: borderRadius,
+        border: Border.all(color: clay.border),
+        boxShadow: [
+          BoxShadow(
+            color: clay.shadowDark.withValues(alpha: isDark ? 0.35 : 0.16),
+            blurRadius: 20,
+            offset: const Offset(7, 7),
           ),
-          child: child,
-        ),
+          BoxShadow(
+            color: clay.shadowLight.withValues(alpha: isDark ? 0.5 : 0.9),
+            blurRadius: 16,
+            offset: const Offset(-6, -6),
+          ),
+        ],
       ),
+      child: child,
     );
   }
 }

@@ -1,71 +1,77 @@
 import 'package:flutter/material.dart';
-import 'app_colors.dart';
+import 'clay_colors.dart';
 
 class AppTheme {
   AppTheme._();
 
-  static ThemeData get dark {
-    final base = ThemeData.dark(useMaterial3: true);
+  static ThemeData get dark => _build(Brightness.dark, ClayColors.dark);
+  static ThemeData get light => _build(Brightness.light, ClayColors.light);
+
+  static ThemeData _build(Brightness brightness, ClayColors clay) {
+    final base = ThemeData(brightness: brightness, useMaterial3: true);
     return base.copyWith(
-      scaffoldBackgroundColor: AppColors.bg,
-      primaryColor: AppColors.primary,
+      scaffoldBackgroundColor: clay.bg,
+      primaryColor: clay.primary,
+      extensions: [clay],
       colorScheme: base.colorScheme.copyWith(
-        brightness: Brightness.dark,
-        primary: AppColors.primary,
-        secondary: AppColors.accent,
-        surface: AppColors.surface,
-        error: AppColors.danger,
+        brightness: brightness,
+        primary: clay.primary,
+        secondary: clay.accent,
+        surface: clay.surface,
+        error: clay.danger,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.surface.withValues(alpha: 0.7),
-        foregroundColor: AppColors.text,
+        backgroundColor: clay.surface.withValues(alpha: 0.85),
+        foregroundColor: clay.text,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
       ),
-      cardColor: AppColors.surface2,
-      dividerColor: AppColors.border,
-      textTheme: base.textTheme.apply(
-        bodyColor: AppColors.text,
-        displayColor: AppColors.text,
+      cardColor: clay.surface2,
+      cardTheme: CardThemeData(
+        color: clay.surface2,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       ),
-      iconTheme: const IconThemeData(color: AppColors.textDim),
+      dividerColor: clay.border,
+      textTheme: base.textTheme.apply(bodyColor: clay.text, displayColor: clay.text),
+      iconTheme: IconThemeData(color: clay.textDim),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surface,
-        hintStyle: const TextStyle(color: AppColors.textFaint),
+        fillColor: clay.surface,
+        hintStyle: TextStyle(color: clay.textFaint),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary),
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide(color: clay.primary, width: 1.5),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
+          backgroundColor: clay.primary,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
           textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
         ),
       ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: AppColors.surface,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textDim,
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: clay.surface,
+        selectedItemColor: clay.primary,
+        unselectedItemColor: clay.textDim,
         type: BottomNavigationBarType.fixed,
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.surface3,
-        contentTextStyle: const TextStyle(color: AppColors.text),
+        backgroundColor: clay.surface3,
+        contentTextStyle: TextStyle(color: clay.text),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }

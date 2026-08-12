@@ -17,12 +17,21 @@ import '../../widgets/spinner.dart';
 import '../../widgets/voice_stage_view.dart';
 import '../lobby/invite_screen.dart';
 import 'chat_panel.dart';
+import 'drive_video_player.dart';
 import 'live_broadcast_controller.dart';
 import 'queue_sheet.dart';
 import 'roster_sheet.dart';
 import 'room_socket_controller.dart';
 import 'sync_video_player.dart';
 import 'voice_chat_controller.dart';
+import 'webview_room_player.dart';
+
+// sourceTypes rendered via the generic embedded-browser WebviewRoomPlayer
+// (see webview_browse_screen.dart in lobby/ for how these get created) —
+// all "browse together, no playback sync" platforms. Add a new streaming
+// platform here + to the source picker + to Room.js's sourceType ENUM to
+// support another one; nothing else needs to change.
+const _webviewSourceTypes = {'netflix', 'amazon', 'youtube_surf', 'hotstar', 'aha', 'sunnxt', 'sonyliv', 'airtel_xstream'};
 
 class PartyScreen extends StatefulWidget {
   final String roomId;
@@ -134,7 +143,17 @@ class _PartyScreenState extends State<PartyScreen> {
     final room = _room;
     final items = (rs.queue['items'] as List?) ?? [];
     if (room != null && room['roomType'] == 'watch' && rs.isHost && !_seededQueue && items.isEmpty) {
-      rs.queueInit({'sourceType': room['sourceType'], 'videoUrl': room['videoUrl'], 'title': room['title']});
+      // room['title'] is the ROOM's own auto-generated name (e.g. "Alex's
+      // Watch Party"), never the video's — falling back to it here used to
+      // make the "now playing" display show the room's name instead of the
+      // actual video until a real song got added. videoTitle/videoThumbnail
+      // are the picked video's own metadata (see watch_room_creator.dart).
+      rs.queueInit({
+        'sourceType': room['sourceType'],
+        'videoUrl': room['videoUrl'],
+        'title': room['videoTitle'] ?? room['title'],
+        'thumbnail': room['videoThumbnail'],
+      });
       _seededQueue = true;
     }
 
@@ -274,6 +293,70 @@ class _PartyScreenState extends State<PartyScreen> {
     final currentIndex = rs.queue['currentIndex'] as int? ?? 0;
     final currentItem = (items.isNotEmpty && currentIndex < items.length) ? Map<String, dynamic>.from(items[currentIndex] as Map) : null;
     final playerVideoUrl = currentItem?['videoUrl'] as String? ?? room['videoUrl'] as String?;
+    final playerSourceType = currentItem?['sourceType'] as String? ?? room['sourceType'] as String?;
+    // Picks the player widget by the current queue item's (or the room's,
+    // for a plain single-video watch party) sourceType — 'drive' streams
+    // through a native VideoPlayerController (see drive_video_player.dart),
+    // everything else still goes through the YouTube-embedded SyncVideoPlayer.
+    // Both share the same constructor shape and the same host-emits/
+    // guest-applies sync contract, so this is the only place that branches.
+    Widget player({required String mediaMode, bool compact = false}) {
+      final liked = currentItem != null && _likedUrls.contains(currentItem['videoUrl']);
+      // Keyed by the video itself (not by room type/layout), so switching
+      // room types — which only changes mediaMode/compact — reads to
+      // Flutter as "update this element's props", not "remove this
+      // element, mount a new one", even though it's now nested under a
+      // different parent than before.
+      final playerKey = ValueKey('player-$playerSourceType-$playerVideoUrl');
+      if (_webviewSourceTypes.contains(playerSourceType)) {
+        return WebviewRoomPlayer(
+          key: playerKey,
+          videoUrl: playerVideoUrl,
+          title: currentItem?['title'] as String? ?? room['title'] as String?,
+          compact: compact,
+        );
+      }
+      if (playerSourceType == 'drive') {
+        return DriveVideoPlayer(
+          key: playerKey,
+          videoUrl: playerVideoUrl,
+          roomId: widget.roomId,
+          isHost: rs.isHost,
+          playback: rs.playback,
+          mediaMode: mediaMode,
+          compact: compact,
+          title: currentItem?['title'] as String? ?? room['title'] as String?,
+          thumbnail: currentItem?['thumbnail'] as String?,
+          onPlay: rs.play,
+          onPause: rs.pause,
+          onSeek: rs.seek,
+          onRequestState: rs.requestState,
+          onEnded: rs.queueNext,
+          onSkip: rs.queueSkip,
+          liked: liked,
+          onToggleLike: () => _toggleLike(currentItem),
+        );
+      }
+      return SyncVideoPlayer(
+        key: playerKey,
+        videoUrl: playerVideoUrl,
+        isHost: rs.isHost,
+        playback: rs.playback,
+        mediaMode: mediaMode,
+        compact: compact,
+        title: currentItem?['title'] as String? ?? room['title'] as String?,
+        thumbnail: currentItem?['thumbnail'] as String?,
+        onPlay: rs.play,
+        onPause: rs.pause,
+        onSeek: rs.seek,
+        onRequestState: rs.requestState,
+        onEnded: rs.queueNext,
+        onSkip: rs.queueSkip,
+        liked: liked,
+        onToggleLike: () => _toggleLike(currentItem),
+      );
+    }
+
     final isWatch = room['roomType'] == 'watch';
     final isGame = room['roomType'] == 'game';
     final isVoice = room['roomType'] == 'voice';
@@ -284,7 +367,15 @@ class _PartyScreenState extends State<PartyScreen> {
     final myMicOn = myId != null && activeMics.contains(myId);
     final myMicRequested = myId != null && pendingRequests.contains(myId);
 
-    _voice?.setMicEnabled(myMicOn);
+    // Agora only actually connects the instant someone's mic is really on
+    // (see VoiceChatController.ensureInitialized's comment) — safe to call
+    // on every build while myMicOn is true: it's memoized, and
+    // setMicEnabled itself no-ops once already in the requested state.
+    if (myMicOn) {
+      _voice?.ensureInitialized().then((_) => _voice?.setMicEnabled(true));
+    } else {
+      _voice?.setMicEnabled(false);
+    }
 
     void handleMicTap() {
       if (myMicOn) {
@@ -331,6 +422,12 @@ class _PartyScreenState extends State<PartyScreen> {
                 color: AppColors.textDim,
               ),
             ),
+          if (isWatch || isGame || isVoice)
+            IconButton(
+              tooltip: 'Find a song',
+              onPressed: _openQueue,
+              icon: const Icon(Icons.search, color: AppColors.textDim),
+            ),
           TextButton(onPressed: _openRoster, child: Text('👥 ${rs.roster.length}', style: const TextStyle(color: AppColors.textDim))),
           if (rs.isHost && room['roomType'] != 'live')
             IconButton(
@@ -343,115 +440,65 @@ class _PartyScreenState extends State<PartyScreen> {
       body: Column(
         children: [
           const Padding(padding: EdgeInsets.fromLTRB(12, 12, 12, 0), child: BannerCarousel(placement: 'room')),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: isWatch
-                ? SyncVideoPlayer(
-                    videoUrl: playerVideoUrl,
-                    isHost: rs.isHost,
-                    playback: rs.playback,
-                    mediaMode: _viewModeOverride ?? (currentItem?['mediaMode'] as String? ?? 'video'),
-                    title: currentItem?['title'] as String? ?? room['title'] as String?,
-                    thumbnail: currentItem?['thumbnail'] as String?,
-                    onPlay: rs.play,
-                    onPause: rs.pause,
-                    onSeek: rs.seek,
-                    onRequestState: rs.requestState,
-                    onEnded: rs.queueNext,
-                    onSkip: rs.queueSkip,
-                    liked: currentItem != null && _likedUrls.contains(currentItem['videoUrl']),
-                    onToggleLike: () => _toggleLike(currentItem),
-                  )
-                : room['roomType'] == 'live' && _live != null
-                    ? LiveVideoView(controller: _live!, isHost: rs.isHost)
-                    : isGame
-                        ? Column(
-                            children: [
-                              GameBoardView(
-                                gameType: room['gameType'] as String?,
-                                game: rs.game,
-                                myUserId: myId,
-                                isHost: rs.isHost,
-                                onJoin: rs.gameJoin,
-                                onMove: rs.gameMove,
-                                onReset: rs.gameReset,
+          // Room-type-specific content — free to change shape however it
+          // needs to, since none of it holds long-lived playback state.
+          if (!isWatch)
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: room['roomType'] == 'live' && _live != null
+                  ? LiveVideoView(controller: _live!, isHost: rs.isHost)
+                  : isGame
+                      ? GameBoardView(
+                          gameType: room['gameType'] as String?,
+                          game: rs.game,
+                          myUserId: myId,
+                          isHost: rs.isHost,
+                          onJoin: rs.gameJoin,
+                          onMove: rs.gameMove,
+                          onReset: rs.gameReset,
+                        )
+                      : isVoice
+                          ? VoiceStageView(
+                              roster: rs.roster,
+                              activeMics: activeMics,
+                              pendingRequests: pendingRequests,
+                              maxSlots: maxSlots,
+                              hostId: rs.hostId,
+                              myUserId: myId,
+                              isHost: rs.isHost,
+                              onApprove: rs.approveMic,
+                              onDeny: rs.denyMic,
+                              onRemove: rs.removeMic,
+                            )
+                          : AspectRatio(
+                              aspectRatio: 16 / 9,
+                              child: Container(
+                                decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+                                alignment: Alignment.center,
+                                child: const Text('🎙️', style: TextStyle(fontSize: 48)),
                               ),
-                              // Music while you play — same queue/playback
-                              // system as a watch party, just always shown as
-                              // the compact audio bar since the game board
-                              // owns the visual space. Only appears once
-                              // someone's actually queued a song.
-                              if (currentItem != null)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 12),
-                                  child: SyncVideoPlayer(
-                                    videoUrl: playerVideoUrl,
-                                    isHost: rs.isHost,
-                                    playback: rs.playback,
-                                    mediaMode: 'audio',
-                                    title: currentItem['title'] as String? ?? room['title'] as String?,
-                                    thumbnail: currentItem['thumbnail'] as String?,
-                                    onPlay: rs.play,
-                                    onPause: rs.pause,
-                                    onSeek: rs.seek,
-                                    onRequestState: rs.requestState,
-                                    onEnded: rs.queueNext,
-                                    onSkip: rs.queueSkip,
-                                    liked: _likedUrls.contains(currentItem['videoUrl']),
-                                    onToggleLike: () => _toggleLike(currentItem),
-                                  ),
-                                ),
-                            ],
-                          )
-                        : isVoice
-                            ? Column(
-                                children: [
-                                  VoiceStageView(
-                                    roster: rs.roster,
-                                    activeMics: activeMics,
-                                    pendingRequests: pendingRequests,
-                                    maxSlots: maxSlots,
-                                    hostId: rs.hostId,
-                                    myUserId: myId,
-                                    isHost: rs.isHost,
-                                    onApprove: rs.approveMic,
-                                    onDeny: rs.denyMic,
-                                    onRemove: rs.removeMic,
-                                  ),
-                                  // Compact audio-only music player — same
-                                  // queue/playback system as a watch party.
-                                  if (currentItem != null)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 12),
-                                      child: SyncVideoPlayer(
-                                        videoUrl: playerVideoUrl,
-                                        isHost: rs.isHost,
-                                        playback: rs.playback,
-                                        mediaMode: 'audio',
-                                        compact: true,
-                                        title: currentItem['title'] as String? ?? room['title'] as String?,
-                                        thumbnail: currentItem['thumbnail'] as String?,
-                                        onPlay: rs.play,
-                                        onPause: rs.pause,
-                                        onSeek: rs.seek,
-                                        onRequestState: rs.requestState,
-                                        onEnded: rs.queueNext,
-                                        onSkip: rs.queueSkip,
-                                        liked: _likedUrls.contains(currentItem['videoUrl']),
-                                        onToggleLike: () => _toggleLike(currentItem),
-                                      ),
-                                    ),
-                                ],
-                              )
-                            : AspectRatio(
-                        aspectRatio: 16 / 9,
-                        child: Container(
-                          decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-                          alignment: Alignment.center,
-                          child: const Text('🎙️', style: TextStyle(fontSize: 48)),
-                        ),
-                      ),
-          ),
+                            ),
+            ),
+          // The player — ALWAYS at this same position in the tree whenever
+          // there's something to play, regardless of room type. Switching
+          // room types (watch -> voice -> game, via Room Settings) used to
+          // dispose and recreate this widget every time, because it used
+          // to live at a different nesting depth per room-type branch —
+          // that silently killed the live YoutubePlayerController/
+          // VideoPlayerController and restarted the video, which is what
+          // "song desyncs on room-type switch" actually was. Keeping it in
+          // one fixed spot, sized differently (big for watch, compact bar
+          // otherwise) instead of being conditionally nested, lets Flutter
+          // recognize it as the same widget across a type change instead
+          // of tearing it down.
+          if (isWatch || currentItem != null)
+            Padding(
+              padding: EdgeInsets.fromLTRB(12, isWatch ? 12 : 0, 12, 0),
+              child: player(
+                mediaMode: isWatch ? (_viewModeOverride ?? (currentItem?['mediaMode'] as String? ?? 'video')) : 'audio',
+                compact: !isWatch && isVoice,
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
             child: ParticipantAvatarRow(roster: rs.roster, onOpenRoster: _openRoster),

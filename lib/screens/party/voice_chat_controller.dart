@@ -22,9 +22,24 @@ class VoiceChatController {
   RtcEngine? _engine;
   bool _joined = false;
   bool _micEnabled = false;
+  Future<void>? _initFuture;
 
-  VoiceChatController({required this.roomId}) {
-    if (kAgoraAppId.isNotEmpty) _init();
+  VoiceChatController({required this.roomId});
+
+  // Deliberately NOT called from the constructor. Agora's native SDK does
+  // real work (dlopen, JNI init) the instant engine.initialize() runs —
+  // this app's pinned Agora version (6.3.2, see pubspec.yaml's
+  // dependency_overrides comment for the matching build-time namespace
+  // collision) has crashed the whole process at that exact call on some
+  // devices, identically in debug and release, which a Dart try/catch
+  // can't stop since it's a native-side crash, not a Dart exception.
+  // Deferring to "only when the user actually touches a mic control"
+  // means a broken Agora build no longer takes the entire app down just
+  // for opening a room — see ensureInitialized() below, called from
+  // party_screen.dart's mic tap handler instead of eagerly here.
+  Future<void> ensureInitialized() {
+    if (kAgoraAppId.isEmpty) return Future.value();
+    return _initFuture ??= _init();
   }
 
   Future<void> _init() async {

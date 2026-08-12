@@ -10,7 +10,12 @@ class Avatar extends StatelessWidget {
   final String? name;
   final AvatarSize size;
 
-  const Avatar({super.key, this.src, this.name, this.size = AvatarSize.md});
+  /// Wraps the avatar in the brand-gradient "story ring" — Instagram's
+  /// signature avatar treatment. Off by default; opt in per call site
+  /// (e.g. the top bar) rather than everywhere at once.
+  final bool ring;
+
+  const Avatar({super.key, this.src, this.name, this.size = AvatarSize.md, this.ring = false});
 
   double get _dimension {
     switch (size) {
@@ -26,7 +31,7 @@ class Avatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final d = _dimension;
-    return ClipRRect(
+    final avatar = ClipRRect(
       borderRadius: BorderRadius.circular(999),
       child: SizedBox(
         width: d,
@@ -34,6 +39,22 @@ class Avatar extends StatelessWidget {
         child: (src != null && src!.isNotEmpty)
             ? AppImage(source: src, fit: BoxFit.cover, placeholder: (_) => _fallback(d))
             : _fallback(d),
+      ),
+    );
+    if (!ring) return avatar;
+    const ringWidth = 2.5;
+    return Container(
+      width: d + ringWidth * 2,
+      height: d + ringWidth * 2,
+      padding: const EdgeInsets.all(ringWidth),
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(colors: AppGradients.brand, begin: Alignment.topLeft, end: Alignment.bottomRight),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(shape: BoxShape.circle, color: Theme.of(context).scaffoldBackgroundColor),
+        child: avatar,
       ),
     );
   }

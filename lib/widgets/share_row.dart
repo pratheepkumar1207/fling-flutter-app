@@ -13,7 +13,7 @@ class ShareRow extends StatelessWidget {
 
   static const _appUrl = 'https://fling-production.up.railway.app';
 
-  String get _shareText => text != null && text!.isNotEmpty ? '$text — via Fling' : 'Check this out on Fling';
+  String get _shareText => text != null && text!.isNotEmpty ? '$text — via Insync' : 'Check this out on Insync';
   String get _shareUrl => url ?? _appUrl;
 
   Future<void> _copyLink(BuildContext context) async {

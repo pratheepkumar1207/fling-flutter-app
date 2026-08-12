@@ -36,7 +36,6 @@ build/
 **/macos/Flutter/ephemeral/
 **/macos/Pods/
 
-lib/generated_plugin_registrant.dart
 
 # IDE
 .idea/
