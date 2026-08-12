@@ -41,7 +41,7 @@ class WebviewBrowseScreen extends StatefulWidget {
   /// for them the way it does for YouTube/Drive — the only sensible in-room
   /// action is replacing what the whole room is currently set to, which is
   /// why this prompts for confirmation first (see _startHere).
-  final Future<void> Function(String sourceType, String videoUrl)? onConfirmOverride;
+  final Future<void> Function(String sourceType, String videoUrl, {String? videoTitle, String? videoThumbnail})? onConfirmOverride;
 
   const WebviewBrowseScreen({
     super.key,
@@ -70,15 +70,25 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
 
     var sourceType = widget.platform;
     var videoUrl = url.toString();
+    String? videoTitle;
+    String? videoThumbnail;
     if (widget.platform == 'youtube_surf') {
       final videoId = extractYouTubeId(videoUrl);
       if (videoId != null) {
         // Landed on a real video page — upgrade to a normal fully-synced
-        // YouTube room instead of a no-sync 'youtube_surf' one.
+        // YouTube room instead of a no-sync 'youtube_surf' one. The page's
+        // own <title> (usually "Video Name - YouTube") is the cheapest
+        // real title available here — no extra YouTube API call needed,
+        // and the thumbnail CDN URL is fully predictable from the id.
         sourceType = 'youtube';
         videoUrl = 'https://www.youtube.com/watch?v=$videoId';
+        final pageTitle = await controller.getTitle();
+        videoTitle = pageTitle?.replaceAll(RegExp(r'\s*-\s*YouTube$'), '').trim();
+        if (videoTitle?.isEmpty ?? true) videoTitle = null;
+        videoThumbnail = 'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
       }
     }
+    if (!mounted) return;
 
     final onConfirmOverride = widget.onConfirmOverride;
     if (onConfirmOverride != null) {
@@ -95,7 +105,7 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
       );
       if (confirmed != true || !mounted) return;
       setState(() => _creatingRoom = true);
-      await onConfirmOverride(sourceType, videoUrl);
+      await onConfirmOverride(sourceType, videoUrl, videoTitle: videoTitle, videoThumbnail: videoThumbnail);
       if (mounted) setState(() => _creatingRoom = false);
       return;
     }
@@ -107,6 +117,8 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
       videoUrl: videoUrl,
       visibility: widget.visibility,
       topic: widget.topic,
+      videoTitle: videoTitle,
+      videoThumbnail: videoThumbnail,
     ).whenComplete(() {
       if (mounted) setState(() => _creatingRoom = false);
     });

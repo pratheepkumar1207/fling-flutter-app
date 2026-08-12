@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
+import '../../core/youtube_util.dart';
 import '../../models/post.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_image.dart';
@@ -264,18 +266,7 @@ class _FeedScreenState extends State<FeedScreen> {
                 child: const Row(children: [Icon(Icons.graphic_eq, color: AppColors.primary, size: 18), SizedBox(width: 8), Text('Voice note', style: TextStyle(color: AppColors.textDim, fontSize: 12))]),
               ),
             ),
-          if (post.mediaType == 'video_link' && post.videoUrl != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: AspectRatio(
-                aspectRatio: 16 / 9,
-                child: Container(
-                  decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(12)),
-                  alignment: Alignment.center,
-                  child: const Text('🎬', style: TextStyle(fontSize: 32)),
-                ),
-              ),
-            ),
+          if (post.mediaType == 'video_link' && post.videoUrl != null) _videoLinkTile(post.videoUrl!),
           if (post.mediaType == 'poll' && post.pollOptions != null) _pollOptions(post),
           const SizedBox(height: 10),
           Row(
@@ -307,6 +298,36 @@ class _FeedScreenState extends State<FeedScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _videoLinkTile(String url) {
+    final youtubeId = extractYouTubeId(url);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: GestureDetector(
+        onTap: () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(12),
+              image: youtubeId != null
+                  ? DecorationImage(image: NetworkImage('https://img.youtube.com/vi/$youtubeId/hqdefault.jpg'), fit: BoxFit.cover)
+                  : null,
+            ),
+            clipBehavior: Clip.antiAlias,
+            alignment: Alignment.center,
+            child: Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.55), shape: BoxShape.circle),
+              child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 30),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -379,6 +400,12 @@ class _CommentsSheetState extends State<_CommentsSheet> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {

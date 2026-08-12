@@ -64,26 +64,28 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final file = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-    if (file == null) return;
+    if (file == null || !mounted) return;
     final bytes = await file.readAsBytes();
     final ext = file.name.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+    if (!mounted) return;
     setState(() => _imageDataUri = 'data:image/$ext;base64,${base64Encode(bytes)}');
   }
 
   Future<void> _pickVoice() async {
     final result = await FilePicker.platform.pickFiles(type: FileType.audio, withData: true);
     final file = result?.files.firstOrNull;
-    if (file?.bytes == null) return;
+    if (file?.bytes == null || !mounted) return;
     setState(() => _voiceDataUri = 'data:audio/mpeg;base64,${base64Encode(file!.bytes!)}');
   }
 
   Future<void> _pickVideo() async {
     final picker = ImagePicker();
     final file = await picker.pickVideo(source: ImageSource.gallery, maxDuration: const Duration(seconds: 20));
-    if (file == null) return;
+    if (file == null || !mounted) return;
     final bytes = await file.readAsBytes();
+    if (!mounted) return;
     if (bytes.length > 12000000) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Keep clips to about 15 seconds')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Keep clips to about 15 seconds')));
       return;
     }
     setState(() => _videoDataUri = 'data:video/mp4;base64,${base64Encode(bytes)}');

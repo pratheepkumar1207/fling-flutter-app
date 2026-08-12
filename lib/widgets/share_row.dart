@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../core/api_client.dart';
 import '../theme/app_colors.dart';
 import '../theme/clay_colors.dart';
 
@@ -13,10 +14,8 @@ class ShareRow extends StatelessWidget {
 
   const ShareRow({super.key, this.text, this.url});
 
-  static const _appUrl = 'https://fling-production.up.railway.app';
-
   String get _shareText => text != null && text!.isNotEmpty ? '$text — via Insync' : 'Check this out on Insync';
-  String get _shareUrl => url ?? _appUrl;
+  String get _shareUrl => url ?? ApiClient.baseUrl;
 
   Future<void> _copyLink(BuildContext context) async {
     await Clipboard.setData(ClipboardData(text: '$_shareText $_shareUrl'));

@@ -18,7 +18,7 @@ class QueueSheetScreen extends StatefulWidget {
   final void Function(int index) onRemove;
   final void Function(int fromIndex, int toIndex) onReorder;
   final VoidCallback onOpenRoster;
-  final Future<void> Function(String sourceType, String videoUrl) onSwitchSource;
+  final Future<void> Function(String sourceType, String videoUrl, {String? videoTitle, String? videoThumbnail}) onSwitchSource;
   final bool audioOnly;
   final bool canPin;
   final bool canAddSongs;
@@ -94,11 +94,11 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                 : ReorderableListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     itemCount: items.length,
-                    onReorder: widget.isHost
-                        ? (from, to) {
-                            final adjustedTo = to > from ? to - 1 : to;
-                            widget.onReorder(from, adjustedTo);
-                          }
+                    // onReorderItem (unlike the deprecated onReorder) already
+                    // adjusts newIndex for the removed item at oldIndex, so
+                    // no manual off-by-one correction is needed here.
+                    onReorderItem: widget.isHost
+                        ? (from, to) => widget.onReorder(from, to)
                         : (_, __) {},
                     itemBuilder: (context, i) {
                       final item = Map<String, dynamic>.from(items[i] as Map);

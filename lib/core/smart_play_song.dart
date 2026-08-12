@@ -34,11 +34,18 @@ Future<void> playSongSmart(BuildContext context, Song s) async {
       return;
     }
 
+    // 'title' isn't a real field on POST /rooms — it always auto-generates
+    // the room's own name (see fallbackTitle in room.js) and silently
+    // ignored whatever was sent here. videoTitle/videoThumbnail are what
+    // actually seed the queue's "now playing" display — omitting them is
+    // exactly what left the queue permanently empty (see
+    // party_screen.dart's queue-seed guard, which requires a real title).
     final room = await ApiClient.post('/rooms', body: {
-      'title': s.title ?? 'Watch Party',
       'roomType': 'watch',
       'sourceType': item['sourceType'],
       'videoUrl': item['videoUrl'],
+      'videoTitle': s.title,
+      'videoThumbnail': s.thumbnail,
       'visibility': 'public',
     }) as Map<String, dynamic>;
     if (context.mounted) {

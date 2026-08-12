@@ -20,6 +20,7 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
   String? _kycStatus;
   int _coins = 500;
   bool _submitting = false;
+  final _coinsController = TextEditingController(text: '500');
 
   @override
   void initState() {
@@ -27,13 +28,21 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
     _load();
   }
 
+  @override
+  void dispose() {
+    _coinsController.dispose();
+    super.dispose();
+  }
+
   Future<void> _load() async {
     try {
       final data = await ApiClient.get('/kyc/status') as Map<String, dynamic>;
-      if (mounted) setState(() {
-        _kycStatus = data['status'] as String? ?? 'none';
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _kycStatus = data['status'] as String? ?? 'none';
+          _loading = false;
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -48,7 +57,7 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
       await context.read<AuthProvider>().refreshUser();
       if (mounted) Navigator.of(context).pop();
     } on ApiException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -93,7 +102,7 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
                       TextField(
                         keyboardType: TextInputType.number,
                         style: const TextStyle(color: AppColors.text),
-                        controller: TextEditingController(text: '$_coins'),
+                        controller: _coinsController,
                         onChanged: (v) => _coins = int.tryParse(v) ?? _coins,
                       ),
                       const SizedBox(height: 16),

@@ -73,7 +73,7 @@ class _AppSongListTabState extends State<AppSongListTab> {
               Expanded(child: Text(s.title ?? 'Untitled', style: const TextStyle(color: AppColors.text, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis)),
               if (widget.canAddSongs)
                 TextButton(
-                  onPressed: () => widget.onAdd(videoUrl: s.videoUrl ?? '', title: s.title ?? '', thumbnail: s.thumbnail, mediaMode: 'video'),
+                  onPressed: () => widget.onAdd(videoUrl: s.videoUrl ?? '', title: s.title ?? '', thumbnail: s.thumbnail, mediaMode: 'video', sourceType: s.sourceType),
                   child: const Text('+ Add', style: TextStyle(color: AppColors.primary, fontSize: 12)),
                 ),
             ],
@@ -136,7 +136,7 @@ class _AppPlaylistsTabState extends State<AppPlaylistsTab> {
                       title: Text(s.title ?? 'Untitled', style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
                       trailing: widget.canAddSongs
                           ? TextButton(
-                              onPressed: () => widget.onAdd(videoUrl: s.videoUrl ?? '', title: s.title ?? '', thumbnail: s.thumbnail, mediaMode: 'video'),
+                              onPressed: () => widget.onAdd(videoUrl: s.videoUrl ?? '', title: s.title ?? '', thumbnail: s.thumbnail, mediaMode: 'video', sourceType: s.sourceType),
                               child: const Text('+ Add', style: TextStyle(color: AppColors.primary, fontSize: 12)),
                             )
                           : null,
@@ -187,10 +187,12 @@ class _YoutubePlaylistListState extends State<_YoutubePlaylistList> {
         _loading = false;
       });
     } on ApiException catch (e) {
-      if (mounted) setState(() {
-        _error = e.message;
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.message;
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -230,10 +232,12 @@ class _YoutubePlaylistTileState extends State<_YoutubePlaylistTile> {
         _loading = false;
       });
     } catch (_) {
-      if (mounted) setState(() {
-        _items = [];
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _items = [];
+          _loading = false;
+        });
+      }
     }
   }
 

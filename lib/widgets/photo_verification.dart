@@ -29,10 +29,11 @@ class _PhotoVerificationState extends State<PhotoVerification> {
   Future<void> _takeSelfie() async {
     final picker = ImagePicker();
     final file = await picker.pickImage(source: ImageSource.camera, preferredCameraDevice: CameraDevice.front, imageQuality: 80);
-    if (file == null) return;
+    if (file == null || !mounted) return;
     final bytes = await file.readAsBytes();
     final ext = file.name.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
     final dataUri = 'data:image/$ext;base64,${base64Encode(bytes)}';
+    if (!mounted) return;
     setState(() => _submitting = true);
     try {
       await ApiClient.post('/verify-photo/submit', body: {'selfieDataUri': dataUri});

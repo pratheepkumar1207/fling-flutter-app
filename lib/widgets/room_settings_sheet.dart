@@ -39,7 +39,18 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
   late String _gameType = widget.room['gameType'] as String? ?? 'tictactoe';
   late final _urlController = TextEditingController(text: widget.room['videoUrl'] as String? ?? '');
   List<Map<String, dynamic>> _results = [];
-  Map<String, dynamic>? _pinned = {'title': 'Current video'};
+  // Only shows the "Current video" placeholder when the room is actually
+  // already a watch room with a video — a room entering 'watch' fresh from
+  // voice/game has nothing to keep, so it goes straight to search instead
+  // of showing a misleading placeholder for content that doesn't exist.
+  late Map<String, dynamic>? _pinned =
+      (widget.room['roomType'] == 'watch' && widget.room['videoUrl'] != null) ? {'title': 'Current video'} : null;
+  // True only once the host actually picks a *new* video via search — see
+  // _save(): staying false means "don't touch sourceType/videoUrl at all",
+  // which is what lets saving unrelated settings (mic, visibility, ...) on
+  // a Drive/streaming-platform room stop silently overwriting it to
+  // sourceType 'youtube' with the old video's URL.
+  bool _videoChanged = false;
   bool _searching = false;
   bool _saving = false;
 
@@ -68,22 +79,31 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
   void _pin(Map<String, dynamic> item) {
     setState(() {
       _pinned = item;
+      _videoChanged = true;
       _urlController.text = 'https://www.youtube.com/watch?v=${item['videoId']}';
       _results = [];
     });
   }
 
+  // Entering 'watch' from a room type that had no video needs a fresh
+  // pick; staying in 'watch' with the existing video kept (_pinned still
+  // set, nothing re-picked) doesn't.
+  bool get _enteringWatchFresh => _roomType == 'watch' && widget.room['roomType'] != 'watch';
+
   Future<void> _save() async {
-    if (_roomType == 'watch' && _urlController.text.trim().isEmpty) {
+    if (_roomType == 'watch' && _pinned == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Search and pick a video first')));
       return;
     }
     setState(() => _saving = true);
     try {
+      final sendVideo = _roomType == 'watch' && (_videoChanged || _enteringWatchFresh);
       await ApiClient.patch('/rooms/${widget.room['id']}/type', body: {
         'roomType': _roomType,
-        'sourceType': _roomType == 'watch' ? 'youtube' : null,
-        'videoUrl': _roomType == 'watch' ? _urlController.text.trim() : null,
+        if (sendVideo) 'sourceType': 'youtube',
+        if (sendVideo) 'videoUrl': _urlController.text.trim(),
+        if (sendVideo) 'videoTitle': _pinned?['title'],
+        if (sendVideo) 'videoThumbnail': _pinned?['thumbnail'],
         'gameType': _roomType == 'game' ? _gameType : null,
       });
       await ApiClient.patch('/rooms/${widget.room['id']}/settings', body: {

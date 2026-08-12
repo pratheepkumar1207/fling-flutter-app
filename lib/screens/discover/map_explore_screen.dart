@@ -43,15 +43,19 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
         _loading = false;
       });
     } on ApiException catch (e) {
-      if (mounted) setState(() {
-        _error = e.message;
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.message;
+          _loading = false;
+        });
+      }
     } catch (_) {
-      if (mounted) setState(() {
-        _error = 'Failed to load nearby profiles.';
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to load nearby profiles.';
+          _loading = false;
+        });
+      }
     }
   }
 

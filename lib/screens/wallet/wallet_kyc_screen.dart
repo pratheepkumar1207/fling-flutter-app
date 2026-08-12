@@ -29,10 +29,12 @@ class _WalletKycScreenState extends State<WalletKycScreen> {
   Future<void> _load() async {
     try {
       final data = await ApiClient.get('/kyc/status') as Map<String, dynamic>;
-      if (mounted) setState(() {
-        _status = data['status'] as String? ?? 'none';
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _status = data['status'] as String? ?? 'none';
+          _loading = false;
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -51,7 +53,7 @@ class _WalletKycScreenState extends State<WalletKycScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('KYC submitted — pending review')));
       _load();
     } on ApiException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

@@ -164,9 +164,9 @@ class _FindPeopleTabState extends State<_FindPeopleTab> {
   Future<void> _send(String userId) async {
     try {
       await ApiClient.post('/friends/request', body: {'toUserId': userId});
-      setState(() => _sentIds.add(userId));
+      if (mounted) setState(() => _sentIds.add(userId));
     } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to send request')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to send request')));
     }
   }
 

@@ -88,7 +88,7 @@ class _SwipeCardState extends State<SwipeCard> with SingleTickerProviderStateMix
       curve: Curves.easeOut,
       transform: widget.active
           ? (Matrix4.identity()
-            ..translate(_drag.dx, _drag.dy)
+            ..translateByDouble(_drag.dx, _drag.dy, 0.0, 1.0)
             ..rotateZ(rotate))
           : Matrix4.identity(),
       child: TweenAnimationBuilder<double>(

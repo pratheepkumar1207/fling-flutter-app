@@ -56,7 +56,7 @@ class SourcePickerBody extends StatelessWidget {
   /// and [onSwitchSource] are required in that mode.
   final String? roomId;
   final SongAddCallback? onAddToQueue;
-  final Future<void> Function(String sourceType, String videoUrl)? onSwitchSource;
+  final Future<void> Function(String sourceType, String videoUrl, {String? videoTitle, String? videoThumbnail})? onSwitchSource;
 
   const SourcePickerBody({
     super.key,
@@ -119,8 +119,8 @@ class SourcePickerBody extends StatelessWidget {
         visibility: visibility,
         topic: topic,
         onConfirmOverride: _inRoom
-            ? (sourceType, videoUrl) async {
-                await onSwitchSource!(sourceType, videoUrl);
+            ? (sourceType, videoUrl, {videoTitle, videoThumbnail}) async {
+                await onSwitchSource!(sourceType, videoUrl, videoTitle: videoTitle, videoThumbnail: videoThumbnail);
                 if (context.mounted) Navigator.of(context).pop();
               }
             : null,
@@ -128,14 +128,14 @@ class SourcePickerBody extends StatelessWidget {
     ));
   }
 
-  void _handleAppSongPick(BuildContext context, {required String videoUrl, required String title, String? thumbnail, required String mediaMode}) {
+  void _handleAppSongPick(BuildContext context, {required String videoUrl, required String title, String? thumbnail, required String mediaMode, required String sourceType}) {
     if (_inRoom) {
-      onAddToQueue!(videoUrl: videoUrl, title: title, thumbnail: thumbnail, mediaMode: mediaMode);
+      onAddToQueue!(videoUrl: videoUrl, title: title, thumbnail: thumbnail, mediaMode: mediaMode, sourceType: sourceType);
       Navigator.of(context).pop();
     } else {
       createWatchRoomAndEnter(
         context,
-        sourceType: 'youtube',
+        sourceType: sourceType,
         videoUrl: videoUrl,
         visibility: visibility,
         topic: topic,
@@ -153,7 +153,7 @@ class SourcePickerBody extends StatelessWidget {
         body: AppSongListTab(
           endpoint: endpoint,
           onAdd: ({required videoUrl, required title, thumbnail, required mediaMode, String sourceType = 'youtube'}) =>
-              _handleAppSongPick(context, videoUrl: videoUrl, title: title, thumbnail: thumbnail, mediaMode: mediaMode),
+              _handleAppSongPick(context, videoUrl: videoUrl, title: title, thumbnail: thumbnail, mediaMode: mediaMode, sourceType: sourceType),
         ),
       ),
     ));
@@ -166,7 +166,7 @@ class SourcePickerBody extends StatelessWidget {
         appBar: AppBar(title: const Text('Playlists')),
         body: AppPlaylistsTab(
           onAdd: ({required videoUrl, required title, thumbnail, required mediaMode, String sourceType = 'youtube'}) =>
-              _handleAppSongPick(context, videoUrl: videoUrl, title: title, thumbnail: thumbnail, mediaMode: mediaMode),
+              _handleAppSongPick(context, videoUrl: videoUrl, title: title, thumbnail: thumbnail, mediaMode: mediaMode, sourceType: sourceType),
         ),
       ),
     ));

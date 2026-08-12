@@ -70,6 +70,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     final deck = _deck;
     if (deck == null || deck.isEmpty) return;
     final top = deck.last;
+    final previousLastSwiped = _lastSwiped;
     setState(() {
       _deck = deck.sublist(0, deck.length - 1);
       _lastSwiped = top;
@@ -84,7 +85,16 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         });
       }
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Something went wrong')));
+      if (!mounted) return;
+      // The optimistic removal above assumed the request would succeed —
+      // on failure the profile was never actually swiped, so put it back
+      // on top of the deck instead of leaving it silently dropped, and
+      // restore whatever "undo" target was showing before this attempt.
+      setState(() {
+        _deck = deck;
+        _lastSwiped = previousLastSwiped;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Something went wrong')));
     }
   }
 

@@ -79,10 +79,12 @@ class _PartyScreenState extends State<PartyScreen> {
       });
       _maybeInitLive();
     } catch (e) {
-      if (mounted) setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -205,6 +207,7 @@ class _PartyScreenState extends State<PartyScreen> {
         await ApiClient.post('/liked-songs', body: {'videoUrl': videoUrl, 'title': item?['title'], 'thumbnail': item?['thumbnail'], 'sourceType': item?['sourceType']});
       }
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         if (isLiked) {
           _likedUrls.add(videoUrl);
@@ -218,9 +221,9 @@ class _PartyScreenState extends State<PartyScreen> {
   Future<void> _boost() async {
     try {
       final res = await ApiClient.post('/rooms/${widget.roomId}/boost', body: {'days': 1}) as Map<String, dynamic>;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Boosted until ${res['boostedUntil']}')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Boosted until ${res['boostedUntil']}')));
     } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to boost')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to boost')));
     }
   }
 
@@ -245,11 +248,20 @@ class _PartyScreenState extends State<PartyScreen> {
   // without everyone leaving — mirrors RoomSettingsSheet's own PATCH
   // /rooms/:id/type call. Reloads afterward rather than trusting the
   // socket round-trip alone, same as RoomSettingsSheet's onChanged does.
-  Future<void> _switchRoomSource(String sourceType, String videoUrl) async {
+  Future<void> _switchRoomSource(String sourceType, String videoUrl, {String? videoTitle, String? videoThumbnail}) async {
     await ApiClient.patch('/rooms/${widget.roomId}/type', body: {
       'roomType': 'watch',
       'sourceType': sourceType,
       'videoUrl': videoUrl,
+      // Explicit null, not omitted, when the caller has no real title
+      // (streaming platforms) — omitting would leave whatever title the
+      // room had *before* the switch attached to a now-unrelated video
+      // (the backend only preserves a field when it's genuinely absent
+      // from the request, not when it's null). The YouTube Surf upgrade
+      // path (webview_browse_screen.dart) supplies a real title/thumbnail
+      // here instead of null.
+      'videoTitle': videoTitle,
+      'videoThumbnail': videoThumbnail,
     });
     await _loadRoom();
   }
@@ -541,7 +553,11 @@ class _PartyScreenState extends State<PartyScreen> {
               padding: EdgeInsets.fromLTRB(12, isWatch ? 12 : 0, 12, 0),
               child: player(
                 mediaMode: isWatch ? (_viewModeOverride ?? (currentItem?['mediaMode'] as String? ?? 'video')) : 'audio',
-                compact: !isWatch && isVoice,
+                // Compact bar for every non-watch type (voice, game, live) —
+                // this used to only check isVoice, so a game room with a
+                // queued track rendered the full-size player stacked below
+                // the GameBoardView instead of a small audio bar.
+                compact: !isWatch,
               ),
             ),
           Padding(

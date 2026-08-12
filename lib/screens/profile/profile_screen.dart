@@ -633,9 +633,10 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
   Future<void> _pickAvatar() async {
     final picker = ImagePicker();
     final file = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-    if (file == null) return;
+    if (file == null || !mounted) return;
     final bytes = await file.readAsBytes();
     final ext = file.name.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+    if (!mounted) return;
     setState(() => _avatarDataUri = 'data:image/$ext;base64,${base64Encode(bytes)}');
   }
 
@@ -710,7 +711,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
       await ApiClient.patch('/auth/me', body: _buildPatch(payToChangeNow: true));
       if (!mounted) return;
       await context.read<AuthProvider>().refreshUser();
-      Navigator.of(context).pop();
+      if (mounted) Navigator.of(context).pop();
     } on ApiException catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     } finally {

@@ -41,7 +41,7 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
       await ApiClient.post('/communities/$id/join');
       _load();
     } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to join')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to join')));
     }
   }
 
@@ -78,7 +78,7 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
                         setSheetState(() => saving = true);
                         try {
                           await ApiClient.post('/communities', body: {'name': nameController.text.trim(), 'description': descController.text, 'rules': rulesController.text});
-                          if (mounted) Navigator.of(sheetContext).pop();
+                          if (sheetContext.mounted) Navigator.of(sheetContext).pop();
                           _load();
                         } catch (_) {
                           setSheetState(() => saving = false);
@@ -91,7 +91,11 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
           ),
         ),
       ),
-    );
+    ).whenComplete(() {
+      nameController.dispose();
+      descController.dispose();
+      rulesController.dispose();
+    });
   }
 
   @override
