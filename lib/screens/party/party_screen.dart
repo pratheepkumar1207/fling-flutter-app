@@ -416,14 +416,19 @@ class _PartyScreenState extends State<PartyScreen> {
     final myId = context.read<AuthProvider>().user?.id;
     final activeMics = (rs.call['activeMics'] as List? ?? []).cast<String>();
     final pendingRequests = (rs.call['pendingRequests'] as List? ?? []).cast<String>();
+    final mutedMics = (rs.call['mutedMics'] as List? ?? []).cast<String>();
     final maxSlots = rs.call['maxSlots'] as int? ?? 8;
-    final myMicOn = myId != null && activeMics.contains(myId);
+    final myMicForceMuted = myId != null && mutedMics.contains(myId);
+    final myMicOn = myId != null && activeMics.contains(myId) && !myMicForceMuted;
     final myMicRequested = myId != null && pendingRequests.contains(myId);
 
     // Agora only actually connects the instant someone's mic is really on
     // (see VoiceChatController.ensureInitialized's comment) — safe to call
     // on every build while myMicOn is true: it's memoized, and
     // setMicEnabled itself no-ops once already in the requested state.
+    // myMicOn already folds in myMicForceMuted, so a host force-mute is
+    // enforced here the same way losing a stage slot already is — the
+    // client can't just re-enable its own mic against server state.
     if (myMicOn) {
       _voice?.ensureInitialized().then((_) => _voice?.setMicEnabled(true));
     } else {
@@ -431,7 +436,9 @@ class _PartyScreenState extends State<PartyScreen> {
     }
 
     void handleMicTap() {
-      if (myMicOn) {
+      if (myMicForceMuted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('The host has muted you')));
+      } else if (myMicOn) {
         rs.micOff();
       } else if (rs.isHost) {
         rs.micOn();
@@ -457,7 +464,10 @@ class _PartyScreenState extends State<PartyScreen> {
         onMakeHost: rs.makeHost,
         roomType: room['roomType'] as String?,
         activeMics: activeMics,
+        mutedMics: mutedMics,
         onInviteMic: rs.inviteMic,
+        onForceMute: rs.forceMuteMic,
+        onForceUnmute: rs.forceUnmuteMic,
       ),
       appBar: AppBar(
         backgroundColor: isVoice ? ClubRoomColors.surface.withValues(alpha: 0.85) : (isWatch ? VolaPartyColors.surface.withValues(alpha: 0.7) : null),

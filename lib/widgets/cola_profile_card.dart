@@ -6,7 +6,8 @@ import 'avatar.dart';
 class ColaStat {
   final String label;
   final dynamic value;
-  const ColaStat(this.label, this.value);
+  final VoidCallback? onTap;
+  const ColaStat(this.label, this.value, {this.onTap});
 }
 
 /// Bold "product card" style profile header — Dart port of the web app's
@@ -107,11 +108,15 @@ class ColaProfileCard extends StatelessWidget {
                           for (var i = 0; i < stats.length; i++) ...[
                             if (i > 0) Container(width: 1, height: 28, color: Colors.white.withValues(alpha: 0.2)),
                             Expanded(
-                              child: Column(
-                                children: [
-                                  Text(formatNumber(stats[i].value), style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900)),
-                                  Text(stats[i].label.toUpperCase(), style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.4)),
-                                ],
+                              child: GestureDetector(
+                                onTap: stats[i].onTap,
+                                behavior: HitTestBehavior.opaque,
+                                child: Column(
+                                  children: [
+                                    Text(formatNumber(stats[i].value), style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900)),
+                                    Text(stats[i].label.toUpperCase(), style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.4)),
+                                  ],
+                                ),
                               ),
                             ),
                           ],

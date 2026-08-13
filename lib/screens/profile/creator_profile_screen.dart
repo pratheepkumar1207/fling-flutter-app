@@ -9,6 +9,7 @@ import '../../theme/app_colors.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/cola_profile_card.dart';
 import '../../widgets/gift_bottom_sheet.dart';
+import '../../widgets/report_user_sheet.dart';
 import '../../widgets/spinner.dart';
 import '../messages/message_thread_screen.dart';
 import '../party/party_screen.dart';
@@ -197,26 +198,26 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                 child: const Text('💬 Message'),
               ),
               OutlinedButton(
-                style: OutlinedButton.styleFrom(shape: const StadiumBorder()),
-                onPressed: () => _confirmDialog(
-                  title: 'Report ${p['name']}?',
-                  description: 'Our team will review this report.',
-                  confirmLabel: 'Report',
-                  danger: false,
-                  onConfirm: _report,
-                ),
-                child: const Text('Report'),
-              ),
-              OutlinedButton(
                 style: OutlinedButton.styleFrom(foregroundColor: AppColors.danger, side: const BorderSide(color: AppColors.danger), shape: const StadiumBorder()),
-                onPressed: () => _confirmDialog(
-                  title: 'Block ${p['name']}?',
-                  description: 'They will no longer be able to interact with you.',
-                  confirmLabel: 'Block',
-                  danger: true,
-                  onConfirm: _block,
+                onPressed: () => showReportUserSheet(
+                  context,
+                  userName: p['name'] as String? ?? '',
+                  onReport: () => _confirmDialog(
+                    title: 'Report ${p['name']}?',
+                    description: 'Our team will review this report.',
+                    confirmLabel: 'Report',
+                    danger: false,
+                    onConfirm: _report,
+                  ),
+                  onBlock: () => _confirmDialog(
+                    title: 'Block ${p['name']}?',
+                    description: 'They will no longer be able to interact with you.',
+                    confirmLabel: 'Block',
+                    danger: true,
+                    onConfirm: _block,
+                  ),
                 ),
-                child: const Text('Block'),
+                child: const Text('⋯ Report / Block'),
               ),
             ],
           ),

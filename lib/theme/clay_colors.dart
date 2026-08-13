@@ -46,9 +46,12 @@ class ClayColors extends ThemeExtension<ClayColors> {
     required this.gradient,
   });
 
-  /// Dark clay: the highlight shadow is a lighter tint of the surface
-  /// (there's no true white to bounce light off in dark mode), the dark
-  /// shadow is soft black — the classic dual-shadow "extruded" clay look.
+  /// Dark clay: retuned for the Vola Party look — flat cards distinguished
+  /// by a visible border rather than heavy claymorphism relief. GlassSurface
+  /// applies its own alpha via .withValues() (overwriting whatever alpha is
+  /// set here), so flattening the effect happens there, not via these
+  /// tokens' alpha — these just carry the RGB tint: a deep-purple highlight
+  /// consistent with the new surface color instead of the old cool gray.
   static const dark = ClayColors(
     bg: AppColors.bg,
     surface: AppColors.surface,
@@ -65,7 +68,7 @@ class ClayColors extends ThemeExtension<ClayColors> {
     success: AppColors.success,
     danger: AppColors.danger,
     warning: AppColors.warning,
-    shadowLight: Color(0xFF3A3452),
+    shadowLight: Color(0xFF6A4AA8),
     shadowDark: Color(0xFF000000),
     gradient: AppGradients.brand,
   );

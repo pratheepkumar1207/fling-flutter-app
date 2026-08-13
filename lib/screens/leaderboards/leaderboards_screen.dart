@@ -6,9 +6,17 @@ import '../../widgets/avatar.dart';
 import '../../widgets/spinner.dart';
 
 const _tabs = [
-  {'key': 'gifters', 'label': 'Top Gifters', 'endpoint': '/leaderboards/gifters'},
-  {'key': 'creators', 'label': 'Top Creators', 'endpoint': '/leaderboards/creators'},
-  {'key': 'communities', 'label': 'Top Communities', 'endpoint': '/leaderboards/communities'},
+  {'key': 'gifters', 'label': 'Top Gifters', 'endpoint': '/leaderboards/gifters', 'scoped': true},
+  {'key': 'creators', 'label': 'Top Creators', 'endpoint': '/leaderboards/creators', 'scoped': true},
+  {'key': 'users', 'label': 'Top User', 'endpoint': '/leaderboards/users', 'scoped': false},
+  {'key': 'communities', 'label': 'Top Communities', 'endpoint': '/leaderboards/communities', 'scoped': false},
+];
+
+const _scopes = [
+  {'key': null, 'label': 'All-time'},
+  {'key': 'daily', 'label': 'Daily'},
+  {'key': 'weekly', 'label': 'Weekly'},
+  {'key': 'monthly', 'label': 'Monthly'},
 ];
 
 class LeaderboardsScreen extends StatefulWidget {
@@ -20,8 +28,11 @@ class LeaderboardsScreen extends StatefulWidget {
 
 class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
   String _tab = 'gifters';
+  String? _scope;
   bool _loading = true;
   List<Map<String, dynamic>> _entries = [];
+
+  Map<String, dynamic> get _activeTab => _tabs.firstWhere((t) => t['key'] == _tab);
 
   @override
   void initState() {
@@ -31,9 +42,11 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final endpoint = _tabs.firstWhere((t) => t['key'] == _tab)['endpoint'] as String;
+    final endpoint = _activeTab['endpoint'] as String;
+    final scoped = _activeTab['scoped'] as bool;
+    final query = (scoped && _scope != null) ? '?scope=$_scope' : '';
     try {
-      final data = await ApiClient.get(endpoint);
+      final data = await ApiClient.get('$endpoint$query');
       if (!mounted) return;
       setState(() {
         _entries = (data as List).cast<Map<String, dynamic>>();
@@ -44,66 +57,160 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
     }
   }
 
+  String _metric(Map<String, dynamic> e) {
+    switch (_tab) {
+      case 'communities':
+        return '${formatNumber(e['memberCount'])} members';
+      case 'users':
+        return 'Lv.${e['level'] ?? 1}';
+      default:
+        return '🪙 ${formatNumber(e['totalCoins'])}';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final scoped = _activeTab['scoped'] as bool;
+    final top3 = _entries.take(3).toList();
+    final rest = _entries.skip(3).toList();
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(title: const Text('Leaderboards')),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: _tabs
-                  .map((t) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(
-                          label: Text(t['label'] as String),
-                          selected: _tab == t['key'],
-                          selectedColor: AppColors.primary.withValues(alpha: 0.2),
-                          labelStyle: TextStyle(color: _tab == t['key'] ? AppColors.primary : AppColors.textDim, fontSize: 12),
-                          backgroundColor: AppColors.surface,
-                          onSelected: (_) {
-                            setState(() => _tab = t['key'] as String);
-                            _load();
-                          },
-                        ),
-                      ))
-                  .toList(),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+            child: SizedBox(
+              height: 34,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _tabs.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, i) {
+                  final t = _tabs[i];
+                  final selected = _tab == t['key'];
+                  return ChoiceChip(
+                    label: Text(t['label'] as String),
+                    selected: selected,
+                    selectedColor: AppColors.primary.withValues(alpha: 0.2),
+                    labelStyle: TextStyle(color: selected ? AppColors.primary : AppColors.textDim, fontSize: 12),
+                    backgroundColor: AppColors.surface,
+                    onSelected: (_) {
+                      setState(() => _tab = t['key'] as String);
+                      _load();
+                    },
+                  );
+                },
+              ),
             ),
           ),
+          if (scoped)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+              child: SizedBox(
+                height: 30,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _scopes.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, i) {
+                    final s = _scopes[i];
+                    final selected = _scope == s['key'];
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() => _scope = s['key']);
+                        _load();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          gradient: selected ? AppGradients.volaCtaDiagonal : null,
+                          color: selected ? null : AppColors.surface,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: selected ? Colors.transparent : AppColors.border),
+                        ),
+                        child: Text(s['label'] as String, style: TextStyle(color: selected ? Colors.white : AppColors.textDim, fontSize: 11, fontWeight: selected ? FontWeight.w700 : FontWeight.w500)),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
           Expanded(
             child: _loading
                 ? const Center(child: Spinner())
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: _entries.length,
-                    itemBuilder: (context, i) {
-                      final e = _entries[i];
-                      final isCommunity = _tab == 'communities';
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
-                        child: Row(
-                          children: [
-                            SizedBox(width: 24, child: Text('${i + 1}', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textFaint, fontWeight: FontWeight.bold))),
-                            const SizedBox(width: 8),
-                            isCommunity
-                                ? Container(width: 32, height: 32, decoration: BoxDecoration(color: AppColors.surface3, shape: BoxShape.circle), alignment: Alignment.center, child: const Text('🏘️'))
-                                : Avatar(src: e['avatarUrl'] as String?, name: e['name'] as String?, size: AvatarSize.sm),
-                            const SizedBox(width: 10),
-                            Expanded(child: Text(e['name'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                            Text(
-                              isCommunity ? '${formatNumber(e['memberCount'])} members' : formatNumber(e['totalCoins']),
-                              style: TextStyle(color: isCommunity ? AppColors.textDim : AppColors.gold, fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                : _entries.isEmpty
+                    ? const Center(child: Text('No entries yet.', style: TextStyle(color: AppColors.textFaint)))
+                    : ListView(
+                        padding: const EdgeInsets.all(16),
+                        children: [
+                          if (top3.isNotEmpty) _podium(top3),
+                          const SizedBox(height: 16),
+                          ...rest.asMap().entries.map((entry) => _row(entry.key + 4, entry.value)),
+                        ],
+                      ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _podium(List<Map<String, dynamic>> top3) {
+    final isCommunity = _tab == 'communities';
+    Widget slot(int rank, Map<String, dynamic>? e, double avatarSize, double height) {
+      if (e == null) return const SizedBox(width: 84);
+      final crown = rank == 1 ? '👑' : (rank == 2 ? '🥈' : '🥉');
+      return SizedBox(
+        width: 96,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(crown, style: const TextStyle(fontSize: 22)),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: rank == 1 ? AppColors.gold : AppColors.border, width: 2)),
+              child: isCommunity
+                  ? CircleAvatar(radius: avatarSize / 2, backgroundColor: AppColors.surface3, child: const Text('🏘️'))
+                  : Avatar(src: e['avatarUrl'] as String?, name: e['name'] as String?, size: avatarSize > 50 ? AvatarSize.lg : AvatarSize.md),
+            ),
+            const SizedBox(height: 6),
+            Text(e['name'] as String? ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.text, fontSize: 12, fontWeight: FontWeight.w700)),
+            Text(_metric(e), style: const TextStyle(color: AppColors.gold, fontSize: 11)),
+          ],
+        ),
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        slot(2, top3.length > 1 ? top3[1] : null, 48, 90),
+        slot(1, top3.isNotEmpty ? top3[0] : null, 64, 110),
+        slot(3, top3.length > 2 ? top3[2] : null, 48, 90),
+      ],
+    );
+  }
+
+  Widget _row(int rank, Map<String, dynamic> e) {
+    final isCommunity = _tab == 'communities';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+      child: Row(
+        children: [
+          SizedBox(width: 24, child: Text('$rank', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textFaint, fontWeight: FontWeight.bold))),
+          const SizedBox(width: 8),
+          isCommunity
+              ? Container(width: 32, height: 32, decoration: const BoxDecoration(color: AppColors.surface3, shape: BoxShape.circle), alignment: Alignment.center, child: const Text('🏘️'))
+              : Avatar(src: e['avatarUrl'] as String?, name: e['name'] as String?, size: AvatarSize.sm),
+          const SizedBox(width: 10),
+          Expanded(child: Text(e['name'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          Text(_metric(e), style: const TextStyle(color: AppColors.gold, fontSize: 12)),
         ],
       ),
     );

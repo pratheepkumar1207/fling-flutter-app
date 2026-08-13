@@ -23,12 +23,21 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
+const _roomFilters = [
+  {'key': null, 'label': 'All', 'emoji': '✨'},
+  {'key': 'watch', 'label': 'Watch Party', 'emoji': '📺'},
+  {'key': 'voice', 'label': 'Voice Room', 'emoji': '🎙️'},
+  {'key': 'game', 'label': 'Game', 'emoji': '🎮'},
+  {'key': 'live', 'label': 'Live', 'emoji': '🔴'},
+];
+
 class _HomeScreenState extends State<HomeScreen> {
   bool _loading = true;
   List<Map<String, dynamic>> _rooms = [];
   List<RoomSummary> _invited = [];
   List<Map<String, dynamic>> _scheduledEvents = [];
   List<StoryEntry> _stories = [];
+  String? _typeFilter;
 
   @override
   void initState() {
@@ -78,8 +87,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final firstName = (user?.name ?? 'there').split(' ').first;
     // Only surface a boosted room while it actually has people in it — an
     // empty boosted room isn't "trending", it's just paid-for and idle.
-    final featured = _rooms.where((r) => r['isBoosted'] == true && asNum(r['memberCount']) > 0).toList();
-    final active = _rooms.where((r) => r['isBoosted'] != true && asNum(r['memberCount']) > 0).toList();
+    final typeFiltered = _typeFilter == null ? _rooms : _rooms.where((r) => r['roomType'] == _typeFilter).toList();
+    final featured = typeFiltered.where((r) => r['isBoosted'] == true && asNum(r['memberCount']) > 0).toList();
+    final active = typeFiltered.where((r) => r['isBoosted'] != true && asNum(r['memberCount']) > 0).toList();
 
     return RefreshIndicator(
       onRefresh: _load,
@@ -120,6 +130,36 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 34,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _roomFilters.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, i) {
+                final f = _roomFilters[i];
+                final selected = _typeFilter == f['key'];
+                return GestureDetector(
+                  onTap: () => setState(() => _typeFilter = f['key']),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      gradient: selected ? AppGradients.volaCtaDiagonal : null,
+                      color: selected ? null : AppColors.surface,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: selected ? Colors.transparent : AppColors.border),
+                    ),
+                    child: Text(
+                      '${f['emoji']} ${f['label']}',
+                      style: TextStyle(color: selected ? Colors.white : AppColors.textDim, fontSize: 12, fontWeight: selected ? FontWeight.w700 : FontWeight.w500),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
           const SizedBox(height: 16),
@@ -225,7 +265,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
-                          decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(999), boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.4), blurRadius: 12, offset: const Offset(0, 4))]),
+                          decoration: BoxDecoration(gradient: AppGradients.volaCtaDiagonal, borderRadius: BorderRadius.circular(999), boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.4), blurRadius: 12, offset: const Offset(0, 4))]),
                           child: const Text('▶ Watch', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
                         ),
                         const SizedBox(width: 8),

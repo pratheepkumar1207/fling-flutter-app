@@ -17,6 +17,10 @@ class LobbyCreateScreen extends StatefulWidget {
 class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
   String _roomType = 'watch';
   String _gameType = 'tictactoe';
+  final _nameController = TextEditingController();
+  // Reused as the reference's "Room Description" field — topic already
+  // covers exactly that concept server-side, so there's no need for a
+  // second, redundant description column.
   final _topicController = TextEditingController();
   String _visibility = 'public';
   bool _saving = false;
@@ -43,6 +47,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
         'roomType': _roomType,
         if (_roomType == 'game') 'gameType': _gameType,
         'visibility': _visibility,
+        if (_nameController.text.trim().isNotEmpty) 'title': _nameController.text.trim(),
         if (_topicController.text.trim().isNotEmpty) 'topic': _topicController.text.trim(),
       }) as Map<String, dynamic>;
       if (!mounted) return;
@@ -106,7 +111,9 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
             ),
           ],
           const SizedBox(height: 12),
-          _field('Topic (optional)', TextField(controller: _topicController, style: const TextStyle(color: AppColors.text))),
+          _field('Room name (optional)', TextField(controller: _nameController, style: const TextStyle(color: AppColors.text))),
+          const SizedBox(height: 12),
+          _field('Description (optional)', TextField(controller: _topicController, style: const TextStyle(color: AppColors.text))),
           const SizedBox(height: 12),
           _field(
             'Visibility',
@@ -218,6 +225,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _topicController.dispose();
     super.dispose();
   }

@@ -207,6 +207,14 @@ class RoomSocketController extends ChangeNotifier {
     if (isHost) socket?.emit('call:removeMic', {'roomId': roomId, 'targetUserId': targetUserId});
   }
 
+  void forceMuteMic(String targetUserId) {
+    if (isHost) socket?.emit('call:forceMute', {'roomId': roomId, 'targetUserId': targetUserId});
+  }
+
+  void forceUnmuteMic(String targetUserId) {
+    if (isHost) socket?.emit('call:forceUnmute', {'roomId': roomId, 'targetUserId': targetUserId});
+  }
+
   void createPoll(String question, List<String> options) {
     if (isHost) socket?.emit('poll:create', {'roomId': roomId, 'question': question, 'options': options});
   }

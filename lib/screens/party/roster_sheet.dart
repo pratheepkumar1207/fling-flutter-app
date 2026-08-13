@@ -16,7 +16,10 @@ class RosterSheet extends StatefulWidget {
   final void Function(String userId) onMakeHost;
   final String? roomType;
   final List<String>? activeMics;
+  final List<String>? mutedMics;
   final void Function(String userId)? onInviteMic;
+  final void Function(String userId)? onForceMute;
+  final void Function(String userId)? onForceUnmute;
 
   const RosterSheet({
     super.key,
@@ -28,7 +31,10 @@ class RosterSheet extends StatefulWidget {
     required this.onMakeHost,
     this.roomType,
     this.activeMics,
+    this.mutedMics,
     this.onInviteMic,
+    this.onForceMute,
+    this.onForceUnmute,
   });
 
   @override
@@ -132,7 +138,10 @@ class _RosterSheetState extends State<RosterSheet> {
                     final r = widget.roster[i];
                     final isRowHost = r.userId == widget.hostId;
                     final isMe = r.userId == widget.myUserId;
-                    final canInviteMic = widget.isHost && widget.roomType == 'voice' && widget.onInviteMic != null && !(widget.activeMics?.contains(r.userId) ?? false);
+                    final onStage = widget.activeMics?.contains(r.userId) ?? false;
+                    final canInviteMic = widget.isHost && widget.roomType == 'voice' && widget.onInviteMic != null && !onStage;
+                    final isMuted = widget.mutedMics?.contains(r.userId) ?? false;
+                    final canToggleMute = widget.isHost && widget.roomType == 'voice' && onStage && widget.onForceMute != null && widget.onForceUnmute != null;
                     final friendAction = isMe ? null : _friendAction(r.userId);
                     return ListTile(
                       leading: Avatar(src: r.avatarUrl, name: r.name, size: AvatarSize.sm),
@@ -146,6 +155,11 @@ class _RosterSheetState extends State<RosterSheet> {
                                 if (widget.isHost) ...[
                                   if (canInviteMic)
                                     TextButton(onPressed: () => widget.onInviteMic!(r.userId), child: const Text('🎙️', style: TextStyle(color: AppColors.gold, fontSize: 14))),
+                                  if (canToggleMute)
+                                    TextButton(
+                                      onPressed: () => isMuted ? widget.onForceUnmute!(r.userId) : widget.onForceMute!(r.userId),
+                                      child: Text(isMuted ? 'Unmute' : 'Mute', style: TextStyle(color: isMuted ? AppColors.gold : AppColors.textDim, fontSize: 12)),
+                                    ),
                                   TextButton(onPressed: () => widget.onMakeHost(r.userId), child: const Text('Host', style: TextStyle(color: AppColors.primary, fontSize: 12))),
                                   TextButton(onPressed: () => widget.onKick(r.userId), child: const Text('Kick', style: TextStyle(color: AppColors.danger, fontSize: 12))),
                                 ],

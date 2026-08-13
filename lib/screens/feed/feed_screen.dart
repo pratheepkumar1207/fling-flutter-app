@@ -10,6 +10,7 @@ import '../../widgets/avatar.dart';
 import '../../widgets/live_tab.dart';
 import '../../widgets/mention_text_field.dart';
 import '../../widgets/post_composer_sheet.dart';
+import '../../widgets/post_likes_sheet.dart';
 import '../../widgets/reels_feed.dart';
 import '../../widgets/share_row.dart';
 import '../../widgets/spinner.dart';
@@ -271,14 +272,17 @@ class _FeedScreenState extends State<FeedScreen> {
           const SizedBox(height: 10),
           Row(
             children: [
-              GestureDetector(
-                onTap: () => _toggleLike(post),
-                child: Row(children: [
-                  Icon(post.likedByMe ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: post.likedByMe ? AppColors.danger : AppColors.textDim, size: 20),
-                  const SizedBox(width: 4),
-                  Text('${post.likesCount}', style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
-                ]),
-              ),
+              Row(children: [
+                GestureDetector(
+                  onTap: () => _toggleLike(post),
+                  child: Icon(post.likedByMe ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: post.likedByMe ? AppColors.danger : AppColors.textDim, size: 20),
+                ),
+                const SizedBox(width: 4),
+                GestureDetector(
+                  onTap: post.likesCount > 0 ? () => showPostLikesSheet(context, postId: post.id) : null,
+                  child: Text('${post.likesCount}', style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
+                ),
+              ]),
               const SizedBox(width: 20),
               GestureDetector(
                 onTap: () => _openComments(post),

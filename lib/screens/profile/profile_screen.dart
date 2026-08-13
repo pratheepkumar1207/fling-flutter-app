@@ -34,6 +34,8 @@ import '../friends/friends_screen.dart';
 import '../leaderboards/leaderboards_screen.dart';
 import '../messages/messages_screen.dart';
 import '../search/search_screen.dart';
+import '../settings/settings_screen.dart';
+import 'user_list_screen.dart';
 import '../wallet/livestream_dashboard_screen.dart';
 import '../wallet/vip_store_screen.dart';
 
@@ -205,7 +207,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = context.watch<AuthProvider>().user;
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(
+        title: const Text('Profile'),
+        actions: [
+          IconButton(
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+            icon: const Icon(Icons.settings_outlined, color: AppColors.textDim),
+          ),
+        ],
+      ),
       body: _loading
           ? const Center(child: Spinner(size: 28))
           : RefreshIndicator(
@@ -222,6 +232,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       if (user?.isVerified == true) _badge('Verified', AppColors.success),
                       if (user?.isVip == true) _badge('VIP', AppColors.gold),
                       if (_gam?['rank'] != null) _badge(_gam!['rank'] as String, AppColors.accent),
+                      if (user?.equippedCarId != null && (user!.carExpiresAt == null || user.carExpiresAt!.isAfter(DateTime.now())))
+                        _badge('🚗 Admission Car', AppColors.gold),
                     ],
                     insideAction: ElevatedButton(
                       onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const _EditProfileSheet())).then((_) => _loadAll()),
@@ -236,8 +248,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     stats: _stats == null
                         ? const []
                         : [
-                            ColaStat('Followers', _stats!['followers']),
-                            ColaStat('Following', _stats!['following']),
+                            ColaStat(
+                              'Followers',
+                              _stats!['followers'],
+                              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UserListScreen(title: 'Followers', endpoint: '/social/followers'))),
+                            ),
+                            ColaStat(
+                              'Following',
+                              _stats!['following'],
+                              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UserListScreen(title: 'Following', endpoint: '/social/following'))),
+                            ),
                             ColaStat('Friends', _stats!['friends']),
                           ],
                   ),

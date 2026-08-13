@@ -26,6 +26,7 @@ class User {
   final String livestreamStatus;
   final bool hideOnlineStatus;
   final bool safeModeEnabled;
+  final bool pushNotificationsEnabled;
   final bool locationSharingEnabled;
   final DateTime? usernameChangedAt;
   final int xp;
@@ -35,6 +36,8 @@ class User {
   final bool isVerified;
   final bool isFake;
   final String? equippedFrameId;
+  final String? equippedCarId;
+  final DateTime? carExpiresAt;
   final double coinBalance;
   final int galleryCount;
   final bool profileComplete;
@@ -67,6 +70,7 @@ class User {
     this.livestreamStatus = 'none',
     this.hideOnlineStatus = false,
     this.safeModeEnabled = false,
+    this.pushNotificationsEnabled = true,
     this.locationSharingEnabled = false,
     this.usernameChangedAt,
     this.xp = 0,
@@ -76,6 +80,8 @@ class User {
     this.isVerified = false,
     this.isFake = false,
     this.equippedFrameId,
+    this.equippedCarId,
+    this.carExpiresAt,
     this.coinBalance = 0,
     this.galleryCount = 0,
     this.profileComplete = true,
@@ -110,6 +116,7 @@ class User {
       livestreamStatus: json['livestreamStatus'] as String? ?? 'none',
       hideOnlineStatus: json['hideOnlineStatus'] as bool? ?? false,
       safeModeEnabled: json['safeModeEnabled'] as bool? ?? false,
+      pushNotificationsEnabled: json['pushNotificationsEnabled'] as bool? ?? true,
       locationSharingEnabled: json['locationSharingEnabled'] as bool? ?? false,
       usernameChangedAt: json['usernameChangedAt'] != null ? DateTime.tryParse(json['usernameChangedAt'] as String) : null,
       xp: json['xp'] as int? ?? 0,
@@ -119,6 +126,8 @@ class User {
       isVerified: json['isVerified'] as bool? ?? false,
       isFake: json['isFake'] as bool? ?? false,
       equippedFrameId: json['equippedFrameId'] as String?,
+      equippedCarId: json['equippedCarId'] as String?,
+      carExpiresAt: json['carExpiresAt'] != null ? DateTime.tryParse(json['carExpiresAt'] as String) : null,
       coinBalance: _parseDouble(json['coinBalance']),
       galleryCount: json['galleryCount'] as int? ?? 0,
       // Older cached responses (or endpoints that don't compute it) won't

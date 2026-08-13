@@ -1,30 +1,27 @@
 import 'package:flutter/material.dart';
 
-/// Dark-mode palette — retuned off the insync logo's own pink -> purple ->
-/// blue gradient (see assets/icon/insync-icon.png) instead of the earlier
-/// flat Spotify-green accent. See [AppColorsLight] for the light-mode
-/// sibling and [AppGradients.brand] for the shared gradient stops.
+/// Dark-mode palette — retuned to the "Vola Party" reference look (deep
+/// purple-magenta, flat cards over a saturated purple base) that
+/// VolaPartyColors first proved out for the Watch Party room; see
+/// AppColorsLight for the light-mode sibling and AppGradients.brand /
+/// AppGradients.volaCta for the shared gradient stops.
 class AppColors {
   AppColors._();
 
-  // Deep purple-charcoal rather than pure black — claymorphism's soft
-  // dual shadows (see ClaySurface) need a mid-dark base to read against.
-  static const bg = Color(0xFF15121F);
-  static const surface = Color(0xFF1E1A2C);
-  static const surface2 = Color(0xFF262137);
-  static const surface3 = Color(0xFF2F2941);
-  static const border = Color(0x1EFFFFFF);
+  static const bg = Color(0xFF1A0F2E);
+  static const surface = Color(0xFF3A2463);
+  static const surface2 = Color(0xFF4A2F7A);
+  static const surface3 = Color(0xFF5A3A94);
+  static const border = Color(0x33FFFFFF);
 
-  // Mid-gradient purple as the single-tone primary; pink/blue live in
-  // AppGradients.brand for hero surfaces (buttons, active nav, rings).
-  static const primary = Color(0xFFA855F7);
-  static const primaryDim = Color(0xFF8B3DFF);
+  static const primary = Color(0xFFE91E8C);
+  static const primaryDim = Color(0xFFC0157A);
   static const accent = Color(0xFFFF3D77);
-  static const gold = Color(0xFFFFC94D);
+  static const gold = Color(0xFFF0C419);
 
   static const text = Color(0xFFF5F3FA);
-  static const textDim = Color(0xFFA79FC2);
-  static const textFaint = Color(0xFF6E6584);
+  static const textDim = Color(0xFFC9B8E8);
+  static const textFaint = Color(0xFF8B7AB0);
 
   static const success = Color(0xFF34D399);
   static const danger = Color(0xFFFF4D6D);
@@ -55,8 +52,9 @@ class AppColorsLight {
   static const warning = Color(0xFFC98A1F);
 }
 
-/// The insync logo's pink -> purple -> blue gradient, shared by hero
-/// buttons, the active bottom-nav pill, and the avatar "story ring".
+/// The insync logo's pink -> purple -> blue gradient, shared by the avatar
+/// "story ring" and other decorative uses it already had before the Vola
+/// Party retune — kept as-is since those uses aren't primary CTAs.
 class AppGradients {
   AppGradients._();
 
@@ -70,5 +68,19 @@ class AppGradients {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: brand,
+  );
+
+  /// Primary CTA pill gradient (Go Live / Send / Take Picture-style
+  /// buttons) — magenta to purple, matching the Vola Party reference's
+  /// flat two-tone buttons rather than the three-stop brand gradient.
+  static const List<Color> volaCta = [
+    Color(0xFFE91E8C),
+    Color(0xFF8B2FC9),
+  ];
+
+  static const LinearGradient volaCtaDiagonal = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: volaCta,
   );
 }
