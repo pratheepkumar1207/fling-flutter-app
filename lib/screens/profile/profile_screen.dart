@@ -239,7 +239,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const _EditProfileSheet())).then((_) => _loadAll()),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
-                        foregroundColor: AppColors.primary,
+                        foregroundColor: Colors.black,
                         shape: const StadiumBorder(),
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                       ),

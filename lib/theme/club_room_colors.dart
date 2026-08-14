@@ -1,26 +1,25 @@
 import 'package:flutter/material.dart';
 
-/// Voice Room's dedicated visual identity — matched to the "ClubRoom"
-/// reference app (dark near-black background, mint-green accent), used
-/// only for roomType == 'voice' in party_screen.dart/voice_stage_view.dart.
-/// Deliberately diverges from the rest of the app's claymorphism/
-/// logo-gradient theme (see ClayColors) — an explicit, scoped choice for
-/// this one room type, not a global rebrand.
+/// Voice Room's visual identity — matches the app's global monochrome
+/// palette now (previously a mint-green accent, before the app-wide
+/// black-and-white pass). Kept as its own class rather than folded into
+/// ClayColors since it's still a distinct near-black base tuned for this
+/// one room type, not derived from the shared surface tokens.
 class ClubRoomColors {
   ClubRoomColors._();
 
-  static const bg = Color(0xFF0B0E11);
-  static const surface = Color(0xFF151A1F);
-  static const surface2 = Color(0xFF1C232A);
-  static const surface3 = Color(0xFF242D35);
+  static const bg = Color(0xFF0A0A0A);
+  static const surface = Color(0xFF161616);
+  static const surface2 = Color(0xFF1E1E1E);
+  static const surface3 = Color(0xFF262626);
   static const border = Color(0x1AFFFFFF);
 
-  static const primary = Color(0xFF3ECF8E);
-  static const primaryDim = Color(0xFF2FA876);
-  static const gold = Color(0xFFFFC94D);
+  static const primary = Color(0xFFFFFFFF);
+  static const primaryDim = Color(0xFFB3B3B3);
+  static const gold = Color(0xFFCCCCCC);
   static const danger = Color(0xFFFF5470);
 
-  static const text = Color(0xFFF5F7F8);
-  static const textDim = Color(0xFF9AA5AC);
-  static const textFaint = Color(0xFF5C6870);
+  static const text = Color(0xFFF5F5F5);
+  static const textDim = Color(0xFFA0A0A0);
+  static const textFaint = Color(0xFF666666);
 }

@@ -120,18 +120,11 @@ class _AppShellState extends State<AppShell> {
       backgroundColor: AppColors.bg,
       appBar: const FlingTopBar(),
       body: IndexedStack(index: _index, children: _screens),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LobbyCreateScreen())),
-        tooltip: 'Create a room',
-        backgroundColor: AppColors.primary,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add, color: Colors.white, size: 28),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       bottomNavigationBar: LiquidGlassBottomNav(
         currentIndex: _index,
         onTap: (i) => setState(() => _index = i),
         items: _items,
+        onCreateTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LobbyCreateScreen())),
       ),
     );
   }

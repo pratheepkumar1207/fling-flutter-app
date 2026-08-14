@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_provider.dart';
+import '../../core/room_presence_service.dart';
 import '../../core/socket_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/club_room_colors.dart';
@@ -77,6 +78,7 @@ class _PartyScreenState extends State<PartyScreen> {
         _room = data as Map<String, dynamic>;
         _loading = false;
       });
+      RoomPresenceService.start((_room?['title'] as String?) ?? 'Watch Party');
       _maybeInitLive();
     } catch (e) {
       if (mounted) {
@@ -104,6 +106,7 @@ class _PartyScreenState extends State<PartyScreen> {
     final rs = RoomSocketController(socket: socket, roomId: widget.roomId, myUserId: myId);
     rs.addListener(_onRoomStateChanged);
     setState(() => _rs = rs);
+    RoomPresenceService.start((_room?['title'] as String?) ?? 'Watch Party');
     _voice = VoiceChatController(roomId: widget.roomId);
     _maybeInitLive();
   }
@@ -685,6 +688,7 @@ class _PartyScreenState extends State<PartyScreen> {
     _rs?.leave();
     _voice?.dispose();
     _live?.dispose();
+    RoomPresenceService.stop();
     super.dispose();
   }
 }

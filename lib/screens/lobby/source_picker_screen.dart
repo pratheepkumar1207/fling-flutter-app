@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_song_lists.dart';
 import 'youtube_browse_screen.dart';
@@ -181,33 +182,74 @@ class SourcePickerBody extends StatelessWidget {
       crossAxisSpacing: 12,
       childAspectRatio: 0.85,
       children: [
-        _SourceTile(emoji: '▶️', label: 'YouTube', available: true, onTap: () => _openYoutube(context)),
+        _SourceTile(icon: FontAwesomeIcons.youtube, iconColor: const Color(0xFFFF0000), label: 'YouTube', available: true, onTap: () => _openYoutube(context)),
         _SourceTile(emoji: '❤️', label: 'Liked', available: true, onTap: () => _openAppSongList(context, title: 'Liked songs', endpoint: '/liked-songs')),
         _SourceTile(emoji: '🕘', label: 'History', available: true, onTap: () => _openAppSongList(context, title: 'History', endpoint: '/song-history')),
         _SourceTile(emoji: '📃', label: 'Playlists', available: true, onTap: () => _openPlaylists(context)),
-        _SourceTile(emoji: '🏄', label: 'YouTube Surf', available: true, onTap: () => _openWebviewSource(context, platform: 'youtube_surf', label: 'YouTube Surf', homeUrl: 'https://www.youtube.com')),
-        _SourceTile(emoji: '📁', label: 'Drive', available: true, onTap: () => _openDrive(context)),
-        _SourceTile(emoji: '🎬', label: 'Netflix', available: true, onTap: () => _openWebviewSource(context, platform: 'netflix', label: 'Netflix', homeUrl: 'https://www.netflix.com/in/')),
-        _SourceTile(emoji: '⭐', label: 'Hotstar', available: true, onTap: () => _openWebviewSource(context, platform: 'hotstar', label: 'Hotstar', homeUrl: 'https://www.hotstar.com/in/')),
-        _SourceTile(emoji: '📦', label: 'Prime Video', available: true, onTap: () => _openWebviewSource(context, platform: 'amazon', label: 'Prime Video', homeUrl: 'https://www.primevideo.com')),
-        _SourceTile(emoji: '🅰️', label: 'Aha', available: true, onTap: () => _openWebviewSource(context, platform: 'aha', label: 'Aha', homeUrl: 'https://www.aha.video')),
-        _SourceTile(emoji: '☀️', label: 'SunNXT', available: true, onTap: () => _openWebviewSource(context, platform: 'sunnxt', label: 'SunNXT', homeUrl: 'https://www.sunnxt.com')),
-        _SourceTile(emoji: '📺', label: 'SonyLIV', available: true, onTap: () => _openWebviewSource(context, platform: 'sonyliv', label: 'SonyLIV', homeUrl: 'https://www.sonyliv.com')),
-        _SourceTile(emoji: '📡', label: 'Airtel Xstream', available: true, onTap: () => _openWebviewSource(context, platform: 'airtel_xstream', label: 'Airtel Xstream', homeUrl: 'https://www.airtelxstream.in')),
-        const _SourceTile(emoji: '🍥', label: 'Crunchyroll', available: false),
-        const _SourceTile(emoji: '𝕏', label: 'X', available: false),
+        _SourceTile(icon: FontAwesomeIcons.youtube, iconColor: const Color(0xFFFF0000), label: 'YouTube Surf', available: true, onTap: () => _openWebviewSource(context, platform: 'youtube_surf', label: 'YouTube Surf', homeUrl: 'https://www.youtube.com')),
+        _SourceTile(icon: FontAwesomeIcons.googleDrive, iconColor: const Color(0xFF0F9D58), label: 'Drive', available: true, onTap: () => _openDrive(context)),
+        // Netflix/Crunchyroll and the India-specific platforms below have no
+        // real logo glyph available in font_awesome_flutter's brand set —
+        // rather than guess at reproducing their trademarked logo art from
+        // memory, these use a colored letter-badge (see _SourceTile.letter)
+        // instead of a real logo.
+        _SourceTile(letter: 'N', badgeColor: const Color(0xFFE50914), label: 'Netflix', available: true, onTap: () => _openWebviewSource(context, platform: 'netflix', label: 'Netflix', homeUrl: 'https://www.netflix.com/in/')),
+        _SourceTile(letter: 'H', badgeColor: const Color(0xFF1F80E0), label: 'Hotstar', available: true, onTap: () => _openWebviewSource(context, platform: 'hotstar', label: 'Hotstar', homeUrl: 'https://www.hotstar.com/in/')),
+        _SourceTile(icon: FontAwesomeIcons.amazon, iconColor: const Color(0xFFFF9900), label: 'Prime Video', available: true, onTap: () => _openWebviewSource(context, platform: 'amazon', label: 'Prime Video', homeUrl: 'https://www.primevideo.com')),
+        _SourceTile(letter: 'A', badgeColor: const Color(0xFFE4002B), label: 'Aha', available: true, onTap: () => _openWebviewSource(context, platform: 'aha', label: 'Aha', homeUrl: 'https://www.aha.video')),
+        _SourceTile(letter: 'S', badgeColor: const Color(0xFFF7941D), label: 'SunNXT', available: true, onTap: () => _openWebviewSource(context, platform: 'sunnxt', label: 'SunNXT', homeUrl: 'https://www.sunnxt.com')),
+        _SourceTile(letter: 'S', badgeColor: const Color(0xFF00A0DC), label: 'SonyLIV', available: true, onTap: () => _openWebviewSource(context, platform: 'sonyliv', label: 'SonyLIV', homeUrl: 'https://www.sonyliv.com')),
+        _SourceTile(letter: 'A', badgeColor: const Color(0xFFE40000), label: 'Airtel Xstream', available: true, onTap: () => _openWebviewSource(context, platform: 'airtel_xstream', label: 'Airtel Xstream', homeUrl: 'https://www.airtelxstream.in')),
+        const _SourceTile(letter: 'C', badgeColor: Color(0xFFF47521), label: 'Crunchyroll', available: false),
+        _SourceTile(icon: FontAwesomeIcons.xTwitter, iconColor: AppColors.text, label: 'X', available: false),
       ],
     );
   }
 }
 
+/// Exactly one visual mode is set per tile:
+///  - [icon]+[iconColor]: a real brand glyph (font_awesome_flutter's brand
+///    icon set — only covers globally-recognized brands like YouTube/Drive/
+///    Amazon/X).
+///  - [letter]+[badgeColor]: a colored letter-badge, used for services with
+///    no real logo available here (see the "Netflix/Crunchyroll" comment
+///    at the call site for why — not guessing at trademarked logo art).
+///  - [emoji]: app-internal categories (Liked/History/Playlists) that
+///    aren't a third-party brand at all.
 class _SourceTile extends StatelessWidget {
-  final String emoji;
+  final String? emoji;
+  final FaIconData? icon;
+  final Color? iconColor;
+  final String? letter;
+  final Color? badgeColor;
   final String label;
   final bool available;
   final VoidCallback? onTap;
 
-  const _SourceTile({required this.emoji, required this.label, required this.available, this.onTap});
+  const _SourceTile({
+    this.emoji,
+    this.icon,
+    this.iconColor,
+    this.letter,
+    this.badgeColor,
+    required this.label,
+    required this.available,
+    this.onTap,
+  });
+
+  Widget _visual() {
+    if (icon != null) return FaIcon(icon, color: iconColor, size: 26);
+    if (letter != null) {
+      return Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(color: badgeColor, shape: BoxShape.circle),
+        alignment: Alignment.center,
+        child: Text(letter!, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+      );
+    }
+    return Text(emoji ?? '', style: const TextStyle(fontSize: 28));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -221,7 +263,7 @@ class _SourceTile extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(emoji, style: const TextStyle(fontSize: 28)),
+              _visual(),
               const SizedBox(height: 8),
               Text(label, style: const TextStyle(color: AppColors.text, fontSize: 12, fontWeight: FontWeight.w600), textAlign: TextAlign.center),
               if (!available) const Padding(padding: EdgeInsets.only(top: 4), child: Text('Coming soon', style: TextStyle(color: AppColors.textFaint, fontSize: 9))),

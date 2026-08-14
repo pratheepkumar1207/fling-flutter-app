@@ -70,6 +70,20 @@ dependencies:
   # Utilities
   intl: ^0.19.0
   url_launcher: ^6.3.0
+  # Real brand glyphs for the source-picker tiles (YouTube, Drive, Netflix,
+  # Amazon, X) — only covers globally-recognized brands; the India-specific
+  # streaming services (Hotstar/Aha/SunNXT/SonyLIV/Airtel Xstream) have no
+  # icon here and use a colored letter-badge instead (see source_picker_screen.dart).
+  font_awesome_flutter: ^11.0.0
+  # Keeps the socket connection (and thus room presence/playback sync) alive
+  # while the app is backgrounded — without a real foreground service,
+  # Android suspends the process's network activity after a short grace
+  # period, which silently disconnects the room socket, drops the user from
+  # the live roster (see syncHandler.js's disconnect handler), and makes an
+  # active room vanish from everyone else's Lobby list. Started when a user
+  # joins a room, stopped when they explicitly leave/close it (see
+  # party_screen.dart) — never runs outside an active room.
+  flutter_foreground_task: ^10.0.0
 
 dev_dependencies:
   flutter_test:

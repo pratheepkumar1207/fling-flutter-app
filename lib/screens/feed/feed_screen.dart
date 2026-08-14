@@ -229,7 +229,7 @@ class _FeedScreenState extends State<FeedScreen> {
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(color: selected ? AppColors.primary : Colors.transparent, borderRadius: BorderRadius.circular(9)),
           alignment: Alignment.center,
-          child: Text(label, style: TextStyle(color: selected ? Colors.white : AppColors.textDim, fontWeight: FontWeight.w600, fontSize: 13)),
+          child: Text(label, style: TextStyle(color: selected ? Colors.black : AppColors.textDim, fontWeight: FontWeight.w600, fontSize: 13)),
         ),
       ),
     );

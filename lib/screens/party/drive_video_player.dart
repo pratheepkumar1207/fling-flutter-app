@@ -70,6 +70,12 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer> {
   void initState() {
     super.initState();
     _rebuildControllerIfNeeded();
+    // See the matching comment in sync_video_player.dart: playback:state
+    // can already be sitting on widget.playback by this first build (the
+    // server sends it proactively on room:join), and didUpdateWidget never
+    // fires for a first build — so without this, a joining viewer would
+    // silently stay at 0:00 instead of landing on the host's position.
+    _applyRemotePlaybackIfNeeded();
     if (!widget.isHost) widget.onRequestState();
   }
 
@@ -97,7 +103,12 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer> {
       ..setVolume(_volume / 100)
       ..addListener(_onTick)
       ..initialize().then((_) {
-        if (mounted) setState(() {});
+        if (!mounted) return;
+        setState(() {});
+        // The controller wasn't initialized yet when initState/didUpdateWidget
+        // last tried to apply widget.playback (that call no-ops until
+        // isInitialized), so retry now that it actually can seek/play.
+        _applyRemotePlaybackIfNeeded();
       });
   }
 
@@ -266,10 +277,17 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer> {
 
     if (!audioOnly) return videoTree;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+    // Kept at a modest real size (not shrunk to 1x1 / wrapped in Opacity)
+    // — see sync_video_player.dart's matching comment: mobile platform-view
+    // playback can silently stall when shrunk near-zero or made
+    // transparent, which was causing audio to drift after switching to
+    // audio-only. 100x100 clears that threshold while staying fully
+    // covered by StaticBloomPlayer, which sizes itself naturally here
+    // rather than being force-stretched (that stretch previously caused a
+    // layout overflow).
+    return Stack(
       children: [
-        SizedBox(width: 1, height: 1, child: Opacity(opacity: 0, child: videoTree)),
+        SizedBox(width: 100, height: 100, child: IgnorePointer(child: videoTree)),
         StaticBloomPlayer(
           playing: controller.value.isPlaying,
           title: widget.title,

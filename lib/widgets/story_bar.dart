@@ -62,8 +62,12 @@ class StoryBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (stories.isEmpty && leading == null) return const SizedBox.shrink();
+    // A ring-wrapped AvatarSize.lg (96) plus its two 2px padding layers is
+    // already 104px alone, before the label below it — 84 was never tall
+    // enough and silently overflowed on-device (not something flutter
+    // analyze/build catches, only visible on a real screen).
     return SizedBox(
-      height: 84,
+      height: 126,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: stories.length + (leading != null ? 1 : 0),

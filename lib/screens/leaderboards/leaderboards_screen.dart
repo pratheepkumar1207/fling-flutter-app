@@ -131,7 +131,7 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
                           borderRadius: BorderRadius.circular(999),
                           border: Border.all(color: selected ? Colors.transparent : AppColors.border),
                         ),
-                        child: Text(s['label'] as String, style: TextStyle(color: selected ? Colors.white : AppColors.textDim, fontSize: 11, fontWeight: selected ? FontWeight.w700 : FontWeight.w500)),
+                        child: Text(s['label'] as String, style: TextStyle(color: selected ? Colors.black : AppColors.textDim, fontSize: 11, fontWeight: selected ? FontWeight.w700 : FontWeight.w500)),
                       ),
                     );
                   },
