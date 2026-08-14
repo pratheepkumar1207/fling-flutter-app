@@ -16,6 +16,7 @@ import '../../widgets/spinner.dart';
 import '../../widgets/story_bar.dart';
 import '../../widgets/story_viewer_screen.dart';
 import '../party/party_screen.dart';
+import '../search/search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -112,6 +113,28 @@ class _HomeScreenState extends State<HomeScreen> {
           Text('Hey $firstName 👋', style: const TextStyle(color: AppColors.text, fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
           const Text("Here's what's happening right now.", style: TextStyle(color: AppColors.textDim)),
+          const SizedBox(height: 16),
+          GestureDetector(
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchScreen())),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.search_rounded, color: AppColors.textFaint, size: 20),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text('Search lobbies, movies, people…', style: TextStyle(color: AppColors.textFaint, fontSize: 14)),
+                  ),
+                  Icon(Icons.tune_rounded, color: AppColors.primary, size: 18),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
           StoryBar(
             stories: _stories,
@@ -371,8 +394,29 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                       ],
                     ),
-                    Text('${hostName ?? ''} · $memberCount watching', style: const TextStyle(color: AppColors.textFaint, fontSize: 12)),
-                    if (members != null && members.isNotEmpty) MemberAvatarStrip(members: members),
+                    Text(hostName ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.textFaint, fontSize: 12)),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(color: AppColors.danger.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(999)),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: const [
+                            Icon(Icons.circle, size: 6, color: AppColors.danger),
+                            SizedBox(width: 4),
+                            Text('LIVE', style: TextStyle(color: AppColors.danger, fontSize: 10, fontWeight: FontWeight.w700)),
+                          ]),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(Icons.people_alt_rounded, size: 13, color: AppColors.textFaint),
+                        const SizedBox(width: 3),
+                        Text('$memberCount', style: const TextStyle(color: AppColors.textFaint, fontSize: 12, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                    if (members != null && members.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      MemberAvatarStrip(members: members),
+                    ],
                   ],
                 ),
               ),

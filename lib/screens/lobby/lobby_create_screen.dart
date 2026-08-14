@@ -14,6 +14,37 @@ class LobbyCreateScreen extends StatefulWidget {
   State<LobbyCreateScreen> createState() => _LobbyCreateScreenState();
 }
 
+class _RoomTypeSpec {
+  final String value;
+  final String emoji;
+  final String label;
+  final String description;
+  final Color color;
+  const _RoomTypeSpec(this.value, this.emoji, this.label, this.description, this.color);
+}
+
+class _VisibilitySpec {
+  final String value;
+  final IconData icon;
+  final String label;
+  final String description;
+  const _VisibilitySpec(this.value, this.icon, this.label, this.description);
+}
+
+const _roomTypes = [
+  _RoomTypeSpec('watch', '📺', 'Watch Party', 'Watch videos together', Color(0xFFEC4899)),
+  _RoomTypeSpec('game', '🎮', 'Game Room', 'Play games with friends', Color(0xFF6366F1)),
+  _RoomTypeSpec('voice', '🎙️', 'Voice Room', 'Talk and hang out', Color(0xFF34D399)),
+  _RoomTypeSpec('live', '🔴', 'Go Live', 'Broadcast to everyone', Color(0xFFFF4D6D)),
+];
+
+const _visibilities = [
+  _VisibilitySpec('public', Icons.public_rounded, 'Public', 'Anyone can discover and join'),
+  _VisibilitySpec('private', Icons.lock_rounded, 'Private', 'Only people with a link can join'),
+  _VisibilitySpec('friends', Icons.group_rounded, 'Friends Only', 'Only your friends can join'),
+  _VisibilitySpec('subscribers', Icons.star_rounded, 'Followers Only', 'Only people who follow you can join'),
+];
+
 class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
   String _roomType = 'watch';
   String _gameType = 'tictactoe';
@@ -72,29 +103,34 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
     final livestreamStatus = context.watch<AuthProvider>().user?.livestreamStatus ?? 'none';
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Start a room')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Row(
-            children: [
-              Expanded(child: _typeButton('watch', '📺 Watch party')),
-              const SizedBox(width: 8),
-              Expanded(child: _typeButton('voice', '🎙️ Voice room')),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(child: _typeButton('live', '🔴 Go live')),
-              const SizedBox(width: 8),
-              Expanded(child: _typeButton('game', '🎮 Game room')),
-            ],
-          ),
-          if (_roomType == 'game') ...[
-            const SizedBox(height: 12),
-            _field(
-              'Which game?',
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          children: [
+            Row(
+              children: [
+                IconButton(icon: const Icon(Icons.arrow_back, color: AppColors.text), onPressed: () => Navigator.of(context).pop()),
+              ],
+            ),
+            const Text('Create a Room', textAlign: TextAlign.center, style: TextStyle(color: AppColors.text, fontSize: 24, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 4),
+            const Text('Host a room and vibe together ✨', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+            const SizedBox(height: 24),
+            _sectionLabel('1. Select Room Type'),
+            const SizedBox(height: 10),
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 1.5,
+              children: _roomTypes.map(_typeCard).toList(),
+            ),
+            if (_roomType == 'game') ...[
+              const SizedBox(height: 20),
+              _sectionLabel('1A. Choose a Game'),
+              const SizedBox(height: 10),
               Column(
                 children: [
                   _gameTypeButton('tictactoe', '⭕ Tic Tac Toe', available: true),
@@ -108,80 +144,152 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
                   _gameTypeButton('uno', '🃏 UNO', available: true),
                 ],
               ),
-            ),
-          ],
-          const SizedBox(height: 12),
-          _field('Room name (optional)', TextField(controller: _nameController, style: const TextStyle(color: AppColors.text))),
-          const SizedBox(height: 12),
-          _field('Description (optional)', TextField(controller: _topicController, style: const TextStyle(color: AppColors.text))),
-          const SizedBox(height: 12),
-          _field(
-            'Visibility',
-            DropdownButton<String>(
-              value: _visibility,
-              isExpanded: true,
-              dropdownColor: AppColors.surface2,
-              items: const [
-                DropdownMenuItem(value: 'public', child: Text('Public')),
-                DropdownMenuItem(value: 'friends', child: Text('Friends only')),
-                DropdownMenuItem(value: 'subscribers', child: Text('Followers only')),
-                DropdownMenuItem(value: 'private', child: Text('Private (link only)')),
-              ],
-              onChanged: (v) => setState(() => _visibility = v ?? 'public'),
-            ),
-          ),
-          if (_roomType == 'live' && livestreamStatus != 'approved') ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    switch (livestreamStatus) {
-                      'pending' => 'Your application to go live is pending review.',
-                      'rejected' => 'Your last application to go live was rejected. You can apply again.',
-                      _ => 'Going live needs approval first — apply below.',
-                    },
-                    style: const TextStyle(color: AppColors.textDim, fontSize: 13),
-                  ),
-                  if (livestreamStatus != 'pending') ...[
-                    const SizedBox(height: 10),
-                    ElevatedButton(onPressed: _applying ? null : _applyToGoLive, child: Text(_applying ? 'Applying…' : 'Apply to go live')),
+            ],
+            const SizedBox(height: 20),
+            _sectionLabel('2. Room Mode'),
+            const SizedBox(height: 4),
+            const Text('Choose who can join your room', style: TextStyle(color: AppColors.textFaint, fontSize: 12)),
+            const SizedBox(height: 10),
+            Column(children: _visibilities.map(_visibilityCard).toList()),
+            if (_roomType == 'live' && livestreamStatus != 'approved') ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      switch (livestreamStatus) {
+                        'pending' => 'Your application to go live is pending review.',
+                        'rejected' => 'Your last application to go live was rejected. You can apply again.',
+                        _ => 'Going live needs approval first — apply below.',
+                      },
+                      style: const TextStyle(color: AppColors.textDim, fontSize: 13),
+                    ),
+                    if (livestreamStatus != 'pending') ...[
+                      const SizedBox(height: 10),
+                      ElevatedButton(onPressed: _applying ? null : _applyToGoLive, child: Text(_applying ? 'Applying…' : 'Apply to go live')),
+                    ],
                   ],
-                ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 20),
+            _sectionLabel('3. Room Details'),
+            const SizedBox(height: 10),
+            _pillField(_nameController, 'Room Name (optional)'),
+            const SizedBox(height: 10),
+            _pillField(_topicController, 'Add a description (optional)'),
+            const SizedBox(height: 20),
+            // Watch parties skip the button below entirely — picking a video in
+            // the Rave-style source picker creates the room automatically (see
+            // watch_room_creator.dart), so there's nothing left to confirm here.
+            SizedBox(
+              width: double.infinity,
+              child: Container(
+                decoration: BoxDecoration(gradient: AppGradients.volaCtaDiagonal, borderRadius: BorderRadius.circular(999)),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(999),
+                    onTap: _roomType == 'watch'
+                        ? _openSourcePicker
+                        : (_roomType == 'live' && livestreamStatus != 'approved')
+                            ? null
+                            : (_saving ? null : _create),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Center(
+                        child: Text(
+                          _roomType == 'watch' ? 'Choose what to watch' : (_saving ? 'Creating…' : 'Create Room'),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
-          const SizedBox(height: 20),
-          // Watch parties skip the button below entirely — picking a video in
-          // the Rave-style source picker creates the room automatically (see
-          // watch_room_creator.dart), so there's nothing left to confirm here.
-          if (_roomType == 'watch')
-            ElevatedButton(onPressed: _openSourcePicker, child: const Text('Choose what to watch'))
-          else if (_roomType == 'live' && livestreamStatus != 'approved')
-            const SizedBox.shrink()
-          else
-            ElevatedButton(onPressed: _saving ? null : _create, child: Text(_saving ? 'Creating…' : 'Create room')),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _typeButton(String value, String label) {
-    final selected = _roomType == value;
+  Widget _sectionLabel(String text) => Text(text, style: const TextStyle(color: AppColors.text, fontSize: 15, fontWeight: FontWeight.w700));
+
+  Widget _typeCard(_RoomTypeSpec spec) {
+    final selected = _roomType == spec.value;
     return GestureDetector(
-      onTap: () => setState(() => _roomType = value),
+      onTap: () => setState(() => _roomType = spec.value),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary.withValues(alpha: 0.1) : AppColors.surface,
-          border: Border.all(color: selected ? AppColors.primary : AppColors.border),
-          borderRadius: BorderRadius.circular(10),
+          color: AppColors.surface,
+          border: Border.all(color: selected ? AppColors.primary : AppColors.border, width: selected ? 2 : 1),
+          borderRadius: BorderRadius.circular(16),
         ),
-        alignment: Alignment.center,
-        child: Text(label, style: TextStyle(color: selected ? AppColors.primary : AppColors.textDim, fontSize: 13, fontWeight: FontWeight.w500)),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(color: spec.color.withValues(alpha: 0.18), shape: BoxShape.circle),
+              alignment: Alignment.center,
+              child: Text(spec.emoji, style: const TextStyle(fontSize: 22)),
+            ),
+            const SizedBox(height: 8),
+            Text(spec.label, style: TextStyle(color: selected ? AppColors.primary : AppColors.text, fontSize: 13, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 2),
+            Text(spec.description, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.textFaint, fontSize: 10)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _visibilityCard(_VisibilitySpec spec) {
+    final selected = _visibility == spec.value;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: GestureDetector(
+        onTap: () => setState(() => _visibility = spec.value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            border: Border.all(color: selected ? AppColors.primary : AppColors.border, width: selected ? 2 : 1),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            children: [
+              Icon(spec.icon, color: selected ? AppColors.primary : AppColors.textDim, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(spec.label, style: TextStyle(color: selected ? AppColors.primary : AppColors.text, fontSize: 14, fontWeight: FontWeight.w600)),
+                    Text(spec.description, style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
+                  ],
+                ),
+              ),
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: selected ? AppColors.primary : AppColors.border, width: 2),
+                  color: selected ? AppColors.primary : Colors.transparent,
+                ),
+                alignment: Alignment.center,
+                child: selected ? const Icon(Icons.check, size: 13, color: Colors.white) : null,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -198,7 +306,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
           decoration: BoxDecoration(
             color: selected ? AppColors.primary.withValues(alpha: 0.1) : AppColors.surface,
             border: Border.all(color: selected ? AppColors.primary : AppColors.border),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(14),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -212,14 +320,19 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
     );
   }
 
-  Widget _field(String label, Widget child) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(color: AppColors.textDim, fontSize: 13)),
-        const SizedBox(height: 4),
-        child,
-      ],
+  Widget _pillField(TextEditingController controller, String hint) {
+    return Container(
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+      child: TextField(
+        controller: controller,
+        style: const TextStyle(color: AppColors.text),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: AppColors.textFaint, fontSize: 13),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+      ),
     );
   }
 
