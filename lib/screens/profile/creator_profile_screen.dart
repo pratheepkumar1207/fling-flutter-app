@@ -160,7 +160,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF3A3A3A), Color(0xFF1E1E1E), Color(0xFF0A0A0A)],
+              colors: [AppColors.primary, AppColors.accent, Color(0xFF1A0F2E)],
             ),
             badges: [
               if (p['isVerified'] == true) _badge('Verified', AppColors.success),

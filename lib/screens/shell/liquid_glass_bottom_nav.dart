@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_colors.dart';
 import '../../theme/clay_colors.dart';
 
 class NavItemData {
@@ -81,13 +82,13 @@ class LiquidGlassBottomNav extends StatelessWidget {
                     width: 56,
                     height: 56,
                     decoration: BoxDecoration(
-                      color: clay.primary,
+                      gradient: AppGradients.volaCtaDiagonal,
                       shape: BoxShape.circle,
                       border: Border.all(color: clay.bg, width: 3),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 3))],
+                      boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.5), blurRadius: 14, offset: const Offset(0, 3))],
                     ),
                     alignment: Alignment.center,
-                    child: Icon(Icons.add, color: clay.bg, size: 28),
+                    child: const Icon(Icons.add, color: Colors.white, size: 28),
                   ),
                 ),
               ),

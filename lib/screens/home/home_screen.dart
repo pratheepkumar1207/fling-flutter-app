@@ -133,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             height: 18,
                             decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
                             alignment: Alignment.center,
-                            child: const Text('+', style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold)),
+                            child: const Text('+', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                           ),
                         ),
                       ],
@@ -168,7 +168,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     child: Text(
                       '${f['emoji']} ${f['label']}',
-                      style: TextStyle(color: selected ? Colors.black : AppColors.textDim, fontSize: 12, fontWeight: selected ? FontWeight.w700 : FontWeight.w500),
+                      style: TextStyle(color: selected ? Colors.white : AppColors.textDim, fontSize: 12, fontWeight: selected ? FontWeight.w700 : FontWeight.w500),
                     ),
                   ),
                 );
@@ -279,7 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
                           decoration: BoxDecoration(gradient: AppGradients.volaCtaDiagonal, borderRadius: BorderRadius.circular(999), boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.4), blurRadius: 12, offset: const Offset(0, 4))]),
-                          child: const Text('▶ Watch', style: TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.w700)),
+                          child: const Text('▶ Watch', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
                         ),
                         const SizedBox(width: 8),
                         Container(

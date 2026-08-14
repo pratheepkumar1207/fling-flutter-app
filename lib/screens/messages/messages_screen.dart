@@ -71,7 +71,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                           ? Container(
                               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                               decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(999)),
-                              child: Text('${c.unreadCount}', style: const TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.w600)),
+                              child: Text('${c.unreadCount}', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
                             )
                           : null,
                       onTap: () => Navigator.of(context)

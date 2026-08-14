@@ -46,12 +46,11 @@ class ClayColors extends ThemeExtension<ClayColors> {
     required this.gradient,
   });
 
-  /// Dark clay: flat cards distinguished by a visible border rather than
-  /// heavy claymorphism relief. GlassSurface applies its own alpha via
-  /// .withValues() (overwriting whatever alpha is set here), so flattening
-  /// the effect happens there, not via these tokens' alpha — these just
-  /// carry the RGB tint, a plain gray highlight matching the monochrome
-  /// palette.
+  /// Dark clay: glassy purple cards with a soft violet glow highlight and a
+  /// near-black shadow, matching the reference's glowing-card look.
+  /// GlassSurface applies its own alpha via .withValues() (overwriting
+  /// whatever alpha is set here), so the actual translucency happens there —
+  /// these just carry the RGB tint.
   static const dark = ClayColors(
     bg: AppColors.bg,
     surface: AppColors.surface,
@@ -68,12 +67,12 @@ class ClayColors extends ThemeExtension<ClayColors> {
     success: AppColors.success,
     danger: AppColors.danger,
     warning: AppColors.warning,
-    shadowLight: Color(0xFF444444),
+    shadowLight: Color(0xFF6B4AA8),
     shadowDark: Color(0xFF000000),
     gradient: AppGradients.brand,
   );
 
-  /// Light clay: true white highlight, plain gray "dark" shadow.
+  /// Light clay: true white highlight, soft violet "dark" shadow.
   static const light = ClayColors(
     bg: AppColorsLight.bg,
     surface: AppColorsLight.surface,
@@ -91,7 +90,7 @@ class ClayColors extends ThemeExtension<ClayColors> {
     danger: AppColorsLight.danger,
     warning: AppColorsLight.warning,
     shadowLight: Color(0xFFFFFFFF),
-    shadowDark: Color(0xFF888888),
+    shadowDark: Color(0xFFB49BDD),
     gradient: AppGradients.brand,
   );
 

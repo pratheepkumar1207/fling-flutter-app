@@ -55,12 +55,11 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: clay.primary,
-          // clay.bg contrasts correctly against clay.primary in both
-          // modes (near-black bg vs white primary in dark; white bg vs
-          // black primary in light) — a hardcoded Colors.white here
-          // broke every default button once primary became white in
-          // dark mode (white text on a white button).
-          foregroundColor: clay.bg,
+          // clay.primary is a vivid purple in both modes, so white text
+          // reads correctly against it — this only broke during the
+          // brief literal-monochrome palette (primary went pure white),
+          // which is no longer in use.
+          foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
           textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
