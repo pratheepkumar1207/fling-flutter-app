@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
+import '../../core/profile_nav.dart';
 import '../../models/room_models.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/avatar.dart';
@@ -144,6 +145,7 @@ class _RosterSheetState extends State<RosterSheet> {
                     final canToggleMute = widget.isHost && widget.roomType == 'voice' && onStage && widget.onForceMute != null && widget.onForceUnmute != null;
                     final friendAction = isMe ? null : _friendAction(r.userId);
                     return ListTile(
+                      onTap: () => openProfile(context, r.userId),
                       leading: Avatar(src: r.avatarUrl, name: r.name, size: AvatarSize.sm),
                       title: Text('${r.name}${isRowHost ? ' 👑' : ''}${isMe ? ' (you)' : ''}', style: const TextStyle(color: AppColors.text), overflow: TextOverflow.ellipsis),
                       trailing: isMe

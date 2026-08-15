@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/profile_nav.dart';
 import '../theme/app_colors.dart';
 import 'avatar.dart';
 
@@ -22,16 +23,19 @@ class MemberAvatarStrip extends StatelessWidget {
         separatorBuilder: (_, __) => const SizedBox(width: 6),
         itemBuilder: (context, i) {
           final m = members[i] as Map;
-          return Container(
-            padding: const EdgeInsets.all(2),
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [AppColors.primary, AppColors.accent]),
-            ),
+          return GestureDetector(
+            onTap: () => openProfile(context, m['userId'] as String?),
             child: Container(
-              padding: const EdgeInsets.all(1),
-              decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.bg),
-              child: Avatar(src: m['avatarUrl'] as String?, name: m['name'] as String?, size: AvatarSize.sm),
+              padding: const EdgeInsets.all(2),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [AppColors.primary, AppColors.accent]),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(1),
+                decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.bg),
+                child: Avatar(src: m['avatarUrl'] as String?, name: m['name'] as String?, size: AvatarSize.sm),
+              ),
             ),
           );
         },

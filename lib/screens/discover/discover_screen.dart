@@ -129,24 +129,39 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Discover', style: TextStyle(color: AppColors.text, fontSize: 20, fontWeight: FontWeight.bold)),
-                  Row(
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RandomMatchScreen())),
-                        child: const Text('🎲 Random', style: TextStyle(color: AppColors.primary)),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MapExploreScreen())),
-                        child: const Text('🗺️ Map', style: TextStyle(color: AppColors.primary)),
-                      ),
-                      TextButton(
-                        onPressed: () => setState(() => _showFilters = !_showFilters),
-                        child: const Text('Filters', style: TextStyle(color: AppColors.primary)),
-                      ),
-                    ],
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => setState(() => _showFilters = !_showFilters),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(color: AppColors.surface, shape: BoxShape.circle, border: Border.all(color: AppColors.border)),
+                      child: const Icon(Icons.tune_rounded, color: AppColors.primary, size: 18),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _segmentButton(
+                      icon: Icons.casino_rounded,
+                      label: 'Random Match',
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RandomMatchScreen())),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _segmentButton(
+                      icon: Icons.map_rounded,
+                      label: 'Explore Map',
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MapExploreScreen())),
+                    ),
                   ),
                 ],
               ),
@@ -251,7 +266,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     const SizedBox(width: 20),
                     _roundButton('★', AppColors.accent, () => _handleSwipe('superlike')),
                     const SizedBox(width: 20),
-                    _roundButton('♥', AppColors.primary, () => _handleSwipe('like')),
+                    _roundButton('♥', AppColors.primary, () => _handleSwipe('like'), filled: true),
                   ],
                 ),
               ),
@@ -282,16 +297,40 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     );
   }
 
-  Widget _roundButton(String label, Color color, VoidCallback onTap, {bool small = false}) {
+  Widget _roundButton(String label, Color color, VoidCallback onTap, {bool small = false, bool filled = false}) {
     final size = small ? 42.0 : 56.0;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: size,
         height: size,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.surface, border: Border.all(color: AppColors.border)),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: filled ? AppGradients.volaCtaDiagonal : null,
+          color: filled ? null : AppColors.surface,
+          border: filled ? null : Border.all(color: AppColors.border),
+          boxShadow: filled ? [BoxShadow(color: AppColors.primary.withValues(alpha: 0.5), blurRadius: 14, offset: const Offset(0, 3))] : null,
+        ),
         alignment: Alignment.center,
-        child: Text(label, style: TextStyle(color: color, fontSize: small ? 18 : 24)),
+        child: Text(label, style: TextStyle(color: filled ? Colors.white : color, fontSize: small ? 18 : 24)),
+      ),
+    );
+  }
+
+  Widget _segmentButton({required IconData icon, required String label, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: AppColors.primary, size: 16),
+            const SizedBox(width: 6),
+            Text(label, style: const TextStyle(color: AppColors.text, fontSize: 12, fontWeight: FontWeight.w600)),
+          ],
+        ),
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_provider.dart';
+import '../../core/profile_nav.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/spinner.dart';
@@ -196,6 +197,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                   final role = m['role'] as String? ?? 'member';
                   return ListTile(
                     contentPadding: EdgeInsets.zero,
+                    onTap: () => openProfile(context, userId),
                     leading: Avatar(src: profile?['avatarUrl'] as String?, name: profile?['name'] as String?, size: AvatarSize.sm),
                     title: Text(isMe ? 'You' : (profile?['name'] as String? ?? 'Member'), style: const TextStyle(color: AppColors.text)),
                     trailing: Row(

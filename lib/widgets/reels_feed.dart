@@ -1,5 +1,6 @@
 import 'package:video_player/video_player.dart';
 import 'package:flutter/material.dart';
+import '../core/profile_nav.dart';
 import '../models/post.dart';
 import '../theme/app_colors.dart';
 import 'avatar.dart';
@@ -138,11 +139,14 @@ class _ReelCardState extends State<_ReelCard> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Row(children: [
-                            Avatar(src: post.author.avatarUrl, name: post.author.name, size: AvatarSize.sm),
-                            const SizedBox(width: 8),
-                            Expanded(child: Text(post.author.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
-                          ]),
+                          GestureDetector(
+                            onTap: () => openProfile(context, post.author.id),
+                            child: Row(children: [
+                              Avatar(src: post.author.avatarUrl, name: post.author.name, size: AvatarSize.sm),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(post.author.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
+                            ]),
+                          ),
                           if (post.text != null && post.text!.isNotEmpty)
                             Padding(padding: const EdgeInsets.only(top: 6), child: Text(post.text!, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white))),
                         ],

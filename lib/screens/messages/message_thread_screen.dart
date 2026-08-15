@@ -4,6 +4,7 @@ import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
 import '../../core/chat_stickers.dart';
+import '../../core/profile_nav.dart';
 import '../../core/socket_service.dart';
 import '../../models/message.dart';
 import '../../theme/app_colors.dart';
@@ -217,12 +218,15 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: Row(
-          children: [
-            Avatar(src: widget.avatarUrl, name: widget.name, size: AvatarSize.sm),
-            const SizedBox(width: 10),
-            Text(widget.name),
-          ],
+        title: GestureDetector(
+          onTap: () => openProfile(context, widget.userId),
+          child: Row(
+            children: [
+              Avatar(src: widget.avatarUrl, name: widget.name, size: AvatarSize.sm),
+              const SizedBox(width: 10),
+              Text(widget.name),
+            ],
+          ),
         ),
         actions: [
           IconButton(onPressed: () => _startCall(false), icon: const Icon(Icons.call_rounded, color: AppColors.primary), tooltip: 'Audio call'),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/profile_nav.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/club_room_colors.dart';
 import '../../widgets/avatar.dart';
@@ -68,7 +69,10 @@ class _ChatPanelState extends State<ChatPanel> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Avatar(src: m['avatarUrl'] as String?, name: m['name'] as String?, size: AvatarSize.sm),
+                          GestureDetector(
+                            onTap: () => openProfile(context, m['senderId'] as String?),
+                            child: Avatar(src: m['avatarUrl'] as String?, name: m['name'] as String?, size: AvatarSize.sm),
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: RichText(

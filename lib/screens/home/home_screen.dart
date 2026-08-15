@@ -16,6 +16,7 @@ import '../../widgets/spinner.dart';
 import '../../widgets/story_bar.dart';
 import '../../widgets/story_viewer_screen.dart';
 import '../party/party_screen.dart';
+import '../profile/profile_screen.dart';
 import '../search/search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -27,11 +28,33 @@ class HomeScreen extends StatefulWidget {
 
 const _roomFilters = [
   {'key': null, 'label': 'All', 'emoji': '✨'},
-  {'key': 'watch', 'label': 'Watch Party', 'emoji': '📺'},
-  {'key': 'voice', 'label': 'Voice Room', 'emoji': '🎙️'},
-  {'key': 'game', 'label': 'Game', 'emoji': '🎮'},
-  {'key': 'live', 'label': 'Live', 'emoji': '🔴'},
+  {'key': 'watch', 'label': 'Watch Party', 'emoji': '📺', 'icon': 'assets/icons/rooms/watch_party.png'},
+  {'key': 'voice', 'label': 'Voice Room', 'emoji': '🎙️', 'icon': 'assets/icons/rooms/voice_lobby.png'},
+  {'key': 'game', 'label': 'Game', 'emoji': '🎮', 'icon': 'assets/icons/rooms/game_lobby.png'},
 ];
+
+/// Real 3D-style room-type icon asset for a room's roomType, falling back
+/// to null (caller shows an emoji) for types with no shipped asset yet.
+String? _roomTypeIconAsset(String? roomType) {
+  switch (roomType) {
+    case 'watch':
+      return 'assets/icons/rooms/watch_party.png';
+    case 'voice':
+      return 'assets/icons/rooms/voice_lobby.png';
+    case 'game':
+      return 'assets/icons/rooms/game_lobby.png';
+    default:
+      return null;
+  }
+}
+
+/// Renders the real icon asset for [roomType] when one exists, otherwise
+/// falls back to the closest emoji.
+Widget _roomTypeIcon(String? roomType, double size) {
+  final asset = _roomTypeIconAsset(roomType);
+  if (asset != null) return Image.asset(asset, width: size, height: size);
+  return Text(roomType == 'voice' ? '🎙️' : '📺', style: TextStyle(fontSize: size * 0.7));
+}
 
 class _HomeScreenState extends State<HomeScreen> {
   bool _loading = true;
@@ -105,7 +128,16 @@ class _HomeScreenState extends State<HomeScreen> {
     final featured = typeFiltered.where((r) => r['isBoosted'] == true && asNum(r['memberCount']) > 0).toList();
     final active = typeFiltered.where((r) => r['isBoosted'] != true && asNum(r['memberCount']) > 0).toList();
 
-    return RefreshIndicator(
+    return GestureDetector(
+      // Swipe left-to-right anywhere on Home opens the profile screen, same
+      // destination as tapping the top-bar avatar — a shortcut mirroring the
+      // reference design's edge-swipe-to-profile gesture.
+      onHorizontalDragEnd: (details) {
+        if ((details.primaryVelocity ?? 0) > 250) {
+          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
+        }
+      },
+      child: RefreshIndicator(
       onRefresh: _load,
       child: ListView(
         padding: const EdgeInsets.all(16),
@@ -189,9 +221,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(color: selected ? Colors.transparent : AppColors.border),
                     ),
-                    child: Text(
-                      '${f['emoji']} ${f['label']}',
-                      style: TextStyle(color: selected ? Colors.white : AppColors.textDim, fontSize: 12, fontWeight: selected ? FontWeight.w700 : FontWeight.w500),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        f['icon'] != null
+                            ? Image.asset(f['icon']!, width: 16, height: 16)
+                            : Text(f['emoji']!, style: const TextStyle(fontSize: 13)),
+                        const SizedBox(width: 5),
+                        Text(
+                          f['label']!,
+                          style: TextStyle(color: selected ? Colors.white : AppColors.textDim, fontSize: 12, fontWeight: selected ? FontWeight.w700 : FontWeight.w500),
+                        ),
+                      ],
                     ),
                   ),
                 );
@@ -209,7 +250,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ..._invited.map((r) => _roomTile(r.id, r.title, r.hostName, r.memberCount, badge: 'Invited')),
               const SizedBox(height: 20),
             ],
-            _sectionHeader('Featured'),
+            _sectionHeader('Featured', iconAsset: 'assets/icons/rooms/featured.png'),
             featured.isEmpty
                 ? const Text('No featured rooms right now.', style: TextStyle(color: AppColors.textFaint))
                 : _heroBanner(featured[0]),
@@ -241,6 +282,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             asNum(r['memberCount']).toInt(),
                             thumbnail: r['nowPlayingThumbnail'] as String?,
                             members: r['members'] as List?,
+                            roomType: r['roomType'] as String?,
                           )),
                       ..._scheduledEvents.map(_eventTile),
                     ],
@@ -248,12 +290,21 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ],
       ),
+      ),
     );
   }
 
-  Widget _sectionHeader(String title) => Padding(
+  Widget _sectionHeader(String title, {String? iconAsset}) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
-        child: Text(title, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.bold, fontSize: 16)),
+        child: Row(
+          children: [
+            if (iconAsset != null) ...[
+              Image.asset(iconAsset, width: 20, height: 20),
+              const SizedBox(width: 6),
+            ],
+            Text(title, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
       );
 
   Widget _heroBanner(Map<String, dynamic> r) {
@@ -272,7 +323,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   : Container(
                       decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [AppColors.accent, AppColors.primary])),
                       alignment: Alignment.center,
-                      child: Text(r['roomType'] == 'voice' ? '🎙️' : '📺', style: const TextStyle(fontSize: 56)),
+                      child: _roomTypeIcon(r['roomType'] as String?, 64),
                     ),
               const DecoratedBox(
                 decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black87], stops: [0.4, 1])),
@@ -335,7 +386,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               (thumbnail != null && thumbnail.isNotEmpty)
                   ? AppImage(source: thumbnail, fit: BoxFit.cover)
-                  : Container(color: AppColors.surface3, alignment: Alignment.center, child: Text(r['roomType'] == 'voice' ? '🎙️' : '📺', style: const TextStyle(fontSize: 28))),
+                  : Container(color: AppColors.surface3, alignment: Alignment.center, child: _roomTypeIcon(r['roomType'] as String?, 32)),
               const DecoratedBox(
                 decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black87], stops: [0.5, 1])),
               ),
@@ -358,7 +409,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _roomTile(String id, String? title, String? hostName, int memberCount, {String? badge, String? thumbnail, List<dynamic>? members}) {
+  Widget _roomTile(String id, String? title, String? hostName, int memberCount, {String? badge, String? thumbnail, List<dynamic>? members, String? roomType}) {
     return GestureDetector(
       onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: id))),
       child: Container(
@@ -372,7 +423,7 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 96,
               child: (thumbnail != null && thumbnail.isNotEmpty)
                   ? AppImage(source: thumbnail, fit: BoxFit.cover)
-                  : Container(color: AppColors.surface3, alignment: Alignment.center, child: const Text('📺', style: TextStyle(fontSize: 20))),
+                  : Container(color: AppColors.surface3, alignment: Alignment.center, child: _roomTypeIcon(roomType, 24)),
             ),
             Expanded(
               child: Padding(
@@ -442,7 +493,7 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 48,
               decoration: BoxDecoration(color: AppColors.surface3, borderRadius: BorderRadius.circular(10)),
               alignment: Alignment.center,
-              child: Text(ev['roomType'] == 'voice' ? '🎙️' : '📺', style: const TextStyle(fontSize: 20)),
+              child: _roomTypeIcon(ev['roomType'] as String?, 24),
             ),
             const SizedBox(width: 12),
             Expanded(

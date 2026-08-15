@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
+import '../../core/profile_nav.dart';
 import '../../models/message.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/avatar.dart';
@@ -59,7 +60,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
                   itemBuilder: (context, i) {
                     final c = _conversations[i];
                     return ListTile(
-                      leading: Avatar(src: c.avatarUrl, name: c.name),
+                      leading: GestureDetector(
+                        onTap: () => openProfile(context, c.userId),
+                        child: Avatar(src: c.avatarUrl, name: c.name),
+                      ),
                       title: Text(c.name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w500)),
                       subtitle: Text(
                         '${c.lastMessageIsMine ? 'You: ' : ''}${c.lastMessage}',

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/profile_nav.dart';
 import '../models/room_models.dart';
 import '../theme/club_room_colors.dart';
 import 'avatar.dart';
@@ -68,12 +69,15 @@ class VoiceStageView extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              Avatar(src: p?.avatarUrl, name: p?.name, size: AvatarSize.sm),
-                              const SizedBox(width: 8),
-                              Text(p?.name ?? 'Someone', style: const TextStyle(color: ClubRoomColors.text, fontSize: 13)),
-                            ],
+                          GestureDetector(
+                            onTap: () => openProfile(context, uid),
+                            child: Row(
+                              children: [
+                                Avatar(src: p?.avatarUrl, name: p?.name, size: AvatarSize.sm),
+                                const SizedBox(width: 8),
+                                Text(p?.name ?? 'Someone', style: const TextStyle(color: ClubRoomColors.text, fontSize: 13)),
+                              ],
+                            ),
                           ),
                           Row(
                             children: [
@@ -119,7 +123,7 @@ class VoiceStageView extends StatelessWidget {
                     clipBehavior: Clip.none,
                     children: [
                       p != null
-                          ? Avatar(src: p.avatarUrl, name: p.name, size: AvatarSize.md)
+                          ? GestureDetector(onTap: () => openProfile(context, uid), child: Avatar(src: p.avatarUrl, name: p.name, size: AvatarSize.md))
                           : Container(
                               width: 48,
                               height: 48,

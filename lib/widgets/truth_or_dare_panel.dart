@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../core/profile_nav.dart';
 import '../theme/app_colors.dart';
 import 'avatar.dart';
 
@@ -105,11 +106,14 @@ class _TruthOrDarePanelState extends State<TruthOrDarePanel> with SingleTickerPr
                     spacing: 12,
                     children: [
                       for (final p in players)
-                        Column(
-                          children: [
-                            Avatar(name: p['name'] as String?, size: AvatarSize.sm),
-                            Text(p['name'] as String? ?? '', style: const TextStyle(color: AppColors.textDim, fontSize: 11)),
-                          ],
+                        GestureDetector(
+                          onTap: () => openProfile(context, p['userId'] as String?),
+                          child: Column(
+                            children: [
+                              Avatar(name: p['name'] as String?, size: AvatarSize.sm),
+                              Text(p['name'] as String? ?? '', style: const TextStyle(color: AppColors.textDim, fontSize: 11)),
+                            ],
+                          ),
                         ),
                     ],
                   ),
@@ -155,7 +159,10 @@ class _TruthOrDarePanelState extends State<TruthOrDarePanel> with SingleTickerPr
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Avatar(name: p['name'] as String?, size: AvatarSize.sm),
+                                    GestureDetector(
+                                      onTap: () => openProfile(context, p['userId'] as String?),
+                                      child: Avatar(name: p['name'] as String?, size: AvatarSize.sm),
+                                    ),
                                     const SizedBox(height: 2),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),

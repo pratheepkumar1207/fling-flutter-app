@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
+import '../../core/profile_nav.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/spinner.dart';
@@ -169,12 +170,15 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
           children: [
             Text(crown, style: const TextStyle(fontSize: 22)),
             const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: rank == 1 ? AppColors.gold : AppColors.border, width: 2)),
-              child: isCommunity
-                  ? CircleAvatar(radius: avatarSize / 2, backgroundColor: AppColors.surface3, child: const Text('🏘️'))
-                  : Avatar(src: e['avatarUrl'] as String?, name: e['name'] as String?, size: avatarSize > 50 ? AvatarSize.lg : AvatarSize.md),
+            GestureDetector(
+              onTap: isCommunity ? null : () => openProfile(context, e['id'] as String?),
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: rank == 1 ? AppColors.gold : AppColors.border, width: 2)),
+                child: isCommunity
+                    ? CircleAvatar(radius: avatarSize / 2, backgroundColor: AppColors.surface3, child: const Text('🏘️'))
+                    : Avatar(src: e['avatarUrl'] as String?, name: e['name'] as String?, size: avatarSize > 50 ? AvatarSize.lg : AvatarSize.md),
+              ),
             ),
             const SizedBox(height: 6),
             Text(e['name'] as String? ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.text, fontSize: 12, fontWeight: FontWeight.w700)),
@@ -197,7 +201,9 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
 
   Widget _row(int rank, Map<String, dynamic> e) {
     final isCommunity = _tab == 'communities';
-    return Container(
+    return GestureDetector(
+      onTap: isCommunity ? null : () => openProfile(context, e['id'] as String?),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
@@ -212,6 +218,7 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
           Expanded(child: Text(e['name'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis)),
           Text(_metric(e), style: const TextStyle(color: AppColors.gold, fontSize: 12)),
         ],
+      ),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/profile_nav.dart';
 import '../theme/app_colors.dart';
 import 'avatar.dart';
 
@@ -216,7 +217,10 @@ class _ChessBoardState extends State<ChessBoard> {
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Column(
                     children: [
-                      Avatar(name: p['name'] as String?, size: AvatarSize.sm),
+                      GestureDetector(
+                        onTap: () => openProfile(context, p['userId'] as String?),
+                        child: Avatar(name: p['name'] as String?, size: AvatarSize.sm),
+                      ),
                       const SizedBox(height: 2),
                       Text('${p['name']} ${p['color'] == 'white' ? '♔' : '♚'}', style: const TextStyle(color: AppColors.textDim, fontSize: 11)),
                       if (status == 'playing' && turnColor == p['color'])

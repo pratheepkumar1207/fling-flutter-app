@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
+import '../../core/profile_nav.dart';
 import '../../core/youtube_util.dart';
 import '../../models/post.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/avatar.dart';
-import '../../widgets/live_tab.dart';
 import '../../widgets/mention_text_field.dart';
 import '../../widgets/post_composer_sheet.dart';
 import '../../widgets/post_likes_sheet.dart';
@@ -174,26 +174,34 @@ class _FeedScreenState extends State<FeedScreen> {
             StoryBar(stories: _stories, onOpen: _openStoryViewer),
             const SizedBox(height: 12),
           ],
-          GestureDetector(
-            onTap: () => showPostComposerSheet(context, onPosted: _load),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
-              child: const Text("What's on your mind?", style: TextStyle(color: AppColors.textFaint, fontSize: 14)),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
-            child: Row(
-              children: [
-                _tabButton('posts', 'Posts'),
-                _tabButton('reels', 'Reels'),
-                _tabButton('live', 'Live'),
-              ],
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+                  child: Row(
+                    children: [
+                      _tabButton('posts', 'Posts'),
+                      _tabButton('reels', 'Reels'),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              GestureDetector(
+                onTap: () => showPostComposerSheet(context, onPosted: _load),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(gradient: AppGradients.volaCtaDiagonal, borderRadius: BorderRadius.circular(999)),
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.add, color: Colors.white, size: 16),
+                    SizedBox(width: 4),
+                    Text('Post', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                  ]),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           if (_loading)
@@ -208,10 +216,8 @@ class _FeedScreenState extends State<FeedScreen> {
               )
             else
               ..._regularPosts.map((post) => _postCard(post)),
-          ] else if (_tab == 'reels')
-            ReelsFeed(reels: _reels, onLike: _toggleLike, onOpenComments: _openComments, onSave: _toggleSave)
-          else
-            const LiveTab(),
+          ] else
+            ReelsFeed(reels: _reels, onLike: _toggleLike, onOpenComments: _openComments, onSave: _toggleSave),
         ],
       ),
     );
@@ -227,7 +233,7 @@ class _FeedScreenState extends State<FeedScreen> {
         onTap: () => setState(() => _tab = key),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(color: selected ? AppColors.primary : Colors.transparent, borderRadius: BorderRadius.circular(9)),
+          decoration: BoxDecoration(gradient: selected ? AppGradients.volaCtaDiagonal : null, borderRadius: BorderRadius.circular(9)),
           alignment: Alignment.center,
           child: Text(label, style: TextStyle(color: selected ? Colors.white : AppColors.textDim, fontWeight: FontWeight.w600, fontSize: 13)),
         ),
@@ -243,13 +249,16 @@ class _FeedScreenState extends State<FeedScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Avatar(src: post.author.avatarUrl, name: post.author.name, size: AvatarSize.sm),
-              const SizedBox(width: 8),
-              Expanded(child: Text(post.author.name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 13))),
-              Text(formatRelativeTime(post.createdAt), style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
-            ],
+          GestureDetector(
+            onTap: () => openProfile(context, post.author.id),
+            child: Row(
+              children: [
+                Avatar(src: post.author.avatarUrl, name: post.author.name, size: AvatarSize.sm),
+                const SizedBox(width: 8),
+                Expanded(child: Text(post.author.name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 13))),
+                Text(formatRelativeTime(post.createdAt), style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
+              ],
+            ),
           ),
           if (post.text != null && post.text!.isNotEmpty)
             Padding(padding: const EdgeInsets.only(top: 8), child: Text(post.text!, style: const TextStyle(color: AppColors.text))),

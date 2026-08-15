@@ -111,6 +111,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon/insync-icon.png
+    - assets/icons/rooms/
 
 flutter_launcher_icons:
   android: true
