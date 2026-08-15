@@ -109,7 +109,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
               physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: 10,
               crossAxisSpacing: 10,
-              childAspectRatio: 1.5,
+              childAspectRatio: 1.05,
               children: _roomTypes.map(_typeCard).toList(),
             ),
             if (_roomType == 'game') ...[
