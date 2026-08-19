@@ -32,6 +32,7 @@ import '../discover/discover_matches_screen.dart';
 import '../events/events_screen.dart';
 import '../friends/friends_screen.dart';
 import '../leaderboards/leaderboards_screen.dart';
+import '../lobby/youtube_browse_screen.dart';
 import '../messages/messages_screen.dart';
 import '../search/search_screen.dart';
 import '../settings/settings_screen.dart';
@@ -174,6 +175,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _loadAll();
     } catch (_) {
       _showSnack('Failed to update visibility');
+    }
+  }
+
+  // Reuses the same YouTube search/playlists/liked browser the watch-party
+  // queue picker uses (see source_picker_screen.dart) — onSelectOverride is
+  // exactly the hook it already exposes for "add this video somewhere that
+  // isn't a room's queue".
+  void _addSongToPlaylist(String playlistId) {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => YoutubeBrowseScreen(
+        visibility: 'public',
+        onSelectOverride: (item) async {
+          Navigator.of(context).pop();
+          try {
+            await ApiClient.post('/playlists/$playlistId/songs', body: {
+              'videoUrl': 'https://www.youtube.com/watch?v=${item['videoId']}',
+              'title': item['title'],
+              'thumbnail': item['thumbnail'],
+              'sourceType': 'youtube',
+            });
+            _loadAll();
+          } on ApiException catch (e) {
+            _showSnack(e.message);
+          } catch (_) {
+            _showSnack('Failed to add song');
+          }
+        },
+      ),
+    ));
+  }
+
+  Future<void> _removeSongFromPlaylist(String playlistId, String songId) async {
+    try {
+      await ApiClient.delete('/playlists/$playlistId/songs/$songId');
+      _loadAll();
+    } catch (_) {
+      _showSnack('Failed to remove song');
     }
   }
 
@@ -466,6 +504,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(child: Text(p.name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600))),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline, color: AppColors.primary, size: 20),
+                tooltip: 'Add song',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => _addSongToPlaylist(p.id),
+              ),
               DropdownButton<String>(
                 value: p.visibility,
                 dropdownColor: AppColors.surface2,
@@ -493,12 +537,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   final s = p.songs[i];
                   return GestureDetector(
                     onTap: () => playSongSmart(context, s),
-                    child: Container(
+                    child: SizedBox(
                       width: 64,
                       height: 48,
-                      decoration: BoxDecoration(color: AppColors.surface3, borderRadius: BorderRadius.circular(8)),
-                      clipBehavior: Clip.antiAlias,
-                      child: s.thumbnail != null ? AppImage(source: s.thumbnail, fit: BoxFit.cover) : const Center(child: Text('🎵')),
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: Container(
+                              decoration: BoxDecoration(color: AppColors.surface3, borderRadius: BorderRadius.circular(8)),
+                              clipBehavior: Clip.antiAlias,
+                              child: s.thumbnail != null ? AppImage(source: s.thumbnail, fit: BoxFit.cover) : const Center(child: Text('🎵')),
+                            ),
+                          ),
+                          if (s.id != null)
+                            Positioned(
+                              top: 2,
+                              right: 2,
+                              child: GestureDetector(
+                                onTap: () => _removeSongFromPlaylist(p.id, s.id!),
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                                  child: const Icon(Icons.close, size: 10, color: Colors.white),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   );
                 },

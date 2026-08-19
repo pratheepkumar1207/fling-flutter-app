@@ -42,6 +42,10 @@ class _AppShellState extends State<AppShell> {
   ];
 
   bool _handlingIncomingCall = false;
+  // Channel of the incoming-call dialog currently showing, if any — lets
+  // _bindIncomingCalls tell whether a call:cancelled/call:ended event
+  // matches the call the user is currently being asked about.
+  String? _activeIncomingChannelName;
 
   @override
   void initState() {
@@ -63,10 +67,25 @@ class _AppShellState extends State<AppShell> {
       if (!mounted || data is! Map || _handlingIncomingCall) return;
       _showIncomingCall(Map<String, dynamic>.from(data));
     });
+    // Caller gave up (or the call otherwise ended) before this user acted
+    // on the incoming-call dialog — dismiss it instead of leaving it up
+    // for a call that no longer exists (see call_screen.dart's _hangUp).
+    void dismissIfStale(dynamic data) {
+      if (!mounted || data is! Map || !_handlingIncomingCall) return;
+      if (data['channelName'] != _activeIncomingChannelName) return;
+      // Distinct from the Decline button's `false` — this dialog is being
+      // dismissed because the call is already gone, not because the user
+      // chose to decline it, so no /calls/direct-decline should follow.
+      Navigator.of(context, rootNavigator: true).pop(null);
+    }
+
+    socketService.socket?.on('call:cancelled', dismissIfStale);
+    socketService.socket?.on('call:ended', dismissIfStale);
   }
 
   Future<void> _showIncomingCall(Map<String, dynamic> data) async {
     _handlingIncomingCall = true;
+    _activeIncomingChannelName = data['channelName'] as String?;
     // showDialog defaults to useRootNavigator: true, so this shows above
     // whatever screen is currently pushed on top of AppShell, not just
     // AppShell's own body.
@@ -108,10 +127,13 @@ class _AppShellState extends State<AppShell> {
       } catch (_) {
         // Couldn't connect — nothing more to do than let it drop.
       }
-    } else {
+    } else if (accepted == false) {
       ApiClient.post('/calls/direct-decline', body: {'channelName': channelName}).catchError((_) => null);
     }
+    // accepted == null: dialog was auto-dismissed by dismissIfStale above
+    // because the call was already cancelled/ended — nothing more to send.
     _handlingIncomingCall = false;
+    _activeIncomingChannelName = null;
   }
 
   @override

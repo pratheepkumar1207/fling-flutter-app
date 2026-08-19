@@ -72,7 +72,14 @@ class _CallScreenState extends State<CallScreen> {
   }
 
   Future<void> _hangUp() async {
-    ApiClient.post('/calls/direct-end', body: {'channelName': widget.channelName}).catchError((_) => null);
+    // If I'm the caller and the other side never actually joined media
+    // (_controller.remoteUid is still null), this is a cancel — the callee
+    // may still be looking at their incoming-call dialog (see
+    // app_shell.dart's _showIncomingCall) and needs the distinct
+    // call:cancelled event to dismiss it, not call:ended.
+    final neverConnected = widget.isCaller && _controller.remoteUid == null;
+    final endpoint = neverConnected ? '/calls/direct-cancel' : '/calls/direct-end';
+    ApiClient.post(endpoint, body: {'channelName': widget.channelName}).catchError((_) => null);
     if (mounted) Navigator.of(context).pop();
   }
 

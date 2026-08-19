@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
+import '../../core/api_exception.dart';
 import '../../core/format.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/spinner.dart';
@@ -18,6 +19,7 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
   Map<String, dynamic>? _dashboard;
   List<dynamic> _cashouts = [];
   bool _loading = true;
+  bool _applying = false;
 
   @override
   void initState() {
@@ -37,6 +39,18 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
       _cashouts = (results[1] as List?) ?? [];
       _loading = false;
     });
+  }
+
+  Future<void> _apply() async {
+    setState(() => _applying = true);
+    try {
+      await ApiClient.post('/creators/me/livestream-apply');
+      await _load();
+    } on ApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _applying = false);
+    }
   }
 
   @override
@@ -67,6 +81,17 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
                         Expanded(child: _statCard('✅ Status', _statusLabel(d['livestreamStatus'] as String? ?? 'none'))),
                       ],
                     ),
+                    if (d['livestreamStatus'] != 'approved' && d['livestreamStatus'] != 'pending') ...[
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _applying ? null : _apply,
+                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: const StadiumBorder(), padding: const EdgeInsets.symmetric(vertical: 14)),
+                          child: Text(_applying ? 'Applying…' : (d['livestreamStatus'] == 'rejected' ? 'Re-apply for livestream' : 'Apply for livestream')),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(14),
