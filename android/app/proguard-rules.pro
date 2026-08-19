@@ -32,3 +32,14 @@
 -dontwarn okhttp3.**
 -dontwarn okio.**
 -keep class org.json.** { *; }
+
+# razorpay_flutter's checkout SDK (com.razorpay:checkout) reflectively
+# invokes its own classes and ProGuard/R8 will otherwise strip or rename
+# them in release builds, breaking the payment flow silently (same failure
+# shape as the Agora/Firebase rules above) — this is Razorpay's own
+# documented ProGuard requirement.
+-keep class com.razorpay.** { *; }
+-dontwarn com.razorpay.**
+-keepclasseswithmembers class * {
+  @android.webkit.JavascriptInterface <methods>;
+}

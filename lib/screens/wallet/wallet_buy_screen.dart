@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
+import '../../core/auth_provider.dart';
 import '../../models/coin_package.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/glass.dart';
@@ -9,11 +12,12 @@ import '../../widgets/spinner.dart';
 
 const _kPresets = [100, 250, 500, 1000, 2500];
 
-/// Creates a Razorpay order via the backend. Actually completing the
-/// payment needs the razorpay_flutter package wired up with your Razorpay
-/// key + native Android/iOS setup — not included here (same category as
-/// the Firebase phone-auth gap in login_screen.dart: needs your own
-/// account/credentials, not something to hand-wire blind).
+/// Creates a Razorpay order via the backend, opens Razorpay's native
+/// checkout with it, then sends the resulting payment id + signature to
+/// POST /wallet/buy/verify so the server can verify the signature and
+/// credit coins — the order's `key` comes back from the backend itself
+/// (sourced from its own Razorpay account credentials), so this screen
+/// needs no client-side key configuration.
 class WalletBuyScreen extends StatefulWidget {
   const WalletBuyScreen({super.key});
 
@@ -29,12 +33,28 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
   List<CoinPackage>? _packages;
   String? _selectedPackageId;
 
+  late final Razorpay _razorpay;
+  // Set right before Razorpay.open() so the success/error callbacks (which
+  // only get paymentId/signature back from the SDK, not the coin amount)
+  // know which pending order they're completing.
+  String? _pendingOrderId;
+
   int get _rupees => _customRupees ?? _kPresets[_presetIndex];
 
   @override
   void initState() {
     super.initState();
     _loadPackages();
+    _razorpay = Razorpay();
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _onPaymentSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _onPaymentError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _onExternalWallet);
+  }
+
+  @override
+  void dispose() {
+    _razorpay.clear();
+    super.dispose();
   }
 
   Future<void> _loadPackages() async {
@@ -60,14 +80,70 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
       final body = _selectedPackageId != null ? {'packageId': _selectedPackageId} : {'rupees': _rupees};
       final order = await ApiClient.post('/wallet/buy/order', body: body) as Map<String, dynamic>;
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Order ${order['orderId']} created — connect razorpay_flutter to complete checkout.')),
-      );
+      final user = context.read<AuthProvider>().user;
+      _pendingOrderId = order['orderId'] as String;
+      _razorpay.open({
+        'key': order['key'],
+        'order_id': order['orderId'],
+        'amount': order['amount'],
+        'currency': order['currency'],
+        'name': 'Insync',
+        'description': 'Coin top-up',
+        'prefill': {
+          if (user?.name != null) 'name': user!.name,
+          if (user?.phone != null) 'contact': user!.phone,
+        },
+        // Matches AppColors.primary (dark theme) — Razorpay's checkout
+        // theme only takes a static hex string, not a live Color value.
+        'theme': {'color': '#9B5CF6'},
+      });
     } on ApiException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      setState(() => _paying = false);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not open checkout: $e')));
+      setState(() => _paying = false);
+    }
+  }
+
+  Future<void> _onPaymentSuccess(PaymentSuccessResponse response) async {
+    final orderId = _pendingOrderId;
+    if (orderId == null) return;
+    try {
+      final result = await ApiClient.post('/wallet/buy/verify', body: {
+        'orderId': orderId,
+        'paymentId': response.paymentId,
+        'signature': response.signature,
+      }) as Map<String, dynamic>;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('🪙 Coins added! New balance: ${result['coinBalance']}'), backgroundColor: AppColors.success),
+      );
+      Navigator.of(context).pop(true);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Payment succeeded but verification failed: ${e.message}'), backgroundColor: AppColors.danger));
     } finally {
+      _pendingOrderId = null;
       if (mounted) setState(() => _paying = false);
     }
+  }
+
+  void _onPaymentError(PaymentFailureResponse response) {
+    _pendingOrderId = null;
+    if (!mounted) return;
+    setState(() => _paying = false);
+    if (response.code == Razorpay.PAYMENT_CANCELLED) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(response.message ?? 'Payment failed'), backgroundColor: AppColors.danger),
+    );
+  }
+
+  void _onExternalWallet(ExternalWalletResponse response) {
+    _pendingOrderId = null;
+    if (!mounted) return;
+    setState(() => _paying = false);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Opened ${response.walletName}')));
   }
 
   @override
@@ -170,7 +246,7 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
           ),
           const SizedBox(height: 12),
           const Text(
-            "Payments are processed by Razorpay. This won't complete until razorpay_flutter is wired up with your keys.",
+            'Payments are processed securely by Razorpay.',
             style: TextStyle(color: AppColors.textFaint, fontSize: 12),
           ),
         ],

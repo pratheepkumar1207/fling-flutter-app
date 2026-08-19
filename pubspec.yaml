@@ -67,6 +67,15 @@ dependencies:
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
 
+  # Coin purchases — opens Razorpay's native checkout UI and reports back
+  # payment success/error, which wallet_buy_screen.dart then sends to
+  # POST /wallet/buy/verify for server-side signature verification before
+  # crediting coins. Needs a real Razorpay key (from POST /wallet/buy/order's
+  # `key` field, sourced server-side — no client-side key configuration
+  # needed here) — same "needs your own account" category as Firebase phone
+  # auth and Agora elsewhere in this app.
+  razorpay_flutter: ^1.4.5
+
   # Utilities
   intl: ^0.19.0
   url_launcher: ^6.3.0

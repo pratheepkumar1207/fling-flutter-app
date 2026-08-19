@@ -29,6 +29,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
   List<Playlist> _playlists = [];
   List<Song> _history = [];
   List<Song> _liked = [];
+  List<Map<String, dynamic>> _topSupporters = [];
   bool _loading = true;
   String? _error;
 
@@ -47,6 +48,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
         ApiClient.get('/playlists/user/${widget.userId}').catchError((_) => []),
         ApiClient.get('/song-history/user/${widget.userId}').catchError((_) => []),
         ApiClient.get('/liked-songs/user/${widget.userId}').catchError((_) => []),
+        ApiClient.get('/creators/${widget.userId}/top-supporters').catchError((_) => []),
       ]);
       if (!mounted) return;
       setState(() {
@@ -55,6 +57,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
         _playlists = ((results[2] as List?) ?? []).map((e) => Playlist.fromJson(e as Map<String, dynamic>)).toList();
         _history = ((results[3] as List?) ?? []).map((e) => Song.fromJson(e as Map<String, dynamic>)).toList();
         _liked = ((results[4] as List?) ?? []).map((e) => Song.fromJson(e as Map<String, dynamic>)).toList();
+        _topSupporters = ((results[5] as List?) ?? []).cast<Map<String, dynamic>>();
         _loading = false;
       });
     } on ApiException catch (e) {
@@ -222,6 +225,11 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
             ],
           ),
           const SizedBox(height: 20),
+          if (_topSupporters.isNotEmpty) ...[
+            _sectionTitle('Top supporters'),
+            ..._topSupporters.asMap().entries.map((entry) => _supporterTile(entry.key, entry.value)),
+            const SizedBox(height: 20),
+          ],
           if (_gallery.isNotEmpty) ...[
             _sectionTitle('Gallery'),
             GridView.builder(
@@ -304,6 +312,48 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
               Container(width: 6, height: 6, decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.success)),
               const SizedBox(width: 6),
               Text('Active in "${activeRoom['title']}"', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+      );
+
+  Widget _supporterTile(int rank, Map<String, dynamic> supporter) => GestureDetector(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => CreatorProfileScreen(userId: supporter['id'] as String)),
+        ),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                child: Text('#${rank + 1}', style: const TextStyle(color: AppColors.textFaint, fontSize: 12, fontWeight: FontWeight.w700)),
+              ),
+              const SizedBox(width: 8),
+              ClipOval(
+                child: SizedBox(
+                  width: 34,
+                  height: 34,
+                  child: AppImage(
+                    source: supporter['avatarUrl'] as String?,
+                    fit: BoxFit.cover,
+                    placeholder: (_) => Container(color: AppColors.surface3, child: const Icon(Icons.person, size: 18, color: AppColors.textFaint)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(supporter['name'] as String? ?? 'Unknown', style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+              Row(
+                children: [
+                  const Text('🪙', style: TextStyle(fontSize: 12)),
+                  const SizedBox(width: 4),
+                  Text((supporter['totalCoins'] as num?)?.toStringAsFixed(0) ?? '0', style: const TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w700)),
+                ],
+              ),
             ],
           ),
         ),
