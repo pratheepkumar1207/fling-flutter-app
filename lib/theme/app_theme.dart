@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'clay_colors.dart';
 
 class AppTheme {
@@ -6,6 +7,26 @@ class AppTheme {
 
   static ThemeData get dark => _build(Brightness.dark, ClayColors.dark);
   static ThemeData get light => _build(Brightness.light, ClayColors.light);
+
+  /// Bricolage Grotesque for display/heading text, Plus Jakarta Sans for
+  /// body text — the type pairing from the Claude Design redesign
+  /// (--font-d / --font-b in the design canvas tokens).
+  static TextTheme _textTheme(Brightness brightness, Color bodyColor) {
+    final base = GoogleFonts.plusJakartaSansTextTheme(
+      brightness == Brightness.dark ? ThemeData.dark().textTheme : ThemeData.light().textTheme,
+    ).apply(bodyColor: bodyColor, displayColor: bodyColor);
+    final display = GoogleFonts.bricolageGrotesqueTextTheme(base);
+    return base.copyWith(
+      displayLarge: display.displayLarge,
+      displayMedium: display.displayMedium,
+      displaySmall: display.displaySmall,
+      headlineLarge: display.headlineLarge,
+      headlineMedium: display.headlineMedium,
+      headlineSmall: display.headlineSmall,
+      titleLarge: display.titleLarge,
+      titleMedium: display.titleMedium,
+    );
+  }
 
   static ThemeData _build(Brightness brightness, ClayColors clay) {
     final base = ThemeData(brightness: brightness, useMaterial3: true);
@@ -25,6 +46,11 @@ class AppTheme {
         foregroundColor: clay.text,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
+        titleTextStyle: GoogleFonts.bricolageGrotesque(
+          color: clay.text,
+          fontWeight: FontWeight.w700,
+          fontSize: 19,
+        ),
       ),
       cardColor: clay.surface2,
       cardTheme: CardThemeData(
@@ -33,7 +59,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       ),
       dividerColor: clay.border,
-      textTheme: base.textTheme.apply(bodyColor: clay.text, displayColor: clay.text),
+      textTheme: _textTheme(brightness, clay.text),
       iconTheme: IconThemeData(color: clay.textDim),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,

@@ -6,6 +6,7 @@ import '../../models/photo.dart';
 import '../../models/playlist.dart';
 import '../../models/song.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/glass.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/cola_profile_card.dart';
 import '../../widgets/gift_bottom_sheet.dart';
@@ -299,23 +300,82 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
         child: Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
       );
 
-  // Only ever populated by the backend when the viewer is VIP — seeing
-  // someone's live room activity is a VIP perk.
-  Widget _activeRoomBadge(Map activeRoom) => GestureDetector(
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: activeRoom['roomId'] as String))),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.25), borderRadius: BorderRadius.circular(999)),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+  // "Right now" card — only ever populated by the backend when the viewer
+  // is VIP, since seeing someone's live room activity is a VIP perk.
+  // Matches the fling-redesign design canvas's CreatorProfile "Right now"
+  // card: a glass-3D room-type icon, a pulsing live dot, the room name,
+  // and a Join action.
+  Widget _activeRoomBadge(Map activeRoom) {
+    final roomId = activeRoom['roomId'] as String;
+    final title = activeRoom['title'] as String? ?? 'a room';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.accent.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.accent.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
             children: [
-              Container(width: 6, height: 6, decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.success)),
-              const SizedBox(width: 6),
-              Text('Active in "${activeRoom['title']}"', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+              GlassIcon(
+                size: 40,
+                radius: 12,
+                colors: const [AppColors.accent2, AppColors.primary],
+                glowColor: AppColors.accent.withValues(alpha: 0.4),
+                child: const Icon(Icons.mic_rounded, color: Colors.white, size: 18),
+              ),
+              Positioned(
+                top: -2,
+                right: -2,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.accent,
+                    border: Border.all(color: AppColors.surface, width: 1.5),
+                  ),
+                ),
+              ),
             ],
           ),
-        ),
-      );
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Container(width: 6, height: 6, decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.accent)),
+                    const SizedBox(width: 5),
+                    Text('IN A ROOM', style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(title, style: const TextStyle(color: AppColors.text, fontSize: 13.5, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId))),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              minimumSize: const Size(0, 32),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              shape: const StadiumBorder(),
+              textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+            ),
+            child: const Text('Join'),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _supporterTile(int rank, Map<String, dynamic> supporter) => GestureDetector(
         onTap: () => Navigator.of(context).push(

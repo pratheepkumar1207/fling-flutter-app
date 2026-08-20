@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../core/api_client.dart';
 import '../core/api_exception.dart';
 import '../theme/app_colors.dart';
 import '../theme/glass.dart';
+import 'app_image.dart';
 
 const _kGameTypes = [
   ['tictactoe', '⭕ Tic Tac Toe'],
@@ -59,6 +62,30 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
   late String _songPermission = widget.room['songPermission'] as String? ?? 'anyone';
   late bool _autoPlay = widget.room['autoPlay'] != false;
   late String _pinPermission = widget.room['pinPermission'] as String? ?? 'host';
+  // Voice-room cover shown in the Lobby list — null keeps the client's
+  // default mic-icon tile. Only meaningful/host-editable for voice rooms;
+  // watch parties derive their thumbnail from the picked video instead.
+  String? _thumbnail = widget.room['thumbnail'] as String?;
+  bool _thumbnailChanged = false;
+
+  Future<void> _pickThumbnail() async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (file == null) return;
+    final bytes = await file.readAsBytes();
+    final ext = file.name.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+    setState(() {
+      _thumbnail = 'data:image/$ext;base64,${base64Encode(bytes)}';
+      _thumbnailChanged = true;
+    });
+  }
+
+  void _clearThumbnail() {
+    setState(() {
+      _thumbnail = null;
+      _thumbnailChanged = true;
+    });
+  }
 
   Future<void> _search(String q) async {
     if (q.trim().isEmpty) {
@@ -112,6 +139,7 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
         'songPermission': _songPermission,
         'autoPlay': _autoPlay,
         'pinPermission': _pinPermission,
+        if (_roomType == 'voice' && _thumbnailChanged) 'thumbnail': _thumbnail,
       });
       widget.onChanged();
       if (mounted) Navigator.of(context).pop();
@@ -195,6 +223,41 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
                     ),
                 ],
               ),
+              if (_roomType == 'voice') ...[
+                const SizedBox(height: 14),
+                const Text('ROOM COVER', style: TextStyle(color: AppColors.textFaint, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: SizedBox(
+                        width: 56,
+                        height: 56,
+                        child: (_thumbnail != null && _thumbnail!.isNotEmpty)
+                            ? AppImage(source: _thumbnail, fit: BoxFit.cover)
+                            : Container(
+                                color: AppColors.surface,
+                                alignment: Alignment.center,
+                                child: const Text('🎙️', style: TextStyle(fontSize: 22)),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          OutlinedButton(onPressed: _pickThumbnail, child: const Text('Change cover')),
+                          if (_thumbnail != null && _thumbnail!.isNotEmpty)
+                            TextButton(onPressed: _clearThumbnail, child: const Text('Use default')),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               if (_roomType == 'game') ...[
                 const SizedBox(height: 14),
                 for (final g in _kGameTypes)

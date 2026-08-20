@@ -76,6 +76,90 @@ BoxDecoration glowRingDecoration({required Color color, double radius = 999}) {
   );
 }
 
+/// Soft-3D "glass icon" chip — a colored diagonal-gradient tile with a
+/// glowing drop shadow and a glossy top-left highlight, matching the
+/// `.glass-ic` treatment from the Claude Design redesign (fling-redesign
+/// design canvas). Wraps any icon glyph (pass it white/light-colored —
+/// it sits on a saturated gradient, not the page background).
+///
+/// Usage: `GlassIcon(colors: [Color(0xFF...), Color(0xFF...)], glowColor:
+/// Color(0x..), size: 34, radius: 11, child: Icon(Icons.favorite,
+/// color: Colors.white, size: 16))`
+class GlassIcon extends StatelessWidget {
+  final Widget child;
+  final List<Color> colors;
+  final Color glowColor;
+  final double size;
+  final double radius;
+  final EdgeInsetsGeometry? padding;
+
+  const GlassIcon({
+    super.key,
+    required this.child,
+    required this.colors,
+    required this.glowColor,
+    this.size = 34,
+    this.radius = 11,
+    this.padding,
+  });
+
+  /// Circular variant (radius == size / 2), for avatar-style icon badges.
+  const GlassIcon.circle({
+    super.key,
+    required this.child,
+    required this.colors,
+    required this.glowColor,
+    this.size = 34,
+    this.padding,
+  }) : radius = size / 2;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderRadius = BorderRadius.circular(radius);
+    return Container(
+      width: size,
+      height: size,
+      padding: padding,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: colors,
+        ),
+        borderRadius: borderRadius,
+        boxShadow: [
+          BoxShadow(color: glowColor, blurRadius: 14, offset: const Offset(0, 6)),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: borderRadius,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Glossy top-left highlight — mirrors .glass-ic::before's
+            // radial-gradient sheen.
+            Positioned(
+              top: size * 0.02,
+              left: size * 0.06,
+              child: Container(
+                width: size * 0.65,
+                height: size * 0.45,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [Colors.white.withValues(alpha: 0.55), Colors.white.withValues(alpha: 0)],
+                  ),
+                ),
+              ),
+            ),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// A blurred, softly-glowing color blob for backgrounds — mirrors the web
 /// `.blob` utility used behind the Liquid Glass / Lunara style screens.
 class Blob extends StatelessWidget {
