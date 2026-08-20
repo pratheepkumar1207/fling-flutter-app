@@ -65,7 +65,7 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
   // Voice-room cover shown in the Lobby list — null keeps the client's
   // default mic-icon tile. Only meaningful/host-editable for voice rooms;
   // watch parties derive their thumbnail from the picked video instead.
-  String? _thumbnail = widget.room['thumbnail'] as String?;
+  late String? _thumbnail = widget.room['thumbnail'] as String?;
   bool _thumbnailChanged = false;
 
   Future<void> _pickThumbnail() async {

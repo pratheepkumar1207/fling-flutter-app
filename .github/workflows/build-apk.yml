@@ -11,6 +11,11 @@ on:
         options:
           - release
           - debug
+  # workflow_dispatch only becomes clickable/API-triggerable once this file
+  # is on the default branch — until this PR merges, push a commit to this
+  # branch to fire a build instead.
+  push:
+    branches: [ "claude/design-redesign-implementation" ]
 
 jobs:
   build-apk:
