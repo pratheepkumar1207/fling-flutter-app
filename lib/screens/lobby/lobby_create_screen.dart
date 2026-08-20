@@ -34,15 +34,15 @@ class _VisibilitySpec {
 }
 
 const _roomTypes = [
-  _RoomTypeSpec('watch', '📺', 'Watch Party', 'Watch videos together', Color(0xFFEC4899), iconAsset: 'assets/icons/rooms/watch_party.png'),
-  _RoomTypeSpec('game', '🎮', 'Game Room', 'Play games with friends', Color(0xFF6366F1), iconAsset: 'assets/icons/rooms/game_lobby.png'),
-  _RoomTypeSpec('voice', '🎙️', 'Voice Room', 'Talk and hang out', Color(0xFF34D399), iconAsset: 'assets/icons/rooms/voice_lobby.png'),
+  _RoomTypeSpec('watch', '📺', 'Watch Party', 'Watch videos together', Color(0xFFEC4899), iconAsset: 'assets/icons/app/watchparty.png'),
+  _RoomTypeSpec('game', '🎮', 'Game Room', 'Play games with friends', Color(0xFF6366F1), iconAsset: 'assets/icons/app/gaming.png'),
+  _RoomTypeSpec('voice', '🎙️', 'Voice Room', 'Talk and hang out', Color(0xFF34D399), iconAsset: 'assets/icons/app/voice_room.png'),
 ];
 
 const _visibilities = [
-  _VisibilitySpec('public', Icons.public_rounded, 'Public', 'Anyone can discover and join', iconAsset: 'assets/icons/rooms/public_room.png'),
+  _VisibilitySpec('public', Icons.public_rounded, 'Public', 'Anyone can discover and join', iconAsset: 'assets/icons/app/public.png'),
   _VisibilitySpec('private', Icons.lock_rounded, 'Private', 'Only people with a link can join', iconAsset: 'assets/icons/rooms/private_room.png'),
-  _VisibilitySpec('friends', Icons.group_rounded, 'Friends Only', 'Only your friends can join', iconAsset: 'assets/icons/rooms/friends_room.png'),
+  _VisibilitySpec('friends', Icons.group_rounded, 'Friends Only', 'Only your friends can join', iconAsset: 'assets/icons/app/friends_only.png'),
   _VisibilitySpec('subscribers', Icons.star_rounded, 'Followers Only', 'Only people who follow you can join'),
 ];
 
@@ -103,31 +103,32 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
             const SizedBox(height: 24),
             _sectionLabel('1. Select Room Type'),
             const SizedBox(height: 10),
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 1.05,
-              children: _roomTypes.map(_typeCard).toList(),
+            // Exactly 3 room types — a single 1x3 row instead of a wrapping
+            // grid, matching the reference layout.
+            Row(
+              children: [
+                for (var i = 0; i < _roomTypes.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 10),
+                  Expanded(child: _typeCard(_roomTypes[i])),
+                ],
+              ],
             ),
             if (_roomType == 'game') ...[
               const SizedBox(height: 20),
               _sectionLabel('1A. Choose a Game'),
               const SizedBox(height: 10),
-              Column(
-                children: [
-                  _gameTypeButton('tictactoe', '⭕', 'Tic Tac Toe', available: true),
-                  const SizedBox(height: 8),
-                  _gameTypeButton('truth_or_dare', '🎲', 'Truth or Dare', available: true, iconAsset: 'assets/icons/rooms/truth_or_dare.png'),
-                  const SizedBox(height: 8),
-                  _gameTypeButton('ludo', '🟢', 'Ludo', available: true, iconAsset: 'assets/icons/rooms/ludo.png'),
-                  const SizedBox(height: 8),
-                  _gameTypeButton('chess', '♞', 'Chess', available: true, iconAsset: 'assets/icons/rooms/chess.png'),
-                  const SizedBox(height: 8),
-                  _gameTypeButton('uno', '🃏', 'UNO', available: true, iconAsset: 'assets/icons/rooms/uno.png'),
-                ],
+              SizedBox(
+                height: 140,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    _gameTypeTile('tictactoe', '⭕', 'Tic Tac Toe', available: true, iconAsset: 'assets/icons/app/tic_tac_toe.png'),
+                    _gameTypeTile('truth_or_dare', '🎲', 'Truth or Dare', available: true, iconAsset: 'assets/icons/app/truth_or_dare.png'),
+                    _gameTypeTile('ludo', '🟢', 'Ludo', available: true, iconAsset: 'assets/icons/app/ludo.png'),
+                    _gameTypeTile('chess', '♞', 'Chess', available: true, iconAsset: 'assets/icons/app/chess.png'),
+                    _gameTypeTile('uno', '🃏', 'UNO', available: true, iconAsset: 'assets/icons/app/uno.png'),
+                  ],
+                ),
               ),
             ],
             const SizedBox(height: 20),
@@ -190,19 +191,25 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(color: spec.color.withValues(alpha: 0.18), shape: BoxShape.circle),
-              alignment: Alignment.center,
-              child: spec.iconAsset != null
-                  ? Image.asset(spec.iconAsset!, width: 30, height: 30)
-                  : Text(spec.emoji, style: const TextStyle(fontSize: 22)),
-            ),
+            // The icon assets are already complete illustrations on their
+            // own — no tinted circle backdrop behind them.
+            spec.iconAsset != null
+                ? Image.asset(spec.iconAsset!, width: 96, height: 96, fit: BoxFit.contain)
+                : SizedBox(
+                    width: 96,
+                    height: 96,
+                    child: Center(child: Text(spec.emoji, style: const TextStyle(fontSize: 26))),
+                  ),
             const SizedBox(height: 8),
-            Text(spec.label, style: TextStyle(color: selected ? AppColors.primary : AppColors.text, fontSize: 13, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 2),
-            Text(spec.description, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.textFaint, fontSize: 10)),
+            // Icon-only per design — the description alone is enough, no
+            // separate title label under it.
+            Text(
+              spec.description,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: selected ? AppColors.primary : AppColors.textFaint, fontSize: 10, fontWeight: selected ? FontWeight.w600 : FontWeight.w400),
+            ),
           ],
         ),
       ),
@@ -225,7 +232,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
           child: Row(
             children: [
               spec.iconAsset != null
-                  ? Image.asset(spec.iconAsset!, width: 22, height: 22)
+                  ? Image.asset(spec.iconAsset!, width: 44, height: 44)
                   : Icon(spec.icon, color: selected ? AppColors.primary : AppColors.textDim, size: 20),
               const SizedBox(width: 12),
               Expanded(
@@ -255,32 +262,36 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
     );
   }
 
-  Widget _gameTypeButton(String value, String emoji, String label, {required bool available, String? iconAsset}) {
+  Widget _gameTypeTile(String value, String emoji, String label, {required bool available, String? iconAsset}) {
     final selected = _gameType == value;
-    return GestureDetector(
-      onTap: available ? () => setState(() => _gameType = value) : null,
-      child: Opacity(
-        opacity: available ? 1 : 0.4,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-          decoration: BoxDecoration(
-            color: selected ? AppColors.primary.withValues(alpha: 0.1) : AppColors.surface,
-            border: Border.all(color: selected ? AppColors.primary : AppColors.border),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  iconAsset != null ? Image.asset(iconAsset, width: 24, height: 24) : Text(emoji, style: const TextStyle(fontSize: 18)),
-                  const SizedBox(width: 10),
-                  Text(label, style: TextStyle(color: selected ? AppColors.primary : AppColors.textDim, fontSize: 13, fontWeight: FontWeight.w500)),
-                ],
-              ),
-              if (!available) const Text('Coming soon', style: TextStyle(color: AppColors.textFaint, fontSize: 11)),
-            ],
+    return Padding(
+      padding: const EdgeInsets.only(right: 10),
+      child: GestureDetector(
+        onTap: available ? () => setState(() => _gameType = value) : null,
+        child: Opacity(
+          opacity: available ? 1 : 0.4,
+          child: Container(
+            width: 110,
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+            decoration: BoxDecoration(
+              color: selected ? AppColors.primary.withValues(alpha: 0.1) : AppColors.surface,
+              border: Border.all(color: selected ? AppColors.primary : AppColors.border, width: selected ? 2 : 1),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                iconAsset != null ? Image.asset(iconAsset, width: 72, height: 72) : Text(emoji, style: const TextStyle(fontSize: 28)),
+                const SizedBox(height: 6),
+                Text(
+                  available ? label : 'Soon',
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: selected ? AppColors.primary : AppColors.textDim, fontSize: 11, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
           ),
         ),
       ),

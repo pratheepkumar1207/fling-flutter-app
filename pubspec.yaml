@@ -82,6 +82,13 @@ dependencies:
   # Utilities
   intl: ^0.19.0
   url_launcher: ^6.3.0
+  share_plus: ^10.0.0
+  # Real background/lock-screen audio for Drive-hosted rooms — a native
+  # foreground media session, not just "keep the socket alive" like
+  # flutter_foreground_task already does elsewhere. See
+  # core/background_audio_handler.dart.
+  audio_service: ^0.18.15
+  just_audio: ^0.9.40
   # Real brand glyphs for the source-picker tiles (YouTube, Drive, Netflix,
   # Amazon, X) — only covers globally-recognized brands; the India-specific
   # streaming services (Hotstar/Aha/SunNXT/SonyLIV/Airtel Xstream) have no
@@ -124,6 +131,7 @@ flutter:
   assets:
     - assets/icon/insync-icon.png
     - assets/icons/rooms/
+    - assets/icons/app/
 
 flutter_launcher_icons:
   android: true

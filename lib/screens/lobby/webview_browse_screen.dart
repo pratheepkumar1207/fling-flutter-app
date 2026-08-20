@@ -1,8 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:http/http.dart' as http;
 import '../../core/mobile_webview_settings.dart';
 import '../../core/youtube_util.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/app_song_lists.dart';
 import '../../widgets/spinner.dart';
 import 'watch_room_creator.dart';
 
@@ -34,14 +38,22 @@ class WebviewBrowseScreen extends StatefulWidget {
   final String visibility;
   final String? topic;
 
-  /// When set (the unified source picker's in-room "switch source" path —
-  /// see SourcePickerBody in source_picker_screen.dart), landing here and
-  /// confirming calls this instead of creating a new room. Streaming
-  /// platforms have no sync/queue, so "adding to queue" doesn't make sense
-  /// for them the way it does for YouTube/Drive — the only sensible in-room
-  /// action is replacing what the whole room is currently set to, which is
-  /// why this prompts for confirmation first (see _startHere).
+  /// Legacy in-room "switch source" path — replaces what the whole room is
+  /// currently set to, with a confirmation prompt first. Superseded by
+  /// [onAddToQueue] below for the normal picker flow (see _startHere), but
+  /// left available for anything that still wants a hard replace.
   final Future<void> Function(String sourceType, String videoUrl, {String? videoTitle, String? videoThumbnail})? onConfirmOverride;
+
+  /// The unified source picker's in-room "add to queue" path (see
+  /// SourcePickerBody in source_picker_screen.dart) — same callback
+  /// YouTube/Drive already use there. Queueing works fine for OTT/YouTube
+  /// Surf too: the queue is just "what plays next," not a synced position,
+  /// so it doesn't need per-item position sync to make sense. An empty
+  /// queue means this becomes item 0 at currentIndex 0 and plays
+  /// immediately (see queue:add on the backend); a non-empty queue means
+  /// it's pinned to play after whatever's current — no destructive
+  /// replace, so no confirmation prompt needed either.
+  final SongAddCallback? onAddToQueue;
 
   const WebviewBrowseScreen({
     super.key,
@@ -51,6 +63,7 @@ class WebviewBrowseScreen extends StatefulWidget {
     required this.visibility,
     this.topic,
     this.onConfirmOverride,
+    this.onAddToQueue,
   });
 
   @override
@@ -89,6 +102,21 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
       }
     }
     if (!mounted) return;
+    await _addOrCreate(sourceType: sourceType, videoUrl: videoUrl, videoTitle: videoTitle, videoThumbnail: videoThumbnail);
+  }
+
+  // Shared tail of both "confirm the current page" (_startHere, via the
+  // bottom button) and "long-pressed a video thumbnail while still browsing"
+  // (_onLongPressVideo) — same three destinations either way: queue it,
+  // hard-replace the room's source, or start a brand new room.
+  Future<void> _addOrCreate({required String sourceType, required String videoUrl, String? videoTitle, String? videoThumbnail}) async {
+    final onAddToQueue = widget.onAddToQueue;
+    if (onAddToQueue != null) {
+      setState(() => _creatingRoom = true);
+      onAddToQueue(videoUrl: videoUrl, title: videoTitle ?? widget.label, thumbnail: videoThumbnail, mediaMode: 'video', sourceType: sourceType);
+      if (mounted) Navigator.of(context).pop();
+      return;
+    }
 
     final onConfirmOverride = widget.onConfirmOverride;
     if (onConfirmOverride != null) {
@@ -124,6 +152,70 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
     });
   }
 
+  // Long-press a video thumbnail/link while still browsing (search results,
+  // home feed, etc.) instead of having to navigate into the watch page and
+  // tap the bottom button — YouTube only, and only where extractYouTubeId
+  // actually recognizes the pressed link as a real video, so long-pressing
+  // unrelated page chrome does nothing.
+  Future<void> _onLongPressVideo(InAppWebViewHitTestResult hitTestResult) async {
+    if (widget.platform != 'youtube_surf' || _creatingRoom || !mounted) return;
+    final videoId = extractYouTubeId(hitTestResult.extra);
+    if (videoId == null) return;
+
+    // In-room, _addOrCreate's onAddToQueue path already shows its own
+    // Start-Here/Top/Bottom confirmation (see queue_sheet.dart's
+    // _addToQueue) — a second "Add this video?" prompt here would just be
+    // a redundant extra tap. Only ask here when there's no room yet.
+    if (widget.onAddToQueue == null) {
+      final add = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Add this video?'),
+          content: const Text('Starts a new watch party with this video.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Add')),
+          ],
+        ),
+      );
+      if (add != true || !mounted) return;
+    }
+
+    setState(() => _creatingRoom = true);
+    final fallbackThumbnail = 'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
+    final meta = await _fetchYoutubeOembed(videoId);
+    if (!mounted) return;
+    await _addOrCreate(
+      sourceType: 'youtube',
+      videoUrl: 'https://www.youtube.com/watch?v=$videoId',
+      videoTitle: meta?['title'],
+      videoThumbnail: meta?['thumbnail'] ?? fallbackThumbnail,
+    );
+  }
+
+  // YouTube's oEmbed endpoint — the best option for turning just a video id
+  // into a real title/thumbnail without navigating there ourselves: no API
+  // key, no OAuth, no scraping a page we haven't loaded.
+  Future<Map<String, String>?> _fetchYoutubeOembed(String videoId) async {
+    try {
+      final uri = Uri.parse('https://www.youtube.com/oembed?format=json&url=${Uri.encodeComponent('https://www.youtube.com/watch?v=$videoId')}');
+      final response = await http.get(uri).timeout(const Duration(seconds: 5));
+      if (response.statusCode != 200) return null;
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final title = data['title'] as String?;
+      final thumbnail = data['thumbnail_url'] as String?;
+      return {if (title != null && title.isNotEmpty) 'title': title, if (thumbnail != null) 'thumbnail': thumbnail};
+    } catch (_) {
+      return null; // Falls back to the predictable CDN thumbnail + widget.label as title.
+    }
+  }
+
+  String get _buttonLabel {
+    if (widget.onAddToQueue != null) return _creatingRoom ? 'Adding…' : 'Add to queue';
+    if (widget.onConfirmOverride != null) return _creatingRoom ? 'Switching…' : 'Switch room to this';
+    return _creatingRoom ? 'Starting…' : 'Start watch party here';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -133,7 +225,7 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
         children: [
           InAppWebView(
             initialUrlRequest: URLRequest(url: WebUri(widget.homeUrl)),
-            initialSettings: mobileWebViewSettings,
+            initialSettings: desktopWebViewSettings,
             onWebViewCreated: (controller) => _controller = controller,
             onLoadStart: (controller, url) => setState(() => _loading = true),
             onLoadStop: (controller, url) => setState(() => _loading = false),
@@ -151,6 +243,12 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
               }
               return NavigationActionPolicy.ALLOW;
             },
+            // See webview_room_player.dart — without granting this, DRM
+            // playback (previews included) can't initialize at all.
+            onPermissionRequest: (controller, request) async {
+              return PermissionResponse(resources: request.resources, action: PermissionResponseAction.GRANT);
+            },
+            onLongPressHitTestResult: (controller, hitTestResult) => _onLongPressVideo(hitTestResult),
           ),
           if (_loading) const Positioned(top: 8, left: 0, right: 0, child: Center(child: Spinner(size: 20))),
           Positioned(
@@ -160,7 +258,7 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
             child: ElevatedButton(
               onPressed: _creatingRoom ? null : _startHere,
               style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
-              child: Text(_creatingRoom ? 'Starting…' : (widget.onConfirmOverride != null ? 'Switch room to this' : 'Start watch party here')),
+              child: Text(_buttonLabel),
             ),
           ),
         ],

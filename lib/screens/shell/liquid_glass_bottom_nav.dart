@@ -6,7 +6,11 @@ import '../../theme/glass.dart';
 class NavItemData {
   final IconData icon;
   final String label;
-  const NavItemData(this.icon, this.label);
+  // Custom 3D icon asset shown instead of [icon] when set — see
+  // assets/icons/app/. Nav is icon-only (no text label under it), so
+  // [label] is kept only as the tooltip/semantic name for accessibility.
+  final String? iconAsset;
+  const NavItemData(this.icon, this.label, {this.iconAsset});
 }
 
 /// Flat bottom nav (no pill/card background) — a plain bar with the
@@ -37,20 +41,26 @@ class LiquidGlassBottomNav extends StatelessWidget {
 
     Widget tab(int i) {
       final selected = i == currentIndex;
+      final item = items[i];
       return Expanded(
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => onTap(i),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(items[i].icon, size: 22, color: selected ? clay.primary : clay.textFaint),
-              const SizedBox(height: 2),
-              Text(
-                items[i].label,
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: selected ? clay.primary : clay.textFaint),
-              ),
-            ],
+        child: Semantics(
+          label: item.label,
+          button: true,
+          selected: selected,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => onTap(i),
+            child: Center(
+              child: item.iconAsset != null
+                  // Full-color 3D asset — selection reads via a soft glow/opacity
+                  // instead of a tint swap, since these aren't tintable glyphs.
+                  ? AnimatedOpacity(
+                      opacity: selected ? 1 : 0.55,
+                      duration: const Duration(milliseconds: 150),
+                      child: Image.asset(item.iconAsset!, width: 52, height: 52),
+                    )
+                  : Icon(item.icon, size: 24, color: selected ? clay.primary : clay.textFaint),
+            ),
           ),
         ),
       );
@@ -63,7 +73,7 @@ class LiquidGlassBottomNav extends StatelessWidget {
         // Clip.none so the center button can pop up above the bar's own
         // top edge without getting clipped by this SizedBox.
         child: SizedBox(
-          height: 60,
+          height: 76,
           child: Stack(
             clipBehavior: Clip.none,
             alignment: Alignment.center,
@@ -71,12 +81,14 @@ class LiquidGlassBottomNav extends StatelessWidget {
               Row(
                 children: [
                   ...List.generate(leftItems.length, (i) => tab(i)),
-                  const SizedBox(width: 64), // reserves space under the center button
+                  const SizedBox(width: 80), // reserves space under the center button
                   ...List.generate(rightItems.length, (i) => tab(half + i)),
                 ],
               ),
               Positioned(
-                top: -14,
+                // The icon asset is already a complete gradient circle
+                // button on its own — no extra decoration wrapped around it.
+                top: -22,
                 child: GestureDetector(
                   onTap: onCreateTap,
                   child: Stack(

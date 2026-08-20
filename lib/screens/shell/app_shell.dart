@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/active_room_holder.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_provider.dart';
 import '../../core/socket_service.dart';
@@ -10,6 +11,7 @@ import '../feed/feed_screen.dart';
 import '../home/home_screen.dart';
 import '../lobby/lobby_create_screen.dart';
 import '../lobby/lobby_join_screen.dart';
+import '../party/party_screen.dart';
 import '../../widgets/avatar.dart';
 import 'liquid_glass_bottom_nav.dart';
 import 'top_bar.dart';
@@ -35,9 +37,11 @@ class _AppShellState extends State<AppShell> {
   ];
 
   static const _items = [
-    NavItemData(Icons.home_rounded, 'Home'),
-    NavItemData(Icons.article_rounded, 'Feed'),
-    NavItemData(Icons.local_fire_department_rounded, 'Discover'),
+    NavItemData(Icons.home_rounded, 'Home', iconAsset: 'assets/icons/app/home.png'),
+    NavItemData(Icons.article_rounded, 'Feed', iconAsset: 'assets/icons/app/feed.png'),
+    NavItemData(Icons.local_fire_department_rounded, 'Discover', iconAsset: 'assets/icons/app/discover.png'),
+    // No matching asset was uploaded for "Rooms" — stays on the Material
+    // icon until one is provided.
     NavItemData(Icons.theaters_rounded, 'Rooms'),
   ];
 
@@ -136,17 +140,79 @@ class _AppShellState extends State<AppShell> {
     _activeIncomingChannelName = null;
   }
 
+  void _reopenActiveRoom() {
+    final roomId = ActiveRoomHolder.roomId;
+    if (roomId == null) return;
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId)));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: const FlingTopBar(),
       body: IndexedStack(index: _index, children: _screens),
-      bottomNavigationBar: LiquidGlassBottomNav(
-        currentIndex: _index,
-        onTap: (i) => setState(() => _index = i),
-        items: _items,
-        onCreateTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LobbyCreateScreen())),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Shows whenever a room's socket is still connected in the
+          // background (see ActiveRoomHolder) — i.e. the user minimized
+          // instead of hitting "Leave room". Lets them jump back in from
+          // any tab without re-joining from scratch.
+          ValueListenableBuilder<String?>(
+            valueListenable: ActiveRoomHolder.activeLabel,
+            builder: (context, label, _) {
+              if (label == null) return const SizedBox.shrink();
+              return _ActiveRoomBar(label: label, onTap: _reopenActiveRoom);
+            },
+          ),
+          LiquidGlassBottomNav(
+            currentIndex: _index,
+            onTap: (i) => setState(() => _index = i),
+            items: _items,
+            onCreateTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LobbyCreateScreen())),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActiveRoomBar extends StatelessWidget {
+  const _ActiveRoomBar({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      bottom: false,
+      child: Material(
+        color: AppColors.surface2,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              children: [
+                const Icon(Icons.podcasts_rounded, color: AppColors.accent, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                ),
+                const Text('Tap to return', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                const SizedBox(width: 6),
+                const Icon(Icons.chevron_right_rounded, color: Colors.white70, size: 18),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

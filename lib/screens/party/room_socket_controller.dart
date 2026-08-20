@@ -156,7 +156,12 @@ class RoomSocketController extends ChangeNotifier {
 
   void requestState() => socket?.emit('playback:requestState', {'roomId': roomId});
 
-  void queueAdd(Map<String, dynamic> item) => socket?.emit('queue:add', {'roomId': roomId, 'item': item});
+  // position: 'bottom' (default, end of queue) or 'top' (plays right after
+  // whatever's current) — see add_to_queue_dialog.dart. Meaningless on an
+  // empty queue (the item just becomes item 0 either way), so callers
+  // don't need to special-case that.
+  void queueAdd(Map<String, dynamic> item, {String position = 'bottom'}) =>
+      socket?.emit('queue:add', {'roomId': roomId, 'item': item, 'position': position});
   void queueInit(Map<String, dynamic> item) => socket?.emit('queue:init', {'roomId': roomId, 'item': item});
   void queueJump(int index) {
     if (canPin) socket?.emit('queue:jump', {'roomId': roomId, 'index': index});

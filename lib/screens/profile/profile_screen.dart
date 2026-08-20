@@ -251,7 +251,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           IconButton(
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
-            icon: const Icon(Icons.settings_outlined, color: AppColors.textDim),
+            icon: Image.asset('assets/icons/app/setting.png', width: 44, height: 44),
           ),
         ],
       ),

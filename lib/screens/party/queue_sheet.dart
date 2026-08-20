@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/add_to_queue_dialog.dart';
 import '../../widgets/app_image.dart';
 import '../lobby/source_picker_screen.dart';
 
@@ -13,7 +14,7 @@ class QueueSheetScreen extends StatefulWidget {
   final Map<String, dynamic> queue;
   final bool isHost;
   final int participantCount;
-  final void Function(Map<String, dynamic> item) onAdd;
+  final void Function(Map<String, dynamic> item, {String position}) onAdd;
   final void Function(int index) onJump;
   final void Function(int index) onRemove;
   final void Function(int fromIndex, int toIndex) onReorder;
@@ -45,8 +46,29 @@ class QueueSheetScreen extends StatefulWidget {
 }
 
 class _QueueSheetScreenState extends State<QueueSheetScreen> {
-  void _addToQueue({required String videoUrl, required String title, String? thumbnail, required String mediaMode, String sourceType = 'youtube'}) {
-    widget.onAdd({'sourceType': sourceType, 'videoUrl': videoUrl, 'title': title, 'thumbnail': thumbnail, 'mediaMode': widget.audioOnly ? 'audio' : mediaMode});
+  bool _showPicker = false;
+
+  // The one choke point every picker entry point (YouTube, Drive, OTT/
+  // YouTube Surf, Liked, History, Playlists) funnels through — see
+  // add_to_queue_dialog.dart for why the confirmation lives here instead
+  // of in each individual picker screen.
+  Future<void> _addToQueue({required String videoUrl, required String title, String? thumbnail, required String mediaMode, String sourceType = 'youtube'}) async {
+    final items = (widget.queue['items'] as List?) ?? [];
+    final position = await showAddToQueueDialog(context, queueIsEmpty: items.isEmpty);
+    if (position == null || !mounted) return;
+    widget.onAdd(
+      {'sourceType': sourceType, 'videoUrl': videoUrl, 'title': title, 'thumbnail': thumbnail, 'mediaMode': widget.audioOnly ? 'audio' : mediaMode},
+      position: position,
+    );
+  }
+
+  void _close() {
+    final nav = Navigator.of(context);
+    if (nav.canPop()) {
+      nav.pop();
+    } else {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
   }
 
   @override
@@ -54,12 +76,24 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
     final items = (widget.queue['items'] as List?) ?? [];
     final currentIndex = widget.queue['currentIndex'] as int? ?? 0;
 
-    return Scaffold(
+    return GestureDetector(
+      // Swipe left-to-right closes this screen and lands back on the room,
+      // mirroring the right-to-left swipe on the room that opened it.
+      onHorizontalDragEnd: (details) {
+        if ((details.primaryVelocity ?? 0) > 250) _close();
+      },
+      child: Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        leading: BackButton(onPressed: () => Navigator.of(context).pop()),
+        leading: IconButton(icon: const Icon(Icons.close), tooltip: 'Cancel', onPressed: _close),
         title: const Text('Queue'),
         actions: [
+          if (widget.canAddSongs)
+            IconButton(
+              icon: Icon(_showPicker ? Icons.search_off : Icons.search),
+              tooltip: _showPicker ? 'Hide search' : 'Search to add a video',
+              onPressed: () => setState(() => _showPicker = !_showPicker),
+            ),
           TextButton(
             onPressed: widget.onOpenRoster,
             child: Text('👥 ${widget.participantCount}', style: const TextStyle(color: AppColors.textDim)),
@@ -68,7 +102,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
       ),
       body: Column(
         children: [
-          if (widget.canAddSongs)
+          if (widget.canAddSongs && _showPicker)
             SizedBox(
               height: 320,
               child: SourcePickerBody(
@@ -147,6 +181,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                   ),
           ),
         ],
+      ),
       ),
     );
   }

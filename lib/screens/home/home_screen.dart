@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_provider.dart';
 import '../../core/format.dart';
+import '../../core/socket_service.dart';
 import '../../models/room_models.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_image.dart';
@@ -64,22 +65,35 @@ class _HomeScreenState extends State<HomeScreen> {
   List<StoryEntry> _stories = [];
   String? _typeFilter;
   Timer? _refreshTimer;
+  Timer? _activityDebounce;
 
   @override
   void initState() {
     super.initState();
     _load();
     _loadStories();
-    // Home has no socket-driven live room list — without this, a room
-    // someone else just created/joined only appears after a manual
-    // pull-to-refresh, which reads as "my room isn't showing up" (it just
-    // hasn't refreshed yet). Poll while this screen is visible instead.
-    _refreshTimer = Timer.periodic(const Duration(seconds: 12), (_) => _load(silent: true));
+    // This poll is now mostly a fallback (missed socket event, screen was
+    // opened before anything changed) — rooms:activity below is what
+    // actually makes a room appearing/disappearing feel instant. Set to
+    // 1s per explicit request; worth knowing this means /rooms/browse gets
+    // hit every second while Home is open, on every connected device,
+    // regardless of whether anything actually changed.
+    _refreshTimer = Timer.periodic(const Duration(seconds: 1), (_) => _load(silent: true));
+    context.read<SocketService>().socket?.on('rooms:activity', _onRoomsActivity);
+  }
+
+  // Debounced — a burst of joins/leaves (e.g. a room emptying out member by
+  // member) would otherwise fire several near-simultaneous refetches.
+  void _onRoomsActivity(dynamic _) {
+    _activityDebounce?.cancel();
+    _activityDebounce = Timer(const Duration(milliseconds: 400), () => _load(silent: true));
   }
 
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _activityDebounce?.cancel();
+    context.read<SocketService>().socket?.off('rooms:activity', _onRoomsActivity);
     super.dispose();
   }
 
@@ -202,7 +216,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 16),
           SizedBox(
-            height: 34,
+            height: 48,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: _roomFilters.length,
@@ -225,7 +239,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         f['icon'] != null
-                            ? Image.asset(f['icon']!, width: 16, height: 16)
+                            ? Image.asset(f['icon']!, width: 32, height: 32)
                             : Text(f['emoji']!, style: const TextStyle(fontSize: 13)),
                         const SizedBox(width: 5),
                         Text(
@@ -299,7 +313,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Row(
           children: [
             if (iconAsset != null) ...[
-              Image.asset(iconAsset, width: 20, height: 20),
+              Image.asset(iconAsset, width: 40, height: 40),
               const SizedBox(width: 6),
             ],
             Text(title, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.bold, fontSize: 16)),

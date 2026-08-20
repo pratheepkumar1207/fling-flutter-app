@@ -1,6 +1,8 @@
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/auth_provider.dart';
+import 'core/background_audio_handler.dart';
 import 'core/firebase_service.dart';
 import 'core/socket_service.dart';
 import 'core/theme_controller.dart';
@@ -10,6 +12,16 @@ import 'theme/app_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initFirebase();
+  // Ready before any room needs it — see background_audio_handler.dart.
+  backgroundAudioHandler = await AudioService.init(
+    builder: () => BackgroundAudioHandler(),
+    config: const AudioServiceConfig(
+      androidNotificationChannelId: 'com.fling.app.channel.audio',
+      androidNotificationChannelName: 'Room playback',
+      androidNotificationOngoing: true,
+      androidStopForegroundOnPause: true,
+    ),
+  );
   runApp(const FlingApp());
 }
 

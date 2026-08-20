@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/api_client.dart';
+import '../../core/background_audio_handler.dart';
 import '../../core/format.dart';
+import '../../core/pip_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/spinner.dart';
 import '../../widgets/static_bloom_player.dart';
@@ -56,7 +58,7 @@ class DriveVideoPlayer extends StatefulWidget {
   State<DriveVideoPlayer> createState() => _DriveVideoPlayerState();
 }
 
-class _DriveVideoPlayerState extends State<DriveVideoPlayer> {
+class _DriveVideoPlayerState extends State<DriveVideoPlayer> with WidgetsBindingObserver {
   VideoPlayerController? _controller;
   String? _currentFileId;
   num? _lastAppliedUpdatedAt;
@@ -65,10 +67,17 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer> {
   int _volume = 80;
   bool _volumePopoverOpen = false;
   bool _endFired = false;
+  bool _backgrounded = false;
+  // True only when we actually started the background audio handler for
+  // this background stretch (i.e. it was genuinely playing when we left) —
+  // guards _handoffToForegroundVideo from pulling a stale/zero position
+  // when there was nothing to hand off in the first place.
+  bool _handedOffToBackground = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _rebuildControllerIfNeeded();
     // See the matching comment in sync_video_player.dart: playback:state
     // can already be sitting on widget.playback by this first build (the
@@ -149,6 +158,81 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer> {
     }
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.paused:
+        // Entering Picture-in-Picture reports the same paused/inactive/
+        // hidden dip as a real background — but PIP keeps the video
+        // visibly playing in a small floating window, so pausing it here
+        // and handing off to the (invisible) background audio handler is
+        // exactly wrong: confirmed live, this is why the video paused/
+        // went black the moment PIP kicked in instead of continuing.
+        if (PipService.isInPip.value) return;
+        // Only truly-backgrounded (not the transient inactive/hidden blip a
+        // system dialog can cause) is worth the cost of spinning up a real
+        // audio handoff.
+        _backgrounded = true;
+        _handoffToBackgroundAudio();
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+        if (PipService.isInPip.value) return;
+        _backgrounded = true;
+      case AppLifecycleState.resumed:
+        if (!_backgrounded) return;
+        _backgrounded = false;
+        _handoffToForegroundVideo();
+        // Android pauses the decoder while backgrounded/locked for host and
+        // viewer alike — re-sync to the room's real, elapsed-time-corrected
+        // position instead of leaving the host's own copy stale (a stale
+        // host tapping play again would re-broadcast that stale position to
+        // everyone else in the room).
+        widget.onRequestState();
+      case AppLifecycleState.detached:
+        break;
+    }
+  }
+
+  // video_player has no background-survival story on Android at all — the
+  // decoder just stops. Handing off to the shared background_audio_handler
+  // (a real native media session) is what actually keeps sound going with
+  // the screen off/app backgrounded and gives lock-screen play/pause
+  // controls, instead of the room just going silent for this device.
+  Future<void> _handoffToBackgroundAudio() async {
+    final c = _controller;
+    final fileId = _currentFileId;
+    if (c == null || !c.value.isInitialized || fileId == null || !c.value.isPlaying) return;
+    final position = c.value.position;
+    await c.pause();
+    final token = ApiClient.tokenGetter?.call();
+    final uri = '${ApiClient.baseUrl}/drive/stream/$fileId?roomId=${widget.roomId}';
+    try {
+      _handedOffToBackground = true;
+      await backgroundAudioHandler.loadAndPlay(
+        url: uri,
+        headers: token != null ? {'Authorization': 'Bearer $token'} : const {},
+        initialPosition: position,
+        title: widget.title ?? 'Playing in Insync',
+        artUri: widget.thumbnail,
+      );
+    } catch (_) {
+      // Best-effort — falling back to silence while backgrounded beats
+      // crashing; the foreground handoff below still re-syncs on resume.
+      _handedOffToBackground = false;
+    }
+  }
+
+  Future<void> _handoffToForegroundVideo() async {
+    if (!_handedOffToBackground) return;
+    _handedOffToBackground = false;
+    final c = _controller;
+    final bgPosition = backgroundAudioHandler.position;
+    await backgroundAudioHandler.stopSource();
+    if (c == null || !c.value.isInitialized) return;
+    await c.seekTo(bgPosition);
+    await c.play();
+  }
+
   double get _positionSeconds => (_controller?.value.position.inMilliseconds ?? 0) / 1000;
 
   void _handleTap() {
@@ -197,16 +281,36 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer> {
     final position = _dragging ? _dragPosition : controller.value.position.inSeconds.toDouble();
     final audioOnly = widget.mediaMode == 'audio';
 
+    // No rounded-corner card/box — the video now runs edge-to-edge at full
+    // screen width right under the header, so a "boxed" look doesn't apply.
     final videoTree = AspectRatio(
       aspectRatio: 16 / 9,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+      child: ClipRect(
         child: Stack(
           fit: StackFit.expand,
           children: [
             VideoPlayer(controller),
+            // Tap anywhere on the video toggles play/pause — _handleTap
+            // itself is a no-op for non-hosts, so this is host-only in
+            // effect despite the whole video being the tap target.
             Positioned.fill(
               child: GestureDetector(behavior: HitTestBehavior.translucent, onTap: _handleTap),
+            ),
+            Positioned(
+              top: 8,
+              left: 8,
+              // Manual PIP trigger — auto-PIP-on-minimize has been
+              // unreliable (see PipService/MainActivity.kt), so this gives
+              // a direct, always-available way in rather than depending
+              // solely on Android detecting the app leaving.
+              child: GestureDetector(
+                onTap: PipService.enterPip,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), shape: BoxShape.circle),
+                  child: const Icon(Icons.picture_in_picture_alt_rounded, color: Colors.white, size: 16),
+                ),
+              ),
             ),
             Positioned(
               top: 8,
@@ -309,6 +413,8 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    if (_handedOffToBackground) backgroundAudioHandler.stopSource();
     _controller?.removeListener(_onTick);
     _controller?.dispose();
     super.dispose();
