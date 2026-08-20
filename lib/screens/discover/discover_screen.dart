@@ -6,6 +6,7 @@ import '../../core/auth_provider.dart';
 import '../../core/language_options.dart';
 import '../../models/user.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/glass.dart';
 import '../../widgets/interest_picker.dart';
 import '../../widgets/spinner.dart';
 import 'map_explore_screen.dart';
@@ -134,10 +135,11 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   const Spacer(),
                   GestureDetector(
                     onTap: () => setState(() => _showFilters = !_showFilters),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: AppColors.surface, shape: BoxShape.circle, border: Border.all(color: AppColors.border)),
-                      child: const Icon(Icons.tune_rounded, color: AppColors.primary, size: 18),
+                    child: GlassIcon.circle(
+                      size: 34,
+                      colors: const [AppColors.accent2, AppColors.primary],
+                      glowColor: AppColors.primary.withValues(alpha: 0.4),
+                      child: const Icon(Icons.tune_rounded, color: Colors.white, size: 18),
                     ),
                   ),
                 ],

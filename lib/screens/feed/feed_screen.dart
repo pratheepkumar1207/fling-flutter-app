@@ -6,6 +6,7 @@ import '../../core/profile_nav.dart';
 import '../../core/youtube_util.dart';
 import '../../models/post.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/glass.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/mention_text_field.dart';
@@ -333,10 +334,10 @@ class _FeedScreenState extends State<FeedScreen> {
             ),
             clipBehavior: Clip.antiAlias,
             alignment: Alignment.center,
-            child: Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.55), shape: BoxShape.circle),
+            child: GlassIcon.circle(
+              size: 52,
+              colors: const [AppColors.accent2, AppColors.primary],
+              glowColor: AppColors.primary.withValues(alpha: 0.4),
               child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 30),
             ),
           ),

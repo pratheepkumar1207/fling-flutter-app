@@ -5,6 +5,7 @@ import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../auth/login_screen.dart';
+import 'blocked_accounts_screen.dart';
 import 'complaint_form_screen.dart';
 import 'language_preferences_screen.dart';
 import 'legal_screen.dart';
@@ -58,6 +59,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('Notification', style: TextStyle(color: AppColors.text)),
             secondary: const Text('🔔', style: TextStyle(fontSize: 20)),
           ),
+          const Divider(color: AppColors.border, height: 1),
+          _tile(context, emoji: '🚫', label: 'Blocked accounts', builder: (_) => const BlockedAccountsScreen()),
           const Divider(color: AppColors.border, height: 1),
           _tile(context, emoji: '💬', label: 'Have an Issue', builder: (_) => const ComplaintFormScreen()),
           _tile(context, emoji: '📋', label: 'My Complaints', builder: (_) => const MyComplaintsScreen()),

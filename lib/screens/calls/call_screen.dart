@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/socket_service.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/glass.dart';
 import '../../widgets/avatar.dart';
 import 'direct_call_controller.dart';
 
@@ -141,16 +142,24 @@ class _CallScreenState extends State<CallScreen> {
                         _circleButton(
                           icon: _controller.micEnabled ? Icons.mic_rounded : Icons.mic_off_rounded,
                           onTap: _controller.toggleMic,
-                          background: Colors.white24,
+                          colors: const [AppColors.accent2, AppColors.primary],
+                          glowColor: AppColors.primary.withValues(alpha: 0.4),
                         ),
                         const SizedBox(width: 20),
-                        _circleButton(icon: Icons.call_end_rounded, onTap: _hangUp, background: AppColors.danger, size: 64),
+                        _circleButton(
+                          icon: Icons.call_end_rounded,
+                          onTap: _hangUp,
+                          colors: const [AppColors.danger, AppColors.accent],
+                          glowColor: AppColors.danger.withValues(alpha: 0.4),
+                          size: 64,
+                        ),
                         if (widget.video) ...[
                           const SizedBox(width: 20),
                           _circleButton(
                             icon: _controller.cameraEnabled ? Icons.videocam_rounded : Icons.videocam_off_rounded,
                             onTap: _controller.toggleCamera,
-                            background: Colors.white24,
+                            colors: const [AppColors.accent2, AppColors.primary],
+                            glowColor: AppColors.primary.withValues(alpha: 0.4),
                           ),
                         ],
                       ],
@@ -175,13 +184,13 @@ class _CallScreenState extends State<CallScreen> {
     );
   }
 
-  Widget _circleButton({required IconData icon, required VoidCallback onTap, required Color background, double size = 52}) {
+  Widget _circleButton({required IconData icon, required VoidCallback onTap, required List<Color> colors, required Color glowColor, double size = 52}) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: background),
+      child: GlassIcon.circle(
+        size: size,
+        colors: colors,
+        glowColor: glowColor,
         child: Icon(icon, color: Colors.white, size: size * 0.45),
       ),
     );

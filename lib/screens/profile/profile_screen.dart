@@ -16,6 +16,7 @@ import '../../models/playlist.dart';
 import '../../models/post.dart';
 import '../../models/song.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/glass.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/cola_profile_card.dart';
@@ -338,9 +339,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   right: 4,
                                   child: GestureDetector(
                                     onTap: () => _deletePhoto(p.id),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                                    child: GlassIcon.circle(
+                                      size: 22,
+                                      colors: const [AppColors.danger, AppColors.accent],
+                                      glowColor: AppColors.danger.withValues(alpha: 0.4),
                                       child: const Icon(Icons.close, size: 14, color: Colors.white),
                                     ),
                                   ),

@@ -5,6 +5,7 @@ import '../../core/format.dart';
 import '../../core/socket_service.dart';
 import '../../models/notification_item.dart';
 import '../../theme/app_colors.dart';
+import '../party/party_screen.dart';
 
 /// Mirrors src/components/NotificationBell.jsx — fetches recent
 /// notifications, shows an unread badge, and bumps in real time on the
@@ -54,6 +55,28 @@ class _NotificationBellState extends State<NotificationBell> {
     });
   }
 
+  Future<void> _openNotification(NotificationItem n) async {
+    if (!n.isRead) {
+      setState(() {
+        _items = _items.map((it) => it.id == n.id
+            ? NotificationItem(id: it.id, type: it.type, title: it.title, body: it.body, data: it.data, isRead: true, createdAt: it.createdAt)
+            : it).toList();
+      });
+      try {
+        await ApiClient.post('/notifications/${n.id}/read');
+      } catch (_) {}
+    }
+    // Only room_invite has somewhere to actually go — there's no single-post
+    // detail screen yet for 'mention' to deep-link into, so those just get
+    // marked read.
+    if (n.type == 'room_invite') {
+      final roomId = n.data?['roomId'] as String?;
+      if (roomId != null && mounted) {
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId)));
+      }
+    }
+  }
+
   Future<void> _markAllRead() async {
     try {
       await ApiClient.post('/notifications/read-all');
@@ -96,6 +119,7 @@ class _NotificationBellState extends State<NotificationBell> {
           ),
           ..._items.take(10).map(
                 (n) => PopupMenuItem<void>(
+                  onTap: () => _openNotification(n),
                   child: SizedBox(
                     width: 260,
                     child: Column(

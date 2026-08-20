@@ -105,17 +105,11 @@ class _OtpScreenState extends State<OtpScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Container(
-                          width: 56,
-                          height: 56,
-                          decoration: glowRingDecoration(color: AppColors.primary),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppColors.primary.withValues(alpha: 0.15),
-                            ),
-                            child: const Icon(Icons.lock_rounded, color: AppColors.primary, size: 24),
-                          ),
+                        GlassIcon.circle(
+                          size: 56,
+                          colors: const [AppColors.accent2, AppColors.primary],
+                          glowColor: AppColors.primary.withValues(alpha: 0.4),
+                          child: const Icon(Icons.lock_rounded, color: Colors.white, size: 24),
                         ),
                         const SizedBox(height: 16),
                         const Text('Enter the code', style: TextStyle(color: AppColors.text, fontSize: 22, fontWeight: FontWeight.w800)),

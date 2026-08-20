@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/clay_colors.dart';
+import '../../theme/glass.dart';
 
 class NavItemData {
   final IconData icon;
@@ -78,17 +79,21 @@ class LiquidGlassBottomNav extends StatelessWidget {
                 top: -14,
                 child: GestureDetector(
                   onTap: onCreateTap,
-                  child: Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      gradient: AppGradients.volaCtaDiagonal,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: clay.bg, width: 3),
-                      boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.5), blurRadius: 14, offset: const Offset(0, 3))],
-                    ),
+                  child: Stack(
                     alignment: Alignment.center,
-                    child: const Icon(Icons.add, color: Colors.white, size: 28),
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: clay.bg, width: 3)),
+                      ),
+                      GlassIcon.circle(
+                        size: 50,
+                        colors: AppGradients.volaCta,
+                        glowColor: AppColors.primary.withValues(alpha: 0.5),
+                        child: const Icon(Icons.add, color: Colors.white, size: 28),
+                      ),
+                    ],
                   ),
                 ),
               ),
