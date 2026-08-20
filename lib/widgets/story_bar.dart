@@ -93,14 +93,14 @@ class StoryBar extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(2),
+              padding: const EdgeInsets.all(2.5),
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [AppColors.primary, AppColors.accent]),
+                gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppGradients.brand),
               ),
               child: Container(
                 padding: const EdgeInsets.all(2),
-                decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.bg),
+                decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.surface),
                 child: Avatar(src: s.avatarUrl, name: s.name, size: AvatarSize.lg),
               ),
             ),

@@ -37,7 +37,7 @@ class ParticipantAvatarRow extends StatelessWidget {
                         ? const BoxDecoration(shape: BoxShape.circle, border: Border.fromBorderSide(BorderSide(color: AppColors.success, width: 2)))
                         : const BoxDecoration(
                             shape: BoxShape.circle,
-                            gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [AppColors.primary, AppColors.accent]),
+                            gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppGradients.brand),
                           ),
                     child: Container(
                       padding: r.micOn ? EdgeInsets.zero : const EdgeInsets.all(2),

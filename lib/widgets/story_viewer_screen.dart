@@ -182,7 +182,7 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> with SingleTicker
     return Container(
       alignment: Alignment.center,
       padding: const EdgeInsets.symmetric(horizontal: 32),
-      decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [AppColors.primary, AppColors.accent])),
+      decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppGradients.brand)),
       child: Text(item.text ?? '', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
     );
   }

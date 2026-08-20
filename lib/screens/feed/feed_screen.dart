@@ -242,11 +242,14 @@ class _FeedScreenState extends State<FeedScreen> {
     );
   }
 
+  // Flat, borderless card (no rounded container) with a hairline divider
+  // between posts — matches the redesign's Instagram-style feed layout
+  // instead of the previous bordered card.
   Widget _postCard(Post post) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.border))),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -255,18 +258,23 @@ class _FeedScreenState extends State<FeedScreen> {
             child: Row(
               children: [
                 Avatar(src: post.author.avatarUrl, name: post.author.name, size: AvatarSize.sm),
-                const SizedBox(width: 8),
-                Expanded(child: Text(post.author.name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 13))),
+                const SizedBox(width: 10),
+                Expanded(child: Text(post.author.name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.5))),
                 Text(formatRelativeTime(post.createdAt), style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
+                const SizedBox(width: 4),
+                const Icon(Icons.more_horiz_rounded, color: AppColors.textFaint, size: 19),
               ],
             ),
           ),
-          if (post.text != null && post.text!.isNotEmpty)
+          if (post.text != null && post.text!.isNotEmpty && post.imageData == null)
             Padding(padding: const EdgeInsets.only(top: 8), child: Text(post.text!, style: const TextStyle(color: AppColors.text))),
           if (post.imageData != null)
             Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: ClipRRect(borderRadius: BorderRadius.circular(12), child: AppImage(source: post.imageData, fit: BoxFit.cover)),
+              padding: const EdgeInsets.only(top: 10),
+              child: SizedBox(
+                width: double.infinity,
+                child: AspectRatio(aspectRatio: 1, child: AppImage(source: post.imageData, fit: BoxFit.cover)),
+              ),
             ),
           if (post.mediaType == 'voice' && post.voiceData != null)
             Padding(
@@ -279,38 +287,57 @@ class _FeedScreenState extends State<FeedScreen> {
             ),
           if (post.mediaType == 'video_link' && post.videoUrl != null) _videoLinkTile(post.videoUrl!),
           if (post.mediaType == 'poll' && post.pollOptions != null) _pollOptions(post),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Row(children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Row(
+              children: [
                 GestureDetector(
                   onTap: () => _toggleLike(post),
-                  child: Icon(post.likedByMe ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: post.likedByMe ? AppColors.danger : AppColors.textDim, size: 20),
+                  child: Icon(post.likedByMe ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: post.likedByMe ? AppColors.danger : AppColors.text, size: 24),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 16),
                 GestureDetector(
-                  onTap: post.likesCount > 0 ? () => showPostLikesSheet(context, postId: post.id) : null,
-                  child: Text('${post.likesCount}', style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
+                  onTap: () => _openComments(post),
+                  child: const Icon(Icons.mode_comment_outlined, color: AppColors.text, size: 23),
                 ),
-              ]),
-              const SizedBox(width: 20),
-              GestureDetector(
-                onTap: () => _openComments(post),
-                child: Row(children: [
-                  const Icon(Icons.mode_comment_outlined, color: AppColors.textDim, size: 19),
-                  const SizedBox(width: 4),
-                  Text('${post.commentsCount}', style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
-                ]),
-              ),
-              const Spacer(),
-              ShareRow(text: post.text),
-              const SizedBox(width: 4),
-              GestureDetector(
-                onTap: () => _toggleSave(post),
-                child: Icon(post.savedByMe ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, color: post.savedByMe ? AppColors.primary : AppColors.textDim, size: 20),
-              ),
-            ],
+                const SizedBox(width: 16),
+                ShareRow(text: post.text),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () => _toggleSave(post),
+                  child: Icon(post.savedByMe ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, color: AppColors.text, size: 22),
+                ),
+              ],
+            ),
           ),
+          if (post.likesCount > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: GestureDetector(
+                onTap: () => showPostLikesSheet(context, postId: post.id),
+                child: Text('${post.likesCount} likes', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13)),
+              ),
+            ),
+          if (post.text != null && post.text!.isNotEmpty && post.imageData != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(text: '${post.author.name}  ', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13)),
+                    TextSpan(text: post.text!, style: const TextStyle(color: AppColors.text, fontSize: 13)),
+                  ],
+                ),
+              ),
+            ),
+          if (post.commentsCount > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: GestureDetector(
+                onTap: () => _openComments(post),
+                child: Text('View all ${post.commentsCount} comments', style: const TextStyle(color: AppColors.textFaint, fontSize: 12.5)),
+              ),
+            ),
         ],
       ),
     );

@@ -335,7 +335,7 @@ class _HomeScreenState extends State<HomeScreen> {
               (thumbnail != null && thumbnail.isNotEmpty)
                   ? AppImage(source: thumbnail, fit: BoxFit.cover)
                   : Container(
-                      decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [AppColors.accent, AppColors.primary])),
+                      decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppGradients.brand)),
                       alignment: Alignment.center,
                       child: _roomTypeIcon(r['roomType'] as String?, 64),
                     ),

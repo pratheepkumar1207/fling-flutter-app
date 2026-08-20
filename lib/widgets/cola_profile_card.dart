@@ -36,7 +36,7 @@ class ColaProfileCard extends StatelessWidget {
     this.gradient = const LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [AppColors.accent, AppColors.primary, AppColors.primaryDim],
+      colors: [AppColors.accent, AppColors.accent2, AppColors.primaryDim],
     ),
   });
 
