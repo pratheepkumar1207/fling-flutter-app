@@ -6,6 +6,7 @@ import '../../core/format.dart';
 import '../../core/pip_service.dart';
 import '../../core/youtube_util.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/room_play_pause_button.dart';
 import '../../widgets/static_bloom_player.dart';
 import '../../widgets/volume_dots.dart';
 
@@ -305,12 +306,16 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer> with WidgetsBindingOb
           fit: StackFit.expand,
           children: [
             YoutubePlayer(controller: controller, showVideoProgressIndicator: false),
-            // Tap anywhere on the video toggles play/pause — _handleTap
-            // itself is a no-op for non-hosts, so this is host-only in
-            // effect despite the whole video being the tap target.
-            Positioned.fill(
-              child: GestureDetector(behavior: HitTestBehavior.translucent, onTap: _handleTap),
-            ),
+            // A dedicated button, not a whole-video tap target — tapping
+            // anywhere on the video (e.g. near the seek bar) was toggling
+            // playback by accident.
+            if (widget.isHost)
+              Center(
+                child: ValueListenableBuilder(
+                  valueListenable: controller,
+                  builder: (context, value, _) => RoomPlayPauseButton(playing: value.isPlaying, onTap: _handleTap),
+                ),
+              ),
             Positioned(
               top: 8,
               left: 8,

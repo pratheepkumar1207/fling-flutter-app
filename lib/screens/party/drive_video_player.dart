@@ -5,6 +5,7 @@ import '../../core/background_audio_handler.dart';
 import '../../core/format.dart';
 import '../../core/pip_service.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/room_play_pause_button.dart';
 import '../../widgets/spinner.dart';
 import '../../widgets/static_bloom_player.dart';
 import '../../widgets/volume_dots.dart';
@@ -290,12 +291,10 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer> with WidgetsBinding
           fit: StackFit.expand,
           children: [
             VideoPlayer(controller),
-            // Tap anywhere on the video toggles play/pause — _handleTap
-            // itself is a no-op for non-hosts, so this is host-only in
-            // effect despite the whole video being the tap target.
-            Positioned.fill(
-              child: GestureDetector(behavior: HitTestBehavior.translucent, onTap: _handleTap),
-            ),
+            // A dedicated button, not a whole-video tap target — tapping
+            // anywhere on the video (e.g. near the seek bar) was toggling
+            // playback by accident.
+            if (widget.isHost) Center(child: RoomPlayPauseButton(playing: controller.value.isPlaying, onTap: _handleTap)),
             Positioned(
               top: 8,
               left: 8,
