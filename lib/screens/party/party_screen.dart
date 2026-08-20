@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../core/active_room_holder.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_provider.dart';
+import '../../core/pip_service.dart';
+import '../../core/profile_nav.dart';
 import '../../core/room_presence_service.dart';
 import '../../core/socket_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/club_room_colors.dart';
 import '../../theme/vola_party_colors.dart';
-import '../../widgets/banner_carousel.dart';
 import '../../widgets/gift_bottom_sheet.dart';
 import '../../widgets/game_board_view.dart';
 import '../../widgets/live_video_view.dart';
 import '../../widgets/participant_avatar_row.dart';
 import '../../widgets/poll_bottom_sheet.dart';
 import '../../widgets/poll_creator_bottom_sheet.dart';
+import '../../widgets/room_host_card.dart';
 import '../../widgets/room_settings_sheet.dart';
+import '../../widgets/share_row.dart';
 import '../../widgets/spinner.dart';
 import '../../widgets/voice_stage_view.dart';
 import '../lobby/invite_screen.dart';
@@ -44,7 +48,7 @@ class PartyScreen extends StatefulWidget {
   State<PartyScreen> createState() => _PartyScreenState();
 }
 
-class _PartyScreenState extends State<PartyScreen> {
+class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   final _hostKey = GlobalKey();
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   Map<String, dynamic>? _room;
@@ -62,9 +66,54 @@ class _PartyScreenState extends State<PartyScreen> {
   // null means "follow the queue item's own mediaMode".
   String? _viewModeOverride;
 
+  // Tracks what we last told the native PIP channel, so we only call it on
+  // an actual change instead of every rebuild.
+  bool? _lastAutoPipEnabled;
+  void _syncAutoPip(bool enabled) {
+    if (_lastAutoPipEnabled == enabled) return;
+    _lastAutoPipEnabled = enabled;
+    PipService.setAutoPipEnabled(enabled);
+  }
+
+  // Native auto-PIP (MainActivity.kt's onUserLeaveHint) hasn't been firing
+  // reliably on every device (confirmed live: zero "FlingPip" logs on a
+  // Home-button press) — this is a separate, more reliable trigger that
+  // doesn't depend on that native callback at all. Flutter's own lifecycle
+  // observer already has to work correctly for the video players' own
+  // backgrounded/resumed handling, so driving PIP entry from here instead
+  // sidesteps whatever's wrong with onUserLeaveHint on some devices.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // `inactive` (not `paused`) — the Activity is still resumed/visible at
+    // that point, which entering PIP requires; by `paused` it's too late.
+    if (state == AppLifecycleState.inactive && (_lastAutoPipEnabled ?? false)) {
+      PipService.enterPip();
+    }
+  }
+
+  // True once minimizing was rejected in favor of an explicit "Leave Room"
+  // — see _leaveRoom(). Guards dispose() from tearing down a connection
+  // that a plain back-navigation/tab-switch should leave alone.
+  bool _didLeaveRoom = false;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Reattaching to a room already kept alive by ActiveRoomHolder (the
+    // user minimized it earlier, not left it) — reuse everything instead
+    // of rejoining from scratch, which would otherwise show a blank
+    // "joining…" state and briefly desync from whatever's already playing.
+    if (ActiveRoomHolder.roomId == widget.roomId && ActiveRoomHolder.controller != null) {
+      _room = ActiveRoomHolder.room;
+      _rs = ActiveRoomHolder.controller;
+      _voice = ActiveRoomHolder.voice;
+      _live = ActiveRoomHolder.live;
+      _loading = false;
+      _rs!.addListener(_onRoomStateChanged);
+      _loadLiked();
+      return;
+    }
     _loadRoom();
     _loadLiked();
     WidgetsBinding.instance.addPostFrameCallback((_) => _initSocket());
@@ -80,6 +129,7 @@ class _PartyScreenState extends State<PartyScreen> {
       });
       RoomPresenceService.start((_room?['title'] as String?) ?? 'Watch Party');
       _maybeInitLive();
+      _maybeRegisterActiveRoom();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -109,6 +159,17 @@ class _PartyScreenState extends State<PartyScreen> {
     RoomPresenceService.start((_room?['title'] as String?) ?? 'Watch Party');
     _voice = VoiceChatController(roomId: widget.roomId);
     _maybeInitLive();
+    _maybeRegisterActiveRoom();
+  }
+
+  // _room (REST) and _rs (socket) load independently and finish in
+  // whichever order the network happens to resolve them — this fires from
+  // both paths and only actually registers once both are in.
+  void _maybeRegisterActiveRoom() {
+    final room = _room;
+    final rs = _rs;
+    if (room == null || rs == null) return;
+    ActiveRoomHolder.set(roomId: widget.roomId, controller: rs, room: room, voice: _voice, live: _live);
   }
 
   void _maybeInitLive() {
@@ -123,6 +184,7 @@ class _PartyScreenState extends State<PartyScreen> {
 
     if (rs.kicked) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('You were removed from this room')));
+      _didLeaveRoom = true; // A real removal, not a minimize — tear the connection down too.
       Navigator.of(context).pop();
       return;
     }
@@ -402,6 +464,10 @@ class _PartyScreenState extends State<PartyScreen> {
     final isWatch = room['roomType'] == 'watch';
     final isGame = room['roomType'] == 'game';
     final isVoice = room['roomType'] == 'voice';
+    // Auto-PIP only while there's actually a watch-party video up — pressing
+    // home from Home/Feed/chat/etc. shouldn't pop a PIP window with nothing
+    // worth watching in it.
+    _syncAutoPip(isWatch && currentItem != null);
     // Voice Room and Watch Party each get their own dedicated reskin (see
     // club_room_colors.dart / vola_party_colors.dart) — every other room
     // type keeps the app's normal claymorphism theme via AppColors,
@@ -416,7 +482,13 @@ class _PartyScreenState extends State<PartyScreen> {
     final roomPrimary = isVoice ? ClubRoomColors.primary : (isWatch ? VolaPartyColors.primary : AppColors.primary);
     final roomGold = isVoice ? ClubRoomColors.gold : (isWatch ? VolaPartyColors.gold : AppColors.gold);
     final roomDanger = isVoice ? ClubRoomColors.danger : (isWatch ? VolaPartyColors.danger : AppColors.danger);
+    final roomText = isVoice ? ClubRoomColors.text : (isWatch ? VolaPartyColors.text : AppColors.text);
     final myId = context.read<AuthProvider>().user?.id;
+    final hostRoster = rs.roster.where((r) => r.userId == rs.hostId);
+    final hostName = hostRoster.isNotEmpty ? hostRoster.first.name : (room['hostName'] as String? ?? 'Host');
+    final hostAvatarUrl = hostRoster.isNotEmpty ? hostRoster.first.avatarUrl : null;
+    final boostedUntilRaw = room['boostedUntil'] as String?;
+    final isBoosted = boostedUntilRaw != null && (DateTime.tryParse(boostedUntilRaw)?.isAfter(DateTime.now()) ?? false);
     final activeMics = (rs.call['activeMics'] as List? ?? []).cast<String>();
     final pendingRequests = (rs.call['pendingRequests'] as List? ?? []).cast<String>();
     final mutedMics = (rs.call['mutedMics'] as List? ?? []).cast<String>();
@@ -455,7 +527,18 @@ class _PartyScreenState extends State<PartyScreen> {
       }
     }
 
-    return Scaffold(
+    return ValueListenableBuilder<bool>(
+      valueListenable: PipService.isInPip,
+      builder: (context, inPip, _) {
+        if (inPip && isWatch) {
+          // The real Android PIP window is tiny — no room for the app bar,
+          // chat, or controls, just the video itself.
+          return Scaffold(
+            backgroundColor: Colors.black,
+            body: player(mediaMode: _viewModeOverride ?? (currentItem?['mediaMode'] as String? ?? 'video')),
+          );
+        }
+        return Scaffold(
       key: _scaffoldKey,
       backgroundColor: isWatch ? Colors.transparent : roomBg,
       endDrawer: RosterSheet(
@@ -496,6 +579,11 @@ class _PartyScreenState extends State<PartyScreen> {
               onPressed: _openQueue,
               icon: Icon(Icons.search, color: roomTextDim),
             ),
+          ShareRow(
+            text: 'Join "${room['title'] ?? 'my room'}" on Insync',
+            url: '${ApiClient.baseUrl}/rooms/${widget.roomId}',
+            iconAsset: 'assets/icons/app/share_lobby.png',
+          ),
           TextButton(onPressed: _openRoster, child: Text('👥 ${rs.roster.length}', style: TextStyle(color: roomTextDim))),
           if (rs.isHost && room['roomType'] != 'live')
             IconButton(
@@ -503,13 +591,27 @@ class _PartyScreenState extends State<PartyScreen> {
               onPressed: () => showRoomSettingsSheet(context, room: room, onChanged: _loadRoom),
               icon: Icon(Icons.settings_outlined, color: roomTextDim),
             ),
+          // Distinct from the back button on purpose — back just minimizes
+          // (the room keeps running, see ActiveRoomHolder), this is the
+          // only thing that actually leaves.
+          IconButton(
+            tooltip: 'Leave room',
+            onPressed: _leaveRoom,
+            icon: Icon(Icons.logout_rounded, color: roomTextDim),
+          ),
         ],
       ),
-      body: Container(
+      body: GestureDetector(
+        // Swipe right-to-left opens the Queue — same destination as tapping
+        // the queue icon, just a gesture shortcut. QueueSheetScreen's own
+        // swipe (left-to-right) mirrors this to close back to the room.
+        onHorizontalDragEnd: (details) {
+          if ((details.primaryVelocity ?? 0) < -250) _openQueue();
+        },
+        child: Container(
         decoration: roomBgGradient != null ? BoxDecoration(gradient: roomBgGradient) : null,
         child: Column(
         children: [
-          const Padding(padding: EdgeInsets.fromLTRB(12, 12, 12, 0), child: BannerCarousel(placement: 'room')),
           // Room-type-specific content — free to change shape however it
           // needs to, since none of it holds long-lived playback state.
           if (!isWatch)
@@ -563,15 +665,57 @@ class _PartyScreenState extends State<PartyScreen> {
           // of tearing it down.
           if (isWatch || currentItem != null)
             Padding(
-              padding: EdgeInsets.fromLTRB(12, isWatch ? 12 : 0, 12, 0),
-              child: player(
-                mediaMode: isWatch ? (_viewModeOverride ?? (currentItem?['mediaMode'] as String? ?? 'video')) : 'audio',
-                // Compact bar for every non-watch type (voice, game, live) —
-                // this used to only check isVoice, so a game room with a
-                // queued track rendered the full-size player stacked below
-                // the GameBoardView instead of a small audio bar.
-                compact: !isWatch,
+              padding: isWatch ? EdgeInsets.zero : const EdgeInsets.fromLTRB(12, 12, 12, 0),
+              // Full screen width, real 16:9 (no cropping), flush under the
+              // header — the player widgets already wrap themselves in
+              // AspectRatio(16/9) internally, so this just needs to not
+              // fight that. Same widget, same position in this Column
+              // either way, whatever platform the video is from.
+              child: isWatch
+                  ? player(
+                      mediaMode: _viewModeOverride ?? (currentItem?['mediaMode'] as String? ?? 'video'),
+                      compact: false,
+                    )
+                  : player(
+                      mediaMode: 'audio',
+                      // Compact bar for every non-watch type (voice, game, live) —
+                      // this used to only check isVoice, so a game room with a
+                      // queued track rendered the full-size player stacked below
+                      // the GameBoardView instead of a small audio bar.
+                      compact: true,
+                    ),
+            ),
+          if (isBoosted)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(color: roomSurface, borderRadius: BorderRadius.circular(12), border: Border.all(color: roomBorder)),
+                child: Row(
+                  children: [
+                    Icon(Icons.star_rounded, color: roomGold, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Featured', style: TextStyle(color: roomGold, fontWeight: FontWeight.w700, fontSize: 13)),
+                          Text('This watch party is featured', style: TextStyle(color: roomTextDim, fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right_rounded, color: roomTextDim),
+                  ],
+                ),
               ),
+            ),
+          if (isWatch)
+            RoomHostCard(
+              avatarUrl: hostAvatarUrl,
+              name: hostName,
+              textColor: roomText,
+              goldColor: roomGold,
+              onTap: () => openProfile(context, rs.hostId),
             ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
@@ -631,7 +775,7 @@ class _PartyScreenState extends State<PartyScreen> {
                   if (isWatch || isGame || isVoice)
                     _iconButton('📑', _openQueue, badge: items.isEmpty ? null : items.length, borderColor: roomBorder, badgeColor: roomPrimary),
                   _iconButton('🔗', _shareRoom, borderColor: roomBorder, badgeColor: roomPrimary),
-                  _iconButton('👥➕', _openInvite, borderColor: roomBorder, badgeColor: roomPrimary),
+                  _iconButton('👥➕', _openInvite, borderColor: roomBorder, badgeColor: roomPrimary, iconAsset: 'assets/icons/app/invite_in_room.png'),
                 ],
               ),
             ),
@@ -641,16 +785,19 @@ class _PartyScreenState extends State<PartyScreen> {
             child: Container(
               margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
               decoration: BoxDecoration(color: roomSurface, borderRadius: BorderRadius.circular(14), border: Border.all(color: roomBorder)),
-              child: ChatPanel(messages: rs.messages, onSend: rs.sendMessage, clubRoomTheme: isVoice),
+              child: ChatPanel(messages: rs.messages, onSend: rs.sendMessage, myUserId: myId, clubRoomTheme: isVoice),
             ),
           ),
         ],
         ),
       ),
+      ),
+    );
+      },
     );
   }
 
-  Widget _iconButton(String label, VoidCallback onTap, {Color? color, int? badge, Color? borderColor, Color? badgeColor}) {
+  Widget _iconButton(String label, VoidCallback onTap, {Color? color, int? badge, Color? borderColor, Color? badgeColor, String? iconAsset}) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: GestureDetector(
@@ -663,7 +810,7 @@ class _PartyScreenState extends State<PartyScreen> {
               height: 40,
               decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: borderColor ?? AppColors.border)),
               alignment: Alignment.center,
-              child: Text(label, style: TextStyle(color: color ?? AppColors.textDim, fontSize: 16)),
+              child: iconAsset != null ? Image.asset(iconAsset, width: 22, height: 22) : Text(label, style: TextStyle(color: color ?? AppColors.textDim, fontSize: 16)),
             ),
             if (badge != null)
               Positioned(
@@ -684,11 +831,34 @@ class _PartyScreenState extends State<PartyScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _rs?.removeListener(_onRoomStateChanged);
-    _rs?.leave();
-    _voice?.dispose();
-    _live?.dispose();
-    RoomPresenceService.stop();
+    // A plain pop (back button, gesture, switching tabs) is a minimize —
+    // ActiveRoomHolder keeps the connection/controllers alive so the room
+    // is still there (still playing, still in chat) if the user comes
+    // back, same as any other music/video app. Only _leaveRoom() actually
+    // tears this down; see its call to ActiveRoomHolder.leave().
+    if (_didLeaveRoom) {
+      ActiveRoomHolder.leave();
+    }
+    PipService.setAutoPipEnabled(false);
     super.dispose();
+  }
+
+  Future<void> _leaveRoom() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Leave this room?'),
+        content: const Text("You'll stop being part of the room — anyone else stays. Just switching screens or apps doesn't need this; the room keeps going in the background until you come back."),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Leave')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    _didLeaveRoom = true;
+    Navigator.of(context).pop();
   }
 }

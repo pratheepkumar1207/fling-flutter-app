@@ -79,11 +79,11 @@ class FlingTopBar extends StatelessWidget implements PreferredSizeWidget {
                           ),
                         ),
                         IconButton(
-                          icon: Icon(Icons.search_rounded, color: clay.textDim),
+                          icon: Image.asset('assets/icons/app/search.png', width: 44, height: 44),
                           onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchScreen())),
                         ),
                         IconButton(
-                          icon: Icon(Icons.chat_bubble_rounded, color: clay.textDim),
+                          icon: Image.asset('assets/icons/app/message.png', width: 44, height: 44),
                           onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MessagesScreen())),
                         ),
                         const NotificationBell(),

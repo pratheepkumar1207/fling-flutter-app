@@ -82,7 +82,7 @@ class _NotificationBellState extends State<NotificationBell> {
         label: Text('$_unreadCount'),
         backgroundColor: AppColors.primary,
         textColor: Colors.white,
-        child: const Icon(Icons.notifications_rounded, color: AppColors.textDim),
+        child: Image.asset('assets/icons/app/notification.png', width: 48, height: 48),
       ),
       color: AppColors.surface2,
       itemBuilder: (context) {

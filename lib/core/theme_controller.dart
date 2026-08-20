@@ -6,7 +6,7 @@ const _prefsKey = 'theme_mode';
 /// Persisted light/dark/system toggle for the claymorphism theme — mirrors
 /// AuthProvider's SharedPreferences pattern.
 class ThemeController extends ChangeNotifier {
-  ThemeMode _mode = ThemeMode.dark;
+  ThemeMode _mode = ThemeMode.light;
   ThemeMode get mode => _mode;
 
   Future<void> load() async {
@@ -16,7 +16,7 @@ class ThemeController extends ChangeNotifier {
       'light' => ThemeMode.light,
       'dark' => ThemeMode.dark,
       'system' => ThemeMode.system,
-      _ => ThemeMode.dark,
+      _ => ThemeMode.light,
     };
     notifyListeners();
   }

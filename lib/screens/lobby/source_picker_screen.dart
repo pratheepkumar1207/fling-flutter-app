@@ -119,11 +119,12 @@ class SourcePickerBody extends StatelessWidget {
         homeUrl: homeUrl,
         visibility: visibility,
         topic: topic,
-        onConfirmOverride: _inRoom
-            ? (sourceType, videoUrl, {videoTitle, videoThumbnail}) async {
-                await onSwitchSource!(sourceType, videoUrl, videoTitle: videoTitle, videoThumbnail: videoThumbnail);
-                if (context.mounted) Navigator.of(context).pop();
-              }
+        // In-room, picking a video queues it (or plays immediately if
+        // nothing's queued yet) — same as YouTube/Drive above — instead of
+        // hard-replacing what the room's currently on.
+        onAddToQueue: _inRoom
+            ? ({required videoUrl, required title, thumbnail, required mediaMode, String sourceType = 'youtube'}) =>
+                onAddToQueue!(videoUrl: videoUrl, title: title, thumbnail: thumbnail, mediaMode: mediaMode, sourceType: sourceType)
             : null,
       ),
     ));
@@ -180,22 +181,22 @@ class SourcePickerBody extends StatelessWidget {
       crossAxisCount: 3,
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 0.85,
+      childAspectRatio: 0.68,
       children: [
-        _SourceTile(icon: FontAwesomeIcons.youtube, iconColor: const Color(0xFFFF0000), label: 'YouTube', available: true, onTap: () => _openYoutube(context)),
+        _SourceTile(iconAsset: 'assets/icons/app/youtube.png', label: 'YouTube', available: true, onTap: () => _openYoutube(context)),
         _SourceTile(emoji: '❤️', label: 'Liked', available: true, onTap: () => _openAppSongList(context, title: 'Liked songs', endpoint: '/liked-songs')),
         _SourceTile(emoji: '🕘', label: 'History', available: true, onTap: () => _openAppSongList(context, title: 'History', endpoint: '/song-history')),
         _SourceTile(emoji: '📃', label: 'Playlists', available: true, onTap: () => _openPlaylists(context)),
-        _SourceTile(icon: FontAwesomeIcons.youtube, iconColor: const Color(0xFFFF0000), label: 'YouTube Surf', available: true, onTap: () => _openWebviewSource(context, platform: 'youtube_surf', label: 'YouTube Surf', homeUrl: 'https://www.youtube.com')),
+        _SourceTile(iconAsset: 'assets/icons/app/youtube.png', label: 'YouTube Surf', available: true, onTap: () => _openWebviewSource(context, platform: 'youtube_surf', label: 'YouTube Surf', homeUrl: 'https://www.youtube.com')),
         _SourceTile(icon: FontAwesomeIcons.googleDrive, iconColor: const Color(0xFF0F9D58), label: 'Drive', available: true, onTap: () => _openDrive(context)),
         // Netflix/Crunchyroll and the India-specific platforms below have no
         // real logo glyph available in font_awesome_flutter's brand set —
         // rather than guess at reproducing their trademarked logo art from
         // memory, these use a colored letter-badge (see _SourceTile.letter)
         // instead of a real logo.
-        _SourceTile(letter: 'N', badgeColor: const Color(0xFFE50914), label: 'Netflix', available: true, onTap: () => _openWebviewSource(context, platform: 'netflix', label: 'Netflix', homeUrl: 'https://www.netflix.com/in/')),
+        _SourceTile(iconAsset: 'assets/icons/app/netflix.png', label: 'Netflix', available: true, onTap: () => _openWebviewSource(context, platform: 'netflix', label: 'Netflix', homeUrl: 'https://www.netflix.com/in/')),
         _SourceTile(letter: 'H', badgeColor: const Color(0xFF1F80E0), label: 'Hotstar', available: true, onTap: () => _openWebviewSource(context, platform: 'hotstar', label: 'Hotstar', homeUrl: 'https://www.hotstar.com/in/')),
-        _SourceTile(icon: FontAwesomeIcons.amazon, iconColor: const Color(0xFFFF9900), label: 'Prime Video', available: true, onTap: () => _openWebviewSource(context, platform: 'amazon', label: 'Prime Video', homeUrl: 'https://www.primevideo.com')),
+        _SourceTile(iconAsset: 'assets/icons/app/amazon_prime.png', label: 'Prime Video', available: true, onTap: () => _openWebviewSource(context, platform: 'amazon', label: 'Prime Video', homeUrl: 'https://www.primevideo.com')),
         _SourceTile(letter: 'A', badgeColor: const Color(0xFFE4002B), label: 'Aha', available: true, onTap: () => _openWebviewSource(context, platform: 'aha', label: 'Aha', homeUrl: 'https://www.aha.video')),
         _SourceTile(letter: 'S', badgeColor: const Color(0xFFF7941D), label: 'SunNXT', available: true, onTap: () => _openWebviewSource(context, platform: 'sunnxt', label: 'SunNXT', homeUrl: 'https://www.sunnxt.com')),
         _SourceTile(letter: 'S', badgeColor: const Color(0xFF00A0DC), label: 'SonyLIV', available: true, onTap: () => _openWebviewSource(context, platform: 'sonyliv', label: 'SonyLIV', homeUrl: 'https://www.sonyliv.com')),
@@ -222,6 +223,7 @@ class _SourceTile extends StatelessWidget {
   final Color? iconColor;
   final String? letter;
   final Color? badgeColor;
+  final String? iconAsset;
   final String label;
   final bool available;
   final VoidCallback? onTap;
@@ -232,12 +234,14 @@ class _SourceTile extends StatelessWidget {
     this.iconColor,
     this.letter,
     this.badgeColor,
+    this.iconAsset,
     required this.label,
     required this.available,
     this.onTap,
   });
 
   Widget _visual() {
+    if (iconAsset != null) return Image.asset(iconAsset!, width: 56, height: 56);
     if (icon != null) return FaIcon(icon, color: iconColor, size: 26);
     if (letter != null) {
       return Container(

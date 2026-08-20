@@ -20,6 +20,9 @@ String formatRelativeTime(DateTime? value) {
   return DateFormat.MMMd().format(value);
 }
 
+/// "10:21 PM" — chat message timestamps.
+String formatClockTime(DateTime value) => DateFormat.jm().format(value);
+
 // Accepts dynamic, not num — Postgres COUNT()/SUM()/DECIMAL results often
 // arrive as JSON strings (driver precision-safety quirk — e.g. coinBalance
 // "10.00", or a raw SUM() aggregate like leaderboards' totalCoins), so
