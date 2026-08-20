@@ -1,0 +1,40 @@
+name: Build APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_mode:
+        description: "APK build mode"
+        required: false
+        default: "release"
+        type: choice
+        options:
+          - release
+          - debug
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # The release build type already signs with the debug keystore (see
+      # android/app/build.gradle.kts — no real release signing config has
+      # been set up yet), so this produces an installable APK either way
+      # with no signing secrets required.
+      - name: Build APK
+        run: flutter build apk --${{ inputs.build_mode || 'release' }}
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: fling-${{ inputs.build_mode || 'release' }}-apk
+          path: build/app/outputs/flutter-apk/app-${{ inputs.build_mode || 'release' }}.apk
+          retention-days: 14
