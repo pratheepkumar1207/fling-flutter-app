@@ -18,6 +18,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
   bool _loading = true;
   List<Map<String, dynamic>> _friends = [];
   List<Map<String, dynamic>> _requests = [];
+  List<Map<String, dynamic>> _suggested = [];
+  final Set<String> _suggestedSent = {};
 
   @override
   void initState() {
@@ -30,11 +32,13 @@ class _FriendsScreenState extends State<FriendsScreen> {
     final results = await Future.wait([
       ApiClient.get('/friends').catchError((_) => []),
       ApiClient.get('/friends/requests').catchError((_) => []),
+      ApiClient.get('/friends/suggestions').catchError((_) => []),
     ]);
     if (!mounted) return;
     setState(() {
       _friends = ((results[0] as List?) ?? []).cast<Map<String, dynamic>>();
       _requests = ((results[1] as List?) ?? []).cast<Map<String, dynamic>>();
+      _suggested = ((results[2] as List?) ?? []).cast<Map<String, dynamic>>();
       _loading = false;
     });
   }
@@ -51,6 +55,15 @@ class _FriendsScreenState extends State<FriendsScreen> {
       await ApiClient.post('/friends/$id/reject');
       _load();
     } catch (_) {}
+  }
+
+  Future<void> _addSuggested(String userId) async {
+    try {
+      await ApiClient.post('/friends/request', body: {'toUserId': userId});
+      if (mounted) setState(() => _suggestedSent.add(userId));
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to send request')));
+    }
   }
 
   @override
@@ -98,14 +111,15 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                   );
                                 },
                               ))
-                        : (_requests.isEmpty
-                            ? const Center(child: Text('No pending requests', style: TextStyle(color: AppColors.textFaint)))
-                            : ListView.builder(
-                                padding: const EdgeInsets.symmetric(vertical: 4),
-                                itemCount: _requests.length,
-                                itemBuilder: (context, i) {
-                                  final r = _requests[i];
-                                  return Padding(
+                        : ListView(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            children: [
+                              if (_requests.isEmpty && _suggested.isEmpty)
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 40),
+                                  child: Center(child: Text('No pending requests', style: TextStyle(color: AppColors.textFaint))),
+                                ),
+                              ..._requests.map((r) => Padding(
                                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
                                     child: Row(
                                       children: [
@@ -134,9 +148,56 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                         ),
                                       ],
                                     ),
+                                  )),
+                              // Friends-of-friends you're not already friends
+                              // with, matching FriendsDark.dc.html's
+                              // "Suggested" section — GET /friends/suggestions
+                              // didn't exist before, this section had nothing
+                              // to show.
+                              if (_suggested.isNotEmpty) ...[
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+                                  child: Text('SUGGESTED', style: const TextStyle(color: AppColors.textFaint, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
+                                ),
+                                ..._suggested.map((s) {
+                                  final id = s['id'] as String;
+                                  final sent = _suggestedSent.contains(id);
+                                  final mutualCount = s['mutualCount'] as int? ?? 0;
+                                  return GestureDetector(
+                                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => CreatorProfileScreen(userId: id))),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
+                                      child: Row(
+                                        children: [
+                                          Avatar(src: s['avatarUrl'] as String?, name: s['name'] as String?, size: AvatarSize.md),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(s['name'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.5)),
+                                                Text('$mutualCount mutual friend${mutualCount == 1 ? '' : 's'}', style: const TextStyle(color: AppColors.textFaint, fontSize: 11.5)),
+                                              ],
+                                            ),
+                                          ),
+                                          GestureDetector(
+                                            onTap: sent ? null : () => _addSuggested(id),
+                                            child: Container(
+                                              height: 32,
+                                              padding: const EdgeInsets.symmetric(horizontal: 14),
+                                              decoration: BoxDecoration(borderRadius: BorderRadius.circular(999), border: Border.all(color: AppColors.border)),
+                                              alignment: Alignment.center,
+                                              child: Text(sent ? 'Sent' : 'Add', style: const TextStyle(color: AppColors.textDim, fontWeight: FontWeight.w700, fontSize: 12)),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   );
-                                },
-                              )),
+                                }),
+                              ],
+                            ],
+                          ),
           ),
         ],
       ),
