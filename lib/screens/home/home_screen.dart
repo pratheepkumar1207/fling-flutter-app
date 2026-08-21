@@ -261,7 +261,7 @@ class _HomeScreenState extends State<HomeScreen> {
           else ...[
             if (_invited.isNotEmpty) ...[
               _sectionHeader('Invited'),
-              ..._invited.map((r) => _roomTile(r.id, r.title, r.hostName, r.memberCount, badge: 'Invited')),
+              ..._invited.map((r) => _roomTile(r.id, r.title, r.hostName, r.memberCount, inviteLabel: 'Invited')),
               const SizedBox(height: 20),
             ],
             _sectionHeader('Featured', iconAsset: 'assets/icons/rooms/featured.png'),
@@ -297,6 +297,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             thumbnail: r['nowPlayingThumbnail'] as String?,
                             members: r['members'] as List?,
                             roomType: r['roomType'] as String?,
+                            nowPlayingTitle: r['nowPlayingTitle'] as String?,
+                            isBoosted: r['isBoosted'] == true,
                           )),
                       ..._scheduledEvents.map(_eventTile),
                     ],
@@ -423,67 +425,126 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _roomTile(String id, String? title, String? hostName, int memberCount, {String? badge, String? thumbnail, List<dynamic>? members, String? roomType}) {
+  // roomType -> (badge label, badge tint) matching Lobby.dc.html's
+  // per-type pastel pill colors. 'live' gets its own accent-tinted "Live
+  // now" pill instead of always stamping every room with a LIVE badge
+  // regardless of type, which is what this replaced.
+  static const _typeBadges = {
+    'watch': ('Watch party', Color(0xFF4272D9)),
+    'voice': ('Voice room', Color(0xFFA23FCB)),
+    'game': ('Game room', Color(0xFF2E9E5B)),
+    'live': ('Live now', AppColors.accent),
+  };
+
+  Widget _roomTile(
+    String id,
+    String? title,
+    String? hostName,
+    int memberCount, {
+    String? thumbnail,
+    List<dynamic>? members,
+    String? roomType,
+    String? nowPlayingTitle,
+    bool isBoosted = false,
+    String? inviteLabel,
+  }) {
+    final isLive = roomType == 'live';
+    final (badgeLabel, badgeColor) = _typeBadges[roomType] ?? ('Room', AppColors.textFaint);
     return GestureDetector(
       onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: id))),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: isLive ? AppColors.accent.withValues(alpha: 0.35) : AppColors.border),
+        ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: 96,
-              child: (thumbnail != null && thumbnail.isNotEmpty)
-                  ? AppImage(source: thumbnail, fit: BoxFit.cover)
-                  : Container(color: AppColors.surface3, alignment: Alignment.center, child: _roomTypeIcon(roomType, 24)),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(title ?? 'Untitled room', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w500)),
-                        ),
-                        if (badge != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(999)),
-                            child: Text(badge, style: const TextStyle(color: AppColors.accent, fontSize: 11)),
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: SizedBox(
+                    width: 64,
+                    height: 64,
+                    child: (thumbnail != null && thumbnail.isNotEmpty)
+                        ? AppImage(source: thumbnail, fit: BoxFit.cover)
+                        : Container(
+                            decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppGradients.brand)),
+                            alignment: Alignment.center,
+                            child: _roomTypeIcon(roomType, 24),
                           ),
-                      ],
+                  ),
+                ),
+                if (isLive)
+                  Positioned(
+                    top: 5,
+                    left: 5,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.55), borderRadius: BorderRadius.circular(999)),
+                      child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.circle, size: 5, color: Colors.white),
+                        SizedBox(width: 3),
+                        Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w700)),
+                      ]),
                     ),
-                    Text(hostName ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.textFaint, fontSize: 12)),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
+                  ),
+              ],
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(color: badgeColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(999)),
+                        child: Text(badgeLabel, style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.w700)),
+                      ),
+                      if (isBoosted) ...[
+                        const SizedBox(width: 6),
+                        const Icon(Icons.star_rounded, size: 11, color: AppColors.gold),
+                        const SizedBox(width: 2),
+                        const Text('Boosted', style: TextStyle(color: AppColors.gold, fontSize: 10, fontWeight: FontWeight.w700)),
+                      ],
+                      if (inviteLabel != null) ...[
+                        const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(color: AppColors.danger.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(999)),
-                          child: Row(mainAxisSize: MainAxisSize.min, children: const [
-                            Icon(Icons.circle, size: 6, color: AppColors.danger),
-                            SizedBox(width: 4),
-                            Text('LIVE', style: TextStyle(color: AppColors.danger, fontSize: 10, fontWeight: FontWeight.w700)),
-                          ]),
+                          decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(999)),
+                          child: Text(inviteLabel, style: const TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.w700)),
                         ),
-                        const SizedBox(width: 8),
-                        Icon(Icons.people_alt_rounded, size: 13, color: AppColors.textFaint),
-                        const SizedBox(width: 3),
-                        Text('$memberCount', style: const TextStyle(color: AppColors.textFaint, fontSize: 12, fontWeight: FontWeight.w600)),
                       ],
-                    ),
-                    if (members != null && members.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      MemberAvatarStrip(members: members),
                     ],
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(title ?? 'Untitled room', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 14)),
+                  Text('Hosted by ${hostName ?? 'Unknown'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.textFaint, fontSize: 11.5)),
+                  if (roomType == 'watch' && nowPlayingTitle != null && nowPlayingTitle.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: Row(children: [
+                        const Icon(Icons.play_arrow_rounded, size: 12, color: AppColors.primary),
+                        const SizedBox(width: 2),
+                        Expanded(child: Text('Now playing — $nowPlayingTitle', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w600))),
+                      ]),
+                    ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      if (members != null && members.isNotEmpty) Flexible(child: MemberAvatarStrip(members: members)),
+                      const SizedBox(width: 6),
+                      Icon(Icons.people_alt_rounded, size: 12, color: AppColors.textFaint),
+                      const SizedBox(width: 3),
+                      Text('$memberCount ${isLive ? 'watching' : roomType == 'voice' ? 'listening' : roomType == 'game' ? 'spectating' : 'watching'}', style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],
