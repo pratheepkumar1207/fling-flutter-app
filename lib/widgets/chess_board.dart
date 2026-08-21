@@ -16,16 +16,46 @@ const _kGlyphs = {
   'black': {'p': '♟', 'n': '♞', 'b': '♝', 'r': '♜', 'q': '♛', 'k': '♚'},
 };
 
-const _kKnightOffsets = [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]];
-const _kKingOffsets = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
-const _kBishopDirs = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
-const _kRookDirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+const _kKnightOffsets = [
+  [-2, -1],
+  [-2, 1],
+  [-1, -2],
+  [-1, 2],
+  [1, -2],
+  [1, 2],
+  [2, -1],
+  [2, 1]
+];
+const _kKingOffsets = [
+  [-1, -1],
+  [-1, 0],
+  [-1, 1],
+  [0, -1],
+  [0, 1],
+  [1, -1],
+  [1, 0],
+  [1, 1]
+];
+const _kBishopDirs = [
+  [-1, -1],
+  [-1, 1],
+  [1, -1],
+  [1, 1]
+];
+const _kRookDirs = [
+  [-1, 0],
+  [1, 0],
+  [0, -1],
+  [0, 1]
+];
 
 bool _inBounds(int r, int c) => r >= 0 && r < 8 && c >= 0 && c < 8;
 
-Map<String, dynamic>? _pieceAt(List board, int r, int c) => board[r][c] as Map<String, dynamic>?;
+Map<String, dynamic>? _pieceAt(List board, int r, int c) =>
+    board[r][c] as Map<String, dynamic>?;
 
-List<List<int>> _pseudoMoves(List board, int row, int col, List? enPassantTarget, Map? castlingRights) {
+List<List<int>> _pseudoMoves(
+    List board, int row, int col, List? enPassantTarget, Map? castlingRights) {
   final piece = _pieceAt(board, row, col);
   if (piece == null) return [];
   final moves = <List<int>>[];
@@ -48,7 +78,9 @@ List<List<int>> _pseudoMoves(List board, int row, int col, List? enPassantTarget
     final startRow = piece['color'] == 'white' ? 1 : 6;
     if (_inBounds(row + dir, col) && _pieceAt(board, row + dir, col) == null) {
       moves.add([row + dir, col]);
-      if (row == startRow && _pieceAt(board, row + 2 * dir, col) == null) moves.add([row + 2 * dir, col]);
+      if (row == startRow && _pieceAt(board, row + 2 * dir, col) == null) {
+        moves.add([row + 2 * dir, col]);
+      }
     }
     for (final dc in [-1, 1]) {
       final r = row + dir, c = col + dc;
@@ -56,7 +88,9 @@ List<List<int>> _pseudoMoves(List board, int row, int col, List? enPassantTarget
       final target = _pieceAt(board, r, c);
       if (target != null && target['color'] == enemy) {
         moves.add([r, c]);
-      } else if (enPassantTarget != null && enPassantTarget[0] == r && enPassantTarget[1] == c) {
+      } else if (enPassantTarget != null &&
+          enPassantTarget[0] == r &&
+          enPassantTarget[1] == c) {
         moves.add([r, c]);
       }
     }
@@ -71,15 +105,24 @@ List<List<int>> _pseudoMoves(List board, int row, int col, List? enPassantTarget
     final rights = castlingRights?[piece['color']] as Map?;
     final homeRow = piece['color'] == 'white' ? 0 : 7;
     if (row == homeRow && col == 4 && rights != null) {
-      if (rights['k'] == true && _pieceAt(board, homeRow, 5) == null && _pieceAt(board, homeRow, 6) == null) {
+      if (rights['k'] == true &&
+          _pieceAt(board, homeRow, 5) == null &&
+          _pieceAt(board, homeRow, 6) == null) {
         moves.add([homeRow, 6]);
       }
-      if (rights['q'] == true && _pieceAt(board, homeRow, 3) == null && _pieceAt(board, homeRow, 2) == null && _pieceAt(board, homeRow, 1) == null) {
+      if (rights['q'] == true &&
+          _pieceAt(board, homeRow, 3) == null &&
+          _pieceAt(board, homeRow, 2) == null &&
+          _pieceAt(board, homeRow, 1) == null) {
         moves.add([homeRow, 2]);
       }
     }
   } else {
-    final dirs = type == 'b' ? _kBishopDirs : type == 'r' ? _kRookDirs : [..._kBishopDirs, ..._kRookDirs];
+    final dirs = type == 'b'
+        ? _kBishopDirs
+        : type == 'r'
+            ? _kRookDirs
+            : [..._kBishopDirs, ..._kRookDirs];
     for (final d in dirs) {
       var r = row + d[0], c = col + d[1];
       while (addIfOk(r, c)) {
@@ -130,18 +173,30 @@ class _ChessBoardState extends State<ChessBoard> {
     final enPassantTarget = (game['enPassantTarget'] as List?)?.cast<int>();
     final castlingRights = game['castlingRights'] as Map?;
 
-    final me = players.cast<Map?>().firstWhere((p) => p?['userId'] == widget.myUserId, orElse: () => null);
+    final me = players
+        .cast<Map?>()
+        .firstWhere((p) => p?['userId'] == widget.myUserId, orElse: () => null);
     final isPlayer = me != null;
     final myColor = me?['color'] as String?;
     final isMyTurn = isPlayer && status == 'playing' && myColor == turnColor;
-    final winnerPlayer = winner != null ? players.cast<Map?>().firstWhere((p) => p?['userId'] == winner, orElse: () => null) : null;
+    final winnerPlayer = winner != null
+        ? players
+            .cast<Map?>()
+            .firstWhere((p) => p?['userId'] == winner, orElse: () => null)
+        : null;
 
-    final destinations = _selected != null ? _pseudoMoves(board, _selected![0], _selected![1], enPassantTarget, castlingRights) : <List<int>>[];
-    bool isDest(int r, int c) => destinations.any((d) => d[0] == r && d[1] == c);
+    final destinations = _selected != null
+        ? _pseudoMoves(board, _selected![0], _selected![1], enPassantTarget,
+            castlingRights)
+        : <List<int>>[];
+    bool isDest(int r, int c) =>
+        destinations.any((d) => d[0] == r && d[1] == c);
 
     final flipped = myColor == 'black';
-    final rowOrder = flipped ? [0, 1, 2, 3, 4, 5, 6, 7] : [7, 6, 5, 4, 3, 2, 1, 0];
-    final colOrder = flipped ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
+    final rowOrder =
+        flipped ? [0, 1, 2, 3, 4, 5, 6, 7] : [7, 6, 5, 4, 3, 2, 1, 0];
+    final colOrder =
+        flipped ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
 
     List<int>? kingSquare;
     if (check) {
@@ -165,12 +220,19 @@ class _ChessBoardState extends State<ChessBoard> {
         final from = _selected!;
         final movingPiece = _pieceAt(board, from[0], from[1]);
         final isPawn = movingPiece?['type'] == 'p';
-        final isPromotionRank = (turnColor == 'white' && row == 7) || (turnColor == 'black' && row == 0);
+        final isPromotionRank = (turnColor == 'white' && row == 7) ||
+            (turnColor == 'black' && row == 0);
         setState(() {
           if (isPawn && isPromotionRank) {
-            _pendingPromotion = {'from': from, 'to': [row, col]};
+            _pendingPromotion = {
+              'from': from,
+              'to': [row, col]
+            };
           } else {
-            widget.onMove({'from': from, 'to': [row, col]});
+            widget.onMove({
+              'from': from,
+              'to': [row, col]
+            });
           }
           _selected = null;
         });
@@ -188,7 +250,11 @@ class _ChessBoardState extends State<ChessBoard> {
 
     void choosePromotion(String piece) {
       if (_pendingPromotion != null) {
-        widget.onMove({'from': _pendingPromotion!['from'], 'to': _pendingPromotion!['to'], 'promotion': piece});
+        widget.onMove({
+          'from': _pendingPromotion!['from'],
+          'to': _pendingPromotion!['to'],
+          'promotion': piece
+        });
       }
       setState(() => _pendingPromotion = null);
     }
@@ -197,66 +263,96 @@ class _ChessBoardState extends State<ChessBoard> {
     if (status == 'won') {
       statusText = '${winnerPlayer?['name'] ?? 'Someone'} won by checkmate! ♛';
     } else if (status == 'draw') {
-      final reason = {'stalemate': 'stalemate', 'insufficient_material': 'insufficient material', 'fifty_move': 'the 50-move rule'}[drawReason] ?? 'a draw';
+      final reason = {
+            'stalemate': 'stalemate',
+            'insufficient_material': 'insufficient material',
+            'fifty_move': 'the 50-move rule'
+          }[drawReason] ??
+          'a draw';
       statusText = 'Draw — $reason';
     } else if (check) {
       statusText = 'Check!';
     }
 
-    return Container(
-      decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              for (final p in players)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Column(
-                    children: [
-                      GestureDetector(
-                        onTap: () => openProfile(context, p['userId'] as String?),
-                        child: Avatar(name: p['name'] as String?, size: AvatarSize.sm),
-                      ),
-                      const SizedBox(height: 2),
-                      Text('${p['name']} ${p['color'] == 'white' ? '♔' : '♚'}', style: const TextStyle(color: AppColors.textDim, fontSize: 11)),
-                      if (status == 'playing' && turnColor == p['color'])
-                        const Text('Their turn', style: TextStyle(color: AppColors.accent, fontSize: 9)),
-                    ],
-                  ),
+    // No wrapping card — the board sits directly on the room background,
+    // matching GameRoomDark.dc.html (only the board itself carries a shadow,
+    // via the outer ClipRRect+AspectRatio below).
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (final p in players)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Column(
+                  children: [
+                    GestureDetector(
+                      onTap: () => openProfile(context, p['userId'] as String?),
+                      child: Avatar(
+                          name: p['name'] as String?, size: AvatarSize.sm),
+                    ),
+                    const SizedBox(height: 2),
+                    Text('${p['name']} ${p['color'] == 'white' ? '♔' : '♚'}',
+                        style: const TextStyle(
+                            color: AppColors.textDim, fontSize: 11)),
+                    if (status == 'playing' && turnColor == p['color'])
+                      const Text('Their turn',
+                          style:
+                              TextStyle(color: AppColors.accent, fontSize: 9)),
+                  ],
                 ),
-              if (players.length < 2) const Text('Waiting for a second player…', style: TextStyle(color: AppColors.textFaint, fontSize: 12)),
-            ],
-          ),
-          const SizedBox(height: 10),
-          AspectRatio(
+              ),
+            if (players.length < 2)
+              const Text('Waiting for a second player…',
+                  style: TextStyle(color: AppColors.textFaint, fontSize: 12)),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Container(
+          decoration:
+              BoxDecoration(borderRadius: BorderRadius.circular(8), boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.5),
+                blurRadius: 24,
+                offset: const Offset(0, 12))
+          ]),
+          child: AspectRatio(
             aspectRatio: 1,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: GridView.builder(
                 physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 8),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 8),
                 itemCount: 64,
                 itemBuilder: (context, i) {
                   final row = rowOrder[i ~/ 8];
                   final col = colOrder[i % 8];
                   final piece = _pieceAt(board, row, col);
                   final dark = (row + col) % 2 == 0;
-                  final isSelected = _selected != null && _selected![0] == row && _selected![1] == col;
-                  final isKingInCheck = kingSquare != null && kingSquare[0] == row && kingSquare[1] == col;
+                  final isSelected = _selected != null &&
+                      _selected![0] == row &&
+                      _selected![1] == col;
+                  final isKingInCheck = kingSquare != null &&
+                      kingSquare[0] == row &&
+                      kingSquare[1] == col;
                   return GestureDetector(
                     onTap: () => handleTap(row, col),
                     child: Container(
+                      // Warm wood-tone board (matches GameRoomDark.dc.html's
+                      // --sq-light/--sq-dark) instead of the app's neutral
+                      // gray surface/surface3 tokens.
                       decoration: BoxDecoration(
                         color: isKingInCheck
                             ? AppColors.danger.withValues(alpha: 0.4)
                             : dark
-                                ? AppColors.surface3
-                                : AppColors.surface,
-                        border: isSelected ? Border.all(color: AppColors.primary, width: 2) : null,
+                                ? const Color(0xFF2B2620)
+                                : const Color(0xFF453D33),
+                        border: isSelected
+                            ? Border.all(color: AppColors.primary, width: 2)
+                            : null,
                       ),
                       alignment: Alignment.center,
                       child: Stack(
@@ -265,10 +361,20 @@ class _ChessBoardState extends State<ChessBoard> {
                           if (piece != null)
                             Text(
                               _kGlyphs[piece['color']]![piece['type']]!,
-                              style: TextStyle(fontSize: 22, color: piece['color'] == 'white' ? AppColors.text : AppColors.textDim),
+                              style: TextStyle(
+                                  fontSize: 22,
+                                  color: piece['color'] == 'white'
+                                      ? AppColors.text
+                                      : AppColors.textDim),
                             ),
                           if (isDest(row, col))
-                            Container(width: 10, height: 10, decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.primary.withValues(alpha: 0.7))),
+                            Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: AppColors.primary
+                                        .withValues(alpha: 0.7))),
                         ],
                       ),
                     ),
@@ -277,44 +383,55 @@ class _ChessBoardState extends State<ChessBoard> {
               ),
             ),
           ),
+        ),
+        const SizedBox(height: 10),
+        if (!isPlayer && status == 'waiting')
+          ElevatedButton(
+              onPressed: widget.onJoin, child: const Text('Join game')),
+        if (statusText != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(statusText,
+                style: const TextStyle(
+                    color: AppColors.text, fontWeight: FontWeight.w600)),
+          ),
+        if (widget.isHost && (status == 'won' || status == 'draw'))
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: OutlinedButton(
+                onPressed: widget.onReset, child: const Text('Play again')),
+          ),
+        if (_pendingPromotion != null) ...[
           const SizedBox(height: 10),
-          if (!isPlayer && status == 'waiting') ElevatedButton(onPressed: widget.onJoin, child: const Text('Join game')),
-          if (statusText != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(statusText, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600)),
-            ),
-          if (widget.isHost && (status == 'won' || status == 'draw'))
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: OutlinedButton(onPressed: widget.onReset, child: const Text('Play again')),
-            ),
-          if (_pendingPromotion != null) ...[
-            const SizedBox(height: 10),
-            const Text('Promote to', style: TextStyle(color: AppColors.textDim, fontSize: 12)),
-            const SizedBox(height: 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (final p in ['q', 'r', 'b', 'n'])
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: GestureDetector(
-                      onTap: () => choosePromotion(p),
-                      child: Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
-                        alignment: Alignment.center,
-                        child: Text(_kGlyphs[myColor ?? 'white']![p]!, style: const TextStyle(fontSize: 24, color: AppColors.text)),
-                      ),
+          const Text('Promote to',
+              style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (final p in ['q', 'r', 'b', 'n'])
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: GestureDetector(
+                    onTap: () => choosePromotion(p),
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.border)),
+                      alignment: Alignment.center,
+                      child: Text(_kGlyphs[myColor ?? 'white']![p]!,
+                          style: const TextStyle(
+                              fontSize: 24, color: AppColors.text)),
                     ),
                   ),
-              ],
-            ),
-          ],
+                ),
+            ],
+          ),
         ],
-      ),
+      ],
     );
   }
 }
