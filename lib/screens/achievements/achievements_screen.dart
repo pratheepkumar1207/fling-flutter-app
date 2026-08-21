@@ -37,6 +37,15 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     }
   }
 
+  // Deterministic per-badge gradient (no color field from the API) — matches
+  // AchievementsDark.dc.html's glossy circular badge icons.
+  static const _badgeGradients = [
+    [Color(0xFFE8A26B), Color(0xFFC5522E)],
+    [Color(0xFFCC9DE8), Color(0xFF9955B8)],
+    [Color(0xFFE8C56B), Color(0xFFC28A38)],
+    [Color(0xFF7ED9B0), Color(0xFF3F9E6E)],
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -46,33 +55,57 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
       ]),
       body: _loading
           ? const Center(child: Spinner())
-          : GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.1),
-              itemCount: _achievements.length,
-              itemBuilder: (context, i) {
-                final a = _achievements[i];
-                final unlocked = a['unlocked'] == true;
-                return Container(
-                  decoration: BoxDecoration(
-                    color: unlocked ? AppColors.gold.withValues(alpha: 0.05) : AppColors.surface,
-                    border: Border.all(color: unlocked ? AppColors.gold.withValues(alpha: 0.4) : AppColors.border),
-                    borderRadius: BorderRadius.circular(14),
+          : ListView(
+              padding: const EdgeInsets.only(top: 20, bottom: 20),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text('Badges', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textFaint, letterSpacing: 0.6)),
+                ),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 4, mainAxisSpacing: 16, crossAxisSpacing: 10, childAspectRatio: 0.72),
+                    itemCount: _achievements.length,
+                    itemBuilder: (context, i) {
+                      final a = _achievements[i];
+                      final unlocked = a['unlocked'] == true;
+                      final gradient = _badgeGradients[i % _badgeGradients.length];
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 56,
+                            height: 56,
+                            decoration: unlocked
+                                ? BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient),
+                                    boxShadow: [BoxShadow(color: gradient[1].withValues(alpha: 0.4), blurRadius: 14, offset: const Offset(0, 6))],
+                                  )
+                                : BoxDecoration(shape: BoxShape.circle, color: AppColors.surface2, border: Border.all(color: AppColors.border, width: 1.5)),
+                            alignment: Alignment.center,
+                            child: unlocked
+                                ? Text(a['icon'] as String? ?? '🏅', style: const TextStyle(fontSize: 24))
+                                : Icon(Icons.lock_rounded, color: AppColors.textFaint, size: 20),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            unlocked ? (a['label'] as String? ?? '') : 'Locked',
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: unlocked ? AppColors.textDim : AppColors.textFaint, fontSize: 10, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      );
+                    },
                   ),
-                  alignment: Alignment.center,
-                  child: Opacity(
-                    opacity: unlocked ? 1 : 0.6,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(a['icon'] as String? ?? '🏅', style: const TextStyle(fontSize: 30)),
-                        const SizedBox(height: 6),
-                        Text(a['label'] as String? ?? '', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.text, fontSize: 12, fontWeight: FontWeight.w500)),
-                      ],
-                    ),
-                  ),
-                );
-              },
+                ),
+              ],
             ),
     );
   }
