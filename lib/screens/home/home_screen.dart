@@ -283,26 +283,27 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ],
-            const SizedBox(height: 20),
-            _sectionHeader('Lobby'),
-            active.isEmpty && _scheduledEvents.isEmpty
-                ? const Text('No active rooms right now. Be the first to start one.', style: TextStyle(color: AppColors.textFaint))
-                : Column(
-                    children: [
-                      ...active.map((r) => _roomTile(
-                            r['id'] as String,
-                            r['title'] as String?,
-                            r['hostName'] as String?,
-                            asNum(r['memberCount']).toInt(),
-                            thumbnail: r['nowPlayingThumbnail'] as String?,
-                            members: r['members'] as List?,
-                            roomType: r['roomType'] as String?,
-                            nowPlayingTitle: r['nowPlayingTitle'] as String?,
-                            isBoosted: r['isBoosted'] == true,
-                          )),
-                      ..._scheduledEvents.map(_eventTile),
-                    ],
-                  ),
+            // Type-grouped horizontal rails — matches LobbyDark.dc.html's
+            // "Live now" / "Trending watch parties" / "Voice rooms" /
+            // "Game rooms" rows, instead of one mixed vertical list. Same
+            // /rooms/browse data, just grouped by roomType client-side
+            // (no new backend endpoint needed).
+            if (active.isEmpty && _scheduledEvents.isEmpty)
+              const Padding(
+                padding: EdgeInsets.only(top: 20),
+                child: Text('No active rooms right now. Be the first to start one.', style: TextStyle(color: AppColors.textFaint)),
+              )
+            else ...[
+              ..._rail('Live now', active.where((r) => r['roomType'] == 'live').toList(), width: 118, height: 158),
+              ..._rail('Trending watch parties', active.where((r) => r['roomType'] == 'watch').toList(), width: 200, height: 112),
+              ..._rail('Voice rooms', active.where((r) => r['roomType'] == 'voice').toList(), width: 150, height: 96),
+              ..._rail('Game rooms', active.where((r) => r['roomType'] == 'game').toList(), width: 118, height: 118),
+              if (_scheduledEvents.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                _sectionHeader('Coming up'),
+                ..._scheduledEvents.map(_eventTile),
+              ],
+            ],
           ],
         ],
       ),
@@ -389,23 +390,66 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _posterCard(Map<String, dynamic> r) {
+  // One rail section (header + horizontal scroll of poster cards) — empty
+  // list (no header, no row) when this type has nothing active, so a quiet
+  // category just doesn't take up space rather than showing an empty rail.
+  List<Widget> _rail(String title, List<Map<String, dynamic>> rooms, {required double width, required double height}) {
+    if (rooms.isEmpty) return const [];
+    return [
+      const SizedBox(height: 20),
+      _sectionHeader(title),
+      SizedBox(
+        height: height,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: rooms.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 10),
+          itemBuilder: (context, i) => _posterCard(rooms[i], width: width, height: height),
+        ),
+      ),
+    ];
+  }
+
+  String _watchingLabel(String? roomType) => switch (roomType) {
+        'voice' => 'listening',
+        'game' => 'spectating',
+        _ => 'watching',
+      };
+
+  Widget _posterCard(Map<String, dynamic> r, {double width = 110, double? height}) {
     final thumbnail = r['nowPlayingThumbnail'] as String?;
+    final roomType = r['roomType'] as String?;
+    final isLive = roomType == 'live';
     return GestureDetector(
       onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: r['id'] as String))),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
         child: SizedBox(
-          width: 110,
+          width: width,
+          height: height,
           child: Stack(
             fit: StackFit.expand,
             children: [
               (thumbnail != null && thumbnail.isNotEmpty)
                   ? AppImage(source: thumbnail, fit: BoxFit.cover)
-                  : Container(color: AppColors.surface3, alignment: Alignment.center, child: _roomTypeIcon(r['roomType'] as String?, 32)),
+                  : Container(color: AppColors.surface3, alignment: Alignment.center, child: _roomTypeIcon(roomType, 32)),
               const DecoratedBox(
                 decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black87], stops: [0.5, 1])),
               ),
+              if (isLive)
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(color: AppColors.danger.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(999)),
+                    child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.circle, size: 5, color: Colors.white),
+                      SizedBox(width: 4),
+                      Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700)),
+                    ]),
+                  ),
+                ),
               Positioned(
                 left: 8,
                 right: 8,
@@ -414,7 +458,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(r['title'] as String? ?? '', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    Text('${r['memberCount'] ?? 0} watching', style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                    Text('${r['memberCount'] ?? 0} ${_watchingLabel(roomType)}', style: const TextStyle(color: Colors.white70, fontSize: 10)),
                   ],
                 ),
               ),
