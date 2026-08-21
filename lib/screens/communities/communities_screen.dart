@@ -62,16 +62,17 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Center(child: Container(width: 36, height: 4, margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(999)))),
               const Text('Create a community', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 12),
-              TextField(controller: nameController, style: const TextStyle(color: AppColors.text), decoration: const InputDecoration(hintText: 'Name')),
-              const SizedBox(height: 8),
-              TextField(controller: descController, maxLines: 2, style: const TextStyle(color: AppColors.text), decoration: const InputDecoration(hintText: 'Description')),
-              const SizedBox(height: 8),
-              TextField(controller: rulesController, maxLines: 2, style: const TextStyle(color: AppColors.text), decoration: const InputDecoration(hintText: 'Rules')),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: saving
+              const SizedBox(height: 14),
+              _sheetField(nameController, 'Name'),
+              const SizedBox(height: 10),
+              _sheetField(descController, 'Description', maxLines: 2),
+              const SizedBox(height: 10),
+              _sheetField(rulesController, 'Rules', maxLines: 2),
+              const SizedBox(height: 18),
+              GestureDetector(
+                onTap: saving
                     ? null
                     : () async {
                         if (nameController.text.trim().isEmpty) return;
@@ -84,7 +85,17 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
                           setSheetState(() => saving = false);
                         }
                       },
-                child: Text(saving ? 'Creating…' : 'Create'),
+                child: Container(
+                  width: double.infinity,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    gradient: saving ? null : const LinearGradient(colors: AppGradients.brand),
+                    color: saving ? AppColors.surface2 : null,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(saving ? 'Creating…' : 'Create', style: TextStyle(color: saving ? AppColors.textFaint : Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+                ),
               ),
               const SizedBox(height: 16),
             ],
@@ -212,6 +223,16 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
       ),
     );
   }
+
+  Widget _sheetField(TextEditingController controller, String hint, {int maxLines = 1}) => Container(
+        decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(12)),
+        child: TextField(
+          controller: controller,
+          maxLines: maxLines,
+          style: const TextStyle(color: AppColors.text),
+          decoration: InputDecoration(hintText: hint, border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
+        ),
+      );
 
   Widget _tabChip(String key, String label) => ChoiceChip(
         label: Text(label),
