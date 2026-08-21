@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
+import '../../core/format.dart';
 import '../../core/profile_nav.dart';
 import '../../models/message.dart';
 import '../../theme/app_colors.dart';
@@ -59,28 +60,50 @@ class _MessagesScreenState extends State<MessagesScreen> {
                   itemCount: _conversations.length,
                   itemBuilder: (context, i) {
                     final c = _conversations[i];
-                    return ListTile(
-                      leading: GestureDetector(
-                        onTap: () => openProfile(context, c.userId),
-                        child: Avatar(src: c.avatarUrl, name: c.name),
-                      ),
-                      title: Text(c.name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w500)),
-                      subtitle: Text(
-                        '${c.lastMessageIsMine ? 'You: ' : ''}${c.lastMessage}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: AppColors.textFaint),
-                      ),
-                      trailing: c.unreadCount > 0
-                          ? Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                              decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(999)),
-                              child: Text('${c.unreadCount}', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
-                            )
-                          : null,
+                    final unread = c.unreadCount > 0;
+                    return GestureDetector(
                       onTap: () => Navigator.of(context)
                           .push(MaterialPageRoute(builder: (_) => MessageThreadScreen(userId: c.userId, name: c.name, avatarUrl: c.avatarUrl)))
                           .then((_) => _load()),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            GestureDetector(
+                              onTap: () => openProfile(context, c.userId),
+                              child: Avatar(src: c.avatarUrl, name: c.name, size: AvatarSize.md),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(c.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppColors.text, fontWeight: unread ? FontWeight.w700 : FontWeight.w600, fontSize: 14)),
+                                      ),
+                                      Text(formatRelativeTime(c.lastMessageAt), style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${c.lastMessageIsMine ? 'You: ' : ''}${c.lastMessage}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(color: unread ? AppColors.text : AppColors.textFaint, fontWeight: unread ? FontWeight.w600 : FontWeight.normal, fontSize: 12.5),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (unread) ...[
+                              const SizedBox(width: 8),
+                              Container(width: 9, height: 9, decoration: const BoxDecoration(color: AppColors.accent, shape: BoxShape.circle)),
+                            ],
+                          ],
+                        ),
+                      ),
                     );
                   },
                 ),
