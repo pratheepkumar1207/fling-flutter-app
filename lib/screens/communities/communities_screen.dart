@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/spinner.dart';
+import '../search/search_screen.dart';
 import 'community_detail_screen.dart';
 
 class CommunitiesScreen extends StatefulWidget {
@@ -114,6 +115,11 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(title: const Text('Communities'), actions: [
+        IconButton(
+          tooltip: 'Search',
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchScreen())),
+          icon: const Icon(Icons.search_rounded, color: AppColors.textDim),
+        ),
         Padding(padding: const EdgeInsets.only(right: 12), child: TextButton(onPressed: _openCreate, child: const Text('+ Create'))),
       ]),
       body: Column(
