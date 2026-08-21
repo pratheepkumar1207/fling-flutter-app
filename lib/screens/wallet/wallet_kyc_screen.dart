@@ -109,7 +109,20 @@ class _WalletKycScreenState extends State<WalletKycScreen> {
                       _field('IFSC', _ifsc),
                       _field('Account holder name', _accountHolder),
                       const SizedBox(height: 8),
-                      SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _submitting ? null : _submit, child: Text(_submitting ? 'Submitting…' : 'Submit for review'))),
+                      GestureDetector(
+                        onTap: _submitting ? null : _submit,
+                        child: Container(
+                          width: double.infinity,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            gradient: _submitting ? null : const LinearGradient(colors: AppGradients.brand),
+                            color: _submitting ? AppColors.surface2 : null,
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(_submitting ? 'Submitting…' : 'Submit for review', style: TextStyle(color: _submitting ? AppColors.textFaint : Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -125,8 +138,15 @@ class _WalletKycScreenState extends State<WalletKycScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: const TextStyle(color: AppColors.textDim, fontSize: 13)),
-          const SizedBox(height: 4),
-          TextField(controller: controller, style: const TextStyle(color: AppColors.text)),
+          const SizedBox(height: 6),
+          Container(
+            decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(12)),
+            child: TextField(
+              controller: controller,
+              style: const TextStyle(color: AppColors.text),
+              decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+            ),
+          ),
         ],
       ),
     );

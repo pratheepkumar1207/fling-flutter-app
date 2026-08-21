@@ -83,9 +83,15 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
                         child: Text('You need verified KYC before cashing out. Current status: ${_kycStatus ?? 'none'}.', style: const TextStyle(color: AppColors.warning, fontSize: 13)),
                       ),
                       const SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WalletKycScreen())).then((_) => _load()),
-                        child: const Text('Complete KYC'),
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WalletKycScreen())).then((_) => _load()),
+                        child: Container(
+                          height: 44,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), gradient: const LinearGradient(colors: AppGradients.brand)),
+                          alignment: Alignment.center,
+                          child: const Text('Complete KYC', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                        ),
                       ),
                     ],
                   ),
@@ -98,15 +104,32 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
                       Text('Balance: 🪙 ${formatNumber(user?.coinBalance)}', style: const TextStyle(color: AppColors.textDim)),
                       const SizedBox(height: 16),
                       const Text('Coins to cash out', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-                      const SizedBox(height: 4),
-                      TextField(
-                        keyboardType: TextInputType.number,
-                        style: const TextStyle(color: AppColors.text),
-                        controller: _coinsController,
-                        onChanged: (v) => _coins = int.tryParse(v) ?? _coins,
+                      const SizedBox(height: 6),
+                      Container(
+                        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+                        child: TextField(
+                          keyboardType: TextInputType.number,
+                          style: const TextStyle(color: AppColors.text),
+                          controller: _coinsController,
+                          onChanged: (v) => _coins = int.tryParse(v) ?? _coins,
+                          decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
+                        ),
                       ),
                       const SizedBox(height: 16),
-                      ElevatedButton(onPressed: _submitting ? null : _submit, child: Text(_submitting ? 'Submitting…' : 'Request cashout')),
+                      GestureDetector(
+                        onTap: _submitting ? null : _submit,
+                        child: Container(
+                          width: double.infinity,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            gradient: _submitting ? null : const LinearGradient(colors: AppGradients.brand),
+                            color: _submitting ? AppColors.surface2 : null,
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(_submitting ? 'Submitting…' : 'Request cashout', style: TextStyle(color: _submitting ? AppColors.textFaint : Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       const Text('Payouts are sent manually by the team after review — this just queues the request.', style: TextStyle(color: AppColors.textFaint, fontSize: 12)),
                     ],
