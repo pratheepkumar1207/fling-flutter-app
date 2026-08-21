@@ -7,6 +7,7 @@ import '../theme/app_colors.dart';
 import '../widgets/spinner.dart';
 import 'auth/complete_profile_screen.dart';
 import 'auth/login_screen.dart';
+import 'auth/onboarding_screen.dart';
 import 'auth/safety_guidelines_screen.dart';
 import 'shell/app_shell.dart';
 
@@ -20,12 +21,16 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> {
   bool _locationPinged = false;
   bool _frameCacheLoaded = false;
+  bool? _hasSeenOnboarding;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AuthProvider>().bootstrap();
+    });
+    OnboardingScreen.hasSeenOnboarding().then((seen) {
+      if (mounted) setState(() => _hasSeenOnboarding = seen);
     });
   }
 
@@ -67,7 +72,10 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             );
           case AuthStatus.anon:
-            return const LoginScreen();
+            if (_hasSeenOnboarding == null) {
+              return const Scaffold(backgroundColor: AppColors.bg, body: Center(child: Spinner()));
+            }
+            return _hasSeenOnboarding! ? const LoginScreen() : const OnboardingScreen();
           case AuthStatus.authed:
             // New (or not-yet-finished) accounts must fill in "looking
             // for", interests, and a real gallery before anything else —
