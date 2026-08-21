@@ -17,7 +17,8 @@ class MessageThreadScreen extends StatefulWidget {
   final String name;
   final String? avatarUrl;
 
-  const MessageThreadScreen({super.key, required this.userId, required this.name, this.avatarUrl});
+  const MessageThreadScreen(
+      {super.key, required this.userId, required this.name, this.avatarUrl});
 
   @override
   State<MessageThreadScreen> createState() => _MessageThreadScreenState();
@@ -42,7 +43,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
   Future<void> _loadOnlineStatus() async {
     try {
-      final data = await ApiClient.get('/creators/${widget.userId}/profile') as Map<String, dynamic>;
+      final data = await ApiClient.get('/creators/${widget.userId}/profile')
+          as Map<String, dynamic>;
       if (mounted) setState(() => _online = data['online'] == true);
     } catch (_) {}
   }
@@ -52,7 +54,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       final data = await ApiClient.get('/messages/${widget.userId}');
       if (!mounted) return;
       setState(() {
-        _messages = (data as List).map((e) => DirectMessage.fromJson(e as Map<String, dynamic>)).toList();
+        _messages = (data as List)
+            .map((e) => DirectMessage.fromJson(e as Map<String, dynamic>))
+            .toList();
         _loading = false;
       });
       _scrollToBottom();
@@ -73,7 +77,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     socket?.on('dm:deleted', (data) {
       if (!mounted || data is! Map) return;
       if (data['otherUserId'] != widget.userId) return;
-      setState(() => _messages = _messages.where((m) => m.id != data['id']).toList());
+      setState(() =>
+          _messages = _messages.where((m) => m.id != data['id']).toList());
     });
   }
 
@@ -84,20 +89,26 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         title: const Text('Delete message?'),
         content: const Text('This removes it for both of you.'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Delete')),
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Delete')),
         ],
       ),
     );
     if (confirmed != true || !mounted) return;
     final previous = _messages;
-    setState(() => _messages = _messages.where((m) => m.id != message.id).toList());
+    setState(
+        () => _messages = _messages.where((m) => m.id != message.id).toList());
     try {
       await ApiClient.delete('/messages/${message.id}');
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() => _messages = previous);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
     }
   }
 
@@ -114,12 +125,14 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
           fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => const Padding(
             padding: EdgeInsets.all(8),
-            child: Text('Could not load GIF', style: TextStyle(color: AppColors.textFaint, fontSize: 12)),
+            child: Text('Could not load GIF',
+                style: TextStyle(color: AppColors.textFaint, fontSize: 12)),
           ),
         ),
       );
     }
-    return Text(m.text, style: TextStyle(color: mine ? Colors.white : AppColors.text));
+    return Text(m.text,
+        style: TextStyle(color: mine ? Colors.white : AppColors.text));
   }
 
   void _scrollToBottom() {
@@ -147,10 +160,18 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Paste a GIF link'),
-        content: TextField(controller: controller, autofocus: true, decoration: const InputDecoration(hintText: 'https://…')),
+        content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(hintText: 'https://…')),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.of(context).pop(controller.text.trim()), child: const Text('Send')),
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () =>
+                  Navigator.of(context).pop(controller.text.trim()),
+              child: const Text('Send')),
         ],
       ),
     );
@@ -160,7 +181,10 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
   Future<void> _startCall(bool video) async {
     try {
-      final data = await ApiClient.post('/calls/direct-invite', body: {'toUserId': widget.userId, 'mode': video ? 'video' : 'audio'}) as Map<String, dynamic>;
+      final data = await ApiClient.post('/calls/direct-invite', body: {
+        'toUserId': widget.userId,
+        'mode': video ? 'video' : 'audio'
+      }) as Map<String, dynamic>;
       if (!mounted) return;
       await Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => CallScreen(
@@ -169,23 +193,29 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
           uid: data['uid'] as int,
           video: video,
           isCaller: true,
+          peerId: widget.userId,
           peerName: widget.name,
           peerAvatarUrl: widget.avatarUrl,
         ),
       ));
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
     }
   }
 
-  Future<void> _sendBody(Map<String, dynamic> body, {bool clearText = false}) async {
+  Future<void> _sendBody(Map<String, dynamic> body,
+      {bool clearText = false}) async {
     if (_sending) return;
     setState(() {
       _sending = true;
       _error = null;
     });
     try {
-      final data = await ApiClient.post('/messages/${widget.userId}', body: body);
+      final data =
+          await ApiClient.post('/messages/${widget.userId}', body: body);
       final msg = DirectMessage.fromJson(data as Map<String, dynamic>);
       setState(() {
         _messages = [..._messages, msg];
@@ -231,22 +261,37 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
           onTap: () => openProfile(context, widget.userId),
           child: Row(
             children: [
-              Avatar(src: widget.avatarUrl, name: widget.name, size: AvatarSize.sm),
+              Avatar(
+                  src: widget.avatarUrl,
+                  name: widget.name,
+                  size: AvatarSize.sm),
               const SizedBox(width: 10),
               Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(widget.name, style: const TextStyle(fontSize: 14.5)),
-                  if (_online) const Text('Active now', style: TextStyle(color: AppColors.success, fontSize: 11, fontWeight: FontWeight.w500)),
+                  if (_online)
+                    const Text('Active now',
+                        style: TextStyle(
+                            color: AppColors.success,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500)),
                 ],
               ),
             ],
           ),
         ),
         actions: [
-          IconButton(onPressed: () => _startCall(false), icon: const Icon(Icons.call_rounded, color: AppColors.primary), tooltip: 'Audio call'),
-          IconButton(onPressed: () => _startCall(true), icon: const Icon(Icons.videocam_rounded, color: AppColors.primary), tooltip: 'Video call'),
+          IconButton(
+              onPressed: () => _startCall(false),
+              icon: const Icon(Icons.call_rounded, color: AppColors.primary),
+              tooltip: 'Audio call'),
+          IconButton(
+              onPressed: () => _startCall(true),
+              icon:
+                  const Icon(Icons.videocam_rounded, color: AppColors.primary),
+              tooltip: 'Video call'),
         ],
       ),
       body: Column(
@@ -255,7 +300,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
             child: _loading
                 ? const Center(child: Spinner())
                 : _messages.isEmpty
-                    ? const Center(child: Text('No messages yet — say hi!', style: TextStyle(color: AppColors.textFaint)))
+                    ? const Center(
+                        child: Text('No messages yet — say hi!',
+                            style: TextStyle(color: AppColors.textFaint)))
                     : ListView.builder(
                         controller: _scrollController,
                         padding: const EdgeInsets.all(12),
@@ -264,15 +311,27 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                           final m = _messages[i];
                           final mine = m.senderId == myId;
                           return Align(
-                            alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+                            alignment: mine
+                                ? Alignment.centerRight
+                                : Alignment.centerLeft,
                             child: GestureDetector(
-                              onLongPress: mine ? () => _deleteMessage(m) : null,
+                              onLongPress:
+                                  mine ? () => _deleteMessage(m) : null,
                               child: Container(
                                 margin: const EdgeInsets.symmetric(vertical: 3),
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 10),
+                                constraints: BoxConstraints(
+                                    maxWidth:
+                                        MediaQuery.of(context).size.width *
+                                            0.7),
                                 decoration: BoxDecoration(
-                                  gradient: mine ? const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppGradients.brand) : null,
+                                  gradient: mine
+                                      ? const LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: AppGradients.brand)
+                                      : null,
                                   color: mine ? null : AppColors.surface2,
                                   // Flat corner on the "tail" side (bottom-right for mine, bottom-left
                                   // for theirs) — matches ChatDark.dc.html's speech-bubble shape.
@@ -293,7 +352,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
           if (_error != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(_error!, style: const TextStyle(color: AppColors.danger, fontSize: 12)),
+              child: Text(_error!,
+                  style:
+                      const TextStyle(color: AppColors.danger, fontSize: 12)),
             ),
           SafeArea(
             child: Padding(
@@ -302,12 +363,14 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                 children: [
                   IconButton(
                     onPressed: _sending ? null : _openStickerPicker,
-                    icon: const Icon(Icons.emoji_emotions_outlined, color: AppColors.textDim),
+                    icon: const Icon(Icons.emoji_emotions_outlined,
+                        color: AppColors.textDim),
                     tooltip: 'Sticker',
                   ),
                   IconButton(
                     onPressed: _sending ? null : _pasteGifLink,
-                    icon: const Icon(Icons.gif_box_outlined, color: AppColors.textDim),
+                    icon: const Icon(Icons.gif_box_outlined,
+                        color: AppColors.textDim),
                     tooltip: 'GIF',
                   ),
                   Expanded(
@@ -324,9 +387,14 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                     child: Container(
                       width: 38,
                       height: 38,
-                      decoration: const BoxDecoration(gradient: LinearGradient(colors: AppGradients.brand), shape: BoxShape.circle),
+                      decoration: const BoxDecoration(
+                          gradient: LinearGradient(colors: AppGradients.brand),
+                          shape: BoxShape.circle),
                       alignment: Alignment.center,
-                      child: _sending ? const Spinner(size: 16) : const Icon(Icons.send_rounded, color: Colors.white, size: 17),
+                      child: _sending
+                          ? const Spinner(size: 16)
+                          : const Icon(Icons.send_rounded,
+                              color: Colors.white, size: 17),
                     ),
                   ),
                 ],

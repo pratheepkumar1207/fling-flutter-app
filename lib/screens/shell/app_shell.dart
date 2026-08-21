@@ -37,9 +37,12 @@ class _AppShellState extends State<AppShell> {
   ];
 
   static const _items = [
-    NavItemData(Icons.home_rounded, 'Home', iconAsset: 'assets/icons/app/home.png'),
-    NavItemData(Icons.article_rounded, 'Feed', iconAsset: 'assets/icons/app/feed.png'),
-    NavItemData(Icons.local_fire_department_rounded, 'Discover', iconAsset: 'assets/icons/app/discover.png'),
+    NavItemData(Icons.home_rounded, 'Home',
+        iconAsset: 'assets/icons/app/home.png'),
+    NavItemData(Icons.article_rounded, 'Feed',
+        iconAsset: 'assets/icons/app/feed.png'),
+    NavItemData(Icons.local_fire_department_rounded, 'Discover',
+        iconAsset: 'assets/icons/app/discover.png'),
     // No matching asset was uploaded for "Rooms" — stays on the Material
     // icon until one is provided.
     NavItemData(Icons.theaters_rounded, 'Rooms'),
@@ -99,14 +102,23 @@ class _AppShellState extends State<AppShell> {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.surface2,
         title: Row(children: [
-          Avatar(src: data['fromAvatarUrl'] as String?, name: data['fromName'] as String?, size: AvatarSize.sm),
+          Avatar(
+              src: data['fromAvatarUrl'] as String?,
+              name: data['fromName'] as String?,
+              size: AvatarSize.sm),
           const SizedBox(width: 10),
           Expanded(child: Text(data['fromName'] as String? ?? 'Someone')),
         ]),
-        content: Text(data['mode'] == 'video' ? 'Incoming video call…' : 'Incoming audio call…'),
+        content: Text(data['mode'] == 'video'
+            ? 'Incoming video call…'
+            : 'Incoming audio call…'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Decline')),
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Accept')),
+          TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Decline')),
+          TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Accept')),
         ],
       ),
     );
@@ -114,7 +126,8 @@ class _AppShellState extends State<AppShell> {
     final channelName = data['channelName'] as String;
     if (accepted == true) {
       try {
-        final response = await ApiClient.post('/calls/direct-accept', body: {'channelName': channelName}) as Map<String, dynamic>;
+        final response = await ApiClient.post('/calls/direct-accept',
+            body: {'channelName': channelName}) as Map<String, dynamic>;
         if (mounted) {
           Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(
             builder: (_) => CallScreen(
@@ -123,6 +136,7 @@ class _AppShellState extends State<AppShell> {
               uid: response['uid'] as int,
               video: data['mode'] == 'video',
               isCaller: false,
+              peerId: data['fromUserId'] as String,
               peerName: data['fromName'] as String? ?? 'Someone',
               peerAvatarUrl: data['fromAvatarUrl'] as String?,
             ),
@@ -132,7 +146,8 @@ class _AppShellState extends State<AppShell> {
         // Couldn't connect — nothing more to do than let it drop.
       }
     } else if (accepted == false) {
-      ApiClient.post('/calls/direct-decline', body: {'channelName': channelName}).catchError((_) => null);
+      ApiClient.post('/calls/direct-decline',
+          body: {'channelName': channelName}).catchError((_) => null);
     }
     // accepted == null: dialog was auto-dismissed by dismissIfStale above
     // because the call was already cancelled/ended — nothing more to send.
@@ -143,7 +158,8 @@ class _AppShellState extends State<AppShell> {
   void _reopenActiveRoom() {
     final roomId = ActiveRoomHolder.roomId;
     if (roomId == null) return;
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId)));
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId)));
   }
 
   @override
@@ -170,7 +186,8 @@ class _AppShellState extends State<AppShell> {
             currentIndex: _index,
             onTap: (i) => setState(() => _index = i),
             items: _items,
-            onCreateTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LobbyCreateScreen())),
+            onCreateTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const LobbyCreateScreen())),
           ),
         ],
       ),
@@ -196,19 +213,25 @@ class _ActiveRoomBar extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
               children: [
-                const Icon(Icons.podcasts_rounded, color: AppColors.accent, size: 20),
+                const Icon(Icons.podcasts_rounded,
+                    color: AppColors.accent, size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13),
                   ),
                 ),
-                const Text('Tap to return', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                const Text('Tap to return',
+                    style: TextStyle(color: Colors.white70, fontSize: 12)),
                 const SizedBox(width: 6),
-                const Icon(Icons.chevron_right_rounded, color: Colors.white70, size: 18),
+                const Icon(Icons.chevron_right_rounded,
+                    color: Colors.white70, size: 18),
               ],
             ),
           ),

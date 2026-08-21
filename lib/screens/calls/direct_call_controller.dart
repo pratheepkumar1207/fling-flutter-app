@@ -21,15 +21,26 @@ class DirectCallController extends ChangeNotifier {
   bool _joined = false;
   bool _micEnabled = true;
   bool _cameraEnabled = true;
+  // Video calls default to speaker (holding a phone to your ear to watch
+  // video makes no sense); audio calls default to earpiece, same as the
+  // phone dialer. Set in the constructor body below (can't reference the
+  // `video` field from another field's own initializer).
+  late bool _speakerEnabled;
   int? _remoteUid;
 
   bool get joined => _joined;
   bool get micEnabled => _micEnabled;
   bool get cameraEnabled => _cameraEnabled;
+  bool get speakerEnabled => _speakerEnabled;
   int? get remoteUid => _remoteUid;
   RtcEngine? get engine => _engine;
 
-  DirectCallController({required this.channelName, required this.token, required this.uid, required this.video}) {
+  DirectCallController(
+      {required this.channelName,
+      required this.token,
+      required this.uid,
+      required this.video}) {
+    _speakerEnabled = video;
     if (kAgoraAppId.isNotEmpty) _init();
   }
 
@@ -40,13 +51,15 @@ class DirectCallController extends ChangeNotifier {
 
       final engine = createAgoraRtcEngine();
       await engine.initialize(RtcEngineContext(appId: kAgoraAppId));
-      await engine.setChannelProfile(ChannelProfileType.channelProfileCommunication);
+      await engine
+          .setChannelProfile(ChannelProfileType.channelProfileCommunication);
       if (video) {
         await engine.enableVideo();
       } else {
         await engine.disableVideo();
       }
       await engine.enableAudio();
+      await engine.setEnableSpeakerphone(_speakerEnabled);
       engine.registerEventHandler(RtcEngineEventHandler(
         onUserJoined: (connection, remoteUid, elapsed) {
           _remoteUid = remoteUid;
@@ -92,6 +105,16 @@ class DirectCallController extends ChangeNotifier {
     _cameraEnabled = !_cameraEnabled;
     await _engine?.muteLocalVideoStream(!_cameraEnabled);
     notifyListeners();
+  }
+
+  Future<void> toggleSpeaker() async {
+    _speakerEnabled = !_speakerEnabled;
+    await _engine?.setEnableSpeakerphone(_speakerEnabled);
+    notifyListeners();
+  }
+
+  Future<void> switchCamera() async {
+    await _engine?.switchCamera();
   }
 
   @override
