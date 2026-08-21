@@ -83,12 +83,21 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
                     ),
                     if (d['livestreamStatus'] != 'approved' && d['livestreamStatus'] != 'pending') ...[
                       const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _applying ? null : _apply,
-                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: const StadiumBorder(), padding: const EdgeInsets.symmetric(vertical: 14)),
-                          child: Text(_applying ? 'Applying…' : (d['livestreamStatus'] == 'rejected' ? 'Re-apply for livestream' : 'Apply for livestream')),
+                      GestureDetector(
+                        onTap: _applying ? null : _apply,
+                        child: Container(
+                          width: double.infinity,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            gradient: _applying ? null : const LinearGradient(colors: AppGradients.brand),
+                            color: _applying ? AppColors.surface2 : null,
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            _applying ? 'Applying…' : (d['livestreamStatus'] == 'rejected' ? 'Re-apply for livestream' : 'Apply for livestream'),
+                            style: TextStyle(color: _applying ? AppColors.textFaint : Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
+                          ),
                         ),
                       ),
                     ],
@@ -149,7 +158,7 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
   Widget _statCard(String label, String value) {
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(14)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
