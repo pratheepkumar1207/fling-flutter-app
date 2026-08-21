@@ -308,10 +308,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Own-profile header matching ProfileDark.dc.html — ring-avatar with a
   // completeness-percent badge, stats beside it, name/bio/city below, then
-  // interest chips and the edit+settings button row. Deliberately a
-  // separate widget from ColaProfileCard (still used by
-  // creator_profile_screen.dart's bold gradient-card look, which hasn't
-  // been redesigned yet) rather than reworking that shared widget.
+  // interest chips and the edit+settings button row.
   Widget _profileHeader(User? user) {
     final percent = user?.completenessPercent ?? 0;
     return Column(

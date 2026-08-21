@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
+import '../../core/format.dart';
 import '../../core/smart_play_song.dart';
 import '../../models/photo.dart';
 import '../../models/playlist.dart';
@@ -8,7 +9,7 @@ import '../../models/song.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/glass.dart';
 import '../../widgets/app_image.dart';
-import '../../widgets/cola_profile_card.dart';
+import '../../widgets/avatar.dart';
 import '../../widgets/gift_bottom_sheet.dart';
 import '../../widgets/report_user_sheet.dart';
 import '../../widgets/spinner.dart';
@@ -155,29 +156,65 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          ColaProfileCard(
-            key: _avatarKey,
-            avatarUrl: p['avatarUrl'] as String?,
-            name: p['name'] as String?,
-            username: p['username'] as String?,
-            bio: p['bio'] as String?,
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [AppColors.accent, AppColors.accent2, Color(0xFF1A0F2E)],
-            ),
-            badges: [
-              if (p['isVerified'] == true) _badge('Verified', AppColors.success),
-              if (p['isVip'] == true) _badge('VIP', AppColors.gold),
-              if (p['isCreator'] == true) _badge('Creator', AppColors.accent),
-            ],
-            insideAction: (p['activeRoom'] as Map?) != null ? _activeRoomBadge(p['activeRoom'] as Map) : null,
-            stats: [
-              ColaStat('Followers', p['followerCount']),
-              ColaStat('Following', p['followingCount']),
-              ColaStat('Gifts', p['totalGiftsReceived']),
+          // Literal match to CreatorProfileDark.dc.html: plain circular
+          // avatar + stats row beside it, name/verified-badge/creator-pill
+          // and bio below — not the old app's ColaProfileCard treatment.
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                key: _avatarKey,
+                width: 78,
+                height: 78,
+                decoration: const BoxDecoration(shape: BoxShape.circle),
+                child: Avatar(src: p['avatarUrl'] as String?, name: p['name'] as String?, size: AvatarSize.lg),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _profileStatColumn(formatNumber(p['followerCount']), 'Followers'),
+                    _profileStatColumn(formatNumber(p['followingCount']), 'Following'),
+                    _profileStatColumn(formatNumber(p['totalGiftsReceived']), 'Gifts', color: AppColors.gold),
+                  ],
+                ),
+              ),
             ],
           ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Flexible(child: Text(p['name'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis)),
+              if (p['isVerified'] == true) ...[const SizedBox(width: 6), const Icon(Icons.verified_rounded, color: AppColors.accent2, size: 14)],
+              if (p['isCreator'] == true) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(999)),
+                  child: const Text('Creator', style: TextStyle(color: AppColors.accent, fontSize: 9.5, fontWeight: FontWeight.w700)),
+                ),
+              ],
+              if (p['isVip'] == true) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(color: AppColors.gold.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(999)),
+                  child: const Text('VIP', style: TextStyle(color: AppColors.gold, fontSize: 9.5, fontWeight: FontWeight.w700)),
+                ),
+              ],
+            ],
+          ),
+          if (p['bio'] != null && (p['bio'] as String).isNotEmpty) ...[
+            const SizedBox(height: 5),
+            Text(p['bio'] as String, style: const TextStyle(color: AppColors.textDim, fontSize: 12.5, height: 1.5)),
+          ],
+          if ((p['activeRoom'] as Map?) != null) ...[
+            const SizedBox(height: 14),
+            const Text('RIGHT NOW', style: TextStyle(color: AppColors.textFaint, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
+            const SizedBox(height: 8),
+            _activeRoomBadge(p['activeRoom'] as Map),
+          ],
           const SizedBox(height: 16),
           Wrap(
             alignment: WrapAlignment.center,
@@ -316,10 +353,12 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
         ),
       );
 
-  Widget _badge(String label, Color color) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(999)),
-        child: Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+  Widget _profileStatColumn(String value, String label, {Color color = AppColors.text}) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 17)),
+          Text(label, style: const TextStyle(color: AppColors.textFaint, fontSize: 10.5)),
+        ],
       );
 
   // "Right now" card — only ever populated by the backend when the viewer
