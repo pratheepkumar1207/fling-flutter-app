@@ -142,18 +142,39 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
               children: [
                 Row(
                   children: [
-                    Expanded(child: ElevatedButton(onPressed: _enterRoom, child: const Text('🎙️ Voice room'))),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: _enterRoom,
+                        child: Container(
+                          height: 44,
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), gradient: const LinearGradient(colors: AppGradients.brand)),
+                          alignment: Alignment.center,
+                          child: const Text('🎙️ Voice room', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                        ),
+                      ),
+                    ),
                     const SizedBox(width: 8),
-                    OutlinedButton(onPressed: _leave, child: const Text('Leave')),
+                    GestureDetector(
+                      onTap: _leave,
+                      child: Container(
+                        height: 44,
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+                        alignment: Alignment.center,
+                        child: const Text('Leave', style: TextStyle(color: AppColors.textDim, fontWeight: FontWeight.w700, fontSize: 13)),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: _boost,
-                    style: OutlinedButton.styleFrom(foregroundColor: AppColors.gold, side: const BorderSide(color: AppColors.gold)),
-                    child: const Text('🚀 Boost 7 days'),
+                GestureDetector(
+                  onTap: _boost,
+                  child: Container(
+                    width: double.infinity,
+                    height: 44,
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), color: AppColors.gold.withValues(alpha: 0.08), border: Border.all(color: AppColors.gold.withValues(alpha: 0.5))),
+                    alignment: Alignment.center,
+                    child: const Text('🚀 Boost 7 days', style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.w700, fontSize: 13)),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -167,7 +188,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                   ..._pinned.map((p) => Container(
                         margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
+                        decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(12)),
                         child: Text('📌 ${p['text']}', style: const TextStyle(color: AppColors.text, fontSize: 13)),
                       )),
                 if (canModerate)
@@ -176,14 +197,26 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                     child: Row(
                       children: [
                         Expanded(
-                          child: TextField(
-                            controller: _pinController,
-                            style: const TextStyle(color: AppColors.text),
-                            decoration: const InputDecoration(hintText: 'Pin a message…', isDense: true),
+                          child: Container(
+                            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+                            child: TextField(
+                              controller: _pinController,
+                              style: const TextStyle(color: AppColors.text, fontSize: 13),
+                              decoration: const InputDecoration(hintText: 'Pin a message…', isDense: true, border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
-                        ElevatedButton(onPressed: _pinning ? null : _pin, child: const Text('Pin')),
+                        GestureDetector(
+                          onTap: _pinning ? null : _pin,
+                          child: Container(
+                            height: 36,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            decoration: BoxDecoration(borderRadius: BorderRadius.circular(999), gradient: _pinning ? null : const LinearGradient(colors: AppGradients.brand), color: _pinning ? AppColors.surface2 : null),
+                            alignment: Alignment.center,
+                            child: Text('Pin', style: TextStyle(color: _pinning ? AppColors.textFaint : Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
+                          ),
+                        ),
                       ],
                     ),
                   ),
