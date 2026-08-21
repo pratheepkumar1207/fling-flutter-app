@@ -20,13 +20,18 @@ class SwipeCard extends StatefulWidget {
   final void Function(String action) onSwipe;
   final bool active;
 
-  const SwipeCard({super.key, required this.profile, required this.onSwipe, required this.active});
+  const SwipeCard(
+      {super.key,
+      required this.profile,
+      required this.onSwipe,
+      required this.active});
 
   @override
   State<SwipeCard> createState() => _SwipeCardState();
 }
 
-class _SwipeCardState extends State<SwipeCard> with SingleTickerProviderStateMixin {
+class _SwipeCardState extends State<SwipeCard>
+    with SingleTickerProviderStateMixin {
   Offset _drag = Offset.zero;
   bool _dragging = false;
   bool _flipped = false;
@@ -37,7 +42,9 @@ class _SwipeCardState extends State<SwipeCard> with SingleTickerProviderStateMix
     ApiClient.get('/gallery/user/${widget.profile.id}').then((data) {
       if (!mounted) return;
       setState(() {
-        _gallery = (data as List).map((e) => Photo.fromJson(e as Map<String, dynamic>)).toList();
+        _gallery = (data as List)
+            .map((e) => Photo.fromJson(e as Map<String, dynamic>))
+            .toList();
       });
     }).catchError((_) {
       if (mounted) setState(() => _gallery = []);
@@ -59,7 +66,8 @@ class _SwipeCardState extends State<SwipeCard> with SingleTickerProviderStateMix
 
   void _onPanEnd(DragEndDetails details) {
     if (!_dragging) return;
-    final barelyMoved = _drag.dx.abs() < _kTapMaxMovement && _drag.dy.abs() < _kTapMaxMovement;
+    final barelyMoved =
+        _drag.dx.abs() < _kTapMaxMovement && _drag.dy.abs() < _kTapMaxMovement;
     if (_drag.dx > _kThreshold) {
       widget.onSwipe('like');
     } else if (_drag.dx < -_kThreshold) {
@@ -98,7 +106,9 @@ class _SwipeCardState extends State<SwipeCard> with SingleTickerProviderStateMix
           final showFront = angle < 3.14159 / 2;
           return Transform(
             alignment: Alignment.center,
-            transform: Matrix4.identity()..setEntry(3, 2, 0.001)..rotateY(angle),
+            transform: Matrix4.identity()
+              ..setEntry(3, 2, 0.001)
+              ..rotateY(angle),
             child: showFront
                 ? _frontFace(profile, likeOpacity, passOpacity)
                 : Transform(
@@ -119,23 +129,37 @@ class _SwipeCardState extends State<SwipeCard> with SingleTickerProviderStateMix
     );
   }
 
-  Widget _frontFace(DiscoverProfile profile, double likeOpacity, double passOpacity) {
+  Widget _frontFace(
+      DiscoverProfile profile, double likeOpacity, double passOpacity) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: Container(
-        decoration: BoxDecoration(color: AppColors.surface2, border: Border.all(color: AppColors.border)),
+        decoration: BoxDecoration(
+            color: AppColors.surface2,
+            border: Border.all(color: AppColors.border)),
         child: Stack(
           fit: StackFit.expand,
           children: [
             profile.avatarUrl != null
                 ? AppImage(source: profile.avatarUrl, fit: BoxFit.cover)
-                : Container(color: AppColors.surface3, alignment: Alignment.center, child: Text(initials(profile.name), style: const TextStyle(color: AppColors.textFaint, fontSize: 56, fontWeight: FontWeight.bold))),
+                : Container(
+                    color: AppColors.surface3,
+                    alignment: Alignment.center,
+                    child: Text(initials(profile.name),
+                        style: const TextStyle(
+                            color: AppColors.textFaint,
+                            fontSize: 56,
+                            fontWeight: FontWeight.bold))),
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
-                  colors: [Colors.black.withValues(alpha: 0.85), Colors.black.withValues(alpha: 0.1), Colors.transparent],
+                  colors: [
+                    Colors.black.withValues(alpha: 0.85),
+                    Colors.black.withValues(alpha: 0.1),
+                    Colors.transparent
+                  ],
                 ),
               ),
             ),
@@ -148,9 +172,17 @@ class _SwipeCardState extends State<SwipeCard> with SingleTickerProviderStateMix
                   child: Transform.rotate(
                     angle: -0.3,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(border: Border.all(color: AppColors.success, width: 4), borderRadius: BorderRadius.circular(8)),
-                      child: const Text('LIKE', style: TextStyle(color: AppColors.success, fontSize: 24, fontWeight: FontWeight.w900)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                          border:
+                              Border.all(color: AppColors.success, width: 4),
+                          borderRadius: BorderRadius.circular(8)),
+                      child: const Text('LIKE',
+                          style: TextStyle(
+                              color: AppColors.success,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900)),
                     ),
                   ),
                 ),
@@ -164,9 +196,16 @@ class _SwipeCardState extends State<SwipeCard> with SingleTickerProviderStateMix
                   child: Transform.rotate(
                     angle: 0.3,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(border: Border.all(color: AppColors.danger, width: 4), borderRadius: BorderRadius.circular(8)),
-                      child: const Text('NOPE', style: TextStyle(color: AppColors.danger, fontSize: 24, fontWeight: FontWeight.w900)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                          border: Border.all(color: AppColors.danger, width: 4),
+                          borderRadius: BorderRadius.circular(8)),
+                      child: const Text('NOPE',
+                          style: TextStyle(
+                              color: AppColors.danger,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900)),
                     ),
                   ),
                 ),
@@ -175,9 +214,16 @@ class _SwipeCardState extends State<SwipeCard> with SingleTickerProviderStateMix
               top: 16,
               right: 16,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(999)),
-                child: const Text('🔄 Tap to Flip', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(999)),
+                child: const Text('🔄 Tap to Flip',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600)),
               ),
             ),
             Positioned(
@@ -193,18 +239,34 @@ class _SwipeCardState extends State<SwipeCard> with SingleTickerProviderStateMix
                       children: [
                         Text(
                           '${profile.name}${profile.age != null ? ', ${profile.age}' : ''}',
-                          style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold),
                         ),
+                        if (profile.isVerified) ...[
+                          const SizedBox(width: 6),
+                          const Icon(Icons.verified_rounded,
+                              color: AppColors.gold, size: 18),
+                        ],
                         if (profile.online) ...[
                           const SizedBox(width: 8),
-                          Container(width: 10, height: 10, decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle)),
+                          Container(
+                              width: 10,
+                              height: 10,
+                              decoration: const BoxDecoration(
+                                  color: AppColors.success,
+                                  shape: BoxShape.circle)),
                         ],
                       ],
                     ),
                     if (profile.city != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
-                        child: Text('📍 ${profile.city}', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13)),
+                        child: Text('📍 ${profile.city}',
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.8),
+                                fontSize: 13)),
                       ),
                     if (profile.bio != null && profile.bio!.isNotEmpty)
                       Padding(
@@ -213,7 +275,9 @@ class _SwipeCardState extends State<SwipeCard> with SingleTickerProviderStateMix
                           profile.bio!,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 13),
+                          style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontSize: 13),
                         ),
                       ),
                     if (profile.interests.isNotEmpty)
@@ -222,17 +286,34 @@ class _SwipeCardState extends State<SwipeCard> with SingleTickerProviderStateMix
                         child: Wrap(
                           spacing: 6,
                           runSpacing: 6,
-                          children: profile.interests.take(4).map((i) => Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(999)),
-                            child: Text(i, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
-                          )).toList(),
+                          children: profile.interests
+                              .take(4)
+                              .map((i) => Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                        color: AppColors.accent
+                                            .withValues(alpha: 0.3),
+                                        borderRadius:
+                                            BorderRadius.circular(999)),
+                                    child: Text(i,
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600)),
+                                  ))
+                              .toList(),
                         ),
                       ),
                     if (profile.sharedInterests > 0)
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
-                        child: Text('${profile.sharedInterests} shared interests', style: const TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600)),
+                        child: Text(
+                            '${profile.sharedInterests} shared interests',
+                            style: const TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600)),
                       ),
                   ],
                 ),
@@ -258,7 +339,8 @@ class _SwipeCardState extends State<SwipeCard> with SingleTickerProviderStateMix
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.surface2,
-          border: Border.all(color: AppColors.primary.withValues(alpha: 0.7), width: 2),
+          border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.7), width: 2),
         ),
         padding: const EdgeInsets.all(20),
         child: Stack(
@@ -268,13 +350,19 @@ class _SwipeCardState extends State<SwipeCard> with SingleTickerProviderStateMix
                 top: 0,
                 left: 0,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.2),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+                    border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.4)),
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: const Text('✨ Subscriber Exclusive', style: TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w600)),
+                  child: const Text('✨ Subscriber Exclusive',
+                      style: TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600)),
                 ),
               ),
             Positioned(
@@ -282,7 +370,9 @@ class _SwipeCardState extends State<SwipeCard> with SingleTickerProviderStateMix
               right: 0,
               child: Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.3), shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    shape: BoxShape.circle),
                 child: const Text('🔄', style: TextStyle(fontSize: 14)),
               ),
             ),
@@ -292,23 +382,49 @@ class _SwipeCardState extends State<SwipeCard> with SingleTickerProviderStateMix
                 Container(
                   width: 96,
                   height: 96,
-                  decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.primary, width: 4)),
+                  decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.primary, width: 4)),
                   clipBehavior: Clip.antiAlias,
                   child: profile.avatarUrl != null
                       ? AppImage(source: profile.avatarUrl, fit: BoxFit.cover)
-                      : Container(color: AppColors.surface3, alignment: Alignment.center, child: Text(initials(profile.name), style: const TextStyle(color: AppColors.textFaint, fontSize: 24, fontWeight: FontWeight.bold))),
+                      : Container(
+                          color: AppColors.surface3,
+                          alignment: Alignment.center,
+                          child: Text(initials(profile.name),
+                              style: const TextStyle(
+                                  color: AppColors.textFaint,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold))),
                 ),
                 const SizedBox(height: 10),
-                Text('${profile.name}${profile.age != null ? ', ${profile.age}' : ''}', style: const TextStyle(color: AppColors.text, fontSize: 18, fontWeight: FontWeight.bold)),
-                if (profile.username != null) Text('@${profile.username}', style: const TextStyle(color: AppColors.textFaint, fontSize: 13)),
+                Text(
+                    '${profile.name}${profile.age != null ? ', ${profile.age}' : ''}',
+                    style: const TextStyle(
+                        color: AppColors.text,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold)),
+                if (profile.username != null)
+                  Text('@${profile.username}',
+                      style: const TextStyle(
+                          color: AppColors.textFaint, fontSize: 13)),
                 if (profile.city != null)
-                  Padding(padding: const EdgeInsets.only(top: 4), child: Text('📍 ${profile.city}', style: const TextStyle(color: AppColors.textDim, fontSize: 13))),
+                  Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text('📍 ${profile.city}',
+                          style: const TextStyle(
+                              color: AppColors.textDim, fontSize: 13))),
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
                         if (profile.bio != null && profile.bio!.isNotEmpty)
-                          Padding(padding: const EdgeInsets.only(top: 12), child: Text(profile.bio!, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textDim, fontSize: 13))),
+                          Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: Text(profile.bio!,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                      color: AppColors.textDim, fontSize: 13))),
                         if (profile.interests.isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.only(top: 12),
@@ -316,11 +432,22 @@ class _SwipeCardState extends State<SwipeCard> with SingleTickerProviderStateMix
                               alignment: WrapAlignment.center,
                               spacing: 6,
                               runSpacing: 6,
-                              children: profile.interests.map((i) => Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(999)),
-                                child: Text(i, style: const TextStyle(color: AppColors.text, fontSize: 11, fontWeight: FontWeight.w600)),
-                              )).toList(),
+                              children: profile.interests
+                                  .map((i) => Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 5),
+                                        decoration: BoxDecoration(
+                                            color: AppColors.accent
+                                                .withValues(alpha: 0.3),
+                                            borderRadius:
+                                                BorderRadius.circular(999)),
+                                        child: Text(i,
+                                            style: const TextStyle(
+                                                color: AppColors.text,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600)),
+                                      ))
+                                  .toList(),
                             ),
                           ),
                         if (gallery != null && gallery.isNotEmpty)
@@ -329,15 +456,27 @@ class _SwipeCardState extends State<SwipeCard> with SingleTickerProviderStateMix
                             child: GridView.builder(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 6, mainAxisSpacing: 6),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 3,
+                                      crossAxisSpacing: 6,
+                                      mainAxisSpacing: 6),
                               itemCount: gallery.length,
                               itemBuilder: (context, i) => ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
-                                child: AppImage(source: gallery[i].imageData, fit: BoxFit.cover),
+                                child: AppImage(
+                                    source: gallery[i].imageData,
+                                    fit: BoxFit.cover),
                               ),
                             ),
                           ),
-                        if (hasNoDetails) const Padding(padding: EdgeInsets.only(top: 16), child: Text('✨\nNo additional details yet', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textFaint))),
+                        if (hasNoDetails)
+                          const Padding(
+                              padding: EdgeInsets.only(top: 16),
+                              child: Text('✨\nNo additional details yet',
+                                  textAlign: TextAlign.center,
+                                  style:
+                                      TextStyle(color: AppColors.textFaint))),
                       ],
                     ),
                   ),
@@ -348,15 +487,25 @@ class _SwipeCardState extends State<SwipeCard> with SingleTickerProviderStateMix
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => MessageThreadScreen(userId: profile.id, name: profile.name, avatarUrl: profile.avatarUrl)),
+                        MaterialPageRoute(
+                            builder: (_) => MessageThreadScreen(
+                                userId: profile.id,
+                                name: profile.name,
+                                avatarUrl: profile.avatarUrl)),
                       ),
-                      child: Text(isViewerVip ? '➤  Subscriber Direct Message  💬' : '➤  Message  💬'),
+                      child: Text(isViewerVip
+                          ? '➤  Subscriber Direct Message  💬'
+                          : '➤  Message  💬'),
                     ),
                   ),
                 ),
                 const Padding(
                   padding: EdgeInsets.only(top: 6),
-                  child: Text('TAP TO FLIP BACK', style: TextStyle(color: AppColors.textFaint, fontSize: 9, letterSpacing: 1)),
+                  child: Text('TAP TO FLIP BACK',
+                      style: TextStyle(
+                          color: AppColors.textFaint,
+                          fontSize: 9,
+                          letterSpacing: 1)),
                 ),
               ],
             ),

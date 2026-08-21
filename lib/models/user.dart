@@ -98,8 +98,12 @@ class User {
       phone: json['phone'] as String?,
       avatarUrl: json['avatarUrl'] as String?,
       bio: json['bio'] as String?,
-      interests: (json['interests'] as List?)?.map((e) => e.toString()).toList() ?? const [],
-      languages: (json['languages'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      interests:
+          (json['interests'] as List?)?.map((e) => e.toString()).toList() ??
+              const [],
+      languages:
+          (json['languages'] as List?)?.map((e) => e.toString()).toList() ??
+              const [],
       city: json['city'] as String?,
       age: json['age'] as int?,
       gender: json['gender'] as String?,
@@ -110,26 +114,39 @@ class User {
       drinking: json['drinking'] as String?,
       hasKids: json['hasKids'] as String?,
       religion: json['religion'] as String?,
-      prompts: (json['prompts'] as List?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? const [],
+      prompts: (json['prompts'] as List?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          const [],
       ageConfirmed18: json['ageConfirmed18'] as bool? ?? false,
-      safetyGuidelinesSeenAt: json['safetyGuidelinesSeenAt'] != null ? DateTime.tryParse(json['safetyGuidelinesSeenAt'] as String) : null,
-      photoVerificationStatus: json['photoVerificationStatus'] as String? ?? 'none',
+      safetyGuidelinesSeenAt: json['safetyGuidelinesSeenAt'] != null
+          ? DateTime.tryParse(json['safetyGuidelinesSeenAt'] as String)
+          : null,
+      photoVerificationStatus:
+          json['photoVerificationStatus'] as String? ?? 'none',
       verificationSelfieUrl: json['verificationSelfieUrl'] as String?,
       livestreamStatus: json['livestreamStatus'] as String? ?? 'none',
       hideOnlineStatus: json['hideOnlineStatus'] as bool? ?? false,
       safeModeEnabled: json['safeModeEnabled'] as bool? ?? false,
-      pushNotificationsEnabled: json['pushNotificationsEnabled'] as bool? ?? true,
+      pushNotificationsEnabled:
+          json['pushNotificationsEnabled'] as bool? ?? true,
       locationSharingEnabled: json['locationSharingEnabled'] as bool? ?? false,
-      usernameChangedAt: json['usernameChangedAt'] != null ? DateTime.tryParse(json['usernameChangedAt'] as String) : null,
+      usernameChangedAt: json['usernameChangedAt'] != null
+          ? DateTime.tryParse(json['usernameChangedAt'] as String)
+          : null,
       xp: json['xp'] as int? ?? 0,
       level: json['level'] as int? ?? 1,
       isVip: json['isVip'] as bool? ?? false,
-      vipExpiresAt: json['vipExpiresAt'] != null ? DateTime.tryParse(json['vipExpiresAt']) : null,
+      vipExpiresAt: json['vipExpiresAt'] != null
+          ? DateTime.tryParse(json['vipExpiresAt'])
+          : null,
       isVerified: json['isVerified'] as bool? ?? false,
       isFake: json['isFake'] as bool? ?? false,
       equippedFrameId: json['equippedFrameId'] as String?,
       equippedCarId: json['equippedCarId'] as String?,
-      carExpiresAt: json['carExpiresAt'] != null ? DateTime.tryParse(json['carExpiresAt'] as String) : null,
+      carExpiresAt: json['carExpiresAt'] != null
+          ? DateTime.tryParse(json['carExpiresAt'] as String)
+          : null,
       coinBalance: _parseDouble(json['coinBalance']),
       galleryCount: json['galleryCount'] as int? ?? 0,
       // Older cached responses (or endpoints that don't compute it) won't
@@ -137,7 +154,9 @@ class User {
       // existing account behind the completion screen.
       profileComplete: json['profileComplete'] as bool? ?? true,
       completenessPercent: json['completenessPercent'] as int? ?? 100,
-      lastSpinAt: json['lastSpinAt'] != null ? DateTime.tryParse(json['lastSpinAt'].toString()) : null,
+      lastSpinAt: json['lastSpinAt'] != null
+          ? DateTime.tryParse(json['lastSpinAt'].toString())
+          : null,
     );
   }
 
@@ -153,8 +172,8 @@ class User {
 }
 
 /// A candidate profile as returned by GET /discover — a narrower, public
-/// shape than User (see src/routes/discover.js — isVerified/isVip are
-/// deliberately excluded from this endpoint, so don't add them here).
+/// shape than User (see src/routes/discover.js — isVip is deliberately
+/// excluded from this endpoint, so don't add it here).
 class DiscoverProfile {
   final String id;
   final String name;
@@ -171,6 +190,7 @@ class DiscoverProfile {
   final bool online;
   final int sharedInterests;
   final String? equippedFrameId;
+  final bool isVerified;
 
   DiscoverProfile({
     required this.id,
@@ -188,6 +208,7 @@ class DiscoverProfile {
     this.online = false,
     this.sharedInterests = 0,
     this.equippedFrameId,
+    this.isVerified = false,
   });
 
   factory DiscoverProfile.fromJson(Map<String, dynamic> json) {
@@ -197,8 +218,12 @@ class DiscoverProfile {
       username: json['username'] as String?,
       avatarUrl: json['avatarUrl'] as String?,
       bio: json['bio'] as String?,
-      interests: (json['interests'] as List?)?.map((e) => e.toString()).toList() ?? const [],
-      languages: (json['languages'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      interests:
+          (json['interests'] as List?)?.map((e) => e.toString()).toList() ??
+              const [],
+      languages:
+          (json['languages'] as List?)?.map((e) => e.toString()).toList() ??
+              const [],
       religion: json['religion'] as String?,
       lookingFor: json['lookingFor'] as String?,
       city: json['city'] as String?,
@@ -207,6 +232,7 @@ class DiscoverProfile {
       online: json['online'] as bool? ?? false,
       sharedInterests: json['sharedInterests'] as int? ?? 0,
       equippedFrameId: json['equippedFrameId'] as String?,
+      isVerified: json['isVerified'] as bool? ?? false,
     );
   }
 }
