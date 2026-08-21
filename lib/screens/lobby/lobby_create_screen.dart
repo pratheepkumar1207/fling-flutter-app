@@ -55,6 +55,14 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
   // second, redundant description column.
   final _topicController = TextEditingController();
   String _visibility = 'public';
+  // Matches RoomSetupDark.dc.html's two toggles — only applied for
+  // game/voice rooms, which create directly through _create() below. Watch
+  // rooms go through the separate source-picker flow (SourcePickerScreen /
+  // watch_room_creator.dart) instead, which doesn't thread these through;
+  // a watch host can still set them afterward via Room Settings, same as
+  // today.
+  bool _micEnabled = true;
+  bool _songPermission = true;
   bool _saving = false;
 
   Future<void> _create() async {
@@ -67,8 +75,13 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
         if (_nameController.text.trim().isNotEmpty) 'title': _nameController.text.trim(),
         if (_topicController.text.trim().isNotEmpty) 'topic': _topicController.text.trim(),
       }) as Map<String, dynamic>;
+      final roomId = room['id'] as String;
+      await ApiClient.patch('/rooms/$roomId/settings', body: {
+        'micEnabled': _micEnabled,
+        'songPermission': _songPermission ? 'anyone' : 'host',
+      }).catchError((_) => null);
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => PartyScreen(roomId: room['id'] as String)));
+      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId)));
     } on ApiException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
@@ -97,10 +110,8 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
                 IconButton(icon: const Icon(Icons.arrow_back, color: AppColors.text), onPressed: () => Navigator.of(context).pop()),
               ],
             ),
-            const Text('Create a Room', textAlign: TextAlign.center, style: TextStyle(color: AppColors.text, fontSize: 24, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 4),
-            const Text('Host a room and vibe together ✨', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-            const SizedBox(height: 24),
+            const Text('Create a room', textAlign: TextAlign.center, style: TextStyle(color: AppColors.text, fontSize: 22, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 20),
             _sectionLabel('1. Select Room Type'),
             const SizedBox(height: 10),
             // Exactly 3 room types — a single 1x3 row instead of a wrapping
@@ -132,11 +143,14 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
               ),
             ],
             const SizedBox(height: 20),
-            _sectionLabel('2. Room Mode'),
-            const SizedBox(height: 4),
-            const Text('Choose who can join your room', style: TextStyle(color: AppColors.textFaint, fontSize: 12)),
+            _sectionLabel('2. Who can join'),
             const SizedBox(height: 10),
-            Column(children: _visibilities.map(_visibilityCard).toList()),
+            Wrap(spacing: 8, runSpacing: 8, children: _visibilities.map(_visibilityPill).toList()),
+            if (_roomType != 'game') ...[
+              const SizedBox(height: 20),
+              _toggleRow('Mics enabled', _micEnabled, (v) => setState(() => _micEnabled = v)),
+              _toggleRow('Anyone can add songs', _songPermission, (v) => setState(() => _songPermission = v)),
+            ],
             const SizedBox(height: 20),
             _sectionLabel('3. Room Details'),
             const SizedBox(height: 10),
@@ -182,11 +196,11 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
     return GestureDetector(
       onTap: () => setState(() => _roomType = spec.value),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          border: Border.all(color: selected ? AppColors.primary : AppColors.border, width: selected ? 2 : 1),
-          borderRadius: BorderRadius.circular(16),
+          color: selected ? AppColors.accent.withValues(alpha: 0.1) : AppColors.surface,
+          border: Border.all(color: selected ? AppColors.accent : AppColors.border, width: selected ? 1.5 : 1),
+          borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -194,13 +208,13 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
             // The icon assets are already complete illustrations on their
             // own — no tinted circle backdrop behind them.
             spec.iconAsset != null
-                ? Image.asset(spec.iconAsset!, width: 96, height: 96, fit: BoxFit.contain)
+                ? Image.asset(spec.iconAsset!, width: 56, height: 56, fit: BoxFit.contain)
                 : SizedBox(
-                    width: 96,
-                    height: 96,
-                    child: Center(child: Text(spec.emoji, style: const TextStyle(fontSize: 26))),
+                    width: 56,
+                    height: 56,
+                    child: Center(child: Text(spec.emoji, style: const TextStyle(fontSize: 22))),
                   ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             // Icon-only per design — the description alone is enough, no
             // separate title label under it.
             Text(
@@ -216,47 +230,47 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
     );
   }
 
-  Widget _visibilityCard(_VisibilitySpec spec) {
+  // Compact pill row — matches RoomSetupDark.dc.html's "Who can join"
+  // section exactly (the previous vertical description-cards were a
+  // pre-existing embellishment, not from the mockup).
+  Widget _visibilityPill(_VisibilitySpec spec) {
     final selected = _visibility == spec.value;
+    return GestureDetector(
+      onTap: () => setState(() => _visibility = spec.value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(999),
+          color: selected ? AppColors.accent.withValues(alpha: 0.16) : Colors.transparent,
+          border: Border.all(color: selected ? AppColors.accent : AppColors.border, width: selected ? 1.5 : 1),
+        ),
+        child: Text(spec.label, style: TextStyle(color: selected ? AppColors.accent : AppColors.textDim, fontSize: 12.5, fontWeight: FontWeight.w600)),
+      ),
+    );
+  }
+
+  Widget _toggleRow(String label, bool value, ValueChanged<bool> onChanged) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: GestureDetector(
-        onTap: () => setState(() => _visibility = spec.value),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: selected ? AppColors.primary : AppColors.border, width: selected ? 2 : 1),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Row(
-            children: [
-              spec.iconAsset != null
-                  ? Image.asset(spec.iconAsset!, width: 44, height: 44)
-                  : Icon(spec.icon, color: selected ? AppColors.primary : AppColors.textDim, size: 20),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(spec.label, style: TextStyle(color: selected ? AppColors.primary : AppColors.text, fontSize: 14, fontWeight: FontWeight.w600)),
-                    Text(spec.description, style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
-                  ],
-                ),
+        onTap: () => onChanged(!value),
+        child: Row(
+          children: [
+            Expanded(child: Text(label, style: const TextStyle(color: AppColors.text, fontSize: 13.5))),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              width: 36,
+              height: 20,
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                gradient: value ? const LinearGradient(colors: AppGradients.brand) : null,
+                color: value ? null : AppColors.surface2,
               ),
-              Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: selected ? AppColors.primary : AppColors.border, width: 2),
-                  color: selected ? AppColors.primary : Colors.transparent,
-                ),
-                alignment: Alignment.center,
-                child: selected ? const Icon(Icons.check, size: 13, color: Colors.white) : null,
-              ),
-            ],
-          ),
+              alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+              child: Container(width: 16, height: 16, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
+            ),
+          ],
         ),
       ),
     );
