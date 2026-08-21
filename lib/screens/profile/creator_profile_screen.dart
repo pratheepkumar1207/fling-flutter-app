@@ -183,27 +183,31 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              ElevatedButton(
-                onPressed: _toggleFollow,
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: const StadiumBorder()),
-                child: Text(isFollowed ? 'Unfollow' : 'Follow'),
+              _pillButton(
+                isFollowed ? 'Unfollow' : 'Follow',
+                onTap: _toggleFollow,
+                gradient: isFollowed ? null : const LinearGradient(colors: AppGradients.brand),
+                fill: isFollowed ? AppColors.surface2 : null,
+                textColor: isFollowed ? AppColors.textDim : Colors.white,
               ),
-              OutlinedButton(onPressed: _addFriend, style: OutlinedButton.styleFrom(shape: const StadiumBorder()), child: const Text('Add friend')),
-              OutlinedButton(
-                style: OutlinedButton.styleFrom(foregroundColor: AppColors.gold, side: const BorderSide(color: AppColors.gold), shape: const StadiumBorder()),
-                onPressed: () => showGiftBottomSheet(context, toUserId: widget.userId, targetKey: _avatarKey),
-                child: const Text('🎁 Gift'),
+              _pillButton('Add friend', onTap: _addFriend, borderColor: AppColors.border, textColor: AppColors.textDim),
+              _pillButton(
+                '🎁 Gift',
+                onTap: () => showGiftBottomSheet(context, toUserId: widget.userId, targetKey: _avatarKey),
+                borderColor: AppColors.gold.withValues(alpha: 0.5),
+                textColor: AppColors.gold,
               ),
-              OutlinedButton(
-                style: OutlinedButton.styleFrom(shape: const StadiumBorder()),
-                onPressed: () => Navigator.of(context).push(
+              _pillButton(
+                '💬 Message',
+                onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => MessageThreadScreen(userId: widget.userId, name: p['name'] as String? ?? '', avatarUrl: p['avatarUrl'] as String?)),
                 ),
-                child: const Text('💬 Message'),
+                borderColor: AppColors.border,
+                textColor: AppColors.textDim,
               ),
-              OutlinedButton(
-                style: OutlinedButton.styleFrom(foregroundColor: AppColors.danger, side: const BorderSide(color: AppColors.danger), shape: const StadiumBorder()),
-                onPressed: () => showReportUserSheet(
+              _pillButton(
+                '⋯ Report / Block',
+                onTap: () => showReportUserSheet(
                   context,
                   userName: p['name'] as String? ?? '',
                   onReport: () => _confirmDialog(
@@ -221,7 +225,8 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                     onConfirm: _block,
                   ),
                 ),
-                child: const Text('⋯ Report / Block'),
+                borderColor: AppColors.danger.withValues(alpha: 0.5),
+                textColor: AppColors.danger,
               ),
             ],
           ),
@@ -293,6 +298,22 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
       ),
     );
   }
+
+  Widget _pillButton(String label, {required VoidCallback onTap, Gradient? gradient, Color? fill, Color? borderColor, required Color textColor}) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: 36,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            gradient: gradient,
+            color: gradient == null ? (fill ?? Colors.transparent) : null,
+            border: (gradient == null && fill == null) ? Border.all(color: borderColor ?? AppColors.border) : null,
+          ),
+          alignment: Alignment.center,
+          child: Text(label, style: TextStyle(color: textColor, fontSize: 12.5, fontWeight: FontWeight.w700)),
+        ),
+      );
 
   Widget _badge(String label, Color color) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
