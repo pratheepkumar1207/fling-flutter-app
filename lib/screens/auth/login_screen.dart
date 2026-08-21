@@ -9,14 +9,19 @@ import '../../widgets/mascot_eyes.dart';
 import 'otp_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  // Carried over from OnboardingScreen's own phone field (the mockup shows
+  // phone entry on both screens — Onboarding just hands the typed number
+  // through to here rather than duplicating the actual auth flow).
+  final String? initialPhone;
+
+  const LoginScreen({super.key, this.initialPhone});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _phoneController = TextEditingController();
+  late final _phoneController = TextEditingController(text: widget.initialPhone);
   final _phoneFocus = FocusNode();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();

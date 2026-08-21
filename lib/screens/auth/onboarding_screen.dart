@@ -6,15 +6,16 @@ import 'login_screen.dart';
 
 const _kSeenKey = 'onboarding_seen';
 
-/// One-time welcome/value-prop screen, matches OnboardingDark.dc.html —
-/// shown before LoginScreen on first launch only (SharedPreferences flag,
-/// same pattern as ThemeController's persistence). The mock's own phone
-/// field doubles as a login form, but that logic (dev login, Firebase OTP,
-/// fake-account login) already lives in LoginScreen — duplicating it here
-/// would just be two places to keep in sync, so this screen is the hero/
-/// value-prop half only, handing off to the real LoginScreen via "Get
-/// started".
-class OnboardingScreen extends StatelessWidget {
+/// One-time welcome screen, matches OnboardingDark.dc.html literally —
+/// including its own phone-number field, not just a "Get started" hero.
+/// The actual auth logic (dev login, Firebase OTP, fake-account login)
+/// stays in LoginScreen alone — this screen just carries the typed phone
+/// number through via initialPhone rather than duplicating that flow.
+/// The mockup's second "Continue with Google" button is left out: there's
+/// no working Google sign-in anywhere in this app to wire it to (the
+/// existing GoogleAccountLink/google_content_service.dart is for linking
+/// a Google account for YouTube content browsing, not for signing in).
+class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
   static Future<bool> hasSeenOnboarding() async {
@@ -22,16 +23,29 @@ class OnboardingScreen extends StatelessWidget {
     return prefs.getBool(_kSeenKey) ?? false;
   }
 
+  @override
+  State<OnboardingScreen> createState() => _OnboardingScreenState();
+}
+
+class _OnboardingScreenState extends State<OnboardingScreen> {
+  final _phoneController = TextEditingController();
+
   static Future<void> _markSeen() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_kSeenKey, true);
   }
 
-  Future<void> _getStarted(BuildContext context) async {
+  Future<void> _continue() async {
     await _markSeen();
-    if (context.mounted) {
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
-    }
+    if (!mounted) return;
+    final phone = _phoneController.text.trim();
+    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => LoginScreen(initialPhone: phone.isEmpty ? null : phone)));
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
   }
 
   @override
@@ -130,8 +144,30 @@ class OnboardingScreen extends StatelessWidget {
                     style: TextStyle(color: AppColors.textDim, fontSize: 13.5, height: 1.5),
                   ),
                   const Spacer(),
+                  Container(
+                    height: 52,
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border), color: AppColors.surface),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        const Text('+1', style: TextStyle(color: AppColors.textFaint, fontSize: 14, fontWeight: FontWeight.w600)),
+                        const SizedBox(width: 10),
+                        Container(width: 1, height: 20, color: AppColors.border),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: _phoneController,
+                            keyboardType: TextInputType.phone,
+                            style: const TextStyle(color: AppColors.text, fontSize: 14),
+                            decoration: const InputDecoration(hintText: 'Phone number', hintStyle: TextStyle(color: AppColors.textFaint), border: InputBorder.none, isDense: true),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   GestureDetector(
-                    onTap: () => _getStarted(context),
+                    onTap: _continue,
                     child: Container(
                       height: 54,
                       decoration: BoxDecoration(
@@ -140,7 +176,7 @@ class OnboardingScreen extends StatelessWidget {
                         boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.5), blurRadius: 30, offset: const Offset(0, 14))],
                       ),
                       alignment: Alignment.center,
-                      child: const Text('Get started', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                      child: const Text('Continue', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
                     ),
                   ),
                   const SizedBox(height: 14),
