@@ -20,11 +20,14 @@ class WalletScreen extends StatefulWidget {
 class _WalletScreenState extends State<WalletScreen> {
   bool _buyingVip = false;
   String? _kycStatus;
+  bool _activityLoading = true;
+  List<Map<String, dynamic>> _activity = [];
 
   @override
   void initState() {
     super.initState();
     _loadKyc();
+    _loadActivity();
   }
 
   Future<void> _loadKyc() async {
@@ -32,6 +35,43 @@ class _WalletScreenState extends State<WalletScreen> {
       final data = await ApiClient.get('/kyc/status') as Map<String, dynamic>;
       if (mounted) setState(() => _kycStatus = data['status'] as String? ?? 'none');
     } catch (_) {}
+  }
+
+  Future<void> _loadActivity() async {
+    try {
+      final data = await ApiClient.get('/wallet/transactions');
+      if (mounted) {
+        setState(() {
+          _activity = (data as List).cast<Map<String, dynamic>>();
+          _activityLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _activityLoading = false);
+    }
+  }
+
+  String _activityTitle(Map<String, dynamic> t) {
+    final type = t['type'] as String?;
+    final relatedName = t['relatedUserName'] as String?;
+    final giftType = t['giftType'] as String?;
+    return switch (type) {
+      'buy' => 'Bought coins',
+      'gift_sent' => relatedName != null ? 'Gift to $relatedName' : 'Sent a gift',
+      'gift_received' => giftType == 'spin_wheel'
+          ? 'Daily spin'
+          : (relatedName != null ? '${_titleCase(giftType)} from $relatedName' : 'Received a gift'),
+      'cashout_requested' => 'Cash out requested',
+      'cashout_paid' => 'Cash out to bank',
+      'username_change' => 'Username change',
+      'reverse_swipe' => 'Undo swipe',
+      _ => 'Transaction',
+    };
+  }
+
+  String _titleCase(String? s) {
+    if (s == null || s.isEmpty) return 'Gift';
+    return s[0].toUpperCase() + s.substring(1).replaceAll('_', ' ');
   }
 
   Future<void> _buyVip() async {
@@ -169,6 +209,47 @@ class _WalletScreenState extends State<WalletScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 22),
+          const Text('RECENT ACTIVITY', style: TextStyle(color: AppColors.textFaint, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
+          const SizedBox(height: 8),
+          if (_activityLoading)
+            const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))))
+          else if (_activity.isEmpty)
+            const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('No activity yet.', style: TextStyle(color: AppColors.textFaint, fontSize: 12.5)))
+          else
+            ..._activity.map((t) {
+              final coins = (t['coins'] as num?)?.toDouble() ?? 0;
+              final positive = coins >= 0;
+              final createdAt = DateTime.tryParse(t['createdAt']?.toString() ?? '');
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(11)),
+                      alignment: Alignment.center,
+                      child: Icon(positive ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded, color: positive ? AppColors.success : AppColors.textDim, size: 16),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(_activityTitle(t), style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w600)),
+                          Text(createdAt != null ? formatRelativeTime(createdAt) : '', style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      '${positive ? '+' : ''}${formatNumber(coins)}',
+                      style: TextStyle(color: positive ? AppColors.success : AppColors.text, fontSize: 13, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              );
+            }),
         ],
       ),
     );
