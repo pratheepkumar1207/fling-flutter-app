@@ -175,6 +175,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
             stats: [
               ColaStat('Followers', p['followerCount']),
               ColaStat('Following', p['followingCount']),
+              ColaStat('Gifts', p['totalGiftsReceived']),
             ],
           ),
           const SizedBox(height: 16),
