@@ -5,7 +5,6 @@ import '../../core/active_room_holder.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_provider.dart';
 import '../../core/pip_service.dart';
-import '../../core/profile_nav.dart';
 import '../../core/room_presence_service.dart';
 import '../../core/socket_service.dart';
 import '../../theme/app_colors.dart';
@@ -17,7 +16,6 @@ import '../../widgets/live_video_view.dart';
 import '../../widgets/participant_avatar_row.dart';
 import '../../widgets/poll_bottom_sheet.dart';
 import '../../widgets/poll_creator_bottom_sheet.dart';
-import '../../widgets/room_host_card.dart';
 import '../../widgets/room_settings_sheet.dart';
 import '../../widgets/share_row.dart';
 import '../../widgets/spinner.dart';
@@ -512,7 +510,6 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     final myId = context.read<AuthProvider>().user?.id;
     final hostRoster = rs.roster.where((r) => r.userId == rs.hostId);
     final hostName = hostRoster.isNotEmpty ? hostRoster.first.name : (room['hostName'] as String? ?? 'Host');
-    final hostAvatarUrl = hostRoster.isNotEmpty ? hostRoster.first.avatarUrl : null;
     final boostedUntilRaw = room['boostedUntil'] as String?;
     final isBoosted = boostedUntilRaw != null && (DateTime.tryParse(boostedUntilRaw)?.isAfter(DateTime.now()) ?? false);
     final activeMics = (rs.call['activeMics'] as List? ?? []).cast<String>();
@@ -585,7 +582,17 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
         backgroundColor: isVoice ? ClubRoomColors.surface.withValues(alpha: 0.85) : (isWatch ? VolaPartyColors.surface.withValues(alpha: 0.7) : null),
         foregroundColor: isVoice ? ClubRoomColors.text : (isWatch ? VolaPartyColors.text : null),
         leading: BackButton(onPressed: () => Navigator.of(context).pop()),
-        title: Text(room['title'] as String? ?? '', key: _hostKey, style: const TextStyle(fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
+        // "Title" + "Hosted by X" subtitle, matching the mockups' roomtop
+        // header exactly — not a separate host card below the player.
+        title: Column(
+          key: _hostKey,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(room['title'] as String? ?? '', style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text('Hosted by $hostName', style: TextStyle(fontSize: 10.5, color: roomTextDim), maxLines: 1, overflow: TextOverflow.ellipsis),
+          ],
+        ),
         actions: [
           if (isWatch)
             IconButton(
@@ -758,14 +765,6 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                   ],
                 ),
               ),
-            ),
-          if (isWatch)
-            RoomHostCard(
-              avatarUrl: hostAvatarUrl,
-              name: hostName,
-              textColor: roomText,
-              goldColor: roomGold,
-              onTap: () => openProfile(context, rs.hostId),
             ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
