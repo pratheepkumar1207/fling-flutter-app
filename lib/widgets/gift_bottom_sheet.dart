@@ -1,7 +1,10 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../core/api_client.dart';
 import '../core/api_exception.dart';
+import '../core/auth_provider.dart';
+import '../core/format.dart';
 import '../models/gift.dart';
 import '../theme/app_colors.dart';
 import '../theme/glass.dart';
@@ -47,6 +50,12 @@ class _GiftSheet extends StatefulWidget {
 class _GiftSheetState extends State<_GiftSheet> {
   String? _sending;
   List<Gift>? _gifts;
+  Gift? _selected;
+  // Kept alive across rebuilds (not recreated per-build) so a tile's
+  // GlobalKey still resolves to its live Element after selecting it
+  // triggers a setState — matches GiftSheetDark.dc.html's select-then-
+  // confirm flow (tap a tile to highlight it, tap the CTA to actually send).
+  final Map<String, GlobalKey> _tileKeys = {};
 
   @override
   void initState() {
@@ -58,7 +67,11 @@ class _GiftSheetState extends State<_GiftSheet> {
     try {
       final data = await ApiClient.get('/wallet/gifts');
       if (!mounted) return;
-      setState(() => _gifts = (data as List).map((e) => Gift.fromJson(e as Map<String, dynamic>)).toList());
+      final gifts = (data as List).map((e) => Gift.fromJson(e as Map<String, dynamic>)).toList();
+      for (final g in gifts) {
+        _tileKeys[g.id] = GlobalKey();
+      }
+      setState(() => _gifts = gifts);
     } catch (_) {
       if (mounted) setState(() => _gifts = []);
     }
@@ -98,8 +111,21 @@ class _GiftSheetState extends State<_GiftSheet> {
     messenger.showSnackBar(SnackBar(content: Text('Sent a ${gift.name}!')));
   }
 
+  // Deterministic per-gift glossy gradient (matches GiftSheetDark.dc.html's
+  // distinct color per gift icon, since the catalog has no color field).
+  static const _giftGradients = [
+    [Color(0xFFE0A3A8), Color(0xFFC13750)],
+    [Color(0xFFE8CB8F), Color(0xFFB5893A)],
+    [Color(0xFFD9B08F), Color(0xFF8F5A38)],
+    [Color(0xFFCC9DE8), Color(0xFF8F5AB0)],
+    [Color(0xFFE8D89D), Color(0xFFC9A23F)],
+    [Color(0xFF9DC5E8), Color(0xFF5A8FC1)],
+    [Color(0xFFE8B0A3), Color(0xFFB55A3E)],
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final coinBalance = context.watch<AuthProvider>().user?.coinBalance ?? 0;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
@@ -113,45 +139,88 @@ class _GiftSheetState extends State<_GiftSheet> {
             Center(
               child: Container(width: 36, height: 4, margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(999))),
             ),
-            const Text('Send a gift', style: TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.bold)),
+            Row(
+              children: [
+                const Text('Send a gift', style: TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.bold)),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(999)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.monetization_on_rounded, color: AppColors.gold, size: 14),
+                    const SizedBox(width: 5),
+                    Text(formatNumber(coinBalance), style: const TextStyle(color: AppColors.textDim, fontSize: 11.5, fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+              ],
+            ),
             const SizedBox(height: 16),
             if (_gifts == null)
               const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Center(child: Spinner(size: 20)))
             else if (_gifts!.isEmpty)
               const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Center(child: Text('No gifts available right now.', style: TextStyle(color: AppColors.textFaint))))
-            else
+            else ...[
               GridView.count(
-                crossAxisCount: 3,
+                crossAxisCount: 4,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                childAspectRatio: 0.95,
-                children: _gifts!.map((gift) {
-                  final tileKey = GlobalKey();
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 8,
+                childAspectRatio: 0.8,
+                children: _gifts!.asMap().entries.map((entry) {
+                  final gift = entry.value;
+                  final tileKey = _tileKeys[gift.id] ??= GlobalKey();
                   final disabled = _sending != null;
+                  final selected = _selected?.id == gift.id;
+                  final gradient = _giftGradients[entry.key % _giftGradients.length];
                   return GestureDetector(
                     key: tileKey,
-                    onTap: disabled ? null : () => _send(gift, tileKey),
+                    onTap: disabled ? null : () => setState(() => _selected = gift),
                     child: Opacity(
                       opacity: disabled ? 0.5 : 1,
-                      child: Container(
-                        decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
-                        alignment: Alignment.center,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(gift.emoji, style: const TextStyle(fontSize: 28)),
-                            const SizedBox(height: 2),
-                            Text(gift.name, style: const TextStyle(color: AppColors.text, fontSize: 11, fontWeight: FontWeight.w600)),
-                            Text('${gift.coins} coins', style: const TextStyle(color: AppColors.gold, fontSize: 10)),
-                          ],
-                        ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient),
+                              border: selected ? Border.all(color: AppColors.accent, width: 2) : null,
+                              boxShadow: [BoxShadow(color: gradient[1].withValues(alpha: 0.4), blurRadius: 12, offset: const Offset(0, 6))],
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(gift.emoji, style: const TextStyle(fontSize: 22)),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(gift.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: selected ? AppColors.text : AppColors.textDim, fontSize: 10.5, fontWeight: FontWeight.w600)),
+                          Text('${gift.coins}', style: const TextStyle(color: AppColors.gold, fontSize: 9.5, fontWeight: FontWeight.w700)),
+                        ],
                       ),
                     ),
                   );
                 }).toList(),
               ),
+              const SizedBox(height: 16),
+              GestureDetector(
+                onTap: (_selected == null || _sending != null) ? null : () => _send(_selected!, _tileKeys[_selected!.id]!),
+                child: Container(
+                  width: double.infinity,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    gradient: (_selected == null || _sending != null) ? null : const LinearGradient(colors: AppGradients.brand),
+                    color: (_selected == null || _sending != null) ? AppColors.surface2 : null,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    _selected == null ? 'Pick a gift' : 'Send ${_selected!.name} — ${_selected!.coins} coins',
+                    style: TextStyle(color: (_selected == null || _sending != null) ? AppColors.textFaint : Colors.white, fontWeight: FontWeight.w700, fontSize: 13.5),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
         ),
