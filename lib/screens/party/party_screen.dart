@@ -23,6 +23,7 @@ import '../../widgets/share_row.dart';
 import '../../widgets/spinner.dart';
 import '../../widgets/voice_stage_view.dart';
 import '../lobby/invite_screen.dart';
+import 'chat_overlay.dart';
 import 'chat_panel.dart';
 import 'drive_video_player.dart';
 import 'live_broadcast_controller.dart';
@@ -306,6 +307,31 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
 
   void _openRoster() {
     _scaffoldKey.currentState?.openEndDrawer();
+  }
+
+  // Voice/Game/Live rooms don't keep chat inline (see the mockups — the
+  // speaker grid / board needs the vertical space instead), so it opens as
+  // a sheet from the chat icon in the action row. Watch Party is the
+  // exception — see ChatOverlay, which floats it over the stage instead.
+  void _openChatSheet() {
+    final rs = _rs!;
+    final myId = context.read<AuthProvider>().user?.id;
+    final isVoice = _room?['roomType'] == 'voice';
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isVoice ? ClubRoomColors.surface : AppColors.surface,
+      builder: (_) => AnimatedBuilder(
+        animation: rs,
+        builder: (context, _) => SizedBox(
+          height: MediaQuery.of(context).size.height * 0.7,
+          child: SafeArea(
+            top: false,
+            child: ChatPanel(messages: rs.messages, onSend: rs.sendMessage, myUserId: myId, clubRoomTheme: isVoice),
+          ),
+        ),
+      ),
+    );
   }
 
   // Lets the unified source picker's in-room "switch source" tiles (see
@@ -628,8 +654,15 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
         children: [
           // Room-type-specific content — free to change shape however it
           // needs to, since none of it holds long-lived playback state.
+          // Wrapped in Expanded+scroll (not just Padding) now that chat no
+          // longer eats the remaining space below for these types — same
+          // exact position in the Column either way, so this doesn't touch
+          // the player-identity invariant described below.
           if (!isWatch)
-            Padding(
+            Expanded(
+              child: SingleChildScrollView(
+                child: Center(
+                  child: Padding(
               padding: const EdgeInsets.all(12),
               child: room['roomType'] == 'live' && _live != null
                   ? LiveVideoView(controller: _live!, isHost: rs.isHost)
@@ -664,6 +697,9 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                 child: const Text('🎙️', style: TextStyle(fontSize: 48)),
                               ),
                             ),
+                  ),
+                ),
+              ),
             ),
           // The player — ALWAYS at this same position in the tree whenever
           // there's something to play, regardless of room type. Switching
@@ -754,54 +790,109 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                 ),
               ),
             ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: handleMicTap,
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
-                        color: myMicOn ? roomDanger : (myMicRequested ? roomGold : Colors.black),
-                        shape: BoxShape.circle,
+          // Everything below this point renders strictly AFTER the player in
+          // the tree — restructuring it can't affect the player's identity
+          // across a room-type switch, since that's governed by what
+          // precedes it (see the big comment above the player block), which
+          // is untouched here.
+          if (isWatch)
+            // Chat floats over an open "stage" instead of living in its own
+            // boxed panel — matches WatchPartyDark.dc.html. The action
+            // buttons (mic/boost/gift/poll/queue/share/invite) become a
+            // floating vertical rail instead of a horizontal scroll row, but
+            // are otherwise the exact same buttons/handlers as every other
+            // room type gets below.
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                child: Stack(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 54),
+                      child: ChatOverlay(
+                        messages: rs.messages,
+                        onSend: rs.sendMessage,
+                        myUserId: myId,
+                        primaryColor: roomPrimary,
+                        textColor: roomText,
                       ),
-                      alignment: Alignment.center,
-                      child: Icon(myMicOn ? Icons.mic : Icons.mic_off, color: Colors.white, size: 18),
                     ),
-                  ),
-                  if (rs.isHost) _iconButton('🚀', _boost, color: roomGold, borderColor: roomBorder, badgeColor: roomPrimary),
-                  _iconButton(
-                    '🎁',
-                    () => showGiftBottomSheet(context, toUserId: room['hostId'] as String? ?? '', roomId: widget.roomId, targetKey: _hostKey),
-                    color: roomGold,
-                    borderColor: roomBorder,
-                    badgeColor: roomPrimary,
-                  ),
-                  if (rs.isHost)
-                    _iconButton('📊', () => showPollCreatorBottomSheet(context, onCreate: rs.createPoll), borderColor: roomBorder, badgeColor: roomPrimary)
-                  else if (rs.poll['active'] == true)
-                    _iconButton('📊', () => showPollBottomSheet(context, poll: rs.poll, myUserId: myId ?? '', isHost: rs.isHost, onVote: rs.votePoll, onReset: rs.resetPoll), borderColor: roomBorder, badgeColor: roomPrimary),
-                  if (isWatch || isGame || isVoice)
-                    _iconButton('📑', _openQueue, badge: items.isEmpty ? null : items.length, borderColor: roomBorder, badgeColor: roomPrimary),
-                  _iconButton('🔗', _shareRoom, borderColor: roomBorder, badgeColor: roomPrimary),
-                  _iconButton('👥➕', _openInvite, borderColor: roomBorder, badgeColor: roomPrimary, iconAsset: 'assets/icons/app/invite_in_room.png'),
-                ],
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      bottom: 46,
+                      child: SingleChildScrollView(
+                        reverse: true,
+                        child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          _floatingIconButton(
+                            myMicOn ? Icons.mic : Icons.mic_off,
+                            handleMicTap,
+                            color: myMicOn ? roomDanger : (myMicRequested ? roomGold : null),
+                          ),
+                          if (rs.isHost) _floatingIconButtonEmoji('🚀', _boost, color: roomGold),
+                          _floatingIconButtonEmoji('🎁', () => showGiftBottomSheet(context, toUserId: room['hostId'] as String? ?? '', roomId: widget.roomId, targetKey: _hostKey), color: roomGold),
+                          if (rs.isHost)
+                            _floatingIconButtonEmoji('📊', () => showPollCreatorBottomSheet(context, onCreate: rs.createPoll))
+                          else if (rs.poll['active'] == true)
+                            _floatingIconButtonEmoji('📊', () => showPollBottomSheet(context, poll: rs.poll, myUserId: myId ?? '', isHost: rs.isHost, onVote: rs.votePoll, onReset: rs.resetPoll)),
+                          _floatingIconButton(Icons.queue_music_rounded, _openQueue, badge: items.isEmpty ? null : items.length, badgeColor: roomPrimary),
+                          _floatingIconButton(Icons.share_rounded, _shareRoom),
+                          _floatingIconButton(Icons.person_add_alt_1_rounded, _openInvite),
+                        ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: handleMicTap,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          color: myMicOn ? roomDanger : (myMicRequested ? roomGold : Colors.black),
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(myMicOn ? Icons.mic : Icons.mic_off, color: Colors.white, size: 18),
+                      ),
+                    ),
+                    _iconButton('💬', _openChatSheet, borderColor: roomBorder, badgeColor: roomPrimary),
+                    if (rs.isHost) _iconButton('🚀', _boost, color: roomGold, borderColor: roomBorder, badgeColor: roomPrimary),
+                    _iconButton(
+                      '🎁',
+                      () => showGiftBottomSheet(context, toUserId: room['hostId'] as String? ?? '', roomId: widget.roomId, targetKey: _hostKey),
+                      color: roomGold,
+                      borderColor: roomBorder,
+                      badgeColor: roomPrimary,
+                    ),
+                    if (rs.isHost)
+                      _iconButton('📊', () => showPollCreatorBottomSheet(context, onCreate: rs.createPoll), borderColor: roomBorder, badgeColor: roomPrimary)
+                    else if (rs.poll['active'] == true)
+                      _iconButton('📊', () => showPollBottomSheet(context, poll: rs.poll, myUserId: myId ?? '', isHost: rs.isHost, onVote: rs.votePoll, onReset: rs.resetPoll), borderColor: roomBorder, badgeColor: roomPrimary),
+                    if (isGame || isVoice)
+                      _iconButton('📑', _openQueue, badge: items.isEmpty ? null : items.length, borderColor: roomBorder, badgeColor: roomPrimary),
+                    _iconButton('🔗', _shareRoom, borderColor: roomBorder, badgeColor: roomPrimary),
+                    _iconButton('👥➕', _openInvite, borderColor: roomBorder, badgeColor: roomPrimary, iconAsset: 'assets/icons/app/invite_in_room.png'),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: Container(
-              margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-              decoration: BoxDecoration(color: roomSurface, borderRadius: BorderRadius.circular(14), border: Border.all(color: roomBorder)),
-              child: ChatPanel(messages: rs.messages, onSend: rs.sendMessage, myUserId: myId, clubRoomTheme: isVoice),
-            ),
-          ),
+            const SizedBox(height: 12),
+          ],
         ],
         ),
       ),
@@ -838,6 +929,57 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                 ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // Circular, translucent action buttons for Watch Party's floating rail —
+  // same tap targets as _iconButton's square/bordered ones, just styled to
+  // sit on top of the video/chat stage instead of a bordered chrome strip.
+  Widget _floatingIconButton(IconData icon, VoidCallback onTap, {Color? color, int? badge, Color? badgeColor}) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.black.withValues(alpha: 0.45)),
+              alignment: Alignment.center,
+              child: Icon(icon, color: color ?? Colors.white, size: 19),
+            ),
+            if (badge != null)
+              Positioned(
+                top: -4,
+                right: -4,
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(color: badgeColor ?? AppColors.primary, shape: BoxShape.circle),
+                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                  child: Text('$badge', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _floatingIconButtonEmoji(String label, VoidCallback onTap, {Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.black.withValues(alpha: 0.45)),
+          alignment: Alignment.center,
+          child: Text(label, style: TextStyle(color: color, fontSize: 17)),
         ),
       ),
     );
