@@ -4,13 +4,10 @@ import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
+import '../../core/format.dart';
 import '../../models/coin_package.dart';
 import '../../theme/app_colors.dart';
-import '../../theme/glass.dart';
-import '../../widgets/heat_slider.dart';
 import '../../widgets/spinner.dart';
-
-const _kPresets = [100, 250, 500, 1000, 2500];
 
 /// Creates a Razorpay order via the backend, opens Razorpay's native
 /// checkout with it, then sends the resulting payment id + signature to
@@ -18,6 +15,13 @@ const _kPresets = [100, 250, 500, 1000, 2500];
 /// credit coins — the order's `key` comes back from the backend itself
 /// (sourced from its own Razorpay account credentials), so this screen
 /// needs no client-side key configuration.
+///
+/// Matches BuyCoinsDark.dc.html: a 3-column package grid (was a slide-to-
+/// pick "HeatSlider" — old-app UI not in the mockup, and not even the
+/// primary purchase path anymore) plus a dashed "Custom" tile. The
+/// mockup's saved-card "Payment method" row is left out — this app
+/// doesn't store or select a payment method itself; Razorpay's own
+/// checkout screen handles that when it opens.
 class WalletBuyScreen extends StatefulWidget {
   const WalletBuyScreen({super.key});
 
@@ -26,12 +30,13 @@ class WalletBuyScreen extends StatefulWidget {
 }
 
 class _WalletBuyScreenState extends State<WalletBuyScreen> {
-  int _presetIndex = 1;
-  int? _customRupees;
   bool _paying = false;
 
   List<CoinPackage>? _packages;
   String? _selectedPackageId;
+  bool _customMode = false;
+  int? _customRupees;
+  final _customController = TextEditingController();
 
   late final Razorpay _razorpay;
   // Set right before Razorpay.open() so the success/error callbacks (which
@@ -39,7 +44,7 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
   // know which pending order they're completing.
   String? _pendingOrderId;
 
-  int get _rupees => _customRupees ?? _kPresets[_presetIndex];
+  int? get _rupees => _customMode ? _customRupees : null;
 
   @override
   void initState() {
@@ -54,6 +59,7 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
   @override
   void dispose() {
     _razorpay.clear();
+    _customController.dispose();
     super.dispose();
   }
 
@@ -61,7 +67,13 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
     try {
       final data = await ApiClient.get('/wallet/packages');
       if (!mounted) return;
-      setState(() => _packages = (data as List).map((e) => CoinPackage.fromJson(e as Map<String, dynamic>)).toList());
+      final packages = (data as List)
+          .map((e) => CoinPackage.fromJson(e as Map<String, dynamic>))
+          .toList();
+      setState(() {
+        _packages = packages;
+        if (packages.isNotEmpty) _selectedPackageId = packages.first.id;
+      });
     } catch (_) {
       if (mounted) setState(() => _packages = []);
     }
@@ -70,15 +82,30 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
   void _selectPackage(CoinPackage pkg) {
     setState(() {
       _selectedPackageId = pkg.id;
-      _customRupees = null;
+      _customMode = false;
     });
   }
 
+  void _selectCustom() {
+    setState(() {
+      _selectedPackageId = null;
+      _customMode = true;
+    });
+  }
+
+  bool get _canPay => _customMode
+      ? (_customRupees != null && _customRupees! > 0)
+      : _selectedPackageId != null;
+
   Future<void> _buy() async {
+    if (!_canPay || _paying) return;
     setState(() => _paying = true);
     try {
-      final body = _selectedPackageId != null ? {'packageId': _selectedPackageId} : {'rupees': _rupees};
-      final order = await ApiClient.post('/wallet/buy/order', body: body) as Map<String, dynamic>;
+      final body = _selectedPackageId != null
+          ? {'packageId': _selectedPackageId}
+          : {'rupees': _rupees};
+      final order = await ApiClient.post('/wallet/buy/order', body: body)
+          as Map<String, dynamic>;
       if (!mounted) return;
       final user = context.read<AuthProvider>().user;
       _pendingOrderId = order['orderId'] as String;
@@ -98,10 +125,12 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
         'theme': {'color': '#9B5CF6'},
       });
     } on ApiException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
       setState(() => _paying = false);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not open checkout: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Could not open checkout: $e')));
       setState(() => _paying = false);
     }
   }
@@ -117,12 +146,18 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
       }) as Map<String, dynamic>;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('🪙 Coins added! New balance: ${result['coinBalance']}'), backgroundColor: AppColors.success),
+        SnackBar(
+            content:
+                Text('🪙 Coins added! New balance: ${result['coinBalance']}'),
+            backgroundColor: AppColors.success),
       );
       Navigator.of(context).pop(true);
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Payment succeeded but verification failed: ${e.message}'), backgroundColor: AppColors.danger));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:
+              Text('Payment succeeded but verification failed: ${e.message}'),
+          backgroundColor: AppColors.danger));
     } finally {
       _pendingOrderId = null;
       if (mounted) setState(() => _paying = false);
@@ -135,7 +170,9 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
     setState(() => _paying = false);
     if (response.code == Razorpay.PAYMENT_CANCELLED) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(response.message ?? 'Payment failed'), backgroundColor: AppColors.danger),
+      SnackBar(
+          content: Text(response.message ?? 'Payment failed'),
+          backgroundColor: AppColors.danger),
     );
   }
 
@@ -143,7 +180,18 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
     _pendingOrderId = null;
     if (!mounted) return;
     setState(() => _paying = false);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Opened ${response.walletName}')));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('Opened ${response.walletName}')));
+  }
+
+  // Package.name is admin-set free text — badges are derived from it
+  // ("Popular"/"Best value" substrings) rather than a dedicated field,
+  // matching the mockup's floating pill without a backend/model change.
+  String? _badgeFor(CoinPackage pkg) {
+    final n = pkg.name.toLowerCase();
+    if (n.contains('best value')) return 'BEST VALUE';
+    if (n.contains('popular')) return 'POPULAR';
+    return null;
   }
 
   @override
@@ -155,108 +203,213 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
         break;
       }
     }
-    final payLabel = selectedPackage != null ? 'Pay ₹${selectedPackage.priceRupees.toStringAsFixed(0)}' : 'Pay ₹$_rupees';
+    final payLabel = selectedPackage != null
+        ? 'Pay ₹${selectedPackage.priceRupees.toStringAsFixed(0)}'
+        : (_customRupees != null ? 'Pay ₹$_customRupees' : 'Pay');
+    final coinBalance = context.watch<AuthProvider>().user?.coinBalance ?? 0;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(title: const Text('Buy coins')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          if (_packages == null)
-            const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Center(child: Spinner(size: 20)))
-          else if (_packages!.isNotEmpty) ...[
-            const Text('COIN PACKAGES', style: TextStyle(color: AppColors.textFaint, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
-            const SizedBox(height: 10),
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 1.6,
-              children: _packages!.map((pkg) {
-                final selected = pkg.id == _selectedPackageId;
-                return GestureDetector(
-                  onTap: () => _selectPackage(pkg),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: selected ? AppColors.primary.withValues(alpha: 0.12) : AppColors.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: selected ? AppColors.primary : AppColors.border),
+      body: _packages == null
+          ? const Center(child: Spinner())
+          : ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                      color: AppColors.surface2,
+                      borderRadius: BorderRadius.circular(14)),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Current balance',
+                          style: TextStyle(
+                              color: AppColors.textDim,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600)),
+                      Text('${formatNumber(coinBalance)} coins',
+                          style: const TextStyle(
+                              color: AppColors.text,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                GridView.count(
+                  crossAxisCount: 3,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: 0.95,
+                  children: [
+                    ..._packages!.map((pkg) {
+                      final selected = pkg.id == _selectedPackageId;
+                      final badge = _badgeFor(pkg);
+                      final badgeGold = badge == 'BEST VALUE';
+                      final tint =
+                          badgeGold ? AppColors.gold : AppColors.accent;
+                      return GestureDetector(
+                        onTap: () => _selectPackage(pkg),
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 14, horizontal: 8),
+                              decoration: BoxDecoration(
+                                color: selected
+                                    ? tint.withValues(alpha: 0.14)
+                                    : AppColors.surface,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                    color: selected ? tint : AppColors.border,
+                                    width: 1.5),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text('${pkg.coins}',
+                                      style: TextStyle(
+                                          color:
+                                              selected ? tint : AppColors.text,
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 15)),
+                                  const SizedBox(height: 2),
+                                  Text('₹${pkg.priceRupees.toStringAsFixed(0)}',
+                                      style: TextStyle(
+                                          color: selected
+                                              ? tint
+                                              : AppColors.textFaint,
+                                          fontSize: 10)),
+                                ],
+                              ),
+                            ),
+                            if (badge != null)
+                              Positioned(
+                                top: -9,
+                                left: 0,
+                                right: 0,
+                                child: Center(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(999),
+                                      gradient: badgeGold
+                                          ? const LinearGradient(colors: [
+                                              Color(0xFFE0B15E),
+                                              Color(0xFFC98F3A)
+                                            ])
+                                          : const LinearGradient(
+                                              colors: AppGradients.brand),
+                                    ),
+                                    child: Text(badge,
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 8.5,
+                                            fontWeight: FontWeight.w700)),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    }),
+                    GestureDetector(
+                      onTap: _selectCustom,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                              color: _customMode
+                                  ? AppColors.accent
+                                  : AppColors.border,
+                              width: 1.5,
+                              style: BorderStyle.solid),
+                        ),
+                        alignment: Alignment.center,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.add_rounded,
+                                color: _customMode
+                                    ? AppColors.accent
+                                    : AppColors.textFaint,
+                                size: 18),
+                            const SizedBox(height: 4),
+                            Text('Custom',
+                                style: TextStyle(
+                                    color: _customMode
+                                        ? AppColors.accent
+                                        : AppColors.textFaint,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(pkg.name, style: const TextStyle(color: AppColors.textDim, fontSize: 11, fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 4),
-                        Text('🪙 ${pkg.coins}', style: TextStyle(color: selected ? AppColors.primary : AppColors.text, fontSize: 18, fontWeight: FontWeight.w800)),
-                        const SizedBox(height: 2),
-                        Text('₹${pkg.priceRupees.toStringAsFixed(0)}', style: const TextStyle(color: AppColors.textFaint, fontSize: 12)),
-                      ],
+                  ],
+                ),
+                if (_customMode) ...[
+                  const SizedBox(height: 14),
+                  Container(
+                    decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.border)),
+                    child: TextField(
+                      controller: _customController,
+                      keyboardType: TextInputType.number,
+                      autofocus: true,
+                      style: const TextStyle(color: AppColors.text),
+                      decoration: const InputDecoration(
+                          prefixText: '₹ ',
+                          labelText: 'Amount',
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14)),
+                      onChanged: (v) =>
+                          setState(() => _customRupees = int.tryParse(v)),
                     ),
                   ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 20),
-            const Text('OR PICK A CUSTOM AMOUNT', style: TextStyle(color: AppColors.textFaint, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
-            const SizedBox(height: 10),
-          ],
-          GlassSurface(
-            borderRadius: BorderRadius.circular(24),
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                const Text('DRAG TO PICK YOUR HEAT', style: TextStyle(color: AppColors.textFaint, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
-                const SizedBox(height: 16),
-                HeatSlider(
-                  values: _kPresets,
-                  index: _presetIndex,
-                  formatLabel: (v) => '₹$v',
-                  onChanged: (i) => setState(() {
-                    _presetIndex = i;
-                    _customRupees = null;
-                    _selectedPackageId = null;
-                  }),
+                ],
+                const SizedBox(height: 28),
+                GestureDetector(
+                  onTap: (_canPay && !_paying) ? _buy : null,
+                  child: Container(
+                    width: double.infinity,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: (_canPay && !_paying)
+                          ? const LinearGradient(colors: AppGradients.brand)
+                          : null,
+                      color: (_canPay && !_paying) ? null : AppColors.surface2,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      _paying ? 'Opening payment…' : payLabel,
+                      style: TextStyle(
+                          color: (_canPay && !_paying)
+                              ? Colors.white
+                              : AppColors.textFaint,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14),
+                    ),
+                  ),
                 ),
+                const SizedBox(height: 10),
+                const Text('Payments are processed securely by Razorpay.',
+                    textAlign: TextAlign.center,
+                    style:
+                        TextStyle(color: AppColors.textFaint, fontSize: 10.5)),
               ],
             ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            keyboardType: TextInputType.number,
-            style: const TextStyle(color: AppColors.text),
-            decoration: const InputDecoration(labelText: 'Or type a custom amount (₹)'),
-            onChanged: (v) => setState(() {
-              _customRupees = v.isEmpty ? null : int.tryParse(v);
-              _selectedPackageId = null;
-            }),
-          ),
-          const SizedBox(height: 16),
-          GestureDetector(
-            onTap: _paying ? null : _buy,
-            child: Container(
-              width: double.infinity,
-              height: 48,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
-                gradient: _paying ? null : const LinearGradient(colors: AppGradients.brand),
-                color: _paying ? AppColors.surface2 : null,
-              ),
-              alignment: Alignment.center,
-              child: Text(_paying ? 'Opening payment…' : payLabel, style: TextStyle(color: _paying ? AppColors.textFaint : Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
-            ),
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Payments are processed securely by Razorpay.',
-            style: TextStyle(color: AppColors.textFaint, fontSize: 12),
-          ),
-        ],
-      ),
     );
   }
 }
