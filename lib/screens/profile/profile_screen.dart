@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
@@ -15,11 +16,11 @@ import '../../models/photo.dart';
 import '../../models/playlist.dart';
 import '../../models/post.dart';
 import '../../models/song.dart';
+import '../../models/user.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/glass.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/avatar.dart';
-import '../../widgets/cola_profile_card.dart';
 import '../../widgets/interest_picker.dart';
 import '../../widgets/photo_verification.dart';
 import '../../widgets/profile_completeness_meter.dart';
@@ -262,44 +263,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  ColaProfileCard(
-                    avatarUrl: user?.avatarUrl,
-                    name: user?.name,
-                    username: user?.username,
-                    bio: user?.bio,
-                    badges: [
-                      if (user?.isVerified == true) _badge('Verified', AppColors.success),
-                      if (user?.isVip == true) _badge('VIP', AppColors.gold),
-                      if (_gam?['rank'] != null) _badge(_gam!['rank'] as String, AppColors.accent),
-                      if (user?.equippedCarId != null && (user!.carExpiresAt == null || user.carExpiresAt!.isAfter(DateTime.now())))
-                        _badge('🚗 Admission Car', AppColors.gold),
-                    ],
-                    insideAction: ElevatedButton(
-                      onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const _EditProfileSheet())).then((_) => _loadAll()),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: AppColors.primary,
-                        shape: const StadiumBorder(),
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      ),
-                      child: const Text('Edit profile', style: TextStyle(fontWeight: FontWeight.w700)),
-                    ),
-                    stats: _stats == null
-                        ? const []
-                        : [
-                            ColaStat(
-                              'Followers',
-                              _stats!['followers'],
-                              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UserListScreen(title: 'Followers', endpoint: '/social/followers'))),
-                            ),
-                            ColaStat(
-                              'Following',
-                              _stats!['following'],
-                              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UserListScreen(title: 'Following', endpoint: '/social/following'))),
-                            ),
-                            ColaStat('Friends', _stats!['friends']),
-                          ],
-                  ),
+                  _profileHeader(user),
                   const SizedBox(height: 16),
                   if (user != null) ProfileCompletenessMeter(percent: user.completenessPercent),
                   const SizedBox(height: 12),
@@ -383,6 +347,146 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
     );
   }
+
+  // Own-profile header matching ProfileDark.dc.html — ring-avatar with a
+  // completeness-percent badge, stats beside it, name/bio/city below, then
+  // interest chips and the edit+settings button row. Deliberately a
+  // separate widget from ColaProfileCard (still used by
+  // creator_profile_screen.dart's bold gradient-card look, which hasn't
+  // been redesigned yet) rather than reworking that shared widget.
+  Widget _profileHeader(User? user) {
+    final percent = user?.completenessPercent ?? 0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            SizedBox(
+              width: 88,
+              height: 88,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: 88,
+                    height: 88,
+                    child: CircularProgressIndicator(
+                      value: (percent / 100).clamp(0, 1),
+                      strokeWidth: 3,
+                      backgroundColor: AppColors.border,
+                      valueColor: const AlwaysStoppedAnimation(AppColors.accent),
+                    ),
+                  ),
+                  Padding(padding: const EdgeInsets.all(6), child: Avatar(src: user?.avatarUrl, name: user?.name, size: AvatarSize.lg)),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(999), border: Border.all(color: AppColors.border)),
+                      child: Text('$percent%', style: const TextStyle(color: AppColors.accent, fontSize: 9, fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 18),
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _profileStat('${_gallery.length}', 'Photos'),
+                  if (_stats != null)
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UserListScreen(title: 'Followers', endpoint: '/social/followers'))),
+                      child: _profileStat(formatNumber(_stats!['followers']), 'Followers'),
+                    ),
+                  if (_stats != null)
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UserListScreen(title: 'Following', endpoint: '/social/following'))),
+                      child: _profileStat(formatNumber(_stats!['following']), 'Following'),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Text(
+          [user?.name, if (user?.age != null) '${user!.age}'].whereType<String>().join(', '),
+          style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 14),
+        ),
+        if ((user?.bio != null && user!.bio!.isNotEmpty) || (user?.city != null && user!.city!.isNotEmpty))
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              [if (user.bio != null && user.bio!.isNotEmpty) user.bio, if (user.city != null && user.city!.isNotEmpty) user.city].whereType<String>().join('\n'),
+              style: const TextStyle(color: AppColors.textDim, fontSize: 13, height: 1.4),
+            ),
+          ),
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Wrap(spacing: 6, runSpacing: 6, children: [
+            if (user?.isVerified == true) _badge('Verified', AppColors.success),
+            if (user?.isVip == true) _badge('VIP', AppColors.gold),
+            if (_gam?['rank'] != null) _badge(_gam!['rank'] as String, AppColors.accent),
+            if (user?.equippedCarId != null && (user!.carExpiresAt == null || user.carExpiresAt!.isAfter(DateTime.now())))
+              _badge('🚗 Admission Car', AppColors.gold),
+          ]),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 14),
+          child: Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const _EditProfileSheet())).then((_) => _loadAll()),
+                  child: Container(
+                    height: 38,
+                    decoration: BoxDecoration(gradient: const LinearGradient(colors: AppGradients.brand), borderRadius: BorderRadius.circular(12)),
+                    alignment: Alignment.center,
+                    child: const Text('Edit profile', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              GestureDetector(
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.settings_outlined, color: AppColors.textDim, size: 18),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (user != null && user.interests.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 14),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: user.interests
+                  .map((i) => Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
+                        decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(999)),
+                        child: Text(i, style: const TextStyle(color: AppColors.textDim, fontSize: 11.5, fontWeight: FontWeight.w600)),
+                      ))
+                  .toList(),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _profileStat(String value, String label) => Column(
+        children: [
+          Text(value, style: GoogleFonts.bricolageGrotesque(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 18)),
+          Text(label, style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
+        ],
+      );
 
   Widget _badge(String label, Color color) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
