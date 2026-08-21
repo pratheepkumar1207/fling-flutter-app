@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
+import '../../core/auth_provider.dart';
 import '../../core/format.dart';
 import '../../core/profile_nav.dart';
 import '../../theme/app_colors.dart';
@@ -183,6 +185,20 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
             const SizedBox(height: 6),
             Text(e['name'] as String? ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.text, fontSize: 12, fontWeight: FontWeight.w700)),
             Text(_metric(e), style: const TextStyle(color: AppColors.gold, fontSize: 11)),
+            const SizedBox(height: 8),
+            // Height-tiered podium block — 1st tallest, matches
+            // LeaderboardsDark.dc.html's numbered platform.
+            Container(
+              width: 64,
+              height: rank == 1 ? 52 : (rank == 2 ? 34 : 24),
+              decoration: BoxDecoration(
+                gradient: rank == 1 ? const LinearGradient(colors: [AppColors.gold, Color(0xFFC98F3A)], begin: Alignment.topCenter, end: Alignment.bottomCenter) : null,
+                color: rank == 1 ? null : AppColors.surface2,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+              ),
+              alignment: Alignment.center,
+              child: Text('$rank', style: TextStyle(color: rank == 1 ? const Color(0xFF3A2408) : AppColors.textDim, fontWeight: FontWeight.w800, fontSize: 15)),
+            ),
           ],
         ),
       );
@@ -201,22 +217,32 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
 
   Widget _row(int rank, Map<String, dynamic> e) {
     final isCommunity = _tab == 'communities';
+    final myId = context.read<AuthProvider>().user?.id;
+    final isMe = !isCommunity && myId != null && e['id'] == myId;
     return GestureDetector(
       onTap: isCommunity ? null : () => openProfile(context, e['id'] as String?),
       child: Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: isMe ? AppColors.accent.withValues(alpha: 0.12) : AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: isMe ? AppColors.accent.withValues(alpha: 0.4) : AppColors.border),
+      ),
       child: Row(
         children: [
-          SizedBox(width: 24, child: Text('$rank', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textFaint, fontWeight: FontWeight.bold))),
+          SizedBox(width: 24, child: Text('$rank', textAlign: TextAlign.center, style: TextStyle(color: isMe ? AppColors.accent : AppColors.textFaint, fontWeight: FontWeight.bold))),
           const SizedBox(width: 8),
           isCommunity
               ? Container(width: 32, height: 32, decoration: const BoxDecoration(color: AppColors.surface3, shape: BoxShape.circle), alignment: Alignment.center, child: const Text('🏘️'))
-              : Avatar(src: e['avatarUrl'] as String?, name: e['name'] as String?, size: AvatarSize.sm),
+              : Container(
+                  decoration: BoxDecoration(shape: BoxShape.circle, border: isMe ? Border.all(color: AppColors.accent, width: 2) : null),
+                  padding: isMe ? const EdgeInsets.all(1) : EdgeInsets.zero,
+                  child: Avatar(src: e['avatarUrl'] as String?, name: e['name'] as String?, size: AvatarSize.sm),
+                ),
           const SizedBox(width: 10),
-          Expanded(child: Text(e['name'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis)),
-          Text(_metric(e), style: const TextStyle(color: AppColors.gold, fontSize: 12)),
+          Expanded(child: Text('${e['name'] ?? ''}${isMe ? ' (you)' : ''}', style: TextStyle(color: AppColors.text, fontSize: 13, fontWeight: isMe ? FontWeight.w700 : FontWeight.normal), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          Text(_metric(e), style: TextStyle(color: isMe ? AppColors.accent : AppColors.gold, fontSize: 12, fontWeight: isMe ? FontWeight.w700 : FontWeight.normal)),
         ],
       ),
       ),
