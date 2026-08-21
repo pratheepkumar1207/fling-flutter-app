@@ -62,19 +62,33 @@ class _SearchScreenState extends State<SearchScreen> {
           ? const Center(child: Spinner())
           : _users.isEmpty
               ? const Center(child: Text('Search by name or @username', style: TextStyle(color: AppColors.textFaint)))
-              : ListView.builder(
-                  itemCount: _users.length,
-                  itemBuilder: (context, i) {
-                    final u = _users[i];
-                    return ListTile(
-                      leading: Avatar(src: u['avatarUrl'] as String?, name: u['name'] as String?, size: AvatarSize.sm),
-                      title: Text(u['name'] as String? ?? '', style: const TextStyle(color: AppColors.text)),
-                      subtitle: u['username'] != null ? Text('@${u['username']}', style: const TextStyle(color: AppColors.textFaint)) : null,
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => CreatorProfileScreen(userId: u['id'] as String)),
-                      ),
-                    );
-                  },
+              : ListView(
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(20, 16, 20, 6),
+                      child: Text('PEOPLE', style: TextStyle(color: AppColors.textFaint, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
+                    ),
+                    ..._users.map((u) => GestureDetector(
+                          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => CreatorProfileScreen(userId: u['id'] as String))),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            child: Row(children: [
+                              Avatar(src: u['avatarUrl'] as String?, name: u['name'] as String?, size: AvatarSize.md),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(u['name'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.5)),
+                                    if (u['username'] != null)
+                                      Text('@${u['username']}', style: const TextStyle(color: AppColors.textFaint, fontSize: 11.5)),
+                                  ],
+                                ),
+                              ),
+                            ]),
+                          ),
+                        )),
+                  ],
                 ),
     );
   }
