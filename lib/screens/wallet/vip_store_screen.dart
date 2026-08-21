@@ -27,6 +27,22 @@ class _VipStoreScreenState extends State<VipStoreScreen> {
   List<AvatarFrame>? _frames;
   List<AdmissionCar>? _cars;
   String? _busyId;
+  bool _buyingVip = false;
+
+  static const _vipCostCoins = 500;
+
+  Future<void> _buyVip() async {
+    setState(() => _buyingVip = true);
+    try {
+      await ApiClient.post('/wallet/buy-vip');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('VIP activated!')));
+      if (mounted) await context.read<AuthProvider>().refreshUser();
+    } on ApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _buyingVip = false);
+    }
+  }
 
   @override
   void initState() {
@@ -94,7 +110,9 @@ class _VipStoreScreenState extends State<VipStoreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final coinBalance = context.watch<AuthProvider>().user?.coinBalance ?? 0;
+    final user = context.watch<AuthProvider>().user;
+    final coinBalance = user?.coinBalance ?? 0;
+    final isVip = user?.isVip ?? false;
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -109,12 +127,54 @@ class _VipStoreScreenState extends State<VipStoreScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF4D3319), Color(0xFF2E1F14)]),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.star_rounded, color: AppColors.gold, size: 30),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(isVip ? 'VIP active' : 'Not VIP yet', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                        Text(
+                          isVip ? 'Enjoy priority in Discover and exclusive frames' : '$_vipCostCoins coins — priority in Discover, exclusive frames',
+                          style: const TextStyle(color: Colors.white60, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (!isVip)
+                    GestureDetector(
+                      onTap: _buyingVip ? null : _buyVip,
+                      child: Container(
+                        height: 34,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(999),
+                          gradient: const LinearGradient(colors: [Color(0xFFE0B15E), Color(0xFFC98F3A)]),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(_buyingVip ? '…' : 'Go VIP', style: const TextStyle(color: Color(0xFF33200A), fontWeight: FontWeight.w700, fontSize: 12)),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
             child: Row(
               children: [
-                Expanded(child: _categoryTab(_Category.frames, 'Avatar Frame')),
+                _categoryPill(_Category.frames, 'Avatar frames'),
                 const SizedBox(width: 8),
-                Expanded(child: _categoryTab(_Category.cars, 'Admission Car')),
+                _categoryPill(_Category.cars, 'Admission cars'),
               ],
             ),
           ),
@@ -124,19 +184,17 @@ class _VipStoreScreenState extends State<VipStoreScreen> {
     );
   }
 
-  Widget _categoryTab(_Category value, String label) {
+  Widget _categoryPill(_Category value, String label) {
     final selected = _category == value;
     return GestureDetector(
       onTap: () => setState(() => _category = value),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary.withValues(alpha: 0.12) : AppColors.surface,
-          border: Border.all(color: selected ? AppColors.primary : AppColors.border),
-          borderRadius: BorderRadius.circular(10),
+          color: selected ? AppColors.text : AppColors.surface2,
+          borderRadius: BorderRadius.circular(999),
         ),
-        child: Text(label, style: TextStyle(color: selected ? AppColors.primary : AppColors.textDim, fontSize: 13, fontWeight: FontWeight.w600)),
+        child: Text(label, style: TextStyle(color: selected ? AppColors.bg : AppColors.textDim, fontSize: 12, fontWeight: FontWeight.w700)),
       ),
     );
   }
