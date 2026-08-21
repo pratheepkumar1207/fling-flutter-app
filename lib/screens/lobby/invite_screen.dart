@@ -132,19 +132,42 @@ class _InviteScreenState extends State<InviteScreen> with SingleTickerProviderSt
   Widget _personTile(Map<String, dynamic> p) {
     final id = (p['id'] ?? p['userId']) as String;
     final selected = _selected.contains(id);
-    return CheckboxListTile(
-      value: selected,
-      onChanged: (v) => setState(() {
-        if (v == true) {
-          _selected.add(id);
-        } else {
+    return GestureDetector(
+      onTap: () => setState(() {
+        if (selected) {
           _selected.remove(id);
+        } else {
+          _selected.add(id);
         }
       }),
-      secondary: Avatar(src: p['avatarUrl'] as String?, name: p['name'] as String?, size: AvatarSize.sm),
-      title: Text(p['name'] as String? ?? '', style: const TextStyle(color: AppColors.text)),
-      subtitle: p['username'] != null ? Text('@${p['username']}', style: const TextStyle(color: AppColors.textFaint, fontSize: 12)) : null,
-      activeColor: AppColors.primary,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
+        child: Row(
+          children: [
+            Avatar(src: p['avatarUrl'] as String?, name: p['name'] as String?, size: AvatarSize.sm),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(p['name'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 13.5)),
+                  if (p['username'] != null) Text('@${p['username']}', style: const TextStyle(color: AppColors.textFaint, fontSize: 11.5)),
+                ],
+              ),
+            ),
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: selected ? const LinearGradient(colors: AppGradients.brand) : null,
+                border: selected ? null : Border.all(color: AppColors.border, width: 1.5),
+              ),
+              child: selected ? const Icon(Icons.check_rounded, color: Colors.white, size: 15) : null,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -170,8 +193,13 @@ class _InviteScreenState extends State<InviteScreen> with SingleTickerProviderSt
                 decoration: const InputDecoration(hintText: 'Search people…', hintStyle: TextStyle(color: AppColors.textFaint), border: InputBorder.none),
                 onChanged: _onSearchChanged,
               )
-            : const Text('Invite'),
+            : const Text('Invite to room'),
         actions: [
+          if (!_searching && _selected.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: Center(child: Text('${_selected.length} selected', style: const TextStyle(color: AppColors.textFaint, fontSize: 13, fontWeight: FontWeight.w700))),
+            ),
           IconButton(
             tooltip: _searching ? 'Close search' : 'Search people',
             onPressed: _toggleSearch,
@@ -208,10 +236,23 @@ class _InviteScreenState extends State<InviteScreen> with SingleTickerProviderSt
             ),
       bottomNavigationBar: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: ElevatedButton(
-            onPressed: (_selected.isEmpty || _inviting) ? null : _invite,
-            child: Text(_inviting ? 'Sending…' : 'Invite (${_selected.length})'),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+          child: GestureDetector(
+            onTap: (_selected.isEmpty || _inviting) ? null : _invite,
+            child: Container(
+              width: double.infinity,
+              height: 48,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                gradient: (_selected.isEmpty || _inviting) ? null : const LinearGradient(colors: AppGradients.brand),
+                color: (_selected.isEmpty || _inviting) ? AppColors.surface2 : null,
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                _inviting ? 'Sending…' : (_selected.isEmpty ? 'Send invites' : 'Send invites (${_selected.length})'),
+                style: TextStyle(color: (_selected.isEmpty || _inviting) ? AppColors.textFaint : Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
+              ),
+            ),
           ),
         ),
       ),
