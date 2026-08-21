@@ -33,6 +33,7 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
   int? _coins;
   bool _submitting = false;
   final _coinsController = TextEditingController();
+  List<dynamic> _cashouts = [];
 
   @override
   void initState() {
@@ -51,6 +52,7 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
     final results = await Future.wait([
       ApiClient.get('/kyc/status'),
       ApiClient.get('/wallet/cashout-info'),
+      ApiClient.get('/wallet/cashouts').catchError((_) => []),
     ]);
     if (!mounted) return;
     final kyc = results[0] as Map<String, dynamic>;
@@ -62,6 +64,7 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
       _coinsPerRupee = asNum(rate['coinsPerRupee']).toDouble();
       _cashoutFraction = asNum(rate['cashoutFraction']).toDouble();
       _minCashoutCoins = asNum(rate['minCashoutCoins']).round();
+      _cashouts = (results[2] as List?) ?? [];
       _loading = false;
     });
   }
@@ -335,6 +338,41 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
                               ],
                             ),
                           ),
+                          if (_cashouts.isNotEmpty) ...[
+                            const SizedBox(height: 22),
+                            const Text('RECENT REQUESTS',
+                                style: TextStyle(
+                                    color: AppColors.textFaint,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.6)),
+                            const SizedBox(height: 8),
+                            ..._cashouts.map((c) {
+                              final paid = c['type'] == 'cashout_paid';
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 7),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('${c['coins']} coins',
+                                        style: const TextStyle(
+                                            color: AppColors.text,
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w600)),
+                                    Text(paid ? 'Paid' : 'Pending',
+                                        style: TextStyle(
+                                            color: paid
+                                                ? AppColors.success
+                                                : AppColors.gold,
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.w700)),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ],
                         ],
                       ),
                     ),
