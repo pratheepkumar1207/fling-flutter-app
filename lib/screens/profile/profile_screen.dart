@@ -1105,7 +1105,20 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
             subtitle: const Text('Off by default — turning this on asks for location access.', style: TextStyle(color: AppColors.textFaint, fontSize: 11)),
           ),
           const SizedBox(height: 20),
-          ElevatedButton(onPressed: _saving ? null : _save, child: Text(_saving ? 'Saving…' : 'Save changes')),
+          GestureDetector(
+            onTap: _saving ? null : _save,
+            child: Container(
+              width: double.infinity,
+              height: 48,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                gradient: _saving ? null : const LinearGradient(colors: AppGradients.brand),
+                color: _saving ? AppColors.surface2 : null,
+              ),
+              alignment: Alignment.center,
+              child: Text(_saving ? 'Saving…' : 'Save changes', style: TextStyle(color: _saving ? AppColors.textFaint : Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+            ),
+          ),
         ],
       ),
     );
@@ -1118,12 +1131,16 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: const TextStyle(color: AppColors.textDim, fontSize: 13)),
-          const SizedBox(height: 4),
-          TextField(
-            controller: controller,
-            maxLines: maxLines,
-            keyboardType: keyboardType,
-            style: const TextStyle(color: AppColors.text),
+          const SizedBox(height: 6),
+          Container(
+            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+            child: TextField(
+              controller: controller,
+              maxLines: maxLines,
+              keyboardType: keyboardType,
+              style: const TextStyle(color: AppColors.text),
+              decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
+            ),
           ),
         ],
       ),
