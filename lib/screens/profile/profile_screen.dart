@@ -397,7 +397,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               Expanded(
                 child: GestureDetector(
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const _EditProfileSheet())).then((_) => _loadAll()),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EditProfileSheet())).then((_) => _loadAll()),
                   child: Container(
                     height: 38,
                     decoration: BoxDecoration(gradient: const LinearGradient(colors: AppGradients.brand), borderRadius: BorderRadius.circular(12)),
@@ -694,14 +694,14 @@ class _CreatePlaylistRowState extends State<_CreatePlaylistRow> {
   }
 }
 
-class _EditProfileSheet extends StatefulWidget {
-  const _EditProfileSheet();
+class EditProfileSheet extends StatefulWidget {
+  const EditProfileSheet({super.key});
 
   @override
-  State<_EditProfileSheet> createState() => _EditProfileSheetState();
+  State<EditProfileSheet> createState() => EditProfileSheetState();
 }
 
-class _EditProfileSheetState extends State<_EditProfileSheet> {
+class EditProfileSheetState extends State<EditProfileSheet> {
   late final TextEditingController _name;
   late final TextEditingController _username;
   late final TextEditingController _bio;

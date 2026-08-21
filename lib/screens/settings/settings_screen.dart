@@ -5,6 +5,7 @@ import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../auth/login_screen.dart';
+import '../profile/profile_screen.dart';
 import 'blocked_accounts_screen.dart';
 import 'help_center_screen.dart';
 import 'language_preferences_screen.dart';
@@ -66,6 +67,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
+          _group('Account'),
+          _tile(context, emoji: '👤', label: 'Edit profile', builder: (_) => const EditProfileSheet()),
+          if (user?.phone != null && user!.phone!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(children: [
+                _iconBadge('📞'),
+                const SizedBox(width: 13),
+                const Expanded(child: Text('Phone number', style: TextStyle(color: AppColors.text, fontSize: 13.5))),
+                Text(user.phone!, style: const TextStyle(color: AppColors.textFaint, fontSize: 12.5)),
+              ]),
+            ),
+          GestureDetector(
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileScreen())),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(children: [
+                _iconBadge('✅'),
+                const SizedBox(width: 13),
+                const Expanded(child: Text('Verification', style: TextStyle(color: AppColors.text, fontSize: 13.5))),
+                Text(
+                  _verificationLabel(user?.photoVerificationStatus),
+                  style: TextStyle(color: user?.photoVerificationStatus == 'verified' ? AppColors.success : AppColors.textFaint, fontSize: 12, fontWeight: FontWeight.w700),
+                ),
+              ]),
+            ),
+          ),
           _group('Privacy & Safety'),
           _tile(context, emoji: '🚫', label: 'Blocked accounts', builder: (_) => const BlockedAccountsScreen()),
           _switchTile(
@@ -107,6 +135,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+
+  String _verificationLabel(String? status) => switch (status) {
+        'verified' => 'Verified',
+        'pending' => 'Pending',
+        'rejected' => 'Rejected',
+        _ => 'Not verified',
+      };
 
   Widget _group(String title) => Padding(
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
