@@ -12,38 +12,32 @@ class LobbyCreateScreen extends StatefulWidget {
   State<LobbyCreateScreen> createState() => _LobbyCreateScreenState();
 }
 
+// Plain line-icon-on-glass-gradient treatment, matching RoomSetupDark.dc.html's
+// room-type row exactly — not the old app's 3D illustration assets.
 class _RoomTypeSpec {
   final String value;
-  final String emoji;
+  final IconData icon;
   final String label;
-  final String description;
-  final Color color;
-  // 3D room-type icon shipped by design — falls back to [emoji] wherever a
-  // matching asset hasn't been provided yet (see assets/icons/rooms/).
-  final String? iconAsset;
-  const _RoomTypeSpec(this.value, this.emoji, this.label, this.description, this.color, {this.iconAsset});
+  const _RoomTypeSpec(this.value, this.icon, this.label);
 }
 
 class _VisibilitySpec {
   final String value;
-  final IconData icon;
   final String label;
-  final String description;
-  final String? iconAsset;
-  const _VisibilitySpec(this.value, this.icon, this.label, this.description, {this.iconAsset});
+  const _VisibilitySpec(this.value, this.label);
 }
 
 const _roomTypes = [
-  _RoomTypeSpec('watch', '📺', 'Watch Party', 'Watch videos together', Color(0xFFEC4899), iconAsset: 'assets/icons/app/watchparty.png'),
-  _RoomTypeSpec('game', '🎮', 'Game Room', 'Play games with friends', Color(0xFF6366F1), iconAsset: 'assets/icons/app/gaming.png'),
-  _RoomTypeSpec('voice', '🎙️', 'Voice Room', 'Talk and hang out', Color(0xFF34D399), iconAsset: 'assets/icons/app/voice_room.png'),
+  _RoomTypeSpec('watch', Icons.smart_display_rounded, 'Watch'),
+  _RoomTypeSpec('voice', Icons.mic_rounded, 'Voice'),
+  _RoomTypeSpec('game', Icons.sports_esports_rounded, 'Game'),
 ];
 
 const _visibilities = [
-  _VisibilitySpec('public', Icons.public_rounded, 'Public', 'Anyone can discover and join', iconAsset: 'assets/icons/app/public.png'),
-  _VisibilitySpec('private', Icons.lock_rounded, 'Private', 'Only people with a link can join', iconAsset: 'assets/icons/rooms/private_room.png'),
-  _VisibilitySpec('friends', Icons.group_rounded, 'Friends Only', 'Only your friends can join', iconAsset: 'assets/icons/app/friends_only.png'),
-  _VisibilitySpec('subscribers', Icons.star_rounded, 'Followers Only', 'Only people who follow you can join'),
+  _VisibilitySpec('public', 'Public'),
+  _VisibilitySpec('friends', 'Friends'),
+  _VisibilitySpec('subscribers', 'Subscribers'),
+  _VisibilitySpec('private', 'Private (link only)'),
 ];
 
 class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
@@ -196,34 +190,28 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
     return GestureDetector(
       onTap: () => setState(() => _roomType = spec.value),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
         decoration: BoxDecoration(
-          color: selected ? AppColors.accent.withValues(alpha: 0.1) : AppColors.surface,
-          border: Border.all(color: selected ? AppColors.accent : AppColors.border, width: selected ? 1.5 : 1),
+          color: AppColors.surface,
+          border: Border.all(color: selected ? AppColors.accent : AppColors.border, width: selected ? 2 : 1),
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // The icon assets are already complete illustrations on their
-            // own — no tinted circle backdrop behind them.
-            spec.iconAsset != null
-                ? Image.asset(spec.iconAsset!, width: 56, height: 56, fit: BoxFit.contain)
-                : SizedBox(
-                    width: 56,
-                    height: 56,
-                    child: Center(child: Text(spec.emoji, style: const TextStyle(fontSize: 22))),
-                  ),
-            const SizedBox(height: 6),
-            // Icon-only per design — the description alone is enough, no
-            // separate title label under it.
-            Text(
-              spec.description,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: selected ? AppColors.primary : AppColors.textFaint, fontSize: 10, fontWeight: selected ? FontWeight.w600 : FontWeight.w400),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: selected ? const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppGradients.brand) : null,
+                color: selected ? null : AppColors.surface2,
+              ),
+              alignment: Alignment.center,
+              child: Icon(spec.icon, color: selected ? Colors.white : AppColors.textDim, size: 20),
             ),
+            const SizedBox(height: 8),
+            Text(spec.label, style: TextStyle(color: selected ? AppColors.accent : AppColors.textDim, fontSize: 10.5, fontWeight: FontWeight.w700)),
           ],
         ),
       ),
