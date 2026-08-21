@@ -184,6 +184,17 @@ class _VipStoreScreenState extends State<VipStoreScreen> {
     );
   }
 
+  // Deterministic per-frame ring gradient (no color field on the catalog),
+  // matching VipStoreDark.dc.html's varied gold/violet/mint/blue rings.
+  static const _ringGradients = [
+    [Color(0xFFE8C56B), Color(0xFFC28A38)],
+    [Color(0xFFF4595E), Color(0xFFB051C5)],
+    [Color(0xFF9DE8B8), Color(0xFF3F9E6E)],
+    [Color(0xFF9DC5E8), Color(0xFF5A8FC1)],
+    [Color(0xFFE89DC5), Color(0xFFC13750)],
+  ];
+  List<Color> _frameRingColors(AvatarFrame frame) => _ringGradients[frame.id.hashCode.abs() % _ringGradients.length];
+
   Widget _categoryPill(_Category value, String label) {
     final selected = _category == value;
     return GestureDetector(
@@ -213,26 +224,38 @@ class _VipStoreScreenState extends State<VipStoreScreen> {
         return GestureDetector(
           onTap: busy ? null : () => _handleFrameTap(frame),
           child: Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: frame.equipped ? AppColors.primary : AppColors.border, width: frame.equipped ? 2 : 1),
+              color: frame.equipped ? AppColors.accent.withValues(alpha: 0.16) : AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: frame.equipped ? AppColors.accent : AppColors.border, width: 1.5),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SizedBox(
+                // Circular gradient ring around the real frame preview,
+                // matching VipStoreDark.dc.html's item icon exactly.
+                Container(
                   width: 56,
                   height: 56,
-                  child: busy ? const Center(child: Spinner(size: 20)) : Image.network(frame.imageUrl, fit: BoxFit.contain),
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: _frameRingColors(frame)),
+                  ),
+                  child: Container(
+                    decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.surface2),
+                    alignment: Alignment.center,
+                    child: busy
+                        ? const Spinner(size: 18)
+                        : ClipOval(child: Image.network(frame.imageUrl, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const SizedBox.shrink())),
+                  ),
                 ),
                 const SizedBox(height: 8),
-                Text(frame.name, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.text, fontSize: 11, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 4),
+                Text(frame.name, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.text, fontSize: 10.5, fontWeight: FontWeight.w600)),
                 Text(
-                  frame.equipped ? 'Equipped' : (frame.owned ? 'Tap to equip' : '🪙 ${frame.coinCost}'),
-                  style: TextStyle(color: frame.equipped ? AppColors.primary : AppColors.textFaint, fontSize: 10, fontWeight: frame.equipped ? FontWeight.w700 : FontWeight.normal),
+                  frame.equipped ? 'Equipped' : (frame.owned ? 'Tap to equip' : '${frame.coinCost} coins'),
+                  style: TextStyle(color: frame.equipped ? AppColors.success : AppColors.gold, fontSize: 9.5, fontWeight: FontWeight.w700),
                 ),
               ],
             ),
@@ -256,11 +279,11 @@ class _VipStoreScreenState extends State<VipStoreScreen> {
         return GestureDetector(
           onTap: busy ? null : () => _handleCarTap(car),
           child: Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: car.equipped ? AppColors.primary : AppColors.border, width: car.equipped ? 2 : 1),
+              color: car.equipped ? AppColors.accent.withValues(alpha: 0.16) : AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: car.equipped ? AppColors.accent : AppColors.border, width: 1.5),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -271,13 +294,10 @@ class _VipStoreScreenState extends State<VipStoreScreen> {
                   child: busy ? const Center(child: Spinner(size: 20)) : Image.network(car.imageUrl, fit: BoxFit.contain),
                 ),
                 const SizedBox(height: 8),
-                Text(car.name, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.text, fontSize: 12, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 4),
+                Text(car.name, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.text, fontSize: 11.5, fontWeight: FontWeight.w600)),
                 Text(
-                  car.equipped
-                      ? 'Equipped'
-                      : (car.owned ? 'Tap to equip' : '🪙 ${car.coinCost}/${car.durationDays}day'),
-                  style: TextStyle(color: car.equipped ? AppColors.primary : AppColors.textFaint, fontSize: 10, fontWeight: car.equipped ? FontWeight.w700 : FontWeight.normal),
+                  car.equipped ? 'Equipped' : (car.owned ? 'Tap to equip' : '${car.coinCost} coins / ${car.durationDays}d'),
+                  style: TextStyle(color: car.equipped ? AppColors.success : AppColors.gold, fontSize: 9.5, fontWeight: FontWeight.w700),
                 ),
               ],
             ),

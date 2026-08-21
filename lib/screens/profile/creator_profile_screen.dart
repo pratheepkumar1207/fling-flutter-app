@@ -362,19 +362,28 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
       );
 
   // "Right now" card — only ever populated by the backend when the viewer
-  // is VIP, since seeing someone's live room activity is a VIP perk.
-  // Matches the fling-redesign design canvas's CreatorProfile "Right now"
-  // card: a glass-3D room-type icon, a pulsing live dot, the room name,
-  // and a Join action.
+  // is VIP, since seeing someone's live room activity is a VIP perk. Icon/
+  // color/label/copy are room-type-aware, matching CreatorProfileDark (voice),
+  // CreatorProfileWatchPartyDark, and CreatorProfileGameRoomDark exactly —
+  // this used to always show a mic icon and "IN A ROOM" regardless of type.
   Widget _activeRoomBadge(Map activeRoom) {
     final roomId = activeRoom['roomId'] as String;
     final title = activeRoom['title'] as String? ?? 'a room';
+    final roomType = activeRoom['roomType'] as String?;
+    final memberCount = activeRoom['memberCount'] as int?;
+
+    final (icon, color, label, gradientColors, verb) = switch (roomType) {
+      'watch' => (Icons.play_arrow_rounded, const Color(0xFF4272D9), 'IN A WATCH PARTY', const [Color(0xFF9EC5F0), Color(0xFF4272D9)], 'watching'),
+      'game' => (Icons.sports_esports_rounded, AppColors.success, 'IN A GAME ROOM', const [Color(0xFF9EE0BE), AppColors.success], 'spectating'),
+      _ => (Icons.mic_rounded, AppColors.accent, 'IN A VOICE ROOM', const [AppColors.accent2, AppColors.primary], 'listening'),
+    };
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.accent.withValues(alpha: 0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.accent.withValues(alpha: 0.35)),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
       child: Row(
         children: [
@@ -384,9 +393,9 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
               GlassIcon(
                 size: 40,
                 radius: 12,
-                colors: const [AppColors.accent2, AppColors.primary],
-                glowColor: AppColors.accent.withValues(alpha: 0.4),
-                child: const Icon(Icons.mic_rounded, color: Colors.white, size: 18),
+                colors: gradientColors,
+                glowColor: color.withValues(alpha: 0.4),
+                child: Icon(icon, color: Colors.white, size: 18),
               ),
               Positioned(
                 top: -2,
@@ -396,7 +405,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                   height: 10,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppColors.accent,
+                    color: color,
                     border: Border.all(color: AppColors.surface, width: 1.5),
                   ),
                 ),
@@ -411,27 +420,27 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
               children: [
                 Row(
                   children: [
-                    Container(width: 6, height: 6, decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.accent)),
+                    Container(width: 6, height: 6, decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
                     const SizedBox(width: 5),
-                    Text('IN A ROOM', style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                    Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
                   ],
                 ),
                 const SizedBox(height: 2),
                 Text(title, style: const TextStyle(color: AppColors.text, fontSize: 13.5, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
+                if (memberCount != null) Text('$memberCount $verb', style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId))),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              minimumSize: const Size(0, 32),
+          GestureDetector(
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId))),
+            child: Container(
+              height: 32,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              shape: const StadiumBorder(),
-              textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(999), gradient: const LinearGradient(colors: AppGradients.brand)),
+              alignment: Alignment.center,
+              child: const Text('Join', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
             ),
-            child: const Text('Join'),
           ),
         ],
       ),
