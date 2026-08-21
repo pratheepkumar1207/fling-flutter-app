@@ -14,7 +14,6 @@ import '../../core/location_service.dart';
 import '../../core/smart_play_song.dart';
 import '../../models/photo.dart';
 import '../../models/playlist.dart';
-import '../../models/post.dart';
 import '../../models/song.dart';
 import '../../models/user.dart';
 import '../../theme/app_colors.dart';
@@ -32,6 +31,7 @@ import '../challenges/challenges_screen.dart';
 import '../communities/communities_screen.dart';
 import '../discover/discover_matches_screen.dart';
 import '../events/events_screen.dart';
+import '../feed/saved_posts_screen.dart';
 import '../friends/friends_screen.dart';
 import '../leaderboards/leaderboards_screen.dart';
 import '../lobby/youtube_browse_screen.dart';
@@ -40,6 +40,7 @@ import '../search/search_screen.dart';
 import '../settings/settings_screen.dart';
 import 'user_list_screen.dart';
 import '../wallet/livestream_dashboard_screen.dart';
+import '../wallet/referral_screen.dart';
 import '../wallet/vip_store_screen.dart';
 
 const _kMoreNav = [
@@ -70,12 +71,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Playlist> _playlists = [];
   List<Song> _history = [];
   List<Song> _liked = [];
-  List<Post> _saved = [];
   bool _loading = true;
-  String? _referralCode;
-  bool _generatingReferral = false;
-  final _redeemController = TextEditingController();
-  bool _redeeming = false;
 
   @override
   void initState() {
@@ -92,7 +88,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ApiClient.get('/playlists').catchError((_) => []),
       ApiClient.get('/song-history').catchError((_) => []),
       ApiClient.get('/liked-songs').catchError((_) => []),
-      ApiClient.get('/feed/saved').catchError((_) => []),
     ]);
     if (!mounted) return;
     setState(() {
@@ -102,40 +97,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _playlists = ((results[3] as List?) ?? []).map((e) => Playlist.fromJson(e as Map<String, dynamic>)).toList();
       _history = ((results[4] as List?) ?? []).map((e) => Song.fromJson(e as Map<String, dynamic>)).toList();
       _liked = ((results[5] as List?) ?? []).map((e) => Song.fromJson(e as Map<String, dynamic>)).toList();
-      _saved = ((results[6] as List?) ?? []).map((e) => Post.fromJson(e as Map<String, dynamic>)).toList();
-      _referralCode = _gam?['referralCode'] as String?;
       _loading = false;
     });
-  }
-
-  Future<void> _generateReferralCode() async {
-    setState(() => _generatingReferral = true);
-    try {
-      final res = await ApiClient.post('/gamification/referral-code') as Map<String, dynamic>;
-      if (mounted) setState(() => _referralCode = res['referralCode'] as String?);
-    } catch (_) {
-      _showSnack('Failed to generate code');
-    } finally {
-      if (mounted) setState(() => _generatingReferral = false);
-    }
-  }
-
-  Future<void> _redeemReferral() async {
-    final code = _redeemController.text.trim();
-    if (code.isEmpty) return;
-    setState(() => _redeeming = true);
-    try {
-      final res = await ApiClient.post('/gamification/redeem-referral', body: {'code': code}) as Map<String, dynamic>;
-      _showSnack('+${res['coinsAwarded']} coins!');
-      _redeemController.clear();
-      _loadAll();
-    } on ApiException catch (e) {
-      _showSnack(e.message);
-    } catch (_) {
-      _showSnack('Invalid referral code');
-    } finally {
-      if (mounted) setState(() => _redeeming = false);
-    }
   }
 
   Future<void> _addPhoto() async {
@@ -323,18 +286,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 20),
                   if (_history.isNotEmpty) ...[_sectionHeader('History'), ..._history.map(_songTile)],
                   if (_liked.isNotEmpty) ...[const SizedBox(height: 16), _sectionHeader('Liked songs'), ..._liked.map(_songTile)],
-                  if (_saved.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    _sectionHeader('Saved posts'),
-                    ..._saved.map(
-                      (p) => Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
-                        child: Text(p.text ?? '', style: const TextStyle(color: AppColors.text)),
-                      ),
-                    ),
-                  ],
+                  const SizedBox(height: 20),
+                  _navRow(icon: Icons.bookmark_rounded, label: 'Saved posts', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SavedPostsScreen()))),
+                  const SizedBox(height: 8),
+                  _navRow(icon: Icons.person_add_alt_1_rounded, label: 'Invite friends', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReferralScreen()))),
                   const SizedBox(height: 24),
                   OutlinedButton(
                     onPressed: _logout,
@@ -539,6 +494,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       );
 
+  Widget _navRow({required IconData icon, required String label, required VoidCallback onTap}) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+          child: Row(
+            children: [
+              Icon(icon, color: AppColors.accent, size: 19),
+              const SizedBox(width: 12),
+              Expanded(child: Text(label, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 13.5))),
+              const Icon(Icons.chevron_right_rounded, color: AppColors.textFaint, size: 20),
+            ],
+          ),
+        ),
+      );
+
   Widget _gamificationCard() {
     final g = _gam!;
     final xpToNext = asNum(g['xpToNextLevel']).toInt();
@@ -565,34 +536,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Text('🔥 ${g['loginStreak']} day streak', style: const TextStyle(color: AppColors.textFaint, fontSize: 12)),
           const SizedBox(height: 10),
           ElevatedButton(onPressed: _claimDailyBonus, child: const Text('Claim daily bonus')),
-          const Divider(height: 24, color: AppColors.border),
-          const Text('Your referral code', style: TextStyle(color: AppColors.textDim, fontSize: 12, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 4),
-          if (_referralCode != null)
-            Text(_referralCode!, style: const TextStyle(color: AppColors.primary, fontSize: 18, fontWeight: FontWeight.w700, fontFamily: 'monospace'))
-          else
-            TextButton(
-              onPressed: _generatingReferral ? null : _generateReferralCode,
-              style: TextButton.styleFrom(padding: EdgeInsets.zero, alignment: Alignment.centerLeft),
-              child: Text(_generatingReferral ? 'Generating…' : 'Generate code', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
-            ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _redeemController,
-                  style: const TextStyle(color: AppColors.text, fontSize: 13),
-                  decoration: const InputDecoration(hintText: 'Have a code? Redeem it', isDense: true),
-                ),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton(
-                onPressed: _redeeming ? null : _redeemReferral,
-                child: Text(_redeeming ? '…' : 'Redeem'),
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -702,12 +645,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       );
-
-  @override
-  void dispose() {
-    _redeemController.dispose();
-    super.dispose();
-  }
 }
 
 class _CreatePlaylistRow extends StatefulWidget {
