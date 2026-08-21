@@ -8,6 +8,7 @@ import '../../theme/app_colors.dart';
 import 'wallet_buy_screen.dart';
 import 'wallet_cashout_screen.dart';
 import 'wallet_kyc_screen.dart';
+import 'spin_wheel_screen.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -17,7 +18,6 @@ class WalletScreen extends StatefulWidget {
 }
 
 class _WalletScreenState extends State<WalletScreen> {
-  bool _spinning = false;
   bool _buyingVip = false;
   String? _kycStatus;
 
@@ -32,19 +32,6 @@ class _WalletScreenState extends State<WalletScreen> {
       final data = await ApiClient.get('/kyc/status') as Map<String, dynamic>;
       if (mounted) setState(() => _kycStatus = data['status'] as String? ?? 'none');
     } catch (_) {}
-  }
-
-  Future<void> _spin() async {
-    setState(() => _spinning = true);
-    try {
-      final res = await ApiClient.post('/wallet/spin') as Map<String, dynamic>;
-      _snack('You won ${res['coinsWon']} coins! 🎉');
-      if (mounted) context.read<AuthProvider>().refreshUser();
-    } on ApiException catch (e) {
-      _snack(e.message);
-    } finally {
-      if (mounted) setState(() => _spinning = false);
-    }
   }
 
   Future<void> _buyVip() async {
@@ -129,15 +116,15 @@ class _WalletScreenState extends State<WalletScreen> {
             children: [
               Expanded(
                 child: GestureDetector(
-                  onTap: _spinning ? null : _spin,
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SpinWheelScreen())),
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
-                    child: Column(
+                    child: const Column(
                       children: [
-                        const Text('🎡', style: TextStyle(fontSize: 26)),
-                        const SizedBox(height: 4),
-                        Text(_spinning ? 'Spinning…' : 'Daily spin', style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w500)),
+                        Text('🎡', style: TextStyle(fontSize: 26)),
+                        SizedBox(height: 4),
+                        Text('Daily spin', style: TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w500)),
                       ],
                     ),
                   ),

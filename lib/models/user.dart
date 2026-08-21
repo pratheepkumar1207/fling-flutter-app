@@ -42,6 +42,7 @@ class User {
   final int galleryCount;
   final bool profileComplete;
   final int completenessPercent;
+  final DateTime? lastSpinAt;
 
   User({
     required this.id,
@@ -86,6 +87,7 @@ class User {
     this.galleryCount = 0,
     this.profileComplete = true,
     this.completenessPercent = 100,
+    this.lastSpinAt,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -135,6 +137,7 @@ class User {
       // existing account behind the completion screen.
       profileComplete: json['profileComplete'] as bool? ?? true,
       completenessPercent: json['completenessPercent'] as int? ?? 100,
+      lastSpinAt: json['lastSpinAt'] != null ? DateTime.tryParse(json['lastSpinAt'].toString()) : null,
     );
   }
 
