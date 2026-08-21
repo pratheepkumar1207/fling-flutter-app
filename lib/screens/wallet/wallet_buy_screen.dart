@@ -236,12 +236,18 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
             }),
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _paying ? null : _buy,
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: const StadiumBorder(), padding: const EdgeInsets.symmetric(vertical: 14)),
-              child: Text(_paying ? 'Opening payment…' : payLabel),
+          GestureDetector(
+            onTap: _paying ? null : _buy,
+            child: Container(
+              width: double.infinity,
+              height: 48,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                gradient: _paying ? null : const LinearGradient(colors: AppGradients.brand),
+                color: _paying ? AppColors.surface2 : null,
+              ),
+              alignment: Alignment.center,
+              child: Text(_paying ? 'Opening payment…' : payLabel, style: TextStyle(color: _paying ? AppColors.textFaint : Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
             ),
           ),
           const SizedBox(height: 12),
