@@ -74,24 +74,50 @@ class _WalletScreenState extends State<WalletScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.border)),
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF3D2A4A), Color(0xFF261A38)]),
+            ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Balance', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-                Text('🪙 ${formatNumber(user?.coinBalance)}', style: const TextStyle(color: AppColors.gold, fontSize: 34, fontWeight: FontWeight.bold)),
+                const Text('Coin balance', style: TextStyle(color: Colors.white70, fontSize: 11.5, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 6),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(formatNumber(user?.coinBalance), style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w800)),
+                    const SizedBox(width: 6),
+                    const Text('coins', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                  ],
+                ),
                 const SizedBox(height: 16),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    ElevatedButton(
-                      onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WalletBuyScreen())),
-                      child: const Text('Buy coins'),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WalletBuyScreen())),
+                        child: Container(
+                          height: 40,
+                          decoration: BoxDecoration(gradient: const LinearGradient(colors: AppGradients.brand), borderRadius: BorderRadius.circular(999)),
+                          alignment: Alignment.center,
+                          child: const Text('Buy coins', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    OutlinedButton(
-                      onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WalletCashoutScreen())),
-                      child: const Text('Cash out'),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WalletCashoutScreen())),
+                        child: Container(
+                          height: 40,
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(999), border: Border.all(color: Colors.white.withValues(alpha: 0.25))),
+                          alignment: Alignment.center,
+                          child: const Text('Cash out', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                        ),
+                      ),
                     ),
                   ],
                 ),
