@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_client.dart';
+import '../../core/auth_provider.dart';
 import '../../core/format.dart';
 import '../../core/profile_nav.dart';
 import '../../core/youtube_util.dart';
@@ -150,6 +152,55 @@ class _FeedScreenState extends State<FeedScreen> {
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  // "Your story" leading tile — was entirely missing before (StoryBar was
+  // only ever given `stories`, no way to add one), matches
+  // HomeFeedDark.dc.html's dashed-ring + gradient-plus-badge tile.
+  Widget _yourStoryTile() {
+    final user = context.watch<AuthProvider>().user;
+    return GestureDetector(
+      onTap: () => showPostComposerSheet(context, onPosted: () { _load(); _loadStories(); }, initialIsStory: true),
+      child: SizedBox(
+        width: 64,
+        child: Column(
+          children: [
+            SizedBox(
+              width: 64,
+              height: 64,
+              child: Stack(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.border, width: 1.5, style: BorderStyle.solid)),
+                    padding: const EdgeInsets.all(6),
+                    child: Avatar(src: user?.avatarUrl, name: user?.name, size: AvatarSize.md),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(colors: AppGradients.brand),
+                        border: Border.all(color: AppColors.bg, width: 2),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Icon(Icons.add_rounded, color: Colors.white, size: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text('Your story', textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppColors.textDim, fontSize: 11)),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _openStoryViewer(StoryEntry entry) {
     final index = _stories.indexWhere((s) => s.userId == entry.userId);
     if (index == -1) return;
@@ -176,10 +227,8 @@ class _FeedScreenState extends State<FeedScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (_stories.isNotEmpty) ...[
-            StoryBar(stories: _stories, onOpen: _openStoryViewer),
-            const SizedBox(height: 12),
-          ],
+          StoryBar(stories: _stories, onOpen: _openStoryViewer, leading: _yourStoryTile()),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
