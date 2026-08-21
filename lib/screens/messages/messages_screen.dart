@@ -107,7 +107,21 @@ class _MessagesScreenState extends State<MessagesScreen> {
                           children: [
                             GestureDetector(
                               onTap: () => openProfile(context, c.userId),
-                              child: Avatar(src: c.avatarUrl, name: c.name, size: AvatarSize.md),
+                              child: Stack(
+                                children: [
+                                  Avatar(src: c.avatarUrl, name: c.name, size: AvatarSize.md),
+                                  if (c.online)
+                                    Positioned(
+                                      bottom: 0,
+                                      right: 0,
+                                      child: Container(
+                                        width: 12,
+                                        height: 12,
+                                        decoration: BoxDecoration(color: AppColors.success, shape: BoxShape.circle, border: Border.all(color: AppColors.bg, width: 2.5)),
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(

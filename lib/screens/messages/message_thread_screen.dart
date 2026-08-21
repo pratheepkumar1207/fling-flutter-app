@@ -30,12 +30,21 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   bool _loading = true;
   bool _sending = false;
   String? _error;
+  bool _online = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _loadOnlineStatus();
     WidgetsBinding.instance.addPostFrameCallback((_) => _bindSocket());
+  }
+
+  Future<void> _loadOnlineStatus() async {
+    try {
+      final data = await ApiClient.get('/creators/${widget.userId}/profile') as Map<String, dynamic>;
+      if (mounted) setState(() => _online = data['online'] == true);
+    } catch (_) {}
   }
 
   Future<void> _load() async {
@@ -224,7 +233,14 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
             children: [
               Avatar(src: widget.avatarUrl, name: widget.name, size: AvatarSize.sm),
               const SizedBox(width: 10),
-              Text(widget.name),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(widget.name, style: const TextStyle(fontSize: 14.5)),
+                  if (_online) const Text('Active now', style: TextStyle(color: AppColors.success, fontSize: 11, fontWeight: FontWeight.w500)),
+                ],
+              ),
             ],
           ),
         ),

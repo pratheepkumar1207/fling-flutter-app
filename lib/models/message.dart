@@ -43,6 +43,7 @@ class ConversationSummary {
   final DateTime lastMessageAt;
   final bool lastMessageIsMine;
   final int unreadCount;
+  final bool online;
 
   ConversationSummary({
     required this.userId,
@@ -53,6 +54,7 @@ class ConversationSummary {
     required this.lastMessageAt,
     required this.lastMessageIsMine,
     this.unreadCount = 0,
+    this.online = false,
   });
 
   factory ConversationSummary.fromJson(Map<String, dynamic> json) {
@@ -64,6 +66,7 @@ class ConversationSummary {
       lastMessage: json['lastMessage'] as String? ?? '',
       lastMessageAt: DateTime.tryParse(json['lastMessageAt']?.toString() ?? '') ?? DateTime.now(),
       lastMessageIsMine: json['lastMessageIsMine'] as bool? ?? false,
+      online: json['online'] as bool? ?? false,
       unreadCount: json['unreadCount'] as int? ?? 0,
     );
   }
