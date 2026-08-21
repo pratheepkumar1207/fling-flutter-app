@@ -17,6 +17,7 @@ import '../../widgets/share_row.dart';
 import '../../widgets/spinner.dart';
 import '../../widgets/story_bar.dart';
 import '../../widgets/story_viewer_screen.dart';
+import 'post_detail_screen.dart';
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -155,6 +156,10 @@ class _FeedScreenState extends State<FeedScreen> {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => StoryViewerScreen(groups: _stories, startGroupIndex: index)));
   }
 
+  void _openPostDetail(Post post) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => PostDetailScreen(postId: post.id))).then((_) => _load());
+  }
+
   void _openComments(Post post) {
     showModalBottomSheet(
       context: context,
@@ -271,9 +276,12 @@ class _FeedScreenState extends State<FeedScreen> {
           if (post.imageData != null)
             Padding(
               padding: const EdgeInsets.only(top: 10),
-              child: SizedBox(
-                width: double.infinity,
-                child: AspectRatio(aspectRatio: 1, child: AppImage(source: post.imageData, fit: BoxFit.cover)),
+              child: GestureDetector(
+                onTap: () => _openPostDetail(post),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: AspectRatio(aspectRatio: 1, child: AppImage(source: post.imageData, fit: BoxFit.cover)),
+                ),
               ),
             ),
           if (post.mediaType == 'voice' && post.voiceData != null)
@@ -334,7 +342,7 @@ class _FeedScreenState extends State<FeedScreen> {
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: GestureDetector(
-                onTap: () => _openComments(post),
+                onTap: () => _openPostDetail(post),
                 child: Text('View all ${post.commentsCount} comments', style: const TextStyle(color: AppColors.textFaint, fontSize: 12.5)),
               ),
             ),

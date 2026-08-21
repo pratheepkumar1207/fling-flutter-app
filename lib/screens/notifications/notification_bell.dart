@@ -5,7 +5,9 @@ import '../../core/format.dart';
 import '../../core/socket_service.dart';
 import '../../models/notification_item.dart';
 import '../../theme/app_colors.dart';
+import '../feed/post_detail_screen.dart';
 import '../party/party_screen.dart';
+import 'notifications_screen.dart';
 
 /// Mirrors src/components/NotificationBell.jsx — fetches recent
 /// notifications, shows an unread badge, and bumps in real time on the
@@ -66,14 +68,13 @@ class _NotificationBellState extends State<NotificationBell> {
         await ApiClient.post('/notifications/${n.id}/read');
       } catch (_) {}
     }
-    // Only room_invite has somewhere to actually go — there's no single-post
-    // detail screen yet for 'mention' to deep-link into, so those just get
-    // marked read.
+    if (!mounted) return;
     if (n.type == 'room_invite') {
       final roomId = n.data?['roomId'] as String?;
-      if (roomId != null && mounted) {
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId)));
-      }
+      if (roomId != null) Navigator.of(context).push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId)));
+    } else if (n.type == 'mention') {
+      final postId = n.data?['postId'] as String?;
+      if (postId != null) Navigator.of(context).push(MaterialPageRoute(builder: (_) => PostDetailScreen(postId: postId)));
     }
   }
 
@@ -110,7 +111,13 @@ class _NotificationBellState extends State<NotificationBell> {
       color: AppColors.surface2,
       itemBuilder: (context) {
         if (_items.isEmpty) {
-          return [const PopupMenuItem<void>(enabled: false, child: Text('No notifications yet', style: TextStyle(color: AppColors.textFaint)))];
+          return [
+            const PopupMenuItem<void>(enabled: false, child: Text('No notifications yet', style: TextStyle(color: AppColors.textFaint))),
+            PopupMenuItem<void>(
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+              child: const Text('See all', style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w700)),
+            ),
+          ];
         }
         return [
           PopupMenuItem<void>(
@@ -135,6 +142,10 @@ class _NotificationBellState extends State<NotificationBell> {
                   ),
                 ),
               ),
+          PopupMenuItem<void>(
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+            child: const Text('See all', style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w700)),
+          ),
         ];
       },
     );
