@@ -584,7 +584,21 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
             url: '${ApiClient.baseUrl}/rooms/${widget.roomId}',
             iconAsset: 'assets/icons/app/share_lobby.png',
           ),
-          TextButton(onPressed: _openRoster, child: Text('👥 ${rs.roster.length}', style: TextStyle(color: roomTextDim))),
+          // Pill-styled participant count, matching the redesign's .pill
+          // component (WatchPartyDark.dc.html) instead of a plain TextButton.
+          GestureDetector(
+            onTap: _openRoster,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(color: roomSurface, borderRadius: BorderRadius.circular(999)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.people_alt_rounded, size: 13, color: roomTextDim),
+                const SizedBox(width: 5),
+                Text('${rs.roster.length}', style: TextStyle(color: roomTextDim, fontSize: 11.5, fontWeight: FontWeight.w600)),
+              ]),
+            ),
+          ),
           if (rs.isHost && room['roomType'] != 'live')
             IconButton(
               tooltip: 'Room settings',
