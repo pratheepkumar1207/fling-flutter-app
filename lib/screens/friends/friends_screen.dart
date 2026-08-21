@@ -81,36 +81,57 @@ class _FriendsScreenState extends State<FriendsScreen> {
                         ? (_friends.isEmpty
                             ? const Center(child: Text('No friends yet', style: TextStyle(color: AppColors.textFaint)))
                             : ListView.builder(
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                padding: const EdgeInsets.symmetric(vertical: 4),
                                 itemCount: _friends.length,
                                 itemBuilder: (context, i) {
                                   final f = _friends[i];
-                                  return ListTile(
-                                    leading: Avatar(src: f['avatarUrl'] as String?, name: f['name'] as String?),
-                                    title: Text(f['name'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w500)),
+                                  return GestureDetector(
                                     onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => CreatorProfileScreen(userId: f['id'] as String))),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
+                                      child: Row(children: [
+                                        Avatar(src: f['avatarUrl'] as String?, name: f['name'] as String?, size: AvatarSize.md),
+                                        const SizedBox(width: 12),
+                                        Expanded(child: Text(f['name'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.5))),
+                                      ]),
+                                    ),
                                   );
                                 },
                               ))
                         : (_requests.isEmpty
                             ? const Center(child: Text('No pending requests', style: TextStyle(color: AppColors.textFaint)))
                             : ListView.builder(
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                padding: const EdgeInsets.symmetric(vertical: 4),
                                 itemCount: _requests.length,
                                 itemBuilder: (context, i) {
                                   final r = _requests[i];
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 8),
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
                                     child: Row(
                                       children: [
-                                        Avatar(name: r['fromName'] as String?, size: AvatarSize.sm),
-                                        const SizedBox(width: 10),
-                                        Expanded(child: Text(r['fromName'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w500))),
-                                        ElevatedButton(onPressed: () => _accept(r['id'] as String), child: const Text('Accept', style: TextStyle(fontSize: 11))),
-                                        const SizedBox(width: 4),
-                                        OutlinedButton(onPressed: () => _reject(r['id'] as String), child: const Text('Decline', style: TextStyle(fontSize: 11))),
+                                        Avatar(name: r['fromName'] as String?, size: AvatarSize.md),
+                                        const SizedBox(width: 12),
+                                        Expanded(child: Text(r['fromName'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.5))),
+                                        GestureDetector(
+                                          onTap: () => _accept(r['id'] as String),
+                                          child: Container(
+                                            height: 32,
+                                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                                            decoration: BoxDecoration(gradient: const LinearGradient(colors: AppGradients.brand), borderRadius: BorderRadius.circular(999)),
+                                            alignment: Alignment.center,
+                                            child: const Text('Accept', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        GestureDetector(
+                                          onTap: () => _reject(r['id'] as String),
+                                          child: Container(
+                                            width: 32,
+                                            height: 32,
+                                            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.border)),
+                                            child: const Icon(Icons.close_rounded, color: AppColors.textDim, size: 15),
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   );
