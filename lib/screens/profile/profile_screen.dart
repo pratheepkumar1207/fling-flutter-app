@@ -67,6 +67,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _gam;
   Map<String, dynamic>? _stats;
+  int _matchesCount = 0;
   List<Photo> _gallery = [];
   List<Playlist> _playlists = [];
   List<Song> _history = [];
@@ -88,6 +89,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ApiClient.get('/playlists').catchError((_) => []),
       ApiClient.get('/song-history').catchError((_) => []),
       ApiClient.get('/liked-songs').catchError((_) => []),
+      ApiClient.get('/swipe/matches').catchError((_) => []),
     ]);
     if (!mounted) return;
     setState(() {
@@ -97,6 +99,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _playlists = ((results[3] as List?) ?? []).map((e) => Playlist.fromJson(e as Map<String, dynamic>)).toList();
       _history = ((results[4] as List?) ?? []).map((e) => Song.fromJson(e as Map<String, dynamic>)).toList();
       _liked = ((results[5] as List?) ?? []).map((e) => Song.fromJson(e as Map<String, dynamic>)).toList();
+      _matchesCount = (results[6] as List?)?.length ?? 0;
       _loading = false;
     });
   }
@@ -351,15 +354,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _profileStat('${_gallery.length}', 'Photos'),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DiscoverMatchesScreen())),
+                    child: _profileStat('$_matchesCount', 'Matches'),
+                  ),
                   if (_stats != null)
                     GestureDetector(
-                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UserListScreen(title: 'Followers', endpoint: '/social/followers'))),
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UserListScreen())),
                       child: _profileStat(formatNumber(_stats!['followers']), 'Followers'),
-                    ),
-                  if (_stats != null)
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UserListScreen(title: 'Following', endpoint: '/social/following'))),
-                      child: _profileStat(formatNumber(_stats!['following']), 'Following'),
                     ),
                 ],
               ),
