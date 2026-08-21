@@ -144,12 +144,15 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
 
                 const Text('Your age', style: TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
-                TextField(
-                  controller: _ageController,
-                  keyboardType: TextInputType.number,
-                  onChanged: (_) => setState(() {}),
-                  style: const TextStyle(color: AppColors.text),
-                  decoration: const InputDecoration(hintText: 'Age'),
+                Container(
+                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+                  child: TextField(
+                    controller: _ageController,
+                    keyboardType: TextInputType.number,
+                    onChanged: (_) => setState(() {}),
+                    style: const TextStyle(color: AppColors.text),
+                    decoration: const InputDecoration(hintText: 'Age', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
+                  ),
                 ),
                 if (_ageController.text.isNotEmpty && !_isAdult)
                   const Padding(
@@ -194,11 +197,11 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         decoration: BoxDecoration(
-                          color: _lookingFor == o[0] ? AppColors.primary.withValues(alpha: 0.1) : AppColors.surface,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: _lookingFor == o[0] ? AppColors.primary : AppColors.border),
+                          color: _lookingFor == o[0] ? AppColors.accent.withValues(alpha: 0.14) : AppColors.surface,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: _lookingFor == o[0] ? AppColors.accent : AppColors.border, width: _lookingFor == o[0] ? 1.5 : 1),
                         ),
-                        child: Text(o[1], style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _lookingFor == o[0] ? AppColors.primary : AppColors.textDim)),
+                        child: Text(o[1], style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _lookingFor == o[0] ? AppColors.accent : AppColors.textDim)),
                       ),
                     ),
                   ),
@@ -268,16 +271,21 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                   ),
 
                 const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: (_canContinue && !_saving) ? _continue : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      shape: const StadiumBorder(),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                GestureDetector(
+                  onTap: (_canContinue && !_saving) ? _continue : null,
+                  child: Container(
+                    width: double.infinity,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: (_canContinue && !_saving) ? const LinearGradient(colors: AppGradients.brand) : null,
+                      color: (_canContinue && !_saving) ? null : AppColors.surface2,
                     ),
-                    child: Text(_saving ? 'Saving…' : 'Continue'),
+                    alignment: Alignment.center,
+                    child: Text(
+                      _saving ? 'Saving…' : 'Continue',
+                      style: TextStyle(color: (_canContinue && !_saving) ? Colors.white : AppColors.textFaint, fontWeight: FontWeight.w700, fontSize: 14),
+                    ),
                   ),
                 ),
               ],
