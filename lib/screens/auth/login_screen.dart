@@ -137,42 +137,32 @@ class _LoginScreenState extends State<LoginScreen> {
                         if (_fakeLoginMode) ...[
                           const Text('Username', style: TextStyle(color: AppColors.textDim, fontSize: 13, fontWeight: FontWeight.w500)),
                           const SizedBox(height: 6),
-                          TextField(
-                            controller: _usernameController,
-                            style: const TextStyle(color: AppColors.text),
-                            decoration: const InputDecoration(hintText: 'username'),
-                          ),
+                          _authField(controller: _usernameController, hint: 'username'),
                           const SizedBox(height: 12),
                           const Text('Password', style: TextStyle(color: AppColors.textDim, fontSize: 13, fontWeight: FontWeight.w500)),
                           const SizedBox(height: 6),
-                          TextField(
-                            controller: _passwordController,
-                            obscureText: true,
-                            style: const TextStyle(color: AppColors.text),
-                            decoration: const InputDecoration(hintText: 'password'),
-                          ),
+                          _authField(controller: _passwordController, hint: 'password', obscureText: true),
                         ] else ...[
                           const Text('Phone number', style: TextStyle(color: AppColors.textDim, fontSize: 13, fontWeight: FontWeight.w500)),
                           const SizedBox(height: 6),
-                          TextField(
-                            controller: _phoneController,
-                            focusNode: _phoneFocus,
-                            keyboardType: TextInputType.phone,
-                            style: const TextStyle(color: AppColors.text),
-                            decoration: const InputDecoration(hintText: '+91XXXXXXXXXX'),
-                          ),
+                          _authField(controller: _phoneController, hint: '+91XXXXXXXXXX', focusNode: _phoneFocus, keyboardType: TextInputType.phone),
                         ],
                         const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _loading ? null : _handleSubmit,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              shape: const StadiumBorder(),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                        GestureDetector(
+                          onTap: _loading ? null : _handleSubmit,
+                          child: Container(
+                            width: double.infinity,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(999),
+                              gradient: _loading ? null : const LinearGradient(colors: AppGradients.brand),
+                              color: _loading ? AppColors.surface2 : null,
                             ),
-                            child: Text(_loading ? 'Signing in…' : (_fakeLoginMode ? 'Log in' : (_devMode ? 'Continue (dev login)' : 'Send code'))),
+                            alignment: Alignment.center,
+                            child: Text(
+                              _loading ? 'Signing in…' : (_fakeLoginMode ? 'Log in' : (_devMode ? 'Continue (dev login)' : 'Send code')),
+                              style: TextStyle(color: _loading ? AppColors.textFaint : Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
+                            ),
                           ),
                         ),
                         if (!_fakeLoginMode)
@@ -211,6 +201,20 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _authField({required TextEditingController controller, required String hint, FocusNode? focusNode, TextInputType? keyboardType, bool obscureText = false}) {
+    return Container(
+      decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+      child: TextField(
+        controller: controller,
+        focusNode: focusNode,
+        keyboardType: keyboardType,
+        obscureText: obscureText,
+        style: const TextStyle(color: AppColors.text),
+        decoration: InputDecoration(hintText: hint, border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
       ),
     );
   }
