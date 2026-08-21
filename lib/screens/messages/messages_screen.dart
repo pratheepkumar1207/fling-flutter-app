@@ -18,11 +18,18 @@ class MessagesScreen extends StatefulWidget {
 class _MessagesScreenState extends State<MessagesScreen> {
   bool _loading = true;
   List<ConversationSummary> _conversations = [];
+  String _query = '';
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  List<ConversationSummary> get _filtered {
+    if (_query.trim().isEmpty) return _conversations;
+    final q = _query.trim().toLowerCase();
+    return _conversations.where((c) => c.name.toLowerCase().contains(q)).toList();
   }
 
   Future<void> _load() async {
@@ -40,26 +47,54 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final results = _filtered;
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(title: const Text('Messages')),
-      body: _loading
-          ? const Center(child: Spinner(size: 28))
-          : _conversations.isEmpty
-              ? const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Text(
-                      'No conversations yet.\nMessage a friend, or a VIP can start a conversation with anyone.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.textFaint),
+      body: Column(
+        children: [
+          if (_conversations.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+              child: Container(
+                height: 40,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(12)),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search_rounded, size: 16, color: AppColors.textFaint),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        onChanged: (v) => setState(() => _query = v),
+                        style: const TextStyle(color: AppColors.text, fontSize: 13),
+                        decoration: const InputDecoration(border: InputBorder.none, isDense: true, hintText: 'Search', hintStyle: TextStyle(color: AppColors.textFaint, fontSize: 13)),
+                      ),
                     ),
-                  ),
-                )
-              : ListView.builder(
-                  itemCount: _conversations.length,
+                  ],
+                ),
+              ),
+            ),
+          Expanded(
+            child: _loading
+                ? const Center(child: Spinner(size: 28))
+                : _conversations.isEmpty
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Text(
+                            'No conversations yet.\nMessage a friend, or a VIP can start a conversation with anyone.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: AppColors.textFaint),
+                          ),
+                        ),
+                      )
+                    : results.isEmpty
+                        ? const Center(child: Text('No matches.', style: TextStyle(color: AppColors.textFaint)))
+                        : ListView.builder(
+                  itemCount: results.length,
                   itemBuilder: (context, i) {
-                    final c = _conversations[i];
+                    final c = results[i];
                     final unread = c.unreadCount > 0;
                     return GestureDetector(
                       onTap: () => Navigator.of(context)
@@ -107,6 +142,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
                     );
                   },
                 ),
+          ),
+        ],
+      ),
     );
   }
 }
