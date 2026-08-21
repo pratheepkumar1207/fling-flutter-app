@@ -162,7 +162,7 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
                 ),
                 if (_mediaType == 'image') ...[
                   const SizedBox(height: 8),
-                  OutlinedButton(onPressed: _pickImage, child: const Text('Choose photo')),
+                  _pickerButton('Choose photo', _pickImage),
                   if (_imageDataUri != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
@@ -171,12 +171,12 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
                 ],
                 if (_mediaType == 'voice') ...[
                   const SizedBox(height: 8),
-                  OutlinedButton(onPressed: _pickVoice, child: const Text('Choose a song')),
+                  _pickerButton('Choose a song', _pickVoice),
                   if (_voiceDataUri != null) const Padding(padding: EdgeInsets.only(top: 8), child: Text('🎵 Song attached', style: TextStyle(color: AppColors.textDim, fontSize: 12))),
                 ],
                 if (_mediaType == 'reel') ...[
                   const SizedBox(height: 8),
-                  OutlinedButton(onPressed: _pickVideo, child: const Text('Choose a video')),
+                  _pickerButton('Choose a video', _pickVideo),
                   if (_videoDataUri != null) const Padding(padding: EdgeInsets.only(top: 8), child: Text('🎥 Video attached', style: TextStyle(color: AppColors.textDim, fontSize: 12))),
                 ],
                 if (_mediaType == 'video_link') ...[
@@ -206,20 +206,44 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
                       child: TextButton(onPressed: _addPollOption, child: const Text('+ Add option', style: TextStyle(color: AppColors.primary))),
                     ),
                 ],
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Checkbox(value: _isStory, onChanged: (v) => setState(() => _isStory = v ?? false), activeColor: AppColors.primary),
-                    const Expanded(child: Text('Share as a 24h story instead', style: TextStyle(color: AppColors.textDim, fontSize: 13))),
-                  ],
+                const SizedBox(height: 4),
+                GestureDetector(
+                  onTap: () => setState(() => _isStory = !_isStory),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      children: [
+                        Expanded(child: Text('Share as a 24h story instead', style: const TextStyle(color: AppColors.textDim, fontSize: 13))),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          width: 36,
+                          height: 20,
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(999),
+                            gradient: _isStory ? const LinearGradient(colors: AppGradients.brand) : null,
+                            color: _isStory ? null : AppColors.surface2,
+                          ),
+                          alignment: _isStory ? Alignment.centerRight : Alignment.centerLeft,
+                          child: Container(width: 16, height: 16, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _posting ? null : _submit,
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: const StadiumBorder(), padding: const EdgeInsets.symmetric(vertical: 14)),
-                    child: Text(_posting ? 'Posting…' : 'Post'),
+                GestureDetector(
+                  onTap: _posting ? null : _submit,
+                  child: Container(
+                    width: double.infinity,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: _posting ? null : const LinearGradient(colors: AppGradients.brand),
+                      color: _posting ? AppColors.surface2 : null,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(_posting ? 'Posting…' : 'Post', style: TextStyle(color: _posting ? AppColors.textFaint : Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
                   ),
                 ),
               ],
@@ -230,6 +254,15 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
       ),
     );
   }
+
+  Widget _pickerButton(String label, VoidCallback onTap) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+          child: Text(label, style: const TextStyle(color: AppColors.textDim, fontSize: 12.5, fontWeight: FontWeight.w600)),
+        ),
+      );
 
   @override
   void dispose() {
