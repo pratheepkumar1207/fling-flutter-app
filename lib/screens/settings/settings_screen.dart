@@ -6,10 +6,9 @@ import '../../core/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../auth/login_screen.dart';
 import 'blocked_accounts_screen.dart';
-import 'complaint_form_screen.dart';
+import 'help_center_screen.dart';
 import 'language_preferences_screen.dart';
 import 'legal_screen.dart';
-import 'my_complaints_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -84,8 +83,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           _tile(context, emoji: '🌐', label: 'Language', builder: (_) => const LanguagePreferencesScreen()),
           _group('Support'),
-          _tile(context, emoji: '💬', label: 'Have an issue', builder: (_) => const ComplaintFormScreen()),
-          _tile(context, emoji: '📋', label: 'My complaints', builder: (_) => const MyComplaintsScreen()),
+          _tile(context, emoji: '🆘', label: 'Help Center', builder: (_) => const HelpCenterScreen()),
           _tile(context, emoji: '📄', label: 'Terms of Service', builder: (_) => const LegalScreen(title: 'Terms of Service', body: kTermsOfServicePlaceholder)),
           _tile(context, emoji: '🛡️', label: 'Privacy Policy', builder: (_) => const LegalScreen(title: 'Privacy Policy', body: kPrivacyPolicyPlaceholder)),
           _tile(context, emoji: 'ℹ️', label: 'About Us', builder: (_) => const LegalScreen(title: 'About Us', body: 'This app connects people through shared watch parties, voice rooms, and social discovery.\n\nVersion 1.0.0')),
