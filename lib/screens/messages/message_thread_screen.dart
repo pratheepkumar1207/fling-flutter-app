@@ -253,11 +253,19 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                               onLongPress: mine ? () => _deleteMessage(m) : null,
                               child: Container(
                                 margin: const EdgeInsets.symmetric(vertical: 3),
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
                                 decoration: BoxDecoration(
-                                  color: mine ? AppColors.primary : AppColors.surface2,
-                                  borderRadius: BorderRadius.circular(16),
+                                  gradient: mine ? const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppGradients.brand) : null,
+                                  color: mine ? null : AppColors.surface2,
+                                  // Flat corner on the "tail" side (bottom-right for mine, bottom-left
+                                  // for theirs) — matches ChatDark.dc.html's speech-bubble shape.
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: const Radius.circular(18),
+                                    topRight: const Radius.circular(18),
+                                    bottomLeft: Radius.circular(mine ? 18 : 5),
+                                    bottomRight: Radius.circular(mine ? 5 : 18),
+                                  ),
                                 ),
                                 child: _messageContent(m, mine),
                               ),
@@ -295,9 +303,15 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: _sending ? null : _send,
-                    icon: _sending ? const Spinner(size: 18) : const Icon(Icons.send, color: AppColors.primary),
+                  GestureDetector(
+                    onTap: _sending ? null : _send,
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: const BoxDecoration(gradient: LinearGradient(colors: AppGradients.brand), shape: BoxShape.circle),
+                      alignment: Alignment.center,
+                      child: _sending ? const Spinner(size: 16) : const Icon(Icons.send_rounded, color: Colors.white, size: 17),
+                    ),
                   ),
                 ],
               ),
