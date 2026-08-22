@@ -4,7 +4,14 @@ import '../core/profile_nav.dart';
 import '../theme/app_colors.dart';
 import 'avatar.dart';
 
-const _kSeatColors = [Color(0xFFFF3D78), Color(0xFFFFC93C), Color(0xFF38E6C5), Color(0xFF8B7BFF), Color(0xFFFF8A3D), Color(0xFF4DC4FF)];
+const _kSeatColors = [
+  Color(0xFFFF3D78),
+  Color(0xFFFFC93C),
+  Color(0xFF38E6C5),
+  Color(0xFF8B7BFF),
+  Color(0xFFFF8A3D),
+  Color(0xFF4DC4FF)
+];
 const _kSpinDuration = Duration(milliseconds: 3200);
 const _kTableRadius = 78.0;
 
@@ -19,13 +26,19 @@ class TruthOrDarePanel extends StatefulWidget {
   final VoidCallback onJoin;
   final void Function(Map<String, dynamic> move) onMove;
 
-  const TruthOrDarePanel({super.key, required this.game, required this.myUserId, required this.onJoin, required this.onMove});
+  const TruthOrDarePanel(
+      {super.key,
+      required this.game,
+      required this.myUserId,
+      required this.onJoin,
+      required this.onMove});
 
   @override
   State<TruthOrDarePanel> createState() => _TruthOrDarePanelState();
 }
 
-class _TruthOrDarePanelState extends State<TruthOrDarePanel> with SingleTickerProviderStateMixin {
+class _TruthOrDarePanelState extends State<TruthOrDarePanel>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   double _fromAngle = 0;
   double _toAngle = 0;
@@ -67,7 +80,8 @@ class _TruthOrDarePanelState extends State<TruthOrDarePanel> with SingleTickerPr
     final targetRotation = seatAngle + 90;
     final extraSpins = 4 + Random().nextInt(3);
     _fromAngle = _toAngle;
-    _toAngle = _fromAngle + extraSpins * 360 + (targetRotation - (_fromAngle % 360));
+    _toAngle =
+        _fromAngle + extraSpins * 360 + (targetRotation - (_fromAngle % 360));
     setState(() => _spinning = true);
     _controller.forward(from: 0);
   }
@@ -85,8 +99,13 @@ class _TruthOrDarePanelState extends State<TruthOrDarePanel> with SingleTickerPr
     final status = game['status'] as String? ?? 'waiting';
     final prompt = game['currentPrompt'] as Map?;
     final isPlayer = players.any((p) => p['userId'] == widget.myUserId);
-    final isMyTurn = isPlayer && status == 'playing' && _displayTurn == widget.myUserId && !_spinning;
-    final currentPlayer = players.cast<Map?>().firstWhere((p) => p?['userId'] == _displayTurn, orElse: () => null);
+    final isMyTurn = isPlayer &&
+        status == 'playing' &&
+        _displayTurn == widget.myUserId &&
+        !_spinning;
+    final currentPlayer = players
+        .cast<Map?>()
+        .firstWhere((p) => p?['userId'] == _displayTurn, orElse: () => null);
     final n = players.length;
 
     final eased = Curves.easeOutCubic.transform(_controller.value);
@@ -95,7 +114,10 @@ class _TruthOrDarePanelState extends State<TruthOrDarePanel> with SingleTickerPr
     return AspectRatio(
       aspectRatio: 16 / 9,
       child: Container(
-        decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+        decoration: BoxDecoration(
+            color: AppColors.surface2,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border)),
         padding: const EdgeInsets.all(12),
         child: status == 'waiting'
             ? Column(
@@ -107,22 +129,31 @@ class _TruthOrDarePanelState extends State<TruthOrDarePanel> with SingleTickerPr
                     children: [
                       for (final p in players)
                         GestureDetector(
-                          onTap: () => openProfile(context, p['userId'] as String?),
+                          onTap: () =>
+                              openProfile(context, p['userId'] as String?),
                           child: Column(
                             children: [
-                              Avatar(name: p['name'] as String?, size: AvatarSize.sm),
-                              Text(p['name'] as String? ?? '', style: const TextStyle(color: AppColors.textDim, fontSize: 11)),
+                              Avatar(
+                                  name: p['name'] as String?,
+                                  size: AvatarSize.sm),
+                              Text(p['name'] as String? ?? '',
+                                  style: const TextStyle(
+                                      color: AppColors.textDim, fontSize: 11)),
                             ],
                           ),
                         ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  const Text('Waiting for a second player…', style: TextStyle(color: AppColors.textFaint, fontSize: 12)),
+                  const Text('Waiting for a second player…',
+                      style:
+                          TextStyle(color: AppColors.textFaint, fontSize: 12)),
                   if (!isPlayer)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: ElevatedButton(onPressed: widget.onJoin, child: const Text('Join game')),
+                      child: ElevatedButton(
+                          onPressed: widget.onJoin,
+                          child: const Text('Join game')),
                     ),
                 ],
               )
@@ -141,7 +172,9 @@ class _TruthOrDarePanelState extends State<TruthOrDarePanel> with SingleTickerPr
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(color: AppColors.border),
-                            gradient: RadialGradient(colors: [AppColors.surface3, AppColors.surface], center: const Alignment(-0.3, -0.4)),
+                            gradient: RadialGradient(
+                                colors: [AppColors.surface3, AppColors.surface],
+                                center: const Alignment(-0.3, -0.4)),
                           ),
                         ),
                         for (var i = 0; i < n; i++)
@@ -151,7 +184,8 @@ class _TruthOrDarePanelState extends State<TruthOrDarePanel> with SingleTickerPr
                             final rad = angle * pi / 180;
                             final x = cos(rad) * _kTableRadius;
                             final y = sin(rad) * _kTableRadius;
-                            final chosen = !_spinning && p['userId'] == _displayTurn;
+                            final chosen =
+                                !_spinning && p['userId'] == _displayTurn;
                             return Transform.translate(
                               offset: Offset(x, y),
                               child: SizedBox(
@@ -160,23 +194,44 @@ class _TruthOrDarePanelState extends State<TruthOrDarePanel> with SingleTickerPr
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     GestureDetector(
-                                      onTap: () => openProfile(context, p['userId'] as String?),
-                                      child: Avatar(name: p['name'] as String?, size: AvatarSize.sm),
+                                      onTap: () => openProfile(
+                                          context, p['userId'] as String?),
+                                      child: Avatar(
+                                          name: p['name'] as String?,
+                                          size: AvatarSize.sm),
                                     ),
                                     const SizedBox(height: 2),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: chosen ? AppColors.primary : AppColors.surface2,
-                                        borderRadius: BorderRadius.circular(999),
-                                        border: Border.all(color: _kSeatColors[i % _kSeatColors.length]),
-                                        boxShadow: chosen ? [BoxShadow(color: AppColors.primary.withValues(alpha: 0.5), blurRadius: 12)] : null,
+                                        color: chosen
+                                            ? AppColors.primary
+                                            : AppColors.surface2,
+                                        borderRadius:
+                                            BorderRadius.circular(999),
+                                        border: Border.all(
+                                            color: _kSeatColors[
+                                                i % _kSeatColors.length]),
+                                        boxShadow: chosen
+                                            ? [
+                                                BoxShadow(
+                                                    color: AppColors.primary
+                                                        .withValues(alpha: 0.5),
+                                                    blurRadius: 12)
+                                              ]
+                                            : null,
                                       ),
                                       child: Text(
                                         p['name'] as String? ?? '',
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: chosen ? Colors.white : AppColors.textDim),
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                            color: chosen
+                                                ? Colors.white
+                                                : AppColors.textDim),
                                       ),
                                     ),
                                   ],
@@ -190,11 +245,21 @@ class _TruthOrDarePanelState extends State<TruthOrDarePanel> with SingleTickerPr
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Container(width: 10, height: 14, decoration: const BoxDecoration(color: AppColors.accent, borderRadius: BorderRadius.vertical(top: Radius.circular(3)))),
+                              Container(
+                                  width: 10,
+                                  height: 14,
+                                  decoration: const BoxDecoration(
+                                      color: AppColors.accent,
+                                      borderRadius: BorderRadius.vertical(
+                                          top: Radius.circular(3)))),
                               Container(
                                 width: 22,
                                 height: 56,
-                                decoration: BoxDecoration(color: AppColors.surface3, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.accent)),
+                                decoration: BoxDecoration(
+                                    color: AppColors.surface3,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border:
+                                        Border.all(color: AppColors.accent)),
                               ),
                             ],
                           ),
@@ -202,7 +267,12 @@ class _TruthOrDarePanelState extends State<TruthOrDarePanel> with SingleTickerPr
                       ],
                     ),
                   ),
-                  if (_spinning) const Padding(padding: EdgeInsets.only(top: 4), child: Text('Spinning…', style: TextStyle(color: AppColors.textFaint, fontSize: 11))),
+                  if (_spinning)
+                    const Padding(
+                        padding: EdgeInsets.only(top: 4),
+                        child: Text('Spinning…',
+                            style: TextStyle(
+                                color: AppColors.textFaint, fontSize: 11))),
                   if (!_spinning)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
@@ -212,40 +282,125 @@ class _TruthOrDarePanelState extends State<TruthOrDarePanel> with SingleTickerPr
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     ElevatedButton(
-                                      onPressed: () => widget.onMove({'action': 'choose', 'choice': 'truth'}),
-                                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                                      onPressed: () => widget.onMove({
+                                        'action': 'choose',
+                                        'choice': 'truth'
+                                      }),
+                                      style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.primary),
                                       child: const Text('🤔 Truth'),
                                     ),
                                     const SizedBox(width: 12),
                                     ElevatedButton(
-                                      onPressed: () => widget.onMove({'action': 'choose', 'choice': 'dare'}),
-                                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+                                      onPressed: () => widget.onMove({
+                                        'action': 'choose',
+                                        'choice': 'dare'
+                                      }),
+                                      style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.accent),
                                       child: const Text('🔥 Dare'),
                                     ),
                                   ],
                                 )
-                              : Text('Waiting for ${currentPlayer?['name'] ?? 'them'} to choose…', style: const TextStyle(color: AppColors.textDim, fontSize: 13)))
+                              : Text(
+                                  'Waiting for ${currentPlayer?['name'] ?? 'them'} to choose…',
+                                  style: const TextStyle(
+                                      color: AppColors.textDim, fontSize: 13)))
+                          // Matches TruthOrDareDark.dc.html's big gradient reveal
+                          // card — the mockup's "Round N", "🔥 streak", and
+                          // Skip(−10)/Done(+20) coin-stakes aren't shown here:
+                          // src/games/truthOrDare.js has no round counter, streak,
+                          // or scoring/penalty system at all, so there's nothing
+                          // real to back them with.
                           : Column(
                               children: [
                                 Container(
-                                  constraints: const BoxConstraints(maxWidth: 320),
-                                  padding: const EdgeInsets.all(14),
-                                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+                                  constraints:
+                                      const BoxConstraints(maxWidth: 260),
+                                  padding: const EdgeInsets.all(22),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    gradient: const LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: AppGradients.brand),
+                                    boxShadow: [
+                                      BoxShadow(
+                                          color: AppColors.accent2
+                                              .withValues(alpha: 0.45),
+                                          blurRadius: 30,
+                                          offset: const Offset(0, 14))
+                                    ],
+                                  ),
                                   child: Column(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Text((prompt['type'] as String? ?? '').toUpperCase(), style: const TextStyle(color: AppColors.textFaint, fontSize: 11, fontWeight: FontWeight.bold)),
-                                      const SizedBox(height: 4),
-                                      Text(prompt['text'] as String? ?? '', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.text, fontSize: 13)),
+                                      Container(
+                                        width: 38,
+                                        height: 38,
+                                        decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            color: Colors.white
+                                                .withValues(alpha: 0.18)),
+                                        alignment: Alignment.center,
+                                        child: Icon(
+                                            prompt['type'] == 'truth'
+                                                ? Icons.help_outline_rounded
+                                                : Icons
+                                                    .local_fire_department_rounded,
+                                            color: Colors.white,
+                                            size: 19),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                          (prompt['type'] as String? ?? '')
+                                              .toUpperCase(),
+                                          style: const TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing: 1.2)),
+                                      const SizedBox(height: 8),
+                                      Text(prompt['text'] as String? ?? '',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 15,
+                                              height: 1.4)),
                                     ],
                                   ),
                                 ),
                                 if (isMyTurn)
                                   Padding(
-                                    padding: const EdgeInsets.only(top: 8),
-                                    child: ElevatedButton(
-                                      onPressed: () => widget.onMove({'action': 'next'}),
-                                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: const Color(0xFF241A0A)),
-                                      child: const Text('🍾 Spin the bottle'),
+                                    padding: const EdgeInsets.only(top: 14),
+                                    child: GestureDetector(
+                                      onTap: () =>
+                                          widget.onMove({'action': 'next'}),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 22, vertical: 11),
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(999),
+                                          gradient: const LinearGradient(
+                                              colors: AppGradients.brand),
+                                          boxShadow: [
+                                            BoxShadow(
+                                                color: AppColors.accent2
+                                                    .withValues(alpha: 0.5),
+                                                blurRadius: 20,
+                                                offset: const Offset(0, 8))
+                                          ],
+                                        ),
+                                        child: const Text(
+                                            'Done — spin for next',
+                                            style: TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 13)),
+                                      ),
                                     ),
                                   ),
                               ],
@@ -254,7 +409,9 @@ class _TruthOrDarePanelState extends State<TruthOrDarePanel> with SingleTickerPr
                   if (!isPlayer)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: ElevatedButton(onPressed: widget.onJoin, child: const Text('Join game')),
+                      child: ElevatedButton(
+                          onPressed: widget.onJoin,
+                          child: const Text('Join game')),
                     ),
                 ],
               ),
