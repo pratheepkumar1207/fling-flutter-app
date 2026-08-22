@@ -70,8 +70,13 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
       required String mediaMode,
       String sourceType = 'youtube'}) async {
     final items = (widget.queue['items'] as List?) ?? [];
+    // "Queue empty" means nothing queued *after* whatever's currently
+    // playing — the currently-playing item itself doesn't count. Since
+    // items always includes the current item at currentIndex, that's
+    // exactly items.length <= 1 (0 = truly nothing, 1 = only the item
+    // that's already playing).
     final position =
-        await showAddToQueueDialog(context, queueIsEmpty: items.isEmpty);
+        await showAddToQueueDialog(context, queueIsEmpty: items.length <= 1);
     if (position == null || !mounted) return;
     widget.onAdd(
       {
