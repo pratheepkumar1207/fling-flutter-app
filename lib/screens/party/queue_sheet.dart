@@ -4,11 +4,21 @@ import '../../widgets/add_to_queue_dialog.dart';
 import '../../widgets/app_image.dart';
 import '../lobby/source_picker_screen.dart';
 
-/// Consolidated queue + source-picker screen — the queue itself (reorder,
-/// jump, remove) always visible at the bottom; the same source-picker grid
-/// used at room creation (see source_picker_screen.dart's SourcePickerBody)
-/// sits above it in "in-room" mode, so adding a song or switching the
-/// room's source uses one consistent picker everywhere in the app.
+/// Matches QueueSheetDark.dc.html: a dimmed-backdrop rounded-top sheet
+/// with "Now playing" (current track, play-icon thumbnail) and "Up next"
+/// section labels, drag-handle + thumbnail + title/subtitle + remove per
+/// row. The inline source-picker search (real, necessary — this app has
+/// no other add-a-song entry point) opens under the header's "+ Add" pill
+/// instead of an AppBar search icon, matching the mockup's button. Section
+/// labels are rendered as part of each row (not separate list entries) so
+/// the single ReorderableListView over the full item list — and its
+/// existing fromIndex/toIndex wire-format to queue:reorder — stays exactly
+/// as it was; splitting into two separately-reorderable lists would have
+/// needed a local-to-real index translation with no way to verify it
+/// against the live multiplayer sync without real testing. Still pushed as
+/// a full route rather than a real showModalBottomSheet (keeps the
+/// existing swipe-to-dismiss gesture and AnimatedBuilder wiring in
+/// party_screen.dart unchanged), just styled to read as one.
 class QueueSheetScreen extends StatefulWidget {
   final String roomId;
   final Map<String, dynamic> queue;
@@ -19,7 +29,8 @@ class QueueSheetScreen extends StatefulWidget {
   final void Function(int index) onRemove;
   final void Function(int fromIndex, int toIndex) onReorder;
   final VoidCallback onOpenRoster;
-  final Future<void> Function(String sourceType, String videoUrl, {String? videoTitle, String? videoThumbnail}) onSwitchSource;
+  final Future<void> Function(String sourceType, String videoUrl,
+      {String? videoTitle, String? videoThumbnail}) onSwitchSource;
   final bool audioOnly;
   final bool canPin;
   final bool canAddSongs;
@@ -52,12 +63,24 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
   // YouTube Surf, Liked, History, Playlists) funnels through — see
   // add_to_queue_dialog.dart for why the confirmation lives here instead
   // of in each individual picker screen.
-  Future<void> _addToQueue({required String videoUrl, required String title, String? thumbnail, required String mediaMode, String sourceType = 'youtube'}) async {
+  Future<void> _addToQueue(
+      {required String videoUrl,
+      required String title,
+      String? thumbnail,
+      required String mediaMode,
+      String sourceType = 'youtube'}) async {
     final items = (widget.queue['items'] as List?) ?? [];
-    final position = await showAddToQueueDialog(context, queueIsEmpty: items.isEmpty);
+    final position =
+        await showAddToQueueDialog(context, queueIsEmpty: items.isEmpty);
     if (position == null || !mounted) return;
     widget.onAdd(
-      {'sourceType': sourceType, 'videoUrl': videoUrl, 'title': title, 'thumbnail': thumbnail, 'mediaMode': widget.audioOnly ? 'audio' : mediaMode},
+      {
+        'sourceType': sourceType,
+        'videoUrl': videoUrl,
+        'title': title,
+        'thumbnail': thumbnail,
+        'mediaMode': widget.audioOnly ? 'audio' : mediaMode
+      },
       position: position,
     );
   }
@@ -75,6 +98,11 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
   Widget build(BuildContext context) {
     final items = (widget.queue['items'] as List?) ?? [];
     final currentIndex = widget.queue['currentIndex'] as int? ?? 0;
+    // First row (in existing array order) that isn't the current track —
+    // that's where the "UP NEXT" label goes, right before it.
+    final firstUpNextIndex = items.isEmpty
+        ? -1
+        : (currentIndex == 0 ? (items.length > 1 ? 1 : -1) : 0);
 
     return GestureDetector(
       // Swipe left-to-right closes this screen and lands back on the room,
@@ -83,105 +111,253 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
         if ((details.primaryVelocity ?? 0) > 250) _close();
       },
       child: Scaffold(
-      backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        leading: IconButton(icon: const Icon(Icons.close), tooltip: 'Cancel', onPressed: _close),
-        title: const Text('Queue'),
-        actions: [
-          if (widget.canAddSongs)
-            IconButton(
-              icon: Icon(_showPicker ? Icons.search_off : Icons.search),
-              tooltip: _showPicker ? 'Hide search' : 'Search to add a video',
-              onPressed: () => setState(() => _showPicker = !_showPicker),
-            ),
-          TextButton(
-            onPressed: widget.onOpenRoster,
-            child: Text('👥 ${widget.participantCount}', style: const TextStyle(color: AppColors.textDim)),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          if (widget.canAddSongs && _showPicker)
-            SizedBox(
-              height: 320,
-              child: SourcePickerBody(
-                roomId: widget.roomId,
-                onAddToQueue: _addToQueue,
-                onSwitchSource: widget.onSwitchSource,
+        backgroundColor: Colors.black.withValues(alpha: 0.6),
+        body: SafeArea(
+          top: false,
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: FractionallySizedBox(
+              heightFactor: 0.82,
+              widthFactor: 1,
+              child: Container(
+                decoration: const BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(24))),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 12),
+                    Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                            color: AppColors.border,
+                            borderRadius: BorderRadius.circular(999))),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          GestureDetector(
+                              onTap: _close,
+                              child: const Icon(Icons.close_rounded,
+                                  color: AppColors.textFaint, size: 20)),
+                          RichText(
+                            text: TextSpan(
+                              style: const TextStyle(
+                                  color: AppColors.text,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16),
+                              children: [
+                                const TextSpan(text: 'Queue '),
+                                TextSpan(
+                                    text:
+                                        '· ${items.length} song${items.length == 1 ? '' : 's'}',
+                                    style: const TextStyle(
+                                        color: AppColors.textFaint,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 13)),
+                              ],
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: widget.onOpenRoster,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 12),
+                                  child: Text('👥 ${widget.participantCount}',
+                                      style: const TextStyle(
+                                          color: AppColors.textDim,
+                                          fontSize: 12)),
+                                ),
+                              ),
+                              if (widget.canAddSongs)
+                                GestureDetector(
+                                  onTap: () => setState(
+                                      () => _showPicker = !_showPicker),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 13, vertical: 7),
+                                    decoration: BoxDecoration(
+                                        borderRadius:
+                                            BorderRadius.circular(999),
+                                        border: Border.all(
+                                            color: AppColors.accent2,
+                                            width: 1.5)),
+                                    child: Text(_showPicker ? 'Hide' : '+ Add',
+                                        style: const TextStyle(
+                                            color: AppColors.accent2,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 12)),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (widget.canAddSongs && _showPicker)
+                      SizedBox(
+                        height: 320,
+                        child: SourcePickerBody(
+                          roomId: widget.roomId,
+                          onAddToQueue: _addToQueue,
+                          onSwitchSource: widget.onSwitchSource,
+                        ),
+                      ),
+                    Expanded(
+                      child: items.isEmpty
+                          ? const Center(
+                              child: Text('Nothing queued yet.',
+                                  style: TextStyle(color: AppColors.textFaint)))
+                          : ReorderableListView.builder(
+                              padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
+                              itemCount: items.length,
+                              // onReorderItem (unlike the deprecated onReorder) already
+                              // adjusts newIndex for the removed item at oldIndex, so
+                              // no manual off-by-one correction is needed here.
+                              onReorderItem: widget.isHost
+                                  ? (from, to) => widget.onReorder(from, to)
+                                  : (_, __) {},
+                              itemBuilder: (context, i) {
+                                final item =
+                                    Map<String, dynamic>.from(items[i] as Map);
+                                final isCurrent = i == currentIndex;
+                                return Column(
+                                  key: ValueKey('queue-$i-${item['videoUrl']}'),
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (isCurrent)
+                                      const Padding(
+                                          padding: EdgeInsets.only(bottom: 4),
+                                          child: Text('NOW PLAYING',
+                                              style: TextStyle(
+                                                  color: AppColors.accent2,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w700,
+                                                  letterSpacing: 0.6))),
+                                    if (i == firstUpNextIndex)
+                                      const Padding(
+                                          padding:
+                                              EdgeInsets.fromLTRB(0, 14, 0, 4),
+                                          child: Text('UP NEXT',
+                                              style: TextStyle(
+                                                  color: AppColors.textFaint,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w700,
+                                                  letterSpacing: 0.6))),
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                          vertical: isCurrent ? 4 : 9),
+                                      child: Row(
+                                        children: [
+                                          if (widget.isHost && !isCurrent)
+                                            const Padding(
+                                                padding:
+                                                    EdgeInsets.only(right: 11),
+                                                child: Icon(
+                                                    Icons.drag_handle_rounded,
+                                                    color: AppColors.textFaint,
+                                                    size: 16)),
+                                          Container(
+                                            width: 44,
+                                            height: 44,
+                                            decoration: BoxDecoration(
+                                                color: AppColors.surface3,
+                                                borderRadius:
+                                                    BorderRadius.circular(10)),
+                                            clipBehavior: Clip.antiAlias,
+                                            child: Stack(
+                                              fit: StackFit.expand,
+                                              children: [
+                                                item['thumbnail'] != null
+                                                    ? AppImage(
+                                                        source:
+                                                            item['thumbnail']
+                                                                as String?,
+                                                        fit: BoxFit.cover)
+                                                    : const Center(
+                                                        child: Text('📺')),
+                                                if (isCurrent)
+                                                  Container(
+                                                      color: Colors.black26,
+                                                      alignment:
+                                                          Alignment.center,
+                                                      child: const Icon(
+                                                          Icons
+                                                              .play_arrow_rounded,
+                                                          color: Colors.white,
+                                                          size: 18)),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 11),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                    item['title'] as String? ??
+                                                        'Video',
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: const TextStyle(
+                                                        color: AppColors.text,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        fontSize: 13)),
+                                                if (item['mediaMode'] ==
+                                                    'audio')
+                                                  const Text('Audio only',
+                                                      style: TextStyle(
+                                                          color: AppColors
+                                                              .textFaint,
+                                                          fontSize: 11)),
+                                              ],
+                                            ),
+                                          ),
+                                          if (!isCurrent && widget.canPin)
+                                            GestureDetector(
+                                              onTap: () => widget.onJump(i),
+                                              child: const Padding(
+                                                  padding: EdgeInsets.only(
+                                                      right: 10),
+                                                  child: Icon(
+                                                      Icons
+                                                          .play_circle_outline_rounded,
+                                                      color:
+                                                          AppColors.textFaint,
+                                                      size: 18)),
+                                            ),
+                                          if (!isCurrent && widget.isHost)
+                                            GestureDetector(
+                                              onTap: () => widget.onRemove(i),
+                                              child: const Icon(
+                                                  Icons.close_rounded,
+                                                  color: AppColors.textFaint,
+                                                  size: 16),
+                                            )
+                                          else if (isCurrent)
+                                            const Icon(Icons.more_vert_rounded,
+                                                color: AppColors.textFaint,
+                                                size: 18),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          const Divider(color: AppColors.border, height: 1),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Queue', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.bold)),
-                Text('${items.length} item${items.length == 1 ? '' : 's'}', style: const TextStyle(color: AppColors.textFaint, fontSize: 12)),
-              ],
-            ),
           ),
-          Expanded(
-            child: items.isEmpty
-                ? const Center(child: Text('Nothing queued yet.', style: TextStyle(color: AppColors.textFaint)))
-                : ReorderableListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    itemCount: items.length,
-                    // onReorderItem (unlike the deprecated onReorder) already
-                    // adjusts newIndex for the removed item at oldIndex, so
-                    // no manual off-by-one correction is needed here.
-                    onReorderItem: widget.isHost
-                        ? (from, to) => widget.onReorder(from, to)
-                        : (_, __) {},
-                    itemBuilder: (context, i) {
-                      final item = Map<String, dynamic>.from(items[i] as Map);
-                      final isCurrent = i == currentIndex;
-                      return Container(
-                        key: ValueKey('queue-$i-${item['videoUrl']}'),
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: isCurrent ? AppColors.primary.withValues(alpha: 0.1) : AppColors.surface,
-                          border: Border.all(color: isCurrent ? AppColors.primary : AppColors.border),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          children: [
-                            if (widget.isHost) const Padding(padding: EdgeInsets.only(right: 6), child: Icon(Icons.drag_handle, color: AppColors.textFaint, size: 18)),
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(color: AppColors.surface3, borderRadius: BorderRadius.circular(8)),
-                              clipBehavior: Clip.antiAlias,
-                              child: item['thumbnail'] != null ? AppImage(source: item['thumbnail'] as String?, fit: BoxFit.cover) : const Center(child: Text('📺')),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(item['title'] as String? ?? 'Video', style: const TextStyle(color: AppColors.text, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                  if (isCurrent || item['mediaMode'] == 'audio')
-                                    Text(
-                                      [if (isCurrent) 'Now playing', if (item['mediaMode'] == 'audio') '🎧 Audio only'].join(' · '),
-                                      style: const TextStyle(color: AppColors.primary, fontSize: 11),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            if (!isCurrent && widget.canPin)
-                              TextButton(onPressed: () => widget.onJump(i), child: const Text('Play', style: TextStyle(fontSize: 11))),
-                            if (!isCurrent && widget.isHost)
-                              IconButton(onPressed: () => widget.onRemove(i), icon: const Icon(Icons.close, color: AppColors.danger, size: 16)),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
+        ),
       ),
     );
   }
