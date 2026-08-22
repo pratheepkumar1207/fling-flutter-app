@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
-import '../theme/glass.dart';
 
-/// Poll-creation sheet — Dart port of PollCreatorModal.jsx.
-Future<void> showPollCreatorBottomSheet(BuildContext context, {required void Function(String question, List<String> options) onCreate}) {
+/// Matches PollCreatorDark.dc.html: a plain surface sheet (no glass card),
+/// uppercase "Question"/"Options" section labels, bordered fields, a
+/// per-option remove (X) icon, and a dashed "+ Add another option" row.
+Future<void> showPollCreatorBottomSheet(BuildContext context,
+    {required void Function(String question, List<String> options) onCreate}) {
   return showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
@@ -22,16 +24,27 @@ class _PollCreatorSheet extends StatefulWidget {
 
 class _PollCreatorSheetState extends State<_PollCreatorSheet> {
   final _questionController = TextEditingController();
-  final List<TextEditingController> _optionControllers = [TextEditingController(), TextEditingController()];
+  final List<TextEditingController> _optionControllers = [
+    TextEditingController(),
+    TextEditingController()
+  ];
 
   void _addOption() {
     if (_optionControllers.length >= 6) return;
     setState(() => _optionControllers.add(TextEditingController()));
   }
 
+  void _removeOption(int i) {
+    if (_optionControllers.length <= 1) return;
+    setState(() => _optionControllers.removeAt(i).dispose());
+  }
+
   void _submit() {
     final question = _questionController.text.trim();
-    final options = _optionControllers.map((c) => c.text.trim()).where((o) => o.isNotEmpty).toList();
+    final options = _optionControllers
+        .map((c) => c.text.trim())
+        .where((o) => o.isNotEmpty)
+        .toList();
     if (question.isEmpty || options.length < 2) return;
     widget.onCreate(question, options);
     Navigator.of(context).pop();
@@ -40,62 +53,136 @@ class _PollCreatorSheetState extends State<_PollCreatorSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-          child: GlassSurface(
-          borderRadius: BorderRadius.circular(24),
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
+          decoration: const BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Center(
-                  child: Container(width: 36, height: 4, margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(999))),
+                  child: Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 14),
+                      decoration: BoxDecoration(
+                          color: AppColors.border,
+                          borderRadius: BorderRadius.circular(999))),
                 ),
-                const Text('Create a poll', style: TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _questionController,
-                  maxLength: 140,
-                  style: const TextStyle(color: AppColors.text),
-                  decoration: const InputDecoration(hintText: 'Ask something…'),
+                const Text('Create a poll',
+                    style: TextStyle(
+                        color: AppColors.text,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16)),
+                const SizedBox(height: 14),
+                const Text('QUESTION',
+                    style: TextStyle(
+                        color: AppColors.textFaint,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.6)),
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: _field(_questionController,
+                      maxLength: 140, hint: 'What should we watch next?'),
                 ),
-                ...List.generate(
-                  _optionControllers.length,
-                  (i) => Padding(
+                const SizedBox(height: 16),
+                const Text('OPTIONS',
+                    style: TextStyle(
+                        color: AppColors.textFaint,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.6)),
+                for (var i = 0; i < _optionControllers.length; i++)
+                  Padding(
                     padding: const EdgeInsets.only(top: 8),
-                    child: TextField(
-                      controller: _optionControllers[i],
-                      maxLength: 60,
-                      style: const TextStyle(color: AppColors.text),
-                      decoration: InputDecoration(hintText: 'Option ${i + 1}'),
+                    child: Row(
+                      children: [
+                        Expanded(
+                            child: _field(_optionControllers[i],
+                                maxLength: 60,
+                                hint: 'Option ${i + 1}',
+                                dense: true)),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => _removeOption(i),
+                          child: Icon(Icons.close_rounded,
+                              color: AppColors.textFaint, size: 18),
+                        ),
+                      ],
                     ),
                   ),
-                ),
                 if (_optionControllers.length < 6)
                   Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton(onPressed: _addOption, child: const Text('+ Add option', style: TextStyle(color: AppColors.primary))),
+                    padding: const EdgeInsets.only(top: 8),
+                    child: GestureDetector(
+                      onTap: _addOption,
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 11, horizontal: 14),
+                        decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(13),
+                            border: Border.all(
+                                color: AppColors.border,
+                                width: 1.5,
+                                style: BorderStyle.solid)),
+                        child: const Text('+ Add another option',
+                            style: TextStyle(
+                                color: AppColors.textFaint, fontSize: 13)),
+                      ),
                     ),
                   ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _submit,
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: const StadiumBorder(), padding: const EdgeInsets.symmetric(vertical: 14)),
-                    child: const Text('Start poll'),
+                const SizedBox(height: 20),
+                GestureDetector(
+                  onTap: _submit,
+                  child: Container(
+                    width: double.infinity,
+                    height: 48,
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        gradient:
+                            const LinearGradient(colors: AppGradients.brand)),
+                    alignment: Alignment.center,
+                    child: const Text('Start poll',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14)),
                   ),
                 ),
               ],
             ),
           ),
-          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _field(TextEditingController controller,
+      {required int maxLength, required String hint, bool dense = false}) {
+    return Container(
+      decoration: BoxDecoration(
+          color: AppColors.surface2,
+          borderRadius: BorderRadius.circular(13),
+          border: Border.all(color: AppColors.border, width: 1.5)),
+      child: TextField(
+        controller: controller,
+        maxLength: maxLength,
+        style: TextStyle(color: AppColors.text, fontSize: dense ? 13 : 13.5),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: AppColors.textFaint),
+          border: InputBorder.none,
+          counterText: '',
+          contentPadding:
+              EdgeInsets.symmetric(horizontal: 14, vertical: dense ? 11 : 12),
         ),
       ),
     );
