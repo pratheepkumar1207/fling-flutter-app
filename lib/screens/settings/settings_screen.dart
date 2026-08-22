@@ -25,11 +25,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _toggleNotifications(bool value) async {
     setState(() => _savingNotifications = true);
     try {
-      await ApiClient.patch('/auth/me', body: {'pushNotificationsEnabled': value});
+      await ApiClient.patch('/auth/me',
+          body: {'pushNotificationsEnabled': value});
       if (!mounted) return;
       await context.read<AuthProvider>().refreshUser();
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
     } finally {
       if (mounted) setState(() => _savingNotifications = false);
     }
@@ -38,11 +42,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _toggleLocation(bool value) async {
     setState(() => _savingLocation = true);
     try {
-      await ApiClient.patch('/auth/me', body: {'locationSharingEnabled': value});
+      await ApiClient.patch('/auth/me',
+          body: {'locationSharingEnabled': value});
       if (!mounted) return;
       await context.read<AuthProvider>().refreshUser();
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
     } finally {
       if (mounted) setState(() => _savingLocation = false);
     }
@@ -68,34 +76,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         children: [
           _group('Account'),
-          _tile(context, emoji: '👤', label: 'Edit profile', builder: (_) => const EditProfileSheet()),
+          _tile(context,
+              emoji: '👤',
+              label: 'Edit profile',
+              builder: (_) => const EditProfileSheet()),
           if (user?.phone != null && user!.phone!.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(children: [
                 _iconBadge('📞'),
                 const SizedBox(width: 13),
-                const Expanded(child: Text('Phone number', style: TextStyle(color: AppColors.text, fontSize: 13.5))),
-                Text(user.phone!, style: const TextStyle(color: AppColors.textFaint, fontSize: 12.5)),
+                const Expanded(
+                    child: Text('Phone number',
+                        style:
+                            TextStyle(color: AppColors.text, fontSize: 13.5))),
+                Text(user.phone!,
+                    style: const TextStyle(
+                        color: AppColors.textFaint, fontSize: 12.5)),
               ]),
             ),
           GestureDetector(
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileScreen())),
+            onTap: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const ProfileScreen())),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(children: [
                 _iconBadge('✅'),
                 const SizedBox(width: 13),
-                const Expanded(child: Text('Verification', style: TextStyle(color: AppColors.text, fontSize: 13.5))),
+                const Expanded(
+                    child: Text('Verification',
+                        style:
+                            TextStyle(color: AppColors.text, fontSize: 13.5))),
                 Text(
                   _verificationLabel(user?.photoVerificationStatus),
-                  style: TextStyle(color: user?.photoVerificationStatus == 'verified' ? AppColors.success : AppColors.textFaint, fontSize: 12, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                      color: user?.photoVerificationStatus == 'verified'
+                          ? AppColors.success
+                          : AppColors.textFaint,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700),
                 ),
               ]),
             ),
           ),
           _group('Privacy & Safety'),
-          _tile(context, emoji: '🚫', label: 'Blocked accounts', builder: (_) => const BlockedAccountsScreen()),
+          _tile(context,
+              emoji: '🚫',
+              label: 'Blocked accounts',
+              builder: (_) => const BlockedAccountsScreen()),
           _switchTile(
             emoji: '📍',
             label: 'Location sharing',
@@ -109,12 +137,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
             value: notificationsEnabled,
             onChanged: _savingNotifications ? null : _toggleNotifications,
           ),
-          _tile(context, emoji: '🌐', label: 'Language', builder: (_) => const LanguagePreferencesScreen()),
+          _tile(context,
+              emoji: '🌐',
+              label: 'Language',
+              builder: (_) => const LanguagePreferencesScreen()),
           _group('Support'),
-          _tile(context, emoji: '🆘', label: 'Help Center', builder: (_) => const HelpCenterScreen()),
-          _tile(context, emoji: '📄', label: 'Terms of Service', builder: (_) => const LegalScreen(title: 'Terms of Service', body: kTermsOfServicePlaceholder)),
-          _tile(context, emoji: '🛡️', label: 'Privacy Policy', builder: (_) => const LegalScreen(title: 'Privacy Policy', body: kPrivacyPolicyPlaceholder)),
-          _tile(context, emoji: 'ℹ️', label: 'About Us', builder: (_) => const LegalScreen(title: 'About Us', body: 'This app connects people through shared watch parties, voice rooms, and social discovery.\n\nVersion 1.0.0')),
+          _tile(context,
+              emoji: '🆘',
+              label: 'Help Center',
+              builder: (_) => const HelpCenterScreen()),
+          _tile(context,
+              emoji: '📄',
+              label: 'Terms of Service',
+              builder: (_) => const LegalScreen(
+                  title: 'Terms of Service',
+                  lastUpdated: 'January 2026',
+                  sections: kTermsOfServiceSections)),
+          _tile(context,
+              emoji: '🛡️',
+              label: 'Privacy Policy',
+              builder: (_) => const LegalScreen(
+                  title: 'Privacy Policy',
+                  lastUpdated: 'January 2026',
+                  sections: kPrivacyPolicySections)),
+          _tile(
+            context,
+            emoji: 'ℹ️',
+            label: 'About Us',
+            builder: (_) => const LegalScreen(
+              title: 'About Us',
+              sections: [
+                LegalSection('Fling',
+                    'Watch parties, voice rooms, and social discovery — all in one app.'),
+                LegalSection('Version', '1.0.0'),
+              ],
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 22, 20, 30),
             child: SizedBox(
@@ -123,11 +181,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onPressed: _logout,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.danger,
-                  side: BorderSide(color: AppColors.danger.withValues(alpha: 0.35)),
+                  side: BorderSide(
+                      color: AppColors.danger.withValues(alpha: 0.35)),
                   padding: const EdgeInsets.symmetric(vertical: 13),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
                 ),
-                child: const Text('Log out', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
+                child: const Text('Log out',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
               ),
             ),
           ),
@@ -145,40 +207,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _group(String title) => Padding(
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
-        child: Text(title.toUpperCase(), style: const TextStyle(color: AppColors.textFaint, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
+        child: Text(title.toUpperCase(),
+            style: const TextStyle(
+                color: AppColors.textFaint,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6)),
       );
 
   Widget _iconBadge(String emoji) => Container(
         width: 32,
         height: 32,
-        decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(9)),
+        decoration: BoxDecoration(
+            color: AppColors.surface2, borderRadius: BorderRadius.circular(9)),
         alignment: Alignment.center,
         child: Text(emoji, style: const TextStyle(fontSize: 15)),
       );
 
-  Widget _tile(BuildContext context, {required String emoji, required String label, required WidgetBuilder builder}) {
+  Widget _tile(BuildContext context,
+      {required String emoji,
+      required String label,
+      required WidgetBuilder builder}) {
     return GestureDetector(
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: builder)),
+      onTap: () =>
+          Navigator.of(context).push(MaterialPageRoute(builder: builder)),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         child: Row(children: [
           _iconBadge(emoji),
           const SizedBox(width: 13),
-          Expanded(child: Text(label, style: const TextStyle(color: AppColors.text, fontSize: 13.5))),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.textFaint, size: 18),
+          Expanded(
+              child: Text(label,
+                  style:
+                      const TextStyle(color: AppColors.text, fontSize: 13.5))),
+          const Icon(Icons.chevron_right_rounded,
+              color: AppColors.textFaint, size: 18),
         ]),
       ),
     );
   }
 
-  Widget _switchTile({required String emoji, required String label, required bool value, required ValueChanged<bool>? onChanged}) {
+  Widget _switchTile(
+      {required String emoji,
+      required String label,
+      required bool value,
+      required ValueChanged<bool>? onChanged}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Row(children: [
         _iconBadge(emoji),
         const SizedBox(width: 13),
-        Expanded(child: Text(label, style: const TextStyle(color: AppColors.text, fontSize: 13.5))),
-        Switch(value: value, onChanged: onChanged, activeTrackColor: AppColors.primary),
+        Expanded(
+            child: Text(label,
+                style: const TextStyle(color: AppColors.text, fontSize: 13.5))),
+        Switch(
+            value: value,
+            onChanged: onChanged,
+            activeTrackColor: AppColors.primary),
       ]),
     );
   }

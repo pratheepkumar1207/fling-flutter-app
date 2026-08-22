@@ -1,74 +1,86 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_colors.dart';
 
-/// Reusable static-text screen for Terms of Service / Privacy Policy / About
-/// Us — placeholder copy for now; swap [body] for real legal text once it's
-/// written, no other changes needed.
+class LegalSection {
+  final String heading;
+  final String body;
+  const LegalSection(this.heading, this.body);
+}
+
+/// Matches LegalDark.dc.html: numbered display-font section headers over
+/// faint body paragraphs, with a "Last updated" line under the header.
+/// Reusable for Terms of Service / Privacy Policy / About Us — [sections]
+/// carries the structured content instead of one flat body string.
 class LegalScreen extends StatelessWidget {
   final String title;
-  final String body;
+  final String? lastUpdated;
+  final List<LegalSection> sections;
 
-  const LegalScreen({super.key, required this.title, required this.body});
+  const LegalScreen(
+      {super.key,
+      required this.title,
+      this.lastUpdated,
+      required this.sections});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(title: Text(title)),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Text(body, style: const TextStyle(color: AppColors.textDim, fontSize: 14, height: 1.6)),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(22, 4, 22, 24),
+        children: [
+          if (lastUpdated != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 14, bottom: 4),
+              child: Text('Last updated · $lastUpdated',
+                  style: const TextStyle(
+                      color: AppColors.textFaint, fontSize: 11)),
+            ),
+          for (final section in sections) ...[
+            Padding(
+              padding: const EdgeInsets.only(top: 18, bottom: 6),
+              child: Text(section.heading,
+                  style: GoogleFonts.bricolageGrotesque(
+                      color: AppColors.text,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14)),
+            ),
+            Text(section.body,
+                style: const TextStyle(
+                    color: AppColors.textFaint, fontSize: 12.5, height: 1.7)),
+          ],
+        ],
       ),
     );
   }
 }
 
-const kTermsOfServicePlaceholder = '''
-Terms of Service
+const kTermsOfServiceSections = [
+  LegalSection('1. Acceptance of terms',
+      "By creating an account or using any part of Fling, you agree to these terms. If you don't agree, please don't use the app."),
+  LegalSection('2. Your account',
+      "You're responsible for keeping your login secure and for everything that happens under your account. You must be 18 or older to use Fling."),
+  LegalSection('3. Community standards',
+      "Harassment, hate speech, impersonation, and sharing others' private information are never allowed — see our Safety Guidelines for the full list."),
+  LegalSection('4. Coins & purchases',
+      'Coins are a virtual item for use within the app only. Purchases are generally non-refundable except where required by law.'),
+  LegalSection('5. Termination',
+      'We may suspend or remove accounts that violate these terms, at our discretion, with or without notice.'),
+];
 
-These Terms of Service ("Terms") govern your use of this app. This is placeholder text — replace it with your actual Terms of Service before shipping to production.
-
-1. Acceptance of Terms
-By creating an account, you agree to these Terms and our Privacy Policy.
-
-2. Eligibility
-You must be at least 18 years old to use this app.
-
-3. User Conduct
-You agree not to use the app for any unlawful purpose, to harass other users, or to post content that violates our community guidelines.
-
-4. Content
-You retain ownership of content you post, but grant us a license to display it within the app.
-
-5. Termination
-We may suspend or terminate accounts that violate these Terms.
-
-6. Changes
-We may update these Terms from time to time. Continued use of the app after changes constitutes acceptance.
-
-Contact us with any questions about these Terms.
-''';
-
-const kPrivacyPolicyPlaceholder = '''
-Privacy Policy
-
-This Privacy Policy describes how we collect, use, and protect your information. This is placeholder text — replace it with your actual Privacy Policy before shipping to production.
-
-1. Information We Collect
-Profile details you provide, usage data, and (if you opt in) approximate location for nearby-match features.
-
-2. How We Use Information
-To operate the app, match you with other users, process payments, and keep the community safe.
-
-3. Sharing
-We don't sell your personal data. Limited data may be shared with service providers (payment processing, push notifications) strictly to operate the app.
-
-4. Your Choices
-You can review, edit, or delete your profile information from Settings at any time. Location sharing can be turned off at any time.
-
-5. Security
-We use industry-standard measures to protect your data, but no system is 100% secure.
-
-6. Contact
-Reach out with any privacy questions or requests.
-''';
+const kPrivacyPolicySections = [
+  LegalSection('1. Information we collect',
+      'Profile details you provide, usage data, and (if you opt in) approximate location for nearby-match features.'),
+  LegalSection('2. How we use information',
+      'To operate the app, match you with other users, process payments, and keep the community safe.'),
+  LegalSection('3. Sharing',
+      "We don't sell your personal data. Limited data may be shared with service providers (payment processing, push notifications) strictly to operate the app."),
+  LegalSection('4. Your choices',
+      'You can review, edit, or delete your profile information from Settings at any time. Location sharing can be turned off at any time.'),
+  LegalSection('5. Security',
+      'We use industry-standard measures to protect your data, but no system is 100% secure.'),
+  LegalSection(
+      '6. Contact', 'Reach out with any privacy questions or requests.'),
+];
