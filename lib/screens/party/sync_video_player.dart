@@ -56,7 +56,8 @@ class SyncVideoPlayer extends StatefulWidget {
   State<SyncVideoPlayer> createState() => _SyncVideoPlayerState();
 }
 
-class _SyncVideoPlayerState extends State<SyncVideoPlayer> with WidgetsBindingObserver {
+class _SyncVideoPlayerState extends State<SyncVideoPlayer>
+    with WidgetsBindingObserver {
   YoutubePlayerController? _controller;
   String? _currentVideoId;
   num? _lastAppliedUpdatedAt;
@@ -111,7 +112,12 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer> with WidgetsBindingOb
     _controller?.dispose();
     _controller = YoutubePlayerController(
       initialVideoId: videoId,
-      flags: const YoutubePlayerFlags(autoPlay: false, mute: false, hideControls: true, disableDragSeek: true, enableCaption: false),
+      flags: const YoutubePlayerFlags(
+          autoPlay: false,
+          mute: false,
+          hideControls: true,
+          disableDragSeek: true,
+          enableCaption: false),
     )
       ..addListener(_onControllerStateChanged)
       ..setVolume(_volume);
@@ -182,7 +188,17 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer> with WidgetsBindingOb
     if (updatedAt != null && updatedAt == _lastAppliedUpdatedAt) return;
     _lastAppliedUpdatedAt = updatedAt;
 
-    final position = asNum(p['position']).toDouble();
+    var position = asNum(p['position']).toDouble();
+    // Correct for however long this event took to arrive (network latency,
+    // event-loop scheduling) — mirrors the backend's own
+    // getCorrectedPlaybackState so a laggier connection doesn't land
+    // consistently behind everyone else's video. Only meaningful while
+    // actually playing; a paused position doesn't drift.
+    if (p['isPlaying'] == true && updatedAt != null) {
+      final elapsedSeconds =
+          (DateTime.now().millisecondsSinceEpoch - updatedAt) / 1000;
+      if (elapsedSeconds > 0) position += elapsedSeconds;
+    }
     c.seekTo(Duration(milliseconds: (position * 1000).round()));
     if (p['isPlaying'] == true) {
       c.play();
@@ -246,7 +262,8 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer> with WidgetsBindingOb
     }
   }
 
-  double get _positionSeconds => (_controller?.value.position.inMilliseconds ?? 0) / 1000;
+  double get _positionSeconds =>
+      (_controller?.value.position.inMilliseconds ?? 0) / 1000;
 
   // Just toggles the local controller — _onControllerStateChanged picks up
   // the resulting isPlaying change and emits it, so this doesn't also emit
@@ -286,7 +303,11 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer> with WidgetsBindingOb
     if (controller == null) {
       return AspectRatio(
         aspectRatio: 16 / 9,
-        child: Container(color: AppColors.surface2, alignment: Alignment.center, child: const Text('No video', style: TextStyle(color: AppColors.textFaint))),
+        child: Container(
+            color: AppColors.surface2,
+            alignment: Alignment.center,
+            child: const Text('No video',
+                style: TextStyle(color: AppColors.textFaint))),
       );
     }
 
@@ -305,7 +326,8 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer> with WidgetsBindingOb
         child: Stack(
           fit: StackFit.expand,
           children: [
-            YoutubePlayer(controller: controller, showVideoProgressIndicator: false),
+            YoutubePlayer(
+                controller: controller, showVideoProgressIndicator: false),
             // A dedicated button, not a whole-video tap target — tapping
             // anywhere on the video (e.g. near the seek bar) was toggling
             // playback by accident.
@@ -313,7 +335,8 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer> with WidgetsBindingOb
               Center(
                 child: ValueListenableBuilder(
                   valueListenable: controller,
-                  builder: (context, value, _) => RoomPlayPauseButton(playing: value.isPlaying, onTap: _handleTap),
+                  builder: (context, value, _) => RoomPlayPauseButton(
+                      playing: value.isPlaying, onTap: _handleTap),
                 ),
               ),
             Positioned(
@@ -330,8 +353,11 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer> with WidgetsBindingOb
                     onTap: PipService.enterPip,
                     child: Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), shape: BoxShape.circle),
-                      child: const Icon(Icons.picture_in_picture_alt_rounded, color: Colors.white, size: 16),
+                      decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          shape: BoxShape.circle),
+                      child: const Icon(Icons.picture_in_picture_alt_rounded,
+                          color: Colors.white, size: 16),
                     ),
                   ),
                   if (_justResumed)
@@ -339,14 +365,25 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer> with WidgetsBindingOb
                       padding: const EdgeInsets.only(top: 6),
                       child: IgnorePointer(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.7), borderRadius: BorderRadius.circular(999)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.7),
+                              borderRadius: BorderRadius.circular(999)),
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                              SizedBox(
+                                  width: 12,
+                                  height: 12,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white)),
                               SizedBox(width: 8),
-                              Text('Catching up…', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                              Text('Catching up…',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600)),
                             ],
                           ),
                         ),
@@ -362,8 +399,11 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer> with WidgetsBindingOb
                 onTap: widget.onToggleLike,
                 child: Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), shape: BoxShape.circle),
-                  child: Text(widget.liked ? '❤️' : '🤍', style: const TextStyle(fontSize: 16)),
+                  decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      shape: BoxShape.circle),
+                  child: Text(widget.liked ? '❤️' : '🤍',
+                      style: const TextStyle(fontSize: 16)),
                 ),
               ),
             ),
@@ -373,8 +413,13 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer> with WidgetsBindingOb
                 bottom: 64,
                 child: Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.85), borderRadius: BorderRadius.circular(16)),
-                  child: VolumeDots(volume: _volume, onVolumeChange: _handleVolumeChange, trackColor: Colors.white24),
+                  decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(16)),
+                  child: VolumeDots(
+                      volume: _volume,
+                      onVolumeChange: _handleVolumeChange,
+                      trackColor: Colors.white24),
                 ),
               ),
             Positioned(
@@ -383,38 +428,68 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer> with WidgetsBindingOb
               bottom: 0,
               child: Container(
                 padding: const EdgeInsets.fromLTRB(10, 20, 10, 6),
-                decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [Colors.black.withValues(alpha: 0.85), Colors.transparent])),
+                decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                      Colors.black.withValues(alpha: 0.85),
+                      Colors.transparent
+                    ])),
                 child: ValueListenableBuilder(
                   valueListenable: controller,
                   builder: (context, value, _) {
-                    final duration = value.metaData.duration.inSeconds.toDouble();
-                    final position = _dragging ? _dragPosition : value.position.inSeconds.toDouble();
+                    final duration =
+                        value.metaData.duration.inSeconds.toDouble();
+                    final position = _dragging
+                        ? _dragPosition
+                        : value.position.inSeconds.toDouble();
                     return Row(
                       children: [
-                        Text(_formatTime(position), style: const TextStyle(color: Colors.white, fontSize: 11)),
+                        Text(_formatTime(position),
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 11)),
                         Expanded(
                           child: SliderTheme(
-                            data: SliderTheme.of(context).copyWith(trackHeight: 3, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6)),
+                            data: SliderTheme.of(context).copyWith(
+                                trackHeight: 3,
+                                thumbShape: const RoundSliderThumbShape(
+                                    enabledThumbRadius: 6)),
                             child: Slider(
-                              value: duration > 0 ? position.clamp(0, duration) : 0,
+                              value: duration > 0
+                                  ? position.clamp(0, duration)
+                                  : 0,
                               max: duration > 0 ? duration : 1,
                               activeColor: AppColors.primary,
                               inactiveColor: Colors.white24,
-                              onChanged: widget.isHost ? _handleSeekChanged : null,
-                              onChangeEnd: widget.isHost ? _handleSeekEnd : null,
+                              onChanged:
+                                  widget.isHost ? _handleSeekChanged : null,
+                              onChangeEnd:
+                                  widget.isHost ? _handleSeekEnd : null,
                             ),
                           ),
                         ),
-                        Text(_formatTime(duration), style: const TextStyle(color: Colors.white, fontSize: 11)),
+                        Text(_formatTime(duration),
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 11)),
                         IconButton(
-                          onPressed: () => setState(() => _volumePopoverOpen = !_volumePopoverOpen),
-                          icon: Icon(_volume == 0 ? Icons.volume_off : (_volume < 50 ? Icons.volume_down : Icons.volume_up), color: Colors.white, size: 18),
+                          onPressed: () => setState(
+                              () => _volumePopoverOpen = !_volumePopoverOpen),
+                          icon: Icon(
+                              _volume == 0
+                                  ? Icons.volume_off
+                                  : (_volume < 50
+                                      ? Icons.volume_down
+                                      : Icons.volume_up),
+                              color: Colors.white,
+                              size: 18),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),
                         IconButton(
                           onPressed: widget.onSkip,
-                          icon: const Icon(Icons.skip_next, color: Colors.white, size: 20),
+                          icon: const Icon(Icons.skip_next,
+                              color: Colors.white, size: 20),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),
@@ -445,10 +520,14 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer> with WidgetsBindingOb
       valueListenable: controller,
       builder: (context, value, _) {
         final duration = value.metaData.duration.inSeconds.toDouble();
-        final position = _dragging ? _dragPosition : value.position.inSeconds.toDouble();
+        final position =
+            _dragging ? _dragPosition : value.position.inSeconds.toDouble();
         return Stack(
           children: [
-            SizedBox(width: 100, height: 100, child: IgnorePointer(child: videoTree)),
+            SizedBox(
+                width: 100,
+                height: 100,
+                child: IgnorePointer(child: videoTree)),
             StaticBloomPlayer(
               playing: value.isPlaying,
               title: widget.title,

@@ -59,7 +59,8 @@ class DriveVideoPlayer extends StatefulWidget {
   State<DriveVideoPlayer> createState() => _DriveVideoPlayerState();
 }
 
-class _DriveVideoPlayerState extends State<DriveVideoPlayer> with WidgetsBindingObserver {
+class _DriveVideoPlayerState extends State<DriveVideoPlayer>
+    with WidgetsBindingObserver {
   VideoPlayerController? _controller;
   String? _currentFileId;
   num? _lastAppliedUpdatedAt;
@@ -102,10 +103,12 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer> with WidgetsBinding
     _currentFileId = fileId;
     _controller?.dispose();
     final token = ApiClient.tokenGetter?.call();
-    final uri = Uri.parse('${ApiClient.baseUrl}/drive/stream/$fileId?roomId=${widget.roomId}');
+    final uri = Uri.parse(
+        '${ApiClient.baseUrl}/drive/stream/$fileId?roomId=${widget.roomId}');
     final controller = VideoPlayerController.networkUrl(
       uri,
-      httpHeaders: token != null ? {'Authorization': 'Bearer $token'} : const {},
+      httpHeaders:
+          token != null ? {'Authorization': 'Bearer $token'} : const {},
     );
     _controller = controller;
     _endFired = false;
@@ -126,7 +129,10 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer> with WidgetsBinding
     final c = _controller;
     if (c == null || !c.value.isInitialized) return;
     final duration = c.value.duration;
-    if (!_endFired && duration > Duration.zero && c.value.position >= duration - const Duration(milliseconds: 300) && !c.value.isPlaying) {
+    if (!_endFired &&
+        duration > Duration.zero &&
+        c.value.position >= duration - const Duration(milliseconds: 300) &&
+        !c.value.isPlaying) {
       _endFired = true;
       widget.onEnded();
     }
@@ -147,11 +153,21 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer> with WidgetsBinding
     if (updatedAt != null && updatedAt == _lastAppliedUpdatedAt) return;
     _lastAppliedUpdatedAt = updatedAt;
 
-    final position = asNum(p['position']).toDouble();
+    var position = asNum(p['position']).toDouble();
+    // Correct for however long this event took to arrive, same reasoning
+    // as sync_video_player.dart's identical fix — otherwise the drift
+    // comparison below is measured against an already-stale target.
+    if (p['isPlaying'] == true && updatedAt != null) {
+      final elapsedSeconds =
+          (DateTime.now().millisecondsSinceEpoch - updatedAt) / 1000;
+      if (elapsedSeconds > 0) position += elapsedSeconds;
+    }
     // Only correct drift beyond 1.5s so local buffering doesn't fight the
     // remote sync tick — same guardrail called for in the original spec.
     final drift = (c.value.position.inMilliseconds / 1000 - position).abs();
-    if (drift > 1.5) c.seekTo(Duration(milliseconds: (position * 1000).round()));
+    if (drift > 1.5) {
+      c.seekTo(Duration(milliseconds: (position * 1000).round()));
+    }
     if (p['isPlaying'] == true) {
       c.play();
     } else {
@@ -202,11 +218,17 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer> with WidgetsBinding
   Future<void> _handoffToBackgroundAudio() async {
     final c = _controller;
     final fileId = _currentFileId;
-    if (c == null || !c.value.isInitialized || fileId == null || !c.value.isPlaying) return;
+    if (c == null ||
+        !c.value.isInitialized ||
+        fileId == null ||
+        !c.value.isPlaying) {
+      return;
+    }
     final position = c.value.position;
     await c.pause();
     final token = ApiClient.tokenGetter?.call();
-    final uri = '${ApiClient.baseUrl}/drive/stream/$fileId?roomId=${widget.roomId}';
+    final uri =
+        '${ApiClient.baseUrl}/drive/stream/$fileId?roomId=${widget.roomId}';
     try {
       _handedOffToBackground = true;
       await backgroundAudioHandler.loadAndPlay(
@@ -234,7 +256,8 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer> with WidgetsBinding
     await c.play();
   }
 
-  double get _positionSeconds => (_controller?.value.position.inMilliseconds ?? 0) / 1000;
+  double get _positionSeconds =>
+      (_controller?.value.position.inMilliseconds ?? 0) / 1000;
 
   void _handleTap() {
     final c = _controller;
@@ -274,12 +297,17 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer> with WidgetsBinding
     if (controller == null || !controller.value.isInitialized) {
       return AspectRatio(
         aspectRatio: 16 / 9,
-        child: Container(color: AppColors.surface2, alignment: Alignment.center, child: const Spinner()),
+        child: Container(
+            color: AppColors.surface2,
+            alignment: Alignment.center,
+            child: const Spinner()),
       );
     }
 
     final duration = controller.value.duration.inSeconds.toDouble();
-    final position = _dragging ? _dragPosition : controller.value.position.inSeconds.toDouble();
+    final position = _dragging
+        ? _dragPosition
+        : controller.value.position.inSeconds.toDouble();
     final audioOnly = widget.mediaMode == 'audio';
 
     // No rounded-corner card/box — the video now runs edge-to-edge at full
@@ -294,7 +322,10 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer> with WidgetsBinding
             // A dedicated button, not a whole-video tap target — tapping
             // anywhere on the video (e.g. near the seek bar) was toggling
             // playback by accident.
-            if (widget.isHost) Center(child: RoomPlayPauseButton(playing: controller.value.isPlaying, onTap: _handleTap)),
+            if (widget.isHost)
+              Center(
+                  child: RoomPlayPauseButton(
+                      playing: controller.value.isPlaying, onTap: _handleTap)),
             Positioned(
               top: 8,
               left: 8,
@@ -306,8 +337,11 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer> with WidgetsBinding
                 onTap: PipService.enterPip,
                 child: Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), shape: BoxShape.circle),
-                  child: const Icon(Icons.picture_in_picture_alt_rounded, color: Colors.white, size: 16),
+                  decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      shape: BoxShape.circle),
+                  child: const Icon(Icons.picture_in_picture_alt_rounded,
+                      color: Colors.white, size: 16),
                 ),
               ),
             ),
@@ -318,8 +352,11 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer> with WidgetsBinding
                 onTap: widget.onToggleLike,
                 child: Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), shape: BoxShape.circle),
-                  child: Text(widget.liked ? '❤️' : '🤍', style: const TextStyle(fontSize: 16)),
+                  decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      shape: BoxShape.circle),
+                  child: Text(widget.liked ? '❤️' : '🤍',
+                      style: const TextStyle(fontSize: 16)),
                 ),
               ),
             ),
@@ -329,8 +366,13 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer> with WidgetsBinding
                 bottom: 64,
                 child: Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.85), borderRadius: BorderRadius.circular(16)),
-                  child: VolumeDots(volume: _volume, onVolumeChange: _handleVolumeChange, trackColor: Colors.white24),
+                  decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(16)),
+                  child: VolumeDots(
+                      volume: _volume,
+                      onVolumeChange: _handleVolumeChange,
+                      trackColor: Colors.white24),
                 ),
               ),
             Positioned(
@@ -339,13 +381,25 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer> with WidgetsBinding
               bottom: 0,
               child: Container(
                 padding: const EdgeInsets.fromLTRB(10, 20, 10, 6),
-                decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [Colors.black.withValues(alpha: 0.85), Colors.transparent])),
+                decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                      Colors.black.withValues(alpha: 0.85),
+                      Colors.transparent
+                    ])),
                 child: Row(
                   children: [
-                    Text(_formatTime(position), style: const TextStyle(color: Colors.white, fontSize: 11)),
+                    Text(_formatTime(position),
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 11)),
                     Expanded(
                       child: SliderTheme(
-                        data: SliderTheme.of(context).copyWith(trackHeight: 3, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6)),
+                        data: SliderTheme.of(context).copyWith(
+                            trackHeight: 3,
+                            thumbShape: const RoundSliderThumbShape(
+                                enabledThumbRadius: 6)),
                         child: Slider(
                           value: duration > 0 ? position.clamp(0, duration) : 0,
                           max: duration > 0 ? duration : 1,
@@ -356,16 +410,27 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer> with WidgetsBinding
                         ),
                       ),
                     ),
-                    Text(_formatTime(duration), style: const TextStyle(color: Colors.white, fontSize: 11)),
+                    Text(_formatTime(duration),
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 11)),
                     IconButton(
-                      onPressed: () => setState(() => _volumePopoverOpen = !_volumePopoverOpen),
-                      icon: Icon(_volume == 0 ? Icons.volume_off : (_volume < 50 ? Icons.volume_down : Icons.volume_up), color: Colors.white, size: 18),
+                      onPressed: () => setState(
+                          () => _volumePopoverOpen = !_volumePopoverOpen),
+                      icon: Icon(
+                          _volume == 0
+                              ? Icons.volume_off
+                              : (_volume < 50
+                                  ? Icons.volume_down
+                                  : Icons.volume_up),
+                          color: Colors.white,
+                          size: 18),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
                     IconButton(
                       onPressed: widget.onSkip,
-                      icon: const Icon(Icons.skip_next, color: Colors.white, size: 20),
+                      icon: const Icon(Icons.skip_next,
+                          color: Colors.white, size: 20),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
@@ -390,7 +455,8 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer> with WidgetsBinding
     // layout overflow).
     return Stack(
       children: [
-        SizedBox(width: 100, height: 100, child: IgnorePointer(child: videoTree)),
+        SizedBox(
+            width: 100, height: 100, child: IgnorePointer(child: videoTree)),
         StaticBloomPlayer(
           playing: controller.value.isPlaying,
           title: widget.title,
