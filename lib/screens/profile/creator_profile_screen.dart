@@ -48,18 +48,30 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
         ApiClient.get('/creators/${widget.userId}/profile'),
         ApiClient.get('/gallery/user/${widget.userId}').catchError((_) => []),
         ApiClient.get('/playlists/user/${widget.userId}').catchError((_) => []),
-        ApiClient.get('/song-history/user/${widget.userId}').catchError((_) => []),
-        ApiClient.get('/liked-songs/user/${widget.userId}').catchError((_) => []),
-        ApiClient.get('/creators/${widget.userId}/top-supporters').catchError((_) => []),
+        ApiClient.get('/song-history/user/${widget.userId}')
+            .catchError((_) => []),
+        ApiClient.get('/liked-songs/user/${widget.userId}')
+            .catchError((_) => []),
+        ApiClient.get('/creators/${widget.userId}/top-supporters')
+            .catchError((_) => []),
       ]);
       if (!mounted) return;
       setState(() {
         _profile = results[0] as Map<String, dynamic>;
-        _gallery = ((results[1] as List?) ?? []).map((e) => Photo.fromJson(e as Map<String, dynamic>)).toList();
-        _playlists = ((results[2] as List?) ?? []).map((e) => Playlist.fromJson(e as Map<String, dynamic>)).toList();
-        _history = ((results[3] as List?) ?? []).map((e) => Song.fromJson(e as Map<String, dynamic>)).toList();
-        _liked = ((results[4] as List?) ?? []).map((e) => Song.fromJson(e as Map<String, dynamic>)).toList();
-        _topSupporters = ((results[5] as List?) ?? []).cast<Map<String, dynamic>>();
+        _gallery = ((results[1] as List?) ?? [])
+            .map((e) => Photo.fromJson(e as Map<String, dynamic>))
+            .toList();
+        _playlists = ((results[2] as List?) ?? [])
+            .map((e) => Playlist.fromJson(e as Map<String, dynamic>))
+            .toList();
+        _history = ((results[3] as List?) ?? [])
+            .map((e) => Song.fromJson(e as Map<String, dynamic>))
+            .toList();
+        _liked = ((results[4] as List?) ?? [])
+            .map((e) => Song.fromJson(e as Map<String, dynamic>))
+            .toList();
+        _topSupporters =
+            ((results[5] as List?) ?? []).cast<Map<String, dynamic>>();
         _loading = false;
       });
     } on ApiException catch (e) {
@@ -86,7 +98,8 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
 
   Future<void> _addFriend() async {
     try {
-      await ApiClient.post('/friends/request', body: {'toUserId': widget.userId});
+      await ApiClient.post('/friends/request',
+          body: {'toUserId': widget.userId});
       _snack('Friend request sent');
     } catch (_) {
       _snack('Failed to send request');
@@ -103,9 +116,10 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
     }
   }
 
-  Future<void> _report() async {
+  Future<void> _report(String reason) async {
     try {
-      await ApiClient.post('/social/report/${widget.userId}', body: {'reason': 'Reported from profile'});
+      await ApiClient.post('/social/report/${widget.userId}',
+          body: {'reason': reason});
       _snack('Report submitted');
     } catch (_) {
       _snack('Failed to report');
@@ -113,21 +127,33 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
   }
 
   void _snack(String msg) {
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    }
   }
 
-  Future<void> _confirmDialog({required String title, required String description, required String confirmLabel, required bool danger, required VoidCallback onConfirm}) async {
+  Future<void> _confirmDialog(
+      {required String title,
+      required String description,
+      required String confirmLabel,
+      required bool danger,
+      required VoidCallback onConfirm}) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface2,
         title: Text(title, style: const TextStyle(color: AppColors.text)),
-        content: Text(description, style: const TextStyle(color: AppColors.textDim)),
+        content:
+            Text(description, style: const TextStyle(color: AppColors.textDim)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(confirmLabel, style: TextStyle(color: danger ? AppColors.danger : AppColors.primary)),
+            child: Text(confirmLabel,
+                style: TextStyle(
+                    color: danger ? AppColors.danger : AppColors.primary)),
           ),
         ],
       ),
@@ -143,7 +169,9 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
       body: _loading
           ? const Center(child: Spinner(size: 28))
           : (_error != null || _profile == null)
-              ? Center(child: Text(_error ?? 'Profile not found.', style: const TextStyle(color: AppColors.danger)))
+              ? Center(
+                  child: Text(_error ?? 'Profile not found.',
+                      style: const TextStyle(color: AppColors.danger)))
               : _buildBody(),
     );
   }
@@ -167,16 +195,23 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                 width: 78,
                 height: 78,
                 decoration: const BoxDecoration(shape: BoxShape.circle),
-                child: Avatar(src: p['avatarUrl'] as String?, name: p['name'] as String?, size: AvatarSize.lg),
+                child: Avatar(
+                    src: p['avatarUrl'] as String?,
+                    name: p['name'] as String?,
+                    size: AvatarSize.lg),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _profileStatColumn(formatNumber(p['followerCount']), 'Followers'),
-                    _profileStatColumn(formatNumber(p['followingCount']), 'Following'),
-                    _profileStatColumn(formatNumber(p['totalGiftsReceived']), 'Gifts', color: AppColors.gold),
+                    _profileStatColumn(
+                        formatNumber(p['followerCount']), 'Followers'),
+                    _profileStatColumn(
+                        formatNumber(p['followingCount']), 'Following'),
+                    _profileStatColumn(
+                        formatNumber(p['totalGiftsReceived']), 'Gifts',
+                        color: AppColors.gold),
                   ],
                 ),
               ),
@@ -185,33 +220,65 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
           const SizedBox(height: 12),
           Row(
             children: [
-              Flexible(child: Text(p['name'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis)),
-              if (p['isVerified'] == true) ...[const SizedBox(width: 6), const Icon(Icons.verified_rounded, color: AppColors.accent2, size: 14)],
+              Flexible(
+                  child: Text(p['name'] as String? ?? '',
+                      style: const TextStyle(
+                          color: AppColors.text,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis)),
+              if (p['isVerified'] == true) ...[
+                const SizedBox(width: 6),
+                const Icon(Icons.verified_rounded,
+                    color: AppColors.accent2, size: 14)
+              ],
               if (p['isCreator'] == true) ...[
                 const SizedBox(width: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(999)),
-                  child: const Text('Creator', style: TextStyle(color: AppColors.accent, fontSize: 9.5, fontWeight: FontWeight.w700)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                      color: AppColors.accent.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(999)),
+                  child: const Text('Creator',
+                      style: TextStyle(
+                          color: AppColors.accent,
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w700)),
                 ),
               ],
               if (p['isVip'] == true) ...[
                 const SizedBox(width: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: AppColors.gold.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(999)),
-                  child: const Text('VIP', style: TextStyle(color: AppColors.gold, fontSize: 9.5, fontWeight: FontWeight.w700)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                      color: AppColors.gold.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(999)),
+                  child: const Text('VIP',
+                      style: TextStyle(
+                          color: AppColors.gold,
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w700)),
                 ),
               ],
             ],
           ),
           if (p['bio'] != null && (p['bio'] as String).isNotEmpty) ...[
             const SizedBox(height: 5),
-            Text(p['bio'] as String, style: const TextStyle(color: AppColors.textDim, fontSize: 12.5, height: 1.5)),
+            Text(p['bio'] as String,
+                style: const TextStyle(
+                    color: AppColors.textDim, fontSize: 12.5, height: 1.5)),
           ],
           if ((p['activeRoom'] as Map?) != null) ...[
             const SizedBox(height: 14),
-            const Text('RIGHT NOW', style: TextStyle(color: AppColors.textFaint, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
+            const Text('RIGHT NOW',
+                style: TextStyle(
+                    color: AppColors.textFaint,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.6)),
             const SizedBox(height: 8),
             _activeRoomBadge(p['activeRoom'] as Map),
           ],
@@ -224,21 +291,31 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
               _pillButton(
                 isFollowed ? 'Unfollow' : 'Follow',
                 onTap: _toggleFollow,
-                gradient: isFollowed ? null : const LinearGradient(colors: AppGradients.brand),
+                gradient: isFollowed
+                    ? null
+                    : const LinearGradient(colors: AppGradients.brand),
                 fill: isFollowed ? AppColors.surface2 : null,
                 textColor: isFollowed ? AppColors.textDim : Colors.white,
               ),
-              _pillButton('Add friend', onTap: _addFriend, borderColor: AppColors.border, textColor: AppColors.textDim),
+              _pillButton('Add friend',
+                  onTap: _addFriend,
+                  borderColor: AppColors.border,
+                  textColor: AppColors.textDim),
               _pillButton(
                 '🎁 Gift',
-                onTap: () => showGiftBottomSheet(context, toUserId: widget.userId, targetKey: _avatarKey),
+                onTap: () => showGiftBottomSheet(context,
+                    toUserId: widget.userId, targetKey: _avatarKey),
                 borderColor: AppColors.gold.withValues(alpha: 0.5),
                 textColor: AppColors.gold,
               ),
               _pillButton(
                 '💬 Message',
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => MessageThreadScreen(userId: widget.userId, name: p['name'] as String? ?? '', avatarUrl: p['avatarUrl'] as String?)),
+                  MaterialPageRoute(
+                      builder: (_) => MessageThreadScreen(
+                          userId: widget.userId,
+                          name: p['name'] as String? ?? '',
+                          avatarUrl: p['avatarUrl'] as String?)),
                 ),
                 borderColor: AppColors.border,
                 textColor: AppColors.textDim,
@@ -248,16 +325,15 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                 onTap: () => showReportUserSheet(
                   context,
                   userName: p['name'] as String? ?? '',
-                  onReport: () => _confirmDialog(
-                    title: 'Report ${p['name']}?',
-                    description: 'Our team will review this report.',
-                    confirmLabel: 'Report',
-                    danger: false,
-                    onConfirm: _report,
+                  onReport: () => showReportReasonSheet(
+                    context,
+                    userName: p['name'] as String? ?? '',
+                    onSubmit: _report,
                   ),
                   onBlock: () => _confirmDialog(
                     title: 'Block ${p['name']}?',
-                    description: 'They will no longer be able to interact with you.',
+                    description:
+                        'They will no longer be able to interact with you.',
                     confirmLabel: 'Block',
                     danger: true,
                     onConfirm: _block,
@@ -271,7 +347,10 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
           const SizedBox(height: 20),
           if (_topSupporters.isNotEmpty) ...[
             _sectionTitle('Top supporters'),
-            ..._topSupporters.asMap().entries.map((entry) => _supporterTile(entry.key, entry.value)),
+            ..._topSupporters
+                .asMap()
+                .entries
+                .map((entry) => _supporterTile(entry.key, entry.value)),
             const SizedBox(height: 20),
           ],
           if (_gallery.isNotEmpty) ...[
@@ -279,11 +358,13 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 6, mainAxisSpacing: 6),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3, crossAxisSpacing: 6, mainAxisSpacing: 6),
               itemCount: _gallery.length,
               itemBuilder: (context, i) => ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: AppImage(source: _gallery[i].imageData, fit: BoxFit.cover),
+                child:
+                    AppImage(source: _gallery[i].imageData, fit: BoxFit.cover),
               ),
             ),
             const SizedBox(height: 20),
@@ -294,12 +375,21 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
               (pl) => Container(
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+                decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(pl.name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600)),
-                    Text('${pl.songs.length} song${pl.songs.length == 1 ? '' : 's'}', style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
+                    Text(pl.name,
+                        style: const TextStyle(
+                            color: AppColors.text,
+                            fontWeight: FontWeight.w600)),
+                    Text(
+                        '${pl.songs.length} song${pl.songs.length == 1 ? '' : 's'}',
+                        style: const TextStyle(
+                            color: AppColors.textFaint, fontSize: 11)),
                     if (pl.songs.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       SizedBox(
@@ -315,9 +405,14 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                               child: Container(
                                 width: 64,
                                 height: 48,
-                                decoration: BoxDecoration(color: AppColors.surface3, borderRadius: BorderRadius.circular(8)),
+                                decoration: BoxDecoration(
+                                    color: AppColors.surface3,
+                                    borderRadius: BorderRadius.circular(8)),
                                 clipBehavior: Clip.antiAlias,
-                                child: s.thumbnail != null ? AppImage(source: s.thumbnail, fit: BoxFit.cover) : const Center(child: Text('🎵')),
+                                child: s.thumbnail != null
+                                    ? AppImage(
+                                        source: s.thumbnail, fit: BoxFit.cover)
+                                    : const Center(child: Text('🎵')),
                               ),
                             );
                           },
@@ -330,14 +425,27 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
             ),
             const SizedBox(height: 20),
           ],
-          if (_history.isNotEmpty) ...[_sectionTitle('History'), ..._history.map(_songTile), const SizedBox(height: 16)],
-          if (_liked.isNotEmpty) ...[_sectionTitle('Liked songs'), ..._liked.map(_songTile)],
+          if (_history.isNotEmpty) ...[
+            _sectionTitle('History'),
+            ..._history.map(_songTile),
+            const SizedBox(height: 16)
+          ],
+          if (_liked.isNotEmpty) ...[
+            _sectionTitle('Liked songs'),
+            ..._liked.map(_songTile)
+          ],
         ],
       ),
     );
   }
 
-  Widget _pillButton(String label, {required VoidCallback onTap, Gradient? gradient, Color? fill, Color? borderColor, required Color textColor}) => GestureDetector(
+  Widget _pillButton(String label,
+          {required VoidCallback onTap,
+          Gradient? gradient,
+          Color? fill,
+          Color? borderColor,
+          required Color textColor}) =>
+      GestureDetector(
         onTap: onTap,
         child: Container(
           height: 36,
@@ -346,18 +454,30 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
             borderRadius: BorderRadius.circular(999),
             gradient: gradient,
             color: gradient == null ? (fill ?? Colors.transparent) : null,
-            border: (gradient == null && fill == null) ? Border.all(color: borderColor ?? AppColors.border) : null,
+            border: (gradient == null && fill == null)
+                ? Border.all(color: borderColor ?? AppColors.border)
+                : null,
           ),
           alignment: Alignment.center,
-          child: Text(label, style: TextStyle(color: textColor, fontSize: 12.5, fontWeight: FontWeight.w700)),
+          child: Text(label,
+              style: TextStyle(
+                  color: textColor,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700)),
         ),
       );
 
-  Widget _profileStatColumn(String value, String label, {Color color = AppColors.text}) => Column(
+  Widget _profileStatColumn(String value, String label,
+          {Color color = AppColors.text}) =>
+      Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 17)),
-          Text(label, style: const TextStyle(color: AppColors.textFaint, fontSize: 10.5)),
+          Text(value,
+              style: TextStyle(
+                  color: color, fontWeight: FontWeight.w700, fontSize: 17)),
+          Text(label,
+              style:
+                  const TextStyle(color: AppColors.textFaint, fontSize: 10.5)),
         ],
       );
 
@@ -373,9 +493,27 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
     final memberCount = activeRoom['memberCount'] as int?;
 
     final (icon, color, label, gradientColors, verb) = switch (roomType) {
-      'watch' => (Icons.play_arrow_rounded, const Color(0xFF4272D9), 'IN A WATCH PARTY', const [Color(0xFF9EC5F0), Color(0xFF4272D9)], 'watching'),
-      'game' => (Icons.sports_esports_rounded, AppColors.success, 'IN A GAME ROOM', const [Color(0xFF9EE0BE), AppColors.success], 'spectating'),
-      _ => (Icons.mic_rounded, AppColors.accent, 'IN A VOICE ROOM', const [AppColors.accent2, AppColors.primary], 'listening'),
+      'watch' => (
+          Icons.play_arrow_rounded,
+          const Color(0xFF4272D9),
+          'IN A WATCH PARTY',
+          const [Color(0xFF9EC5F0), Color(0xFF4272D9)],
+          'watching'
+        ),
+      'game' => (
+          Icons.sports_esports_rounded,
+          AppColors.success,
+          'IN A GAME ROOM',
+          const [Color(0xFF9EE0BE), AppColors.success],
+          'spectating'
+        ),
+      _ => (
+          Icons.mic_rounded,
+          AppColors.accent,
+          'IN A VOICE ROOM',
+          const [AppColors.accent2, AppColors.primary],
+          'listening'
+        ),
     };
 
     return Container(
@@ -420,26 +558,51 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
               children: [
                 Row(
                   children: [
-                    Container(width: 6, height: 6, decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
+                    Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                            shape: BoxShape.circle, color: color)),
                     const SizedBox(width: 5),
-                    Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                    Text(label,
+                        style: TextStyle(
+                            color: color,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5)),
                   ],
                 ),
                 const SizedBox(height: 2),
-                Text(title, style: const TextStyle(color: AppColors.text, fontSize: 13.5, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
-                if (memberCount != null) Text('$memberCount $verb', style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
+                Text(title,
+                    style: const TextStyle(
+                        color: AppColors.text,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+                if (memberCount != null)
+                  Text('$memberCount $verb',
+                      style: const TextStyle(
+                          color: AppColors.textFaint, fontSize: 11)),
               ],
             ),
           ),
           const SizedBox(width: 8),
           GestureDetector(
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId))),
+            onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId))),
             child: Container(
               height: 32,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(999), gradient: const LinearGradient(colors: AppGradients.brand)),
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  gradient: const LinearGradient(colors: AppGradients.brand)),
               alignment: Alignment.center,
-              child: const Text('Join', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
+              child: const Text('Join',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12)),
             ),
           ),
         ],
@@ -447,19 +610,29 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
     );
   }
 
-  Widget _supporterTile(int rank, Map<String, dynamic> supporter) => GestureDetector(
+  Widget _supporterTile(int rank, Map<String, dynamic> supporter) =>
+      GestureDetector(
         onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => CreatorProfileScreen(userId: supporter['id'] as String)),
+          MaterialPageRoute(
+              builder: (_) =>
+                  CreatorProfileScreen(userId: supporter['id'] as String)),
         ),
         child: Container(
           margin: const EdgeInsets.only(bottom: 6),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
+          decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.border)),
           child: Row(
             children: [
               SizedBox(
                 width: 20,
-                child: Text('#${rank + 1}', style: const TextStyle(color: AppColors.textFaint, fontSize: 12, fontWeight: FontWeight.w700)),
+                child: Text('#${rank + 1}',
+                    style: const TextStyle(
+                        color: AppColors.textFaint,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700)),
               ),
               const SizedBox(width: 8),
               ClipOval(
@@ -469,19 +642,34 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                   child: AppImage(
                     source: supporter['avatarUrl'] as String?,
                     fit: BoxFit.cover,
-                    placeholder: (_) => Container(color: AppColors.surface3, child: const Icon(Icons.person, size: 18, color: AppColors.textFaint)),
+                    placeholder: (_) => Container(
+                        color: AppColors.surface3,
+                        child: const Icon(Icons.person,
+                            size: 18, color: AppColors.textFaint)),
                   ),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(supporter['name'] as String? ?? 'Unknown', style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                child: Text(supporter['name'] as String? ?? 'Unknown',
+                    style: const TextStyle(
+                        color: AppColors.text,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
               ),
               Row(
                 children: [
                   const Text('🪙', style: TextStyle(fontSize: 12)),
                   const SizedBox(width: 4),
-                  Text((supporter['totalCoins'] as num?)?.toStringAsFixed(0) ?? '0', style: const TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w700)),
+                  Text(
+                      (supporter['totalCoins'] as num?)?.toStringAsFixed(0) ??
+                          '0',
+                      style: const TextStyle(
+                          color: AppColors.gold,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700)),
                 ],
               ),
             ],
@@ -491,7 +679,11 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
 
   Widget _sectionTitle(String title) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
-        child: Text(title, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.bold, fontSize: 15)),
+        child: Text(title,
+            style: const TextStyle(
+                color: AppColors.text,
+                fontWeight: FontWeight.bold,
+                fontSize: 15)),
       );
 
   Widget _songTile(Song s) => GestureDetector(
@@ -499,18 +691,30 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
         child: Container(
           margin: const EdgeInsets.only(bottom: 6),
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
+          decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.border)),
           child: Row(
             children: [
               Container(
                 width: 56,
                 height: 40,
-                decoration: BoxDecoration(color: AppColors.surface3, borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(
+                    color: AppColors.surface3,
+                    borderRadius: BorderRadius.circular(8)),
                 clipBehavior: Clip.antiAlias,
-                child: s.thumbnail != null ? AppImage(source: s.thumbnail, fit: BoxFit.cover) : const Center(child: Text('🎵')),
+                child: s.thumbnail != null
+                    ? AppImage(source: s.thumbnail, fit: BoxFit.cover)
+                    : const Center(child: Text('🎵')),
               ),
               const SizedBox(width: 10),
-              Expanded(child: Text(s.title ?? 'Untitled', style: const TextStyle(color: AppColors.text, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis)),
+              Expanded(
+                  child: Text(s.title ?? 'Untitled',
+                      style:
+                          const TextStyle(color: AppColors.text, fontSize: 13),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis)),
             ],
           ),
         ),
