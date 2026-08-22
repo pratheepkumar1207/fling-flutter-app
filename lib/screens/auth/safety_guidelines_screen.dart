@@ -1,20 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_provider.dart';
-import '../../core/push_notifications.dart';
 import '../../theme/app_colors.dart';
 
-const _kTips = [
-  ['🔒', "Keep personal details (address, workplace, financial info) private until you've built real trust."],
-  ['📍', "Meet new people in public places first, and tell a friend where you're going."],
-  ['🚩', 'Report or block anyone who pressures you, asks for money, or makes you uncomfortable — no explanation needed.'],
-  ['🧑‍⚖️', 'Insync never asks for payment to "unlock" a match or conversation — that request is always a scam.'],
+const _kRules = [
+  (
+    icon: Icons.person_rounded,
+    colors: [Color(0xFFE0836B), Color(0xFFB8422C)],
+    title: 'Be who you say you are',
+    body: 'Fake profiles get suspended — verification keeps the room honest.',
+  ),
+  (
+    icon: Icons.sentiment_satisfied_alt_rounded,
+    colors: [Color(0xFF7FA8D9), Color(0xFF4272D9)],
+    title: 'Keep it respectful',
+    body: "Harassment, hate speech, and unwanted contact aren't tolerated.",
+  ),
+  (
+    icon: Icons.lock_rounded,
+    colors: [Color(0xFFDBB155), Color(0xFFB98A3D)],
+    title: 'Never share money or passwords',
+    body: "We'll never ask off-platform. Report anyone who does.",
+  ),
+  (
+    icon: Icons.warning_rounded,
+    colors: [Color(0xFFED8B6B), Color(0xFFED4B43)],
+    title: "Report, don't retaliate",
+    body: 'Block and report from any profile — our team reviews every case.',
+  ),
 ];
 
 /// Shown once, right after CompleteProfileScreen — see SplashScreen, which
 /// routes here whenever profileComplete is true but safetyGuidelinesSeenAt
-/// is still null. Dart port of SafetyGuidelinesPage.jsx.
+/// is still null. Matches SafetyGuidelinesDark.dc.html: a shield icon,
+/// title/subtitle, 4 divided rule rows, and a pinned CTA. Drops the old
+/// "turn on notifications" prompt this screen used to carry inline — not
+/// in the mockup, and not a unique capability: Settings already has its
+/// own notifications toggle, so nothing is lost by not duplicating it here.
 class SafetyGuidelinesScreen extends StatefulWidget {
   const SafetyGuidelinesScreen({super.key});
 
@@ -22,27 +46,8 @@ class SafetyGuidelinesScreen extends StatefulWidget {
   State<SafetyGuidelinesScreen> createState() => _SafetyGuidelinesScreenState();
 }
 
-enum _NotifState { idle, requesting, granted, skipped }
-
 class _SafetyGuidelinesScreenState extends State<SafetyGuidelinesScreen> {
-  _NotifState _notifState = _NotifState.idle;
   bool _continuing = false;
-
-  Future<void> _enableNotifications() async {
-    setState(() => _notifState = _NotifState.requesting);
-    final result = await requestPushPermissionAndRegister();
-    if (!mounted) return;
-    if (result == PushRequestResult.granted) {
-      setState(() => _notifState = _NotifState.granted);
-    } else {
-      setState(() => _notifState = _NotifState.skipped);
-      if (result == PushRequestResult.denied) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Notifications blocked — you can turn them on later in Settings.')),
-        );
-      }
-    }
-  }
 
   Future<void> _continue() async {
     setState(() => _continuing = true);
@@ -61,75 +66,133 @@ class _SafetyGuidelinesScreenState extends State<SafetyGuidelinesScreen> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 12),
-                const Text('Before you jump in', textAlign: TextAlign.center, style: TextStyle(color: AppColors.text, fontSize: 22, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 4),
-                const Text('A few quick things to keep in mind.', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-                const SizedBox(height: 20),
-                for (final t in _kTips)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(t[0], style: const TextStyle(fontSize: 16)),
-                        const SizedBox(width: 10),
-                        Expanded(child: Text(t[1], style: const TextStyle(color: AppColors.textDim, fontSize: 13))),
-                      ],
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFF6ED9A0), Color(0xFF2E9B5F)]),
+                        boxShadow: [
+                          BoxShadow(
+                              color: AppColors.success.withValues(alpha: 0.5),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6))
+                        ],
+                      ),
+                      alignment: Alignment.center,
+                      child: const Icon(Icons.verified_user_rounded,
+                          color: Colors.white, size: 28),
                     ),
-                  ),
-                Container(
-                  margin: const EdgeInsets.only(top: 10),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Stay in the loop', style: TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 4),
-                      const Text('Get notified about new matches, messages, and invites.', style: TextStyle(color: AppColors.textDim, fontSize: 12)),
-                      const SizedBox(height: 10),
-                      if (_notifState == _NotifState.granted)
-                        const Text('🔔 Notifications enabled', style: TextStyle(color: AppColors.success, fontSize: 13, fontWeight: FontWeight.w600))
-                      else if (_notifState == _NotifState.skipped)
-                        const Text('You can turn these on anytime in Settings.', style: TextStyle(color: AppColors.textFaint, fontSize: 11))
-                      else
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed: _notifState == _NotifState.requesting ? null : _enableNotifications,
-                            style: OutlinedButton.styleFrom(foregroundColor: AppColors.primary, side: const BorderSide(color: AppColors.primary)),
-                            child: Text(_notifState == _NotifState.requesting ? 'Requesting…' : 'Turn on notifications'),
-                          ),
+                    const SizedBox(height: 16),
+                    Text('Keep it a good time',
+                        style: GoogleFonts.bricolageGrotesque(
+                            color: AppColors.text,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 23)),
+                    const SizedBox(height: 6),
+                    const Text('A few ground rules before you jump in.',
+                        style: TextStyle(
+                            color: AppColors.textFaint,
+                            fontSize: 13,
+                            height: 1.5)),
+                    const SizedBox(height: 20),
+                    for (var i = 0; i < _kRules.length; i++)
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                            border: Border(
+                                bottom: BorderSide(
+                                    color: i == _kRules.length - 1
+                                        ? Colors.transparent
+                                        : AppColors.border))),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(11),
+                                gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: _kRules[i].colors),
+                              ),
+                              alignment: Alignment.center,
+                              child: Icon(_kRules[i].icon,
+                                  color: Colors.white, size: 16),
+                            ),
+                            const SizedBox(width: 13),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(_kRules[i].title,
+                                      style: const TextStyle(
+                                          color: AppColors.text,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 13.5)),
+                                  const SizedBox(height: 2),
+                                  Text(_kRules[i].body,
+                                      style: const TextStyle(
+                                          color: AppColors.textFaint,
+                                          fontSize: 12,
+                                          height: 1.5)),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _continuing ? null : _continue,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      shape: const StadiumBorder(),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: Text(_continuing ? 'Saving…' : "Got it, let's go"),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
+              child: GestureDetector(
+                onTap: _continuing ? null : _continue,
+                child: Container(
+                  width: double.infinity,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    gradient: _continuing
+                        ? null
+                        : const LinearGradient(colors: AppGradients.brand),
+                    color: _continuing ? AppColors.surface2 : null,
+                    boxShadow: _continuing
+                        ? null
+                        : [
+                            BoxShadow(
+                                color: AppColors.accent2.withValues(alpha: 0.5),
+                                blurRadius: 24,
+                                offset: const Offset(0, 10))
+                          ],
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    _continuing ? 'Saving…' : 'I understand, continue',
+                    style: TextStyle(
+                        color: _continuing ? AppColors.textFaint : Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14.5),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

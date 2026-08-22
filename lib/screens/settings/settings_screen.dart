@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
+import '../../core/push_notifications.dart';
 import '../../theme/app_colors.dart';
 import '../auth/login_screen.dart';
 import '../profile/profile_screen.dart';
@@ -25,6 +26,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _toggleNotifications(bool value) async {
     setState(() => _savingNotifications = true);
     try {
+      // Turning it on is also the one place in the app that actually
+      // requests the OS notification permission and registers the FCM
+      // token (see push_notifications.dart) — the preference flag alone
+      // doesn't get anyone a push if the device was never asked.
+      if (value) {
+        final result = await requestPushPermissionAndRegister();
+        if (result == PushRequestResult.denied && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text(
+                    'Notifications blocked — enable them for this app in your device settings.')),
+          );
+        }
+      }
       await ApiClient.patch('/auth/me',
           body: {'pushNotificationsEnabled': value});
       if (!mounted) return;
