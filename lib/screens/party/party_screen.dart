@@ -926,6 +926,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                             poll: rs.poll,
                             myUserId: myId ?? '',
                             isHost: rs.isHost,
+                            roster: rs.roster,
                             onVote: rs.votePoll,
                             onReset: rs.resetPoll),
                         child: Container(
@@ -1019,6 +1020,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                               poll: rs.poll,
                                               myUserId: myId ?? '',
                                               isHost: rs.isHost,
+                                              roster: rs.roster,
                                               onVote: rs.votePoll,
                                               onReset: rs.resetPoll)),
                                     _floatingIconButton(
@@ -1097,6 +1099,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                       poll: rs.poll,
                                       myUserId: myId ?? '',
                                       isHost: rs.isHost,
+                                      roster: rs.roster,
                                       onVote: rs.votePoll,
                                       onReset: rs.resetPoll),
                                   borderColor: roomBorder,
