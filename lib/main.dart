@@ -38,7 +38,7 @@ class FlingApp extends StatelessWidget {
       ],
       child: Consumer<ThemeController>(
         builder: (context, themeController, _) => MaterialApp(
-          title: 'Fling',
+          title: 'Insync',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,

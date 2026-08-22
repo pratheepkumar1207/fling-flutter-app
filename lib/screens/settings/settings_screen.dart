@@ -182,7 +182,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             builder: (_) => const LegalScreen(
               title: 'About Us',
               sections: [
-                LegalSection('Fling',
+                LegalSection('Insync',
                     'Watch parties, voice rooms, and social discovery — all in one app.'),
                 LegalSection('Version', '1.0.0'),
               ],

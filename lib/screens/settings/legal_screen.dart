@@ -59,9 +59,9 @@ class LegalScreen extends StatelessWidget {
 
 const kTermsOfServiceSections = [
   LegalSection('1. Acceptance of terms',
-      "By creating an account or using any part of Fling, you agree to these terms. If you don't agree, please don't use the app."),
+      "By creating an account or using any part of Insync, you agree to these terms. If you don't agree, please don't use the app."),
   LegalSection('2. Your account',
-      "You're responsible for keeping your login secure and for everything that happens under your account. You must be 18 or older to use Fling."),
+      "You're responsible for keeping your login secure and for everything that happens under your account. You must be 18 or older to use Insync."),
   LegalSection('3. Community standards',
       "Harassment, hate speech, impersonation, and sharing others' private information are never allowed — see our Safety Guidelines for the full list."),
   LegalSection('4. Coins & purchases',

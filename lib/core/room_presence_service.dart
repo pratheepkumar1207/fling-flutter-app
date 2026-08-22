@@ -19,7 +19,8 @@ class RoomPresenceService {
       androidNotificationOptions: AndroidNotificationOptions(
         channelId: 'fling_room_presence',
         channelName: 'Active room',
-        channelDescription: 'Keeps you connected while you\'re in a Fling room.',
+        channelDescription:
+            'Keeps you connected while you\'re in an Insync room.',
         channelImportance: NotificationChannelImportance.LOW,
         priority: NotificationPriority.LOW,
         onlyAlertOnce: true,
@@ -61,7 +62,8 @@ class RoomPresenceService {
       }
       return;
     }
-    if (await FlutterForegroundTask.checkNotificationPermission() != NotificationPermission.granted) {
+    if (await FlutterForegroundTask.checkNotificationPermission() !=
+        NotificationPermission.granted) {
       await FlutterForegroundTask.requestNotificationPermission();
     }
     final result = await FlutterForegroundTask.startService(

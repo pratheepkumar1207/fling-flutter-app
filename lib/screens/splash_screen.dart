@@ -89,7 +89,11 @@ class _SplashScreenState extends State<SplashScreen> {
 }
 
 /// Matches SplashDark.dc.html: two soft blurred glows, the brand glass
-/// icon, "Fling" in the display font, tagline, and a spinning ring.
+/// icon, the "Insync" wordmark in the display font (the mockup's own
+/// text says "Fling", but that's not this app's actual brand — see
+/// pubspec.yaml's description, the Android manifest label, and iOS's
+/// CFBundleDisplayName, all of which already say Insync), tagline, and
+/// a spinning ring.
 class _SplashScaffold extends StatelessWidget {
   const _SplashScaffold();
 
@@ -131,7 +135,7 @@ class _SplashScaffold extends StatelessWidget {
                       color: Colors.white, size: 42),
                 ),
                 const SizedBox(height: 22),
-                Text('Fling',
+                Text('Insync',
                     style: GoogleFonts.bricolageGrotesque(
                         color: AppColors.text,
                         fontWeight: FontWeight.w800,
