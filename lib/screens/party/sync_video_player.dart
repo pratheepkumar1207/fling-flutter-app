@@ -7,6 +7,7 @@ import '../../core/pip_service.dart';
 import '../../core/youtube_util.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/room_play_pause_button.dart';
+import '../../widgets/room_skip_button.dart';
 import '../../widgets/static_bloom_player.dart';
 import '../../widgets/volume_dots.dart';
 
@@ -29,6 +30,7 @@ class SyncVideoPlayer extends StatefulWidget {
   final VoidCallback onRequestState;
   final VoidCallback onEnded;
   final VoidCallback onSkip;
+  final VoidCallback? onSkipPrevious;
   final bool liked;
   final VoidCallback onToggleLike;
   final bool compact;
@@ -47,6 +49,7 @@ class SyncVideoPlayer extends StatefulWidget {
     required this.onRequestState,
     required this.onEnded,
     required this.onSkip,
+    this.onSkipPrevious,
     required this.liked,
     required this.onToggleLike,
     this.compact = false,
@@ -328,15 +331,29 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
           children: [
             YoutubePlayer(
                 controller: controller, showVideoProgressIndicator: false),
-            // A dedicated button, not a whole-video tap target — tapping
+            // A dedicated button row, not a whole-video tap target — tapping
             // anywhere on the video (e.g. near the seek bar) was toggling
-            // playback by accident.
+            // playback by accident. Skip buttons flank play/pause: left
+            // jumps back to the previous queue item (non-destructive —
+            // reuses queue:jump, same as tapping "play" on an earlier queue
+            // row), right is the existing skip-forward (removes the current
+            // item and advances, same as it always has).
             if (widget.isHost)
               Center(
-                child: ValueListenableBuilder(
-                  valueListenable: controller,
-                  builder: (context, value, _) => RoomPlayPauseButton(
-                      playing: value.isPlaying, onTap: _handleTap),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    RoomSkipButton(
+                        forward: false, onTap: widget.onSkipPrevious),
+                    const SizedBox(width: 20),
+                    ValueListenableBuilder(
+                      valueListenable: controller,
+                      builder: (context, value, _) => RoomPlayPauseButton(
+                          playing: value.isPlaying, onTap: _handleTap),
+                    ),
+                    const SizedBox(width: 20),
+                    RoomSkipButton(forward: true, onTap: widget.onSkip),
+                  ],
                 ),
               ),
             Positioned(
@@ -486,13 +503,6 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),
-                        IconButton(
-                          onPressed: widget.onSkip,
-                          icon: const Icon(Icons.skip_next,
-                              color: Colors.white, size: 20),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
                       ],
                     );
                   },
@@ -542,6 +552,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
               onSeekEnd: _handleSeekEnd,
               compact: widget.compact,
               onSkip: widget.isHost ? widget.onSkip : null,
+              onSkipPrevious: widget.isHost ? widget.onSkipPrevious : null,
             ),
           ],
         );

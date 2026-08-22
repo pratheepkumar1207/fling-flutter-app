@@ -6,6 +6,7 @@ import '../../core/format.dart';
 import '../../core/pip_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/room_play_pause_button.dart';
+import '../../widgets/room_skip_button.dart';
 import '../../widgets/spinner.dart';
 import '../../widgets/static_bloom_player.dart';
 import '../../widgets/volume_dots.dart';
@@ -31,6 +32,7 @@ class DriveVideoPlayer extends StatefulWidget {
   final VoidCallback onRequestState;
   final VoidCallback onEnded;
   final VoidCallback onSkip;
+  final VoidCallback? onSkipPrevious;
   final bool liked;
   final VoidCallback onToggleLike;
   final bool compact;
@@ -50,6 +52,7 @@ class DriveVideoPlayer extends StatefulWidget {
     required this.onRequestState,
     required this.onEnded,
     required this.onSkip,
+    this.onSkipPrevious,
     required this.liked,
     required this.onToggleLike,
     this.compact = false,
@@ -324,8 +327,19 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
             // playback by accident.
             if (widget.isHost)
               Center(
-                  child: RoomPlayPauseButton(
-                      playing: controller.value.isPlaying, onTap: _handleTap)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    RoomSkipButton(
+                        forward: false, onTap: widget.onSkipPrevious),
+                    const SizedBox(width: 24),
+                    RoomPlayPauseButton(
+                        playing: controller.value.isPlaying, onTap: _handleTap),
+                    const SizedBox(width: 24),
+                    RoomSkipButton(forward: true, onTap: widget.onSkip),
+                  ],
+                ),
+              ),
             Positioned(
               top: 8,
               left: 8,
@@ -427,13 +441,6 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
-                    IconButton(
-                      onPressed: widget.onSkip,
-                      icon: const Icon(Icons.skip_next,
-                          color: Colors.white, size: 20),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
                   ],
                 ),
               ),
@@ -471,6 +478,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
           onSeekEnd: _handleSeekEnd,
           compact: widget.compact,
           onSkip: widget.isHost ? widget.onSkip : null,
+          onSkipPrevious: widget.isHost ? widget.onSkipPrevious : null,
         ),
       ],
     );

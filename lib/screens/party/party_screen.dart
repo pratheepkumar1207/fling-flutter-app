@@ -491,6 +491,9 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     Widget player({required String mediaMode, bool compact = false}) {
       final liked =
           currentItem != null && _likedUrls.contains(currentItem['videoUrl']);
+      final onSkipPrevious = (rs.isHost && currentIndex > 0)
+          ? () => rs.queueJump(currentIndex - 1)
+          : null;
       // Keyed by the video itself (not by room type/layout), so switching
       // room types — which only changes mediaMode/compact — reads to
       // Flutter as "update this element's props", not "remove this
@@ -522,6 +525,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           onRequestState: rs.requestState,
           onEnded: rs.queueNext,
           onSkip: rs.queueSkip,
+          onSkipPrevious: onSkipPrevious,
           liked: liked,
           onToggleLike: () => _toggleLike(currentItem),
         );
@@ -541,6 +545,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
         onRequestState: rs.requestState,
         onEnded: rs.queueNext,
         onSkip: rs.queueSkip,
+        onSkipPrevious: onSkipPrevious,
         liked: liked,
         onToggleLike: () => _toggleLike(currentItem),
       );
