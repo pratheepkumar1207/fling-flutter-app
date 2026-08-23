@@ -248,12 +248,15 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
       case AppLifecycleState.hidden:
-        // Entering Picture-in-Picture reports this same dip — but PIP keeps
-        // the video visibly playing in a small floating window, so this
-        // isn't a real background/leave; treating it as one would wrongly
-        // suppress broadcasting the host's own play/pause taps made while
-        // in PIP (see _onControllerStateChanged's _backgrounded guard).
-        if (PipService.isInPip.value) return;
+        // NOT skipped for PIP (unlike the resumed-side check below) —
+        // youtube_player_flutter's own internal WidgetsBindingObserver
+        // (raw_youtube_player.dart) has no concept of PIP at all and
+        // unconditionally calls pause() on this exact same dip regardless
+        // of whether we're entering PIP or genuinely backgrounding. Only
+        // fighting that via _startBackgroundKeepAlive for a real
+        // background (skipping it during PIP, as this used to) left
+        // nothing to counteract the plugin's own PIP-triggered pause,
+        // which is what the reported PIP pause/resume glitch actually was.
         _backgrounded = true;
         _startBackgroundKeepAlive();
       case AppLifecycleState.resumed:
