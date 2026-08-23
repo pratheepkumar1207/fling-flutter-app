@@ -73,6 +73,12 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
   bool _volumePopoverOpen = false;
   bool _endFired = false;
   bool _backgrounded = false;
+  // Set alongside _backgrounded whenever PIP is involved on *either* side
+  // of the current paused/inactive/hidden dip — see the matching field's
+  // doc in sync_video_player.dart for why checking isInPip only at the
+  // resumed instant isn't enough (it misses whichever end of the
+  // transition — entering or leaving PIP — hadn't updated yet).
+  bool _pipInvolvedInCurrentDip = false;
   // True only when we actually started the background audio handler for
   // this background stretch (i.e. it was genuinely playing when we left) —
   // guards _handoffToForegroundVideo from pulling a stale/zero position
@@ -83,6 +89,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    PipService.isInPip.addListener(_onPipChanged);
     _rebuildControllerIfNeeded();
     // See the matching comment in sync_video_player.dart: playback:state
     // can already be sitting on widget.playback by this first build (the
@@ -178,6 +185,15 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
     }
   }
 
+  // See the matching method's doc in sync_video_player.dart — catches PIP
+  // being entered partway through a dip (isInPip still false at the very
+  // start, native onPipModeChanged's async round trip lands moments later)
+  // so the resumed-side check below isn't limited to whatever isInPip
+  // happens to read at that one instant.
+  void _onPipChanged() {
+    if (PipService.isInPip.value) _pipInvolvedInCurrentDip = true;
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
@@ -192,23 +208,28 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
         // Only truly-backgrounded (not the transient inactive/hidden blip a
         // system dialog can cause) is worth the cost of spinning up a real
         // audio handoff.
+        if (!_backgrounded) _pipInvolvedInCurrentDip = PipService.isInPip.value;
         _backgrounded = true;
         _handoffToBackgroundAudio();
       case AppLifecycleState.inactive:
       case AppLifecycleState.hidden:
         if (PipService.isInPip.value) return;
+        if (!_backgrounded) _pipInvolvedInCurrentDip = PipService.isInPip.value;
         _backgrounded = true;
       case AppLifecycleState.resumed:
         if (!_backgrounded) return;
         _backgrounded = false;
-        if (PipService.isInPip.value) {
-          // isInPip can land a beat after the inactive/hidden dip PIP
-          // transitions cause (native onPipModeChanged is an async round
-          // trip), so the entry guards above can occasionally miss. Nothing
-          // was ever actually backgrounded here — skip the resync below
-          // entirely; requesting + applying a corrected position re-seeks
-          // an already-fine, already-playing video for no reason, which is
-          // what showed up as a ~1s pause/play glitch on every PIP entry.
+        if (_pipInvolvedInCurrentDip || PipService.isInPip.value) {
+          // PIP was involved somewhere in this dip — either entering it
+          // (isInPip was still false at the very start, caught moments
+          // later by _onPipChanged) or leaving it (isInPip has already
+          // flipped back to false again by the time resumed fires). Either
+          // way nothing was ever actually backgrounded — skip the resync
+          // below entirely; requesting + applying a corrected position
+          // re-seeks an already-fine, already-playing video for no reason,
+          // which is what showed up as a ~1s pause/play glitch on every
+          // PIP transition, both directions.
+          _pipInvolvedInCurrentDip = false;
           return;
         }
         _handoffToForegroundVideo();
@@ -500,6 +521,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    PipService.isInPip.removeListener(_onPipChanged);
     if (_handedOffToBackground) {
       // Already playing through the background session (we were OS-
       // backgrounded) and now the widget itself is going away too — stop

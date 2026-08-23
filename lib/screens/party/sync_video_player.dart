@@ -86,6 +86,15 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
   // and broadcast it, freezing the video for every other participant just
   // because the host's screen locked (confirmed live).
   bool _backgrounded = false;
+  // Set alongside _backgrounded whenever PIP is involved on *either* side
+  // of the current paused/inactive/hidden dip — entering PIP (isInPip is
+  // usually still false at the very start, catching up moments later) or
+  // leaving it (isInPip has already flipped back to false again by the
+  // time resumed fires, well before this dip is over) both need this,
+  // since checking isInPip only at the resumed instant misses whichever
+  // end hadn't updated yet. True background never touches PIP at all, so
+  // this only ever suppresses the resync for a PIP-involved dip.
+  bool _pipInvolvedInCurrentDip = false;
   // Shows a "catching up" banner right after returning from background,
   // instead of the video just looking frozen/broken while the resync round
   // trip is in flight (see didChangeAppLifecycleState / _applyRemotePlaybackIfNeeded).
@@ -108,6 +117,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    PipService.isInPip.addListener(_onPipChanged);
     _rebuildControllerIfNeeded();
     // playback:state can arrive (and update RoomSocketController.playback)
     // before this widget's very first build — e.g. the server already
@@ -242,6 +252,16 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     setState(() => _justResumed = false);
   }
 
+  // Fires whenever PipService.isInPip changes, for as long as this widget
+  // is mounted — not just while backgrounded — so a PIP entry that starts
+  // false and flips true moments later (native onPipModeChanged's async
+  // round trip) still gets caught, not just the exit direction where
+  // isInPip is already true at the dip's start and flips false again
+  // before resumed fires.
+  void _onPipChanged() {
+    if (PipService.isInPip.value) _pipInvolvedInCurrentDip = true;
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
@@ -257,24 +277,32 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
         // background (skipping it during PIP, as this used to) left
         // nothing to counteract the plugin's own PIP-triggered pause,
         // which is what the reported PIP pause/resume glitch actually was.
+        if (!_backgrounded) {
+          // Only reset at the *start* of a new dip — AppLifecycleState can
+          // report paused/inactive/hidden more than once in a row for the
+          // same underlying dip, and resetting on every one of those would
+          // throw away a PIP flag _onPipChanged already caught.
+          _pipInvolvedInCurrentDip = PipService.isInPip.value;
+        }
         _backgrounded = true;
         _startBackgroundKeepAlive();
       case AppLifecycleState.resumed:
         _backgroundKeepAliveTimer?.cancel();
         _backgroundKeepAliveTimer = null;
         if (!_backgrounded) return;
-        if (PipService.isInPip.value) {
-          // isInPip can still land a beat after the inactive dip that PIP
-          // transitions cause (native onPipModeChanged is an async round
-          // trip — see PipService.enterPip's matching comment on this
-          // exact race), so the guard above can occasionally miss and set
-          // _backgrounded regardless. Nothing was ever actually
-          // backgrounded here — the video kept playing the whole time —
-          // so skip the full just-resumed resync below entirely; running
-          // it anyway re-seeks an already-fine, already-playing video for
-          // no reason, which is what showed up as a ~1s pause/play glitch
-          // on every PIP entry.
+        if (_pipInvolvedInCurrentDip || PipService.isInPip.value) {
+          // PIP was involved somewhere in this dip — either entering it
+          // (isInPip was still false at the very start, caught moments
+          // later by _onPipChanged) or leaving it (isInPip has already
+          // flipped back to false again by the time resumed fires, well
+          // before this dip is considered over). Either way nothing was
+          // ever actually backgrounded — the video kept playing the whole
+          // time — so skip the full just-resumed resync below entirely;
+          // running it anyway re-seeks an already-fine, already-playing
+          // video for no reason, which is what showed up as a ~1s
+          // pause/play glitch on every PIP transition, both directions.
           _backgrounded = false;
+          _pipInvolvedInCurrentDip = false;
           return;
         }
         // Deliberately NOT cleared here — stays true (suppressing
@@ -638,6 +666,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    PipService.isInPip.removeListener(_onPipChanged);
     _justResumedFallback?.cancel();
     _backgroundKeepAliveTimer?.cancel();
     _controller?.removeListener(_onControllerStateChanged);
