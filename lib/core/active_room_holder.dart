@@ -34,6 +34,14 @@ class ActiveRoomHolder {
   /// no room is active.
   static final ValueNotifier<String?> activeLabel = ValueNotifier(null);
 
+  /// True while PartyScreen for the active room is the current on-screen
+  /// route — set in its initState, cleared in its dispose (mirrors how
+  /// RoomPresenceService.start/stop already bracket PartyScreen's own
+  /// lifecycle). persistent_room_audio.dart reads this to know whether it's
+  /// safe to mount its own hidden player: only when the docked one *isn't*
+  /// showing, so the two never both produce audio at once.
+  static final ValueNotifier<bool> isRoomScreenVisible = ValueNotifier(false);
+
   /// Called once a fresh join has actually succeeded — see
   /// party_screen.dart's _initSocket.
   static void set({
@@ -72,5 +80,6 @@ class ActiveRoomHolder {
     voice = null;
     live = null;
     activeLabel.value = null;
+    isRoomScreenVisible.value = false;
   }
 }

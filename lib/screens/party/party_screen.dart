@@ -6,6 +6,7 @@ import '../../core/api_client.dart';
 import '../../core/auth_provider.dart';
 import '../../core/pip_service.dart';
 import '../../core/room_presence_service.dart';
+import '../../core/room_source_types.dart';
 import '../../core/socket_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/club_room_colors.dart';
@@ -31,22 +32,6 @@ import 'room_socket_controller.dart';
 import 'sync_video_player.dart';
 import 'voice_chat_controller.dart';
 import 'webview_room_player.dart';
-
-// sourceTypes rendered via the generic embedded-browser WebviewRoomPlayer
-// (see webview_browse_screen.dart in lobby/ for how these get created) —
-// all "browse together, no playback sync" platforms. Add a new streaming
-// platform here + to the source picker + to Room.js's sourceType ENUM to
-// support another one; nothing else needs to change.
-const _webviewSourceTypes = {
-  'netflix',
-  'amazon',
-  'youtube_surf',
-  'hotstar',
-  'aha',
-  'sunnxt',
-  'sonyliv',
-  'airtel_xstream'
-};
 
 class PartyScreen extends StatefulWidget {
   final String roomId;
@@ -108,6 +93,10 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Tells persistent_room_audio.dart's hidden player it can stand down —
+    // this screen's own (visible, full-UI) player is about to be the one
+    // actually producing audio. Cleared in dispose().
+    ActiveRoomHolder.isRoomScreenVisible.value = true;
     // Reattaching to a room already kept alive by ActiveRoomHolder (the
     // user minimized it earlier, not left it) — reuse everything instead
     // of rejoining from scratch, which would otherwise show a blank
@@ -248,7 +237,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
         rs.isHost &&
         !_seededQueue &&
         items.isEmpty &&
-        !_webviewSourceTypes.contains(roomSourceType) &&
+        !webviewSourceTypes.contains(roomSourceType) &&
         room['videoTitle'] != null) {
       rs.queueInit({
         'sourceType': roomSourceType,
@@ -500,7 +489,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       // element, mount a new one", even though it's now nested under a
       // different parent than before.
       final playerKey = ValueKey('player-$playerSourceType-$playerVideoUrl');
-      if (_webviewSourceTypes.contains(playerSourceType)) {
+      if (webviewSourceTypes.contains(playerSourceType)) {
         return WebviewRoomPlayer(
           key: playerKey,
           videoUrl: playerVideoUrl,
@@ -1257,6 +1246,10 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _rs?.removeListener(_onRoomStateChanged);
+    // Leaving this screen either way (minimize or real leave) — clear this
+    // before ActiveRoomHolder.leave() below so persistent_room_audio.dart's
+    // "should I take over" check never briefly reads stale-true state.
+    ActiveRoomHolder.isRoomScreenVisible.value = false;
     // A plain pop (back button, gesture, switching tabs) is a minimize —
     // ActiveRoomHolder keeps the connection/controllers alive so the room
     // is still there (still playing, still in chat) if the user comes

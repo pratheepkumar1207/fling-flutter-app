@@ -12,6 +12,7 @@ import '../home/home_screen.dart';
 import '../lobby/lobby_create_screen.dart';
 import '../lobby/lobby_join_screen.dart';
 import '../party/party_screen.dart';
+import '../party/persistent_room_audio.dart';
 import '../../widgets/avatar.dart';
 import 'liquid_glass_bottom_nav.dart';
 import 'top_bar.dart';
@@ -164,6 +165,22 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        // Behind the Scaffold below — whether AppShell itself is the
+        // visible screen (this Scaffold covers it) or some other route is
+        // pushed on top (that route's own opaque background covers both),
+        // this never needs to be explicitly hidden/positioned offscreen.
+        // AppShell staying mounted underneath every pushed route (see the
+        // class doc above) is exactly what lets this survive navigating
+        // away from PartyScreen — see persistent_room_audio.dart.
+        const PersistentRoomAudio(),
+        _buildScaffold(),
+      ],
+    );
+  }
+
+  Widget _buildScaffold() {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: const FlingTopBar(),

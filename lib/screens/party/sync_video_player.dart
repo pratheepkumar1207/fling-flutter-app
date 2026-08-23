@@ -34,6 +34,13 @@ class SyncVideoPlayer extends StatefulWidget {
   final bool liked;
   final VoidCallback onToggleLike;
   final bool compact;
+  // True for the hidden background-continuity instance (see
+  // persistent_room_audio.dart) — renders no UI/chrome at all (no skip
+  // buttons, seek bar, like icon, PIP button), just the bare WebView at a
+  // real but off-screen-effectively size. Always paired with isHost:false
+  // by that caller, so this never doubles as a second source of host
+  // play/pause/seek emissions.
+  final bool silent;
 
   const SyncVideoPlayer({
     super.key,
@@ -53,6 +60,7 @@ class SyncVideoPlayer extends StatefulWidget {
     required this.liked,
     required this.onToggleLike,
     this.compact = false,
+    this.silent = false,
   });
 
   @override
@@ -345,6 +353,22 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
             alignment: Alignment.center,
             child: const Text('No video',
                 style: TextStyle(color: AppColors.textFaint))),
+      );
+    }
+
+    if (widget.silent) {
+      // No UI at all — this instance only exists to keep producing audio
+      // while off-screen. Kept at a real 100x100 size, not shrunk further
+      // or made transparent, for the same reason as the audioOnly branch
+      // below: WebView-backed players can silently stall once shrunk near
+      // zero or fully culled.
+      return SizedBox(
+        width: 100,
+        height: 100,
+        child: IgnorePointer(
+          child: YoutubePlayer(
+              controller: controller, showVideoProgressIndicator: false),
+        ),
       );
     }
 
