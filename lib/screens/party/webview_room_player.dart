@@ -16,20 +16,45 @@ class WebviewRoomPlayer extends StatefulWidget {
   final String? title;
   final bool compact;
 
-  const WebviewRoomPlayer({super.key, required this.videoUrl, this.title, this.compact = false});
+  const WebviewRoomPlayer(
+      {super.key, required this.videoUrl, this.title, this.compact = false});
 
   @override
   State<WebviewRoomPlayer> createState() => _WebviewRoomPlayerState();
 }
 
 class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
+  InAppWebViewController? _controller;
+
+  // Asks the page's own <video> element to go fullscreen, so the site's
+  // surrounding chrome (nav bar, recommendations, search UI — whatever page
+  // the room's URL happens to be) visually disappears and only the video
+  // itself is left on screen. NOT guaranteed to work: browsers generally
+  // require the Fullscreen API to be triggered by a genuine on-page user
+  // gesture, and a script injected from Flutter isn't always treated as
+  // one — this is the best available attempt without DRM-level access to
+  // the video itself, but confirm on a real device before relying on it.
+  Future<void> _requestFullscreen() async {
+    await _controller?.evaluateJavascript(source: '''
+      (function() {
+        var v = document.querySelector('video');
+        if (v && v.requestFullscreen) { v.requestFullscreen(); }
+        else if (v && v.webkitRequestFullscreen) { v.webkitRequestFullscreen(); }
+      })();
+    ''');
+  }
+
   @override
   Widget build(BuildContext context) {
     final url = widget.videoUrl;
     if (url == null) {
       return AspectRatio(
         aspectRatio: 16 / 9,
-        child: Container(color: AppColors.surface2, alignment: Alignment.center, child: const Text('No video', style: TextStyle(color: AppColors.textFaint))),
+        child: Container(
+            color: AppColors.surface2,
+            alignment: Alignment.center,
+            child: const Text('No video',
+                style: TextStyle(color: AppColors.textFaint))),
       );
     }
     // No rounded-corner card/box — the video now runs edge-to-edge at full
@@ -41,39 +66,58 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
           fit: StackFit.expand,
           children: [
             InAppWebView(
-                initialUrlRequest: URLRequest(url: WebUri(url)),
-                // Mobile UA here, not desktop: actual DRM video playback
-                // (Widevine) only works reliably in this WebView when Netflix
-                // thinks it's talking to mobile Chrome — a desktop UA makes it
-                // pick a playback path the WebView can't fulfill, surfacing as
-                // Netflix error M7701-1003 (confirmed live). Desktop mode stays
-                // on the browse/catalog screen (no DRM decode happens there);
-                // only the actual playback WebView needs to stay mobile.
-                initialSettings: mobileWebViewSettings,
-                // Same "don't error out on a custom app-deeplink scheme" guard
-                // as webview_browse_screen.dart — see its comment for why.
-                shouldOverrideUrlLoading: (controller, navigationAction) async {
-                  final scheme = navigationAction.request.url?.scheme;
-                  if (scheme != null && scheme != 'http' && scheme != 'https') {
-                    return NavigationActionPolicy.CANCEL;
-                  }
-                  return NavigationActionPolicy.ALLOW;
-                },
-                // Android WebView denies DRM (Widevine) permission requests by
-                // default — without granting this, Netflix/Prime's player
-                // can't initialize EME at all and fails with a generic
-                // HTML5-player error (confirmed live: Netflix's M7701-1003)
-                // regardless of user agent or anything else being right.
-                onPermissionRequest: (controller, request) async {
-                  return PermissionResponse(resources: request.resources, action: PermissionResponseAction.GRANT);
-                },
+              initialUrlRequest: URLRequest(url: WebUri(url)),
+              // Mobile UA here, not desktop: actual DRM video playback
+              // (Widevine) only works reliably in this WebView when Netflix
+              // thinks it's talking to mobile Chrome — a desktop UA makes it
+              // pick a playback path the WebView can't fulfill, surfacing as
+              // Netflix error M7701-1003 (confirmed live). Desktop mode stays
+              // on the browse/catalog screen (no DRM decode happens there);
+              // only the actual playback WebView needs to stay mobile.
+              initialSettings: mobileWebViewSettings,
+              onWebViewCreated: (controller) => _controller = controller,
+              // Same "don't error out on a custom app-deeplink scheme" guard
+              // as webview_browse_screen.dart — see its comment for why.
+              shouldOverrideUrlLoading: (controller, navigationAction) async {
+                final scheme = navigationAction.request.url?.scheme;
+                if (scheme != null && scheme != 'http' && scheme != 'https') {
+                  return NavigationActionPolicy.CANCEL;
+                }
+                return NavigationActionPolicy.ALLOW;
+              },
+              // Android WebView denies DRM (Widevine) permission requests by
+              // default — without granting this, Netflix/Prime's player
+              // can't initialize EME at all and fails with a generic
+              // HTML5-player error (confirmed live: Netflix's M7701-1003)
+              // regardless of user agent or anything else being right.
+              onPermissionRequest: (controller, request) async {
+                return PermissionResponse(
+                    resources: request.resources,
+                    action: PermissionResponseAction.GRANT);
+              },
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: GestureDetector(
+                onTap: _requestFullscreen,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      shape: BoxShape.circle),
+                  child: const Icon(Icons.fullscreen_rounded,
+                      color: Colors.white, size: 18),
+                ),
               ),
+            ),
             Positioned(
               left: 0,
               right: 0,
               bottom: 0,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 color: Colors.black54,
                 child: const Text(
                   "No auto-sync here — everyone presses play together.",
