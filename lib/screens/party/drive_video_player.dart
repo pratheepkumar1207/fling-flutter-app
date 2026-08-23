@@ -201,6 +201,16 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
       case AppLifecycleState.resumed:
         if (!_backgrounded) return;
         _backgrounded = false;
+        if (PipService.isInPip.value) {
+          // isInPip can land a beat after the inactive/hidden dip PIP
+          // transitions cause (native onPipModeChanged is an async round
+          // trip), so the entry guards above can occasionally miss. Nothing
+          // was ever actually backgrounded here — skip the resync below
+          // entirely; requesting + applying a corrected position re-seeks
+          // an already-fine, already-playing video for no reason, which is
+          // what showed up as a ~1s pause/play glitch on every PIP entry.
+          return;
+        }
         _handoffToForegroundVideo();
         // Android pauses the decoder while backgrounded/locked for host and
         // viewer alike — re-sync to the room's real, elapsed-time-corrected

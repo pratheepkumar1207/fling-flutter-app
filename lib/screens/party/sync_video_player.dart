@@ -260,6 +260,20 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
         _backgroundKeepAliveTimer?.cancel();
         _backgroundKeepAliveTimer = null;
         if (!_backgrounded) return;
+        if (PipService.isInPip.value) {
+          // isInPip can still land a beat after the inactive dip that PIP
+          // transitions cause (native onPipModeChanged is an async round
+          // trip — see PipService.enterPip's matching comment on this
+          // exact race), so the guard above can occasionally miss and set
+          // _backgrounded regardless. Nothing was ever actually
+          // backgrounded here — the video kept playing the whole time —
+          // so skip the full just-resumed resync below entirely; running
+          // it anyway re-seeks an already-fine, already-playing video for
+          // no reason, which is what showed up as a ~1s pause/play glitch
+          // on every PIP entry.
+          _backgrounded = false;
+          return;
+        }
         // Deliberately NOT cleared here — stays true (suppressing
         // _onControllerStateChanged's host-only auto-emit) until the
         // corrected resync actually lands in _applyRemotePlaybackIfNeeded.
