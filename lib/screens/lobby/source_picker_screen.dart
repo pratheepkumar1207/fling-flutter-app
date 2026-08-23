@@ -57,7 +57,14 @@ class SourcePickerBody extends StatelessWidget {
   /// and [onSwitchSource] are required in that mode.
   final String? roomId;
   final SongAddCallback? onAddToQueue;
-  final Future<void> Function(String sourceType, String videoUrl, {String? videoTitle, String? videoThumbnail})? onSwitchSource;
+  final Future<void> Function(String sourceType, String videoUrl,
+      {String? videoTitle, String? videoThumbnail})? onSwitchSource;
+
+  /// Small (~3-row) variant used by QueueSheetScreen once something's
+  /// already playing — smaller tiles, tighter grid, same tap targets. The
+  /// full-size grid stays for the empty-queue case and the standalone
+  /// SourcePickerScreen.
+  final bool compact;
 
   const SourcePickerBody({
     super.key,
@@ -66,6 +73,7 @@ class SourcePickerBody extends StatelessWidget {
     this.roomId,
     this.onAddToQueue,
     this.onSwitchSource,
+    this.compact = false,
   });
 
   bool get _inRoom => roomId != null;
@@ -78,7 +86,8 @@ class SourcePickerBody extends StatelessWidget {
         onSelectOverride: _inRoom
             ? (item) {
                 onAddToQueue!(
-                  videoUrl: 'https://www.youtube.com/watch?v=${item['videoId']}',
+                  videoUrl:
+                      'https://www.youtube.com/watch?v=${item['videoId']}',
                   title: item['title'] as String? ?? '',
                   thumbnail: item['thumbnail'] as String?,
                   mediaMode: 'video',
@@ -111,7 +120,10 @@ class SourcePickerBody extends StatelessWidget {
     ));
   }
 
-  void _openWebviewSource(BuildContext context, {required String platform, required String label, required String homeUrl}) {
+  void _openWebviewSource(BuildContext context,
+      {required String platform,
+      required String label,
+      required String homeUrl}) {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => WebviewBrowseScreen(
         platform: platform,
@@ -123,16 +135,36 @@ class SourcePickerBody extends StatelessWidget {
         // nothing's queued yet) — same as YouTube/Drive above — instead of
         // hard-replacing what the room's currently on.
         onAddToQueue: _inRoom
-            ? ({required videoUrl, required title, thumbnail, required mediaMode, String sourceType = 'youtube'}) =>
-                onAddToQueue!(videoUrl: videoUrl, title: title, thumbnail: thumbnail, mediaMode: mediaMode, sourceType: sourceType)
+            ? (
+                    {required videoUrl,
+                    required title,
+                    thumbnail,
+                    required mediaMode,
+                    String sourceType = 'youtube'}) =>
+                onAddToQueue!(
+                    videoUrl: videoUrl,
+                    title: title,
+                    thumbnail: thumbnail,
+                    mediaMode: mediaMode,
+                    sourceType: sourceType)
             : null,
       ),
     ));
   }
 
-  void _handleAppSongPick(BuildContext context, {required String videoUrl, required String title, String? thumbnail, required String mediaMode, required String sourceType}) {
+  void _handleAppSongPick(BuildContext context,
+      {required String videoUrl,
+      required String title,
+      String? thumbnail,
+      required String mediaMode,
+      required String sourceType}) {
     if (_inRoom) {
-      onAddToQueue!(videoUrl: videoUrl, title: title, thumbnail: thumbnail, mediaMode: mediaMode, sourceType: sourceType);
+      onAddToQueue!(
+          videoUrl: videoUrl,
+          title: title,
+          thumbnail: thumbnail,
+          mediaMode: mediaMode,
+          sourceType: sourceType);
       Navigator.of(context).pop();
     } else {
       createWatchRoomAndEnter(
@@ -147,15 +179,26 @@ class SourcePickerBody extends StatelessWidget {
     }
   }
 
-  void _openAppSongList(BuildContext context, {required String title, required String endpoint}) {
+  void _openAppSongList(BuildContext context,
+      {required String title, required String endpoint}) {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => Scaffold(
         backgroundColor: AppColors.bg,
         appBar: AppBar(title: Text(title)),
         body: AppSongListTab(
           endpoint: endpoint,
-          onAdd: ({required videoUrl, required title, thumbnail, required mediaMode, String sourceType = 'youtube'}) =>
-              _handleAppSongPick(context, videoUrl: videoUrl, title: title, thumbnail: thumbnail, mediaMode: mediaMode, sourceType: sourceType),
+          onAdd: (
+                  {required videoUrl,
+                  required title,
+                  thumbnail,
+                  required mediaMode,
+                  String sourceType = 'youtube'}) =>
+              _handleAppSongPick(context,
+                  videoUrl: videoUrl,
+                  title: title,
+                  thumbnail: thumbnail,
+                  mediaMode: mediaMode,
+                  sourceType: sourceType),
         ),
       ),
     ));
@@ -167,8 +210,18 @@ class SourcePickerBody extends StatelessWidget {
         backgroundColor: AppColors.bg,
         appBar: AppBar(title: const Text('Playlists')),
         body: AppPlaylistsTab(
-          onAdd: ({required videoUrl, required title, thumbnail, required mediaMode, String sourceType = 'youtube'}) =>
-              _handleAppSongPick(context, videoUrl: videoUrl, title: title, thumbnail: thumbnail, mediaMode: mediaMode, sourceType: sourceType),
+          onAdd: (
+                  {required videoUrl,
+                  required title,
+                  thumbnail,
+                  required mediaMode,
+                  String sourceType = 'youtube'}) =>
+              _handleAppSongPick(context,
+                  videoUrl: videoUrl,
+                  title: title,
+                  thumbnail: thumbnail,
+                  mediaMode: mediaMode,
+                  sourceType: sourceType),
         ),
       ),
     ));
@@ -176,33 +229,141 @@ class SourcePickerBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = compact;
     return GridView.count(
-      padding: const EdgeInsets.all(16),
-      crossAxisCount: 3,
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 0.68,
+      padding: EdgeInsets.all(c ? 10 : 16),
+      crossAxisCount: c ? 4 : 3,
+      mainAxisSpacing: c ? 8 : 12,
+      crossAxisSpacing: c ? 8 : 12,
+      childAspectRatio: c ? 0.85 : 0.68,
       children: [
-        _SourceTile(iconAsset: 'assets/icons/app/youtube.png', label: 'YouTube', available: true, onTap: () => _openYoutube(context)),
-        _SourceTile(emoji: '❤️', label: 'Liked', available: true, onTap: () => _openAppSongList(context, title: 'Liked songs', endpoint: '/liked-songs')),
-        _SourceTile(emoji: '🕘', label: 'History', available: true, onTap: () => _openAppSongList(context, title: 'History', endpoint: '/song-history')),
-        _SourceTile(emoji: '📃', label: 'Playlists', available: true, onTap: () => _openPlaylists(context)),
-        _SourceTile(iconAsset: 'assets/icons/app/youtube.png', label: 'YouTube Surf', available: true, onTap: () => _openWebviewSource(context, platform: 'youtube_surf', label: 'YouTube Surf', homeUrl: 'https://www.youtube.com')),
-        _SourceTile(icon: FontAwesomeIcons.googleDrive, iconColor: const Color(0xFF0F9D58), label: 'Drive', available: true, onTap: () => _openDrive(context)),
+        _SourceTile(
+            compact: c,
+            iconAsset: 'assets/icons/app/youtube.png',
+            label: 'YouTube',
+            available: true,
+            onTap: () => _openYoutube(context)),
+        _SourceTile(
+            compact: c,
+            emoji: '❤️',
+            label: 'Liked',
+            available: true,
+            onTap: () => _openAppSongList(context,
+                title: 'Liked songs', endpoint: '/liked-songs')),
+        _SourceTile(
+            compact: c,
+            emoji: '🕘',
+            label: 'History',
+            available: true,
+            onTap: () => _openAppSongList(context,
+                title: 'History', endpoint: '/song-history')),
+        _SourceTile(
+            compact: c,
+            emoji: '📃',
+            label: 'Playlists',
+            available: true,
+            onTap: () => _openPlaylists(context)),
+        _SourceTile(
+            compact: c,
+            iconAsset: 'assets/icons/app/youtube.png',
+            label: 'YouTube Surf',
+            available: true,
+            onTap: () => _openWebviewSource(context,
+                platform: 'youtube_surf',
+                label: 'YouTube Surf',
+                homeUrl: 'https://www.youtube.com')),
+        _SourceTile(
+            compact: c,
+            icon: FontAwesomeIcons.googleDrive,
+            iconColor: const Color(0xFF0F9D58),
+            label: 'Drive',
+            available: true,
+            onTap: () => _openDrive(context)),
         // Netflix/Crunchyroll and the India-specific platforms below have no
         // real logo glyph available in font_awesome_flutter's brand set —
         // rather than guess at reproducing their trademarked logo art from
         // memory, these use a colored letter-badge (see _SourceTile.letter)
         // instead of a real logo.
-        _SourceTile(iconAsset: 'assets/icons/app/netflix.png', label: 'Netflix', available: true, onTap: () => _openWebviewSource(context, platform: 'netflix', label: 'Netflix', homeUrl: 'https://www.netflix.com/in/')),
-        _SourceTile(letter: 'H', badgeColor: const Color(0xFF1F80E0), label: 'Hotstar', available: true, onTap: () => _openWebviewSource(context, platform: 'hotstar', label: 'Hotstar', homeUrl: 'https://www.hotstar.com/in/')),
-        _SourceTile(iconAsset: 'assets/icons/app/amazon_prime.png', label: 'Prime Video', available: true, onTap: () => _openWebviewSource(context, platform: 'amazon', label: 'Prime Video', homeUrl: 'https://www.primevideo.com')),
-        _SourceTile(letter: 'A', badgeColor: const Color(0xFFE4002B), label: 'Aha', available: true, onTap: () => _openWebviewSource(context, platform: 'aha', label: 'Aha', homeUrl: 'https://www.aha.video')),
-        _SourceTile(letter: 'S', badgeColor: const Color(0xFFF7941D), label: 'SunNXT', available: true, onTap: () => _openWebviewSource(context, platform: 'sunnxt', label: 'SunNXT', homeUrl: 'https://www.sunnxt.com')),
-        _SourceTile(letter: 'S', badgeColor: const Color(0xFF00A0DC), label: 'SonyLIV', available: true, onTap: () => _openWebviewSource(context, platform: 'sonyliv', label: 'SonyLIV', homeUrl: 'https://www.sonyliv.com')),
-        _SourceTile(letter: 'A', badgeColor: const Color(0xFFE40000), label: 'Airtel Xstream', available: true, onTap: () => _openWebviewSource(context, platform: 'airtel_xstream', label: 'Airtel Xstream', homeUrl: 'https://www.airtelxstream.in')),
-        const _SourceTile(letter: 'C', badgeColor: Color(0xFFF47521), label: 'Crunchyroll', available: false),
-        _SourceTile(icon: FontAwesomeIcons.xTwitter, iconColor: AppColors.text, label: 'X', available: false),
+        _SourceTile(
+            compact: c,
+            iconAsset: 'assets/icons/app/netflix.png',
+            label: 'Netflix',
+            available: true,
+            onTap: () => _openWebviewSource(context,
+                platform: 'netflix',
+                label: 'Netflix',
+                homeUrl: 'https://www.netflix.com/in/')),
+        _SourceTile(
+            compact: c,
+            letter: 'H',
+            badgeColor: const Color(0xFF1F80E0),
+            label: 'Hotstar',
+            available: true,
+            onTap: () => _openWebviewSource(context,
+                platform: 'hotstar',
+                label: 'Hotstar',
+                homeUrl: 'https://www.hotstar.com/in/')),
+        _SourceTile(
+            compact: c,
+            iconAsset: 'assets/icons/app/amazon_prime.png',
+            label: 'Prime Video',
+            available: true,
+            onTap: () => _openWebviewSource(context,
+                platform: 'amazon',
+                label: 'Prime Video',
+                homeUrl: 'https://www.primevideo.com')),
+        _SourceTile(
+            compact: c,
+            letter: 'A',
+            badgeColor: const Color(0xFFE4002B),
+            label: 'Aha',
+            available: true,
+            onTap: () => _openWebviewSource(context,
+                platform: 'aha',
+                label: 'Aha',
+                homeUrl: 'https://www.aha.video')),
+        _SourceTile(
+            compact: c,
+            letter: 'S',
+            badgeColor: const Color(0xFFF7941D),
+            label: 'SunNXT',
+            available: true,
+            onTap: () => _openWebviewSource(context,
+                platform: 'sunnxt',
+                label: 'SunNXT',
+                homeUrl: 'https://www.sunnxt.com')),
+        _SourceTile(
+            compact: c,
+            letter: 'S',
+            badgeColor: const Color(0xFF00A0DC),
+            label: 'SonyLIV',
+            available: true,
+            onTap: () => _openWebviewSource(context,
+                platform: 'sonyliv',
+                label: 'SonyLIV',
+                homeUrl: 'https://www.sonyliv.com')),
+        _SourceTile(
+            compact: c,
+            letter: 'A',
+            badgeColor: const Color(0xFFE40000),
+            label: 'Airtel Xstream',
+            available: true,
+            onTap: () => _openWebviewSource(context,
+                platform: 'airtel_xstream',
+                label: 'Airtel Xstream',
+                homeUrl: 'https://www.airtelxstream.in')),
+        _SourceTile(
+            compact: c,
+            letter: 'C',
+            badgeColor: const Color(0xFFF47521),
+            label: 'Crunchyroll',
+            available: false),
+        _SourceTile(
+            compact: c,
+            icon: FontAwesomeIcons.xTwitter,
+            iconColor: AppColors.text,
+            label: 'X',
+            available: false),
       ],
     );
   }
@@ -227,6 +388,7 @@ class _SourceTile extends StatelessWidget {
   final String label;
   final bool available;
   final VoidCallback? onTap;
+  final bool compact;
 
   const _SourceTile({
     this.emoji,
@@ -238,21 +400,32 @@ class _SourceTile extends StatelessWidget {
     required this.label,
     required this.available,
     this.onTap,
+    this.compact = false,
   });
 
   Widget _visual() {
-    if (iconAsset != null) return Image.asset(iconAsset!, width: 56, height: 56);
-    if (icon != null) return FaIcon(icon, color: iconColor, size: 26);
+    final iconSize = compact ? 30.0 : 56.0;
+    final faSize = compact ? 18.0 : 26.0;
+    final badgeSize = compact ? 24.0 : 32.0;
+    final emojiSize = compact ? 18.0 : 28.0;
+    if (iconAsset != null) {
+      return Image.asset(iconAsset!, width: iconSize, height: iconSize);
+    }
+    if (icon != null) return FaIcon(icon, color: iconColor, size: faSize);
     if (letter != null) {
       return Container(
-        width: 32,
-        height: 32,
+        width: badgeSize,
+        height: badgeSize,
         decoration: BoxDecoration(color: badgeColor, shape: BoxShape.circle),
         alignment: Alignment.center,
-        child: Text(letter!, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+        child: Text(letter!,
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: compact ? 12 : 16,
+                fontWeight: FontWeight.w800)),
       );
     }
-    return Text(emoji ?? '', style: const TextStyle(fontSize: 28));
+    return Text(emoji ?? '', style: TextStyle(fontSize: emojiSize));
   }
 
   @override
@@ -262,15 +435,30 @@ class _SourceTile extends StatelessWidget {
       child: Opacity(
         opacity: available ? 1 : 0.35,
         child: Container(
-          decoration: BoxDecoration(color: AppColors.surface, border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(14)),
+          decoration: BoxDecoration(
+              color: AppColors.surface,
+              border: Border.all(color: AppColors.border),
+              borderRadius: BorderRadius.circular(compact ? 10 : 14)),
           alignment: Alignment.center,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               _visual(),
-              const SizedBox(height: 8),
-              Text(label, style: const TextStyle(color: AppColors.text, fontSize: 12, fontWeight: FontWeight.w600), textAlign: TextAlign.center),
-              if (!available) const Padding(padding: EdgeInsets.only(top: 4), child: Text('Coming soon', style: TextStyle(color: AppColors.textFaint, fontSize: 9))),
+              SizedBox(height: compact ? 4 : 8),
+              Text(label,
+                  style: TextStyle(
+                      color: AppColors.text,
+                      fontSize: compact ? 9.5 : 12,
+                      fontWeight: FontWeight.w600),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+              if (!available && !compact)
+                const Padding(
+                    padding: EdgeInsets.only(top: 4),
+                    child: Text('Coming soon',
+                        style: TextStyle(
+                            color: AppColors.textFaint, fontSize: 9))),
             ],
           ),
         ),

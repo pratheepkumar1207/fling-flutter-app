@@ -103,6 +103,11 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
   Widget build(BuildContext context) {
     final items = (widget.queue['items'] as List?) ?? [];
     final currentIndex = widget.queue['currentIndex'] as int? ?? 0;
+    // Once something's already playing, the picker moves below the queue
+    // list and shrinks to a compact ~3-row grid instead of the big one
+    // above it — the big picker above only makes sense for an empty room
+    // where there's nothing else on screen to push down.
+    final somethingPlaying = items.isNotEmpty;
     // First row (in existing array order) that isn't the current track —
     // that's where the "UP NEXT" label goes, right before it.
     final firstUpNextIndex = items.isEmpty
@@ -202,7 +207,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                         ],
                       ),
                     ),
-                    if (widget.canAddSongs && _showPicker)
+                    if (widget.canAddSongs && _showPicker && !somethingPlaying)
                       SizedBox(
                         height: 320,
                         child: SourcePickerBody(
@@ -357,6 +362,16 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                               },
                             ),
                     ),
+                    if (widget.canAddSongs && _showPicker && somethingPlaying)
+                      SizedBox(
+                        height: 150,
+                        child: SourcePickerBody(
+                          compact: true,
+                          roomId: widget.roomId,
+                          onAddToQueue: _addToQueue,
+                          onSwitchSource: widget.onSwitchSource,
+                        ),
+                      ),
                   ],
                 ),
               ),
