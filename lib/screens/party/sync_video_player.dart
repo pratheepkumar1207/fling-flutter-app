@@ -83,6 +83,18 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
   // trip is in flight (see didChangeAppLifecycleState / _applyRemotePlaybackIfNeeded).
   bool _justResumed = false;
   Timer? _justResumedFallback;
+  // Counteracts youtube_player_flutter's own internal WidgetsBindingObserver
+  // (see raw_youtube_player.dart), which explicitly calls player.pauseVideo()
+  // on every AppLifecycleState.paused — a battery-saving default baked into
+  // the plugin, not something Android itself forces. Re-asserting play()
+  // periodically while backgrounded fights that so audio keeps going
+  // instead of cutting out the moment the screen locks/app backgrounds.
+  // EXPERIMENTAL: whether the underlying WebView's audio track actually
+  // keeps producing sound once the Activity itself isn't visible hasn't
+  // been confirmed on a real device — this assumes it does as long as the
+  // process stays alive (which RoomPresenceService's foreground service
+  // already guarantees) and nothing explicitly re-pauses it.
+  Timer? _backgroundKeepAliveTimer;
 
   @override
   void initState() {
@@ -235,7 +247,10 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
         // in PIP (see _onControllerStateChanged's _backgrounded guard).
         if (PipService.isInPip.value) return;
         _backgrounded = true;
+        _startBackgroundKeepAlive();
       case AppLifecycleState.resumed:
+        _backgroundKeepAliveTimer?.cancel();
+        _backgroundKeepAliveTimer = null;
         if (!_backgrounded) return;
         // Deliberately NOT cleared here — stays true (suppressing
         // _onControllerStateChanged's host-only auto-emit) until the
@@ -263,6 +278,25 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
       case AppLifecycleState.detached:
         break;
     }
+  }
+
+  void _startBackgroundKeepAlive() {
+    final c = _controller;
+    // Read isPlaying now, before youtube_player_flutter's own observer
+    // (registered on a State deeper in the tree, so it fires after ours for
+    // the same lifecycle event) gets a chance to call pause() itself.
+    if (c == null || !c.value.isPlaying) return;
+    _backgroundKeepAliveTimer?.cancel();
+    // A quick first re-assert shortly after the plugin's own pause() call
+    // (issued moments after this, later in the same lifecycle dispatch)
+    // has had time to actually reach the WebView, then keep re-asserting
+    // periodically in case Android's own throttling kicks in later. play()
+    // on an already-playing video is a no-op in the YouTube IFrame API
+    // (doesn't restart/seek), so this is safe to call repeatedly.
+    _backgroundKeepAliveTimer =
+        Timer.periodic(const Duration(milliseconds: 800), (_) {
+      _controller?.play();
+    });
   }
 
   double get _positionSeconds =>
@@ -564,6 +598,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _justResumedFallback?.cancel();
+    _backgroundKeepAliveTimer?.cancel();
     _controller?.removeListener(_onControllerStateChanged);
     _controller?.dispose();
     super.dispose();
