@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../screens/party/live_broadcast_controller.dart';
 import '../screens/party/room_socket_controller.dart';
 import '../screens/party/voice_chat_controller.dart';
+import 'background_audio_handler.dart';
 import 'room_presence_service.dart';
 
 /// Keeps a room's live connection (socket, roster, chat, playback state)
@@ -59,6 +60,11 @@ class ActiveRoomHolder {
     voice?.dispose();
     live?.dispose();
     RoomPresenceService.stop();
+    // A real leave, not a minimize — stop any Drive audio that a room
+    // screen's own dispose() may have just handed off to the background
+    // session (see drive_video_player.dart), or it'd keep playing forever
+    // with nothing left to reattach it to.
+    backgroundAudioHandler.stopSource();
     roomId = null;
     roomTitle = null;
     controller = null;

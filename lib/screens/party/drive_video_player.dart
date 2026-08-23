@@ -218,7 +218,10 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
   // (a real native media session) is what actually keeps sound going with
   // the screen off/app backgrounded and gives lock-screen play/pause
   // controls, instead of the room just going silent for this device.
-  Future<void> _handoffToBackgroundAudio() async {
+  // [pauseController] is skipped when called from dispose() — the local
+  // controller is about to be destroyed anyway right after, so pausing it
+  // first would just race that teardown for no benefit.
+  Future<void> _handoffToBackgroundAudio({bool pauseController = true}) async {
     final c = _controller;
     final fileId = _currentFileId;
     if (c == null ||
@@ -228,7 +231,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
       return;
     }
     final position = c.value.position;
-    await c.pause();
+    if (pauseController) await c.pause();
     final token = ApiClient.tokenGetter?.call();
     final uri =
         '${ApiClient.baseUrl}/drive/stream/$fileId?roomId=${widget.roomId}';
@@ -487,7 +490,21 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    if (_handedOffToBackground) backgroundAudioHandler.stopSource();
+    if (_handedOffToBackground) {
+      // Already playing through the background session (we were OS-
+      // backgrounded) and now the widget itself is going away too — stop
+      // rather than leaving it playing with nothing left to reattach to.
+      backgroundAudioHandler.stopSource();
+    } else {
+      // Leaving this screen while still in the foreground — in-app
+      // navigation to another page, not an OS-level background. Hand off
+      // to the same background session so audio keeps playing instead of
+      // cutting out; ActiveRoomHolder.leave() stops it again if this
+      // dispose turns out to be a real "Leave Room", not just a minimize.
+      // Fire-and-forget: pauseController:false skips awaiting a pause on
+      // the controller we're about to dispose two lines down anyway.
+      _handoffToBackgroundAudio(pauseController: false);
+    }
     _controller?.removeListener(_onTick);
     _controller?.dispose();
     super.dispose();
