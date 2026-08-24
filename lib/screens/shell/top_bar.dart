@@ -4,13 +4,14 @@ import '../../core/auth_provider.dart';
 import '../../core/format.dart';
 import '../../theme/clay_colors.dart';
 import '../../widgets/avatar.dart';
+import '../../widgets/glass.dart';
+import '../leaderboards/leaderboards_screen.dart';
 import '../notifications/notification_bell.dart';
 import '../profile/profile_screen.dart';
-import '../search/search_screen.dart';
 import '../wallet/wallet_screen.dart';
 
 /// Flat bar (no card/pill background) — avatar->profile, wallet pill,
-/// search, notifications.
+/// leaderboards, notifications.
 class FlingTopBar extends StatelessWidget implements PreferredSizeWidget {
   const FlingTopBar({super.key});
 
@@ -59,34 +60,48 @@ class FlingTopBar extends StatelessWidget implements PreferredSizeWidget {
                                   builder: (_) => const WalletScreen())),
                           child: Container(
                             margin: const EdgeInsets.symmetric(horizontal: 4),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: clay.surface3,
+                            child: GlassPanel(
                               borderRadius: BorderRadius.circular(999),
-                              border: Border.all(color: clay.border),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.monetization_on_rounded,
-                                    color: clay.gold, size: 16),
-                                const SizedBox(width: 4),
-                                Text(formatNumber(user?.coinBalance),
-                                    style: TextStyle(
-                                        color: clay.gold,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600)),
-                              ],
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 6),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.monetization_on_rounded,
+                                        color: clay.gold, size: 16),
+                                    const SizedBox(width: 4),
+                                    Text(formatNumber(user?.coinBalance),
+                                        style: TextStyle(
+                                            color: clay.gold,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600)),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                        IconButton(
-                          icon: Image.asset('assets/icons/app/search.png',
-                              width: 44, height: 44),
-                          onPressed: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                  builder: (_) => const SearchScreen())),
+                        // Who's on top — gifters/supporters, creators,
+                        // users, communities — replaces the old search
+                        // icon slot (search still lives on Home's own
+                        // search bar, so this wasn't the only way to it).
+                        // Glass circle (matching the bottom nav's look)
+                        // around the app's own trophy asset instead of a
+                        // plain Material glyph on a bare IconButton.
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: GlassCircleButton(
+                            size: 40,
+                            onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        const LeaderboardsScreen())),
+                            child: Image.asset(
+                                'assets/icons/app/achievement.png',
+                                width: 26,
+                                height: 26),
+                          ),
                         ),
                         // Messages moved to its own bottom-nav slot (was
                         // duplicated here and in the nav) — see app_shell.dart.

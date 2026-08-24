@@ -222,6 +222,23 @@ class SourcePickerBody extends StatelessWidget {
                   thumbnail: thumbnail,
                   mediaMode: mediaMode,
                   sourceType: sourceType),
+          // Only offered in-room — queueing a whole playlist at once only
+          // makes sense against an existing room's queue, not the "create
+          // a new room" flow (which would otherwise try to create one new
+          // room per song).
+          onAddAll: _inRoom
+              ? (songs) {
+                  for (final s in songs) {
+                    onAddToQueue!(
+                        videoUrl: s.videoUrl ?? '',
+                        title: s.title ?? '',
+                        thumbnail: s.thumbnail,
+                        mediaMode: 'video',
+                        sourceType: s.sourceType);
+                  }
+                  Navigator.of(context).pop();
+                }
+              : null,
         ),
       ),
     ));
