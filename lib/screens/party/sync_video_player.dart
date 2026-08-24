@@ -302,8 +302,20 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
           // actually backgrounded, so skip the just-resumed resync below
           // entirely; running it anyway re-seeks an already-fine,
           // already-playing video for no reason.
-          _backgrounded = false;
           _pipInvolvedInCurrentDip = false;
+          // _backgrounded stays true a bit longer, though — Chromium's own
+          // WebView-level pause/resume around the PIP transition sends its
+          // StateChange event to Dart asynchronously, and that message can
+          // still be in flight when this handler runs. Clearing the
+          // suppression guard immediately let a late-arriving "paused"
+          // StateChange through _maybeReportPlayState, broadcasting it to
+          // the whole room as a real pause — which then stuck, since
+          // nothing ever told the room (or this page's own shouldBePlaying
+          // flag) to resume again. Absorbing that window first fixes it at
+          // the source instead of chasing the broadcast after the fact.
+          Timer(const Duration(milliseconds: 1200), () {
+            if (mounted) _backgrounded = false;
+          });
           return;
         }
         setState(() => _justResumed = true);
