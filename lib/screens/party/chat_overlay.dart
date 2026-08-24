@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/profile_nav.dart';
 import '../../models/room_models.dart';
 import '../../widgets/avatar.dart';
+import '../../widgets/chat_attachment_sheet.dart';
 
 // Deterministic per-sender name color, cycling through a small palette —
 // matches WatchPartyDark.dc.html's floating chat, where each speaker's name
@@ -68,7 +69,6 @@ class ChatOverlay extends StatefulWidget {
 class _ChatOverlayState extends State<ChatOverlay> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
-  bool _focused = false;
   // Non-null while the text after the last '@' looks like an in-progress
   // handle (no whitespace yet) — drives the mention suggestion list. Empty
   // string matches "just typed @", not "no @ at all".
@@ -86,13 +86,6 @@ class _ChatOverlayState extends State<ChatOverlay> {
   @override
   void initState() {
     super.initState();
-    _focusNode.addListener(() {
-      // Collapses the poll/gift/invite row once the keyboard comes up —
-      // that row would otherwise fight the text being typed for space,
-      // and none of those actions make sense to reach for mid-message
-      // anyway.
-      setState(() => _focused = _focusNode.hasFocus);
-    });
     _controller.addListener(_updateMentionQuery);
   }
 
@@ -311,16 +304,13 @@ class _ChatOverlayState extends State<ChatOverlay> {
                         ),
                       ),
                     ),
-                    // Collapses away once the field is focused/keyboard is
-                    // up — these quick actions would otherwise sit in the
-                    // way of the text being typed, and none of them are
-                    // things you reach for mid-message anyway.
-                    if (!_focused) ...[
-                      _inlineIcon(Icons.poll_rounded, widget.onPoll),
-                      _inlineIcon(Icons.card_giftcard_rounded, widget.onGift),
-                      _inlineIcon(
-                          Icons.person_add_alt_1_rounded, widget.onInvite),
-                    ],
+                    _inlineIcon(
+                        Icons.attach_file_rounded,
+                        () => showChatAttachmentSheet(context,
+                            onPoll: widget.onPoll)),
+                    _inlineIcon(Icons.card_giftcard_rounded, widget.onGift),
+                    _inlineIcon(
+                        Icons.person_add_alt_1_rounded, widget.onInvite),
                   ],
                 ),
               ),

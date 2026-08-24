@@ -5,6 +5,7 @@ import '../../models/room_models.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/club_room_colors.dart';
 import '../../widgets/avatar.dart';
+import '../../widgets/chat_attachment_sheet.dart';
 
 class ChatPanel extends StatefulWidget {
   final List<Map<String, dynamic>> messages;
@@ -52,7 +53,6 @@ class _ChatPanelState extends State<ChatPanel> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
-  bool _focused = false;
   // Non-null while the text after the last '@' looks like an in-progress
   // handle (no whitespace yet) — drives the mention suggestion list. Empty
   // string matches "just typed @", not "no @ at all".
@@ -62,9 +62,6 @@ class _ChatPanelState extends State<ChatPanel> {
   @override
   void initState() {
     super.initState();
-    _focusNode.addListener(() {
-      setState(() => _focused = _focusNode.hasFocus);
-    });
     _controller.addListener(_updateMentionQuery);
   }
 
@@ -344,15 +341,15 @@ class _ChatPanelState extends State<ChatPanel> {
                         onSubmitted: (_) => _send(),
                       ),
                     ),
-                    // Collapses away once the field is focused/keyboard is up
-                    // — same reasoning as chat_overlay.dart's matching row.
-                    if (!_focused) ...[
-                      _inlineIcon(Icons.poll_rounded, widget.onPoll, textDim),
-                      _inlineIcon(
-                          Icons.card_giftcard_rounded, widget.onGift, textDim),
-                      _inlineIcon(Icons.person_add_alt_1_rounded,
-                          widget.onInvite, textDim),
-                    ],
+                    _inlineIcon(
+                        Icons.attach_file_rounded,
+                        () => showChatAttachmentSheet(context,
+                            onPoll: widget.onPoll),
+                        textDim),
+                    _inlineIcon(
+                        Icons.card_giftcard_rounded, widget.onGift, textDim),
+                    _inlineIcon(Icons.person_add_alt_1_rounded, widget.onInvite,
+                        textDim),
                   ],
                 ),
               ),

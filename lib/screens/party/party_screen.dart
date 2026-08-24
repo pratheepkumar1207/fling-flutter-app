@@ -305,11 +305,13 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
 
   Future<void> _boost() async {
     try {
-      final res = await ApiClient.post('/rooms/${widget.roomId}/boost',
-          body: {'days': 1}) as Map<String, dynamic>;
+      await ApiClient.post('/rooms/${widget.roomId}/boost', body: {'days': 1})
+          as Map<String, dynamic>;
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Boosted until ${res['boostedUntil']}')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'Boosted — more visibility to help you get more participants'),
+        ));
       }
     } catch (_) {
       if (mounted) {
@@ -614,10 +616,6 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
         ? ClubRoomColors.text
         : (isWatch ? VolaPartyColors.text : AppColors.text);
     final myId = context.read<AuthProvider>().user?.id;
-    final hostRoster = rs.roster.where((r) => r.userId == rs.hostId);
-    final hostName = hostRoster.isNotEmpty
-        ? hostRoster.first.name
-        : (room['hostName'] as String? ?? 'Host');
     final boostedUntilRaw = room['boostedUntil'] as String?;
     final isBoosted = boostedUntilRaw != null &&
         (DateTime.tryParse(boostedUntilRaw)?.isAfter(DateTime.now()) ?? false);
@@ -712,24 +710,30 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
               onPressed: _leaveRoom,
               icon: Icon(Icons.logout_rounded, color: roomTextDim),
             ),
-            // "Title" + "Hosted by X" subtitle, matching the mockups' roomtop
-            // header exactly — not a separate host card below the player.
-            title: Column(
-              key: _hostKey,
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(room['title'] as String? ?? '',
-                    style: const TextStyle(
-                        fontSize: 14.5, fontWeight: FontWeight.w700),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-                Text('Hosted by $hostName',
-                    style: TextStyle(fontSize: 10.5, color: roomTextDim),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-              ],
-            ),
+            // Room title/"Hosted by" removed — the boost action lives here
+            // instead now. _hostKey stays attached (moved from the old
+            // title Column) since showGiftBottomSheet's targetKey still
+            // needs some real widget in the AppBar to fly gift animations
+            // toward.
+            title: rs.isHost
+                ? GestureDetector(
+                    key: _hostKey,
+                    onTap: _boost,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.rocket_launch_rounded,
+                            color: roomGold, size: 18),
+                        const SizedBox(width: 6),
+                        Text('Boost',
+                            style: TextStyle(
+                                color: roomGold,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700)),
+                      ],
+                    ),
+                  )
+                : SizedBox(key: _hostKey),
             actions: [
               if (isWatch)
                 IconButton(
