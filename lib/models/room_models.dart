@@ -17,7 +17,8 @@ class RoomSummary {
   });
 
   factory RoomSummary.fromJson(Map<String, dynamic> json) {
-    final room = json['room'] is Map ? json['room'] as Map<String, dynamic> : json;
+    final room =
+        json['room'] is Map ? json['room'] as Map<String, dynamic> : json;
     return RoomSummary(
       id: room['id'] as String,
       title: room['title'] as String? ?? 'Untitled room',
@@ -33,6 +34,11 @@ class RoomSummary {
 class RosterEntry {
   final String userId;
   final String name;
+  // The room roster payload already carries this (see syncHandler.js's
+  // rosterList — it spreads the same {name, username, avatarUrl} stored on
+  // join), just wasn't parsed out here before — needed for @mention
+  // autocomplete, which tags by handle rather than display name.
+  final String? username;
   final String? avatarUrl;
   final bool isHost;
   final bool micOn;
@@ -40,6 +46,7 @@ class RosterEntry {
   RosterEntry({
     required this.userId,
     required this.name,
+    this.username,
     this.avatarUrl,
     this.isHost = false,
     this.micOn = false,
@@ -49,6 +56,7 @@ class RosterEntry {
     return RosterEntry(
       userId: json['userId'] as String? ?? json['id'] as String? ?? '',
       name: json['name'] as String? ?? 'Guest',
+      username: json['username'] as String?,
       avatarUrl: json['avatarUrl'] as String?,
       isHost: json['isHost'] as bool? ?? false,
       micOn: json['micOn'] as bool? ?? false,

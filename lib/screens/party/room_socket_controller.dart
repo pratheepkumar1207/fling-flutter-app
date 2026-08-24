@@ -38,6 +38,11 @@ class RoomSocketController extends ChangeNotifier {
     'pinPermission': 'host'
   };
   String? queueDenied;
+  // One-shot signal — set when the server tells this client it was just
+  // @mentioned, cleared by clearMention() once party_screen.dart has shown
+  // the pop-up/played the sound for it. {fromName, text} — see
+  // syncHandler.js's chat:mentioned emit.
+  Map<String, dynamic>? mention;
 
   bool get isHost => hostId != null && myUserId != null && hostId == myUserId;
   bool get canPin => isHost || settings['pinPermission'] == 'anyone';
@@ -151,6 +156,10 @@ class RoomSocketController extends ChangeNotifier {
       queueDenied = data['reason'] as String?;
       notifyListeners();
     });
+    s.on('chat:mentioned', (data) {
+      mention = Map<String, dynamic>.from(data);
+      notifyListeners();
+    });
   }
 
   void leave() {
@@ -172,6 +181,7 @@ class RoomSocketController extends ChangeNotifier {
     socket?.off('room:typeChanged');
     socket?.off('room:settingsChanged');
     socket?.off('queue:denied');
+    socket?.off('chat:mentioned');
   }
 
   void clearMicDenied() {
@@ -184,8 +194,17 @@ class RoomSocketController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void sendMessage(String text) =>
-      socket?.emit('chat:message', {'roomId': roomId, 'text': text});
+  void clearMention() {
+    mention = null;
+    notifyListeners();
+  }
+
+  void sendMessage(String text, {List<String> mentionedUserIds = const []}) =>
+      socket?.emit('chat:message', {
+        'roomId': roomId,
+        'text': text,
+        if (mentionedUserIds.isNotEmpty) 'mentionedUserIds': mentionedUserIds,
+      });
   void play(double position) {
     if (isHost) {
       socket?.emit('playback:play', {'roomId': roomId, 'position': position});

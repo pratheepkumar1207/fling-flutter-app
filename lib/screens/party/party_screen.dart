@@ -18,7 +18,7 @@ import '../../widgets/participant_avatar_row.dart';
 import '../../widgets/poll_bottom_sheet.dart';
 import '../../widgets/poll_creator_bottom_sheet.dart';
 import '../../widgets/room_settings_sheet.dart';
-import '../../widgets/share_row.dart';
+import '../../widgets/share_bottom_sheet.dart';
 import '../../widgets/spinner.dart';
 import '../../widgets/voice_stage_view.dart';
 import '../lobby/invite_screen.dart';
@@ -211,6 +211,16 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           .showSnackBar(SnackBar(content: Text(rs.queueDenied!)));
       rs.clearQueueDenied();
     }
+    if (rs.mention != null) {
+      final fromName = rs.mention!['fromName'] as String? ?? 'Someone';
+      SystemSound.play(SystemSoundType.alert);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('$fromName mentioned you'),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ));
+      rs.clearMention();
+    }
 
     // The host changed the room's type elsewhere (or another device) — pick
     // up the new fields so the video/voice/game UI switches over live.
@@ -318,14 +328,16 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _shareRoom() async {
-    // No deployed web-app domain exists yet — points at the backend host as
-    // a placeholder; update once the web frontend has a production URL.
-    final url = '${ApiClient.baseUrl}/party/${widget.roomId}';
-    await Clipboard.setData(ClipboardData(text: url));
-    if (mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Room link copied')));
-    }
+    // The room's own control-bar share action — was a plain clipboard copy,
+    // now opens the same "Share to" bottom sheet (apps + Copy Link) the
+    // AppBar's share icon used to, since that one's been removed in favor
+    // of this being the room's single share entry point.
+    final room = _room;
+    await showShareBottomSheet(
+      context,
+      text: 'Join "${room?['title'] ?? 'my room'}" on Insync',
+      url: '${ApiClient.baseUrl}/rooms/${widget.roomId}',
+    );
   }
 
   void _openInvite() {
@@ -666,7 +678,15 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
             foregroundColor: isVoice
                 ? ClubRoomColors.text
                 : (isWatch ? VolaPartyColors.text : null),
-            leading: BackButton(onPressed: () => Navigator.of(context).pop()),
+            // Leave, not back — a plain pop/minimize still works via the
+            // system back gesture (ActiveRoomHolder keeps the room running
+            // either way), but this top-left slot is now the explicit,
+            // always-visible way to actually leave.
+            leading: IconButton(
+              tooltip: 'Leave room',
+              onPressed: _leaveRoom,
+              icon: Icon(Icons.logout_rounded, color: roomTextDim),
+            ),
             // "Title" + "Hosted by X" subtitle, matching the mockups' roomtop
             // header exactly — not a separate host card below the player.
             title: Column(
@@ -713,11 +733,17 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                   onPressed: _openQueue,
                   icon: Icon(Icons.search, color: roomTextDim),
                 ),
-              ShareRow(
-                text: 'Join "${room['title'] ?? 'my room'}" on Insync',
-                url: '${ApiClient.baseUrl}/rooms/${widget.roomId}',
-                iconAsset: 'assets/icons/app/share_lobby.png',
-              ),
+              // Settings 2nd from right, participants at the very top
+              // right — the control-bar share icon below (_shareRoom) now
+              // covers sharing, so there's no separate share action up here
+              // anymore.
+              if (rs.isHost && room['roomType'] != 'live')
+                IconButton(
+                  tooltip: 'Room settings',
+                  onPressed: () => showRoomSettingsSheet(context,
+                      room: room, onChanged: _loadRoom),
+                  icon: Icon(Icons.settings_outlined, color: roomTextDim),
+                ),
               // Pill-styled participant count, matching the redesign's .pill
               // component (WatchPartyDark.dc.html) instead of a plain TextButton.
               GestureDetector(
@@ -740,21 +766,6 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                             fontWeight: FontWeight.w600)),
                   ]),
                 ),
-              ),
-              if (rs.isHost && room['roomType'] != 'live')
-                IconButton(
-                  tooltip: 'Room settings',
-                  onPressed: () => showRoomSettingsSheet(context,
-                      room: room, onChanged: _loadRoom),
-                  icon: Icon(Icons.settings_outlined, color: roomTextDim),
-                ),
-              // Distinct from the back button on purpose — back just minimizes
-              // (the room keeps running, see ActiveRoomHolder), this is the
-              // only thing that actually leaves.
-              IconButton(
-                tooltip: 'Leave room',
-                onPressed: _leaveRoom,
-                icon: Icon(Icons.logout_rounded, color: roomTextDim),
               ),
             ],
           ),
@@ -967,10 +978,35 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                               padding: const EdgeInsets.only(right: 54),
                               child: ChatOverlay(
                                 messages: rs.messages,
-                                onSend: rs.sendMessage,
+                                onSend: (text, mentionedUserIds) =>
+                                    rs.sendMessage(text,
+                                        mentionedUserIds: mentionedUserIds),
                                 myUserId: myId,
                                 primaryColor: roomPrimary,
                                 textColor: roomText,
+                                roster: rs.roster,
+                                myMicOn: myMicOn,
+                                myMicRequested: myMicRequested,
+                                onMicTap: handleMicTap,
+                                onPoll: () {
+                                  if (rs.isHost) {
+                                    showPollCreatorBottomSheet(context,
+                                        onCreate: rs.createPoll);
+                                  } else if (rs.poll['active'] == true) {
+                                    showPollBottomSheet(context,
+                                        poll: rs.poll,
+                                        myUserId: myId ?? '',
+                                        isHost: rs.isHost,
+                                        roster: rs.roster,
+                                        onVote: rs.votePoll,
+                                        onReset: rs.resetPoll);
+                                  }
+                                },
+                                onGift: () => showGiftBottomSheet(context,
+                                    toUserId: room['hostId'] as String? ?? '',
+                                    roomId: widget.roomId,
+                                    targetKey: _hostKey),
+                                onInvite: _openInvite,
                               ),
                             ),
                             Positioned(
