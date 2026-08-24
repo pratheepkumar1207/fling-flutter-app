@@ -5,6 +5,7 @@ import '../core/api_client.dart';
 import '../core/api_exception.dart';
 import '../theme/app_colors.dart';
 import 'app_image.dart';
+import 'glass.dart';
 
 const _kGameTypes = [
   ['tictactoe', '⭕ Tic Tac Toe'],
@@ -223,321 +224,323 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
-        decoration: const BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                    width: 36,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                        color: AppColors.border,
-                        borderRadius: BorderRadius.circular(999))),
-              ),
-              const Text('Room settings',
-                  style: TextStyle(
-                      color: AppColors.text,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                    color: AppColors.surface2,
-                    borderRadius: BorderRadius.circular(14)),
-                child: Row(
-                  children: [
-                    for (final t in [
-                      ['watch', '📺 Watch'],
-                      ['voice', '🎙️ Voice'],
-                      ['game', '🎮 Game']
-                    ])
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _roomType = t[0]),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 9),
-                            decoration: BoxDecoration(
-                              color:
-                                  _roomType == t[0] ? AppColors.accent2 : null,
-                              borderRadius: BorderRadius.circular(10),
+      child: GlassPanel(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                          color: AppColors.border,
+                          borderRadius: BorderRadius.circular(999))),
+                ),
+                const Text('Room settings',
+                    style: TextStyle(
+                        color: AppColors.text,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                      color: AppColors.surface2,
+                      borderRadius: BorderRadius.circular(14)),
+                  child: Row(
+                    children: [
+                      for (final t in [
+                        ['watch', '📺 Watch'],
+                        ['voice', '🎙️ Voice'],
+                        ['game', '🎮 Game']
+                      ])
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _roomType = t[0]),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 9),
+                              decoration: BoxDecoration(
+                                color: _roomType == t[0]
+                                    ? AppColors.accent2
+                                    : null,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(t[1],
+                                  style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: _roomType == t[0]
+                                          ? Colors.white
+                                          : AppColors.textFaint)),
                             ),
-                            alignment: Alignment.center,
-                            child: Text(t[1],
-                                style: TextStyle(
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: _roomType == t[0]
-                                        ? Colors.white
-                                        : AppColors.textFaint)),
                           ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (_roomType == 'voice') ...[
+                  const SizedBox(height: 14),
+                  const Text('ROOM COVER',
+                      style: TextStyle(
+                          color: AppColors.textFaint,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: SizedBox(
+                          width: 56,
+                          height: 56,
+                          child: (_thumbnail != null && _thumbnail!.isNotEmpty)
+                              ? AppImage(source: _thumbnail, fit: BoxFit.cover)
+                              : Container(
+                                  color: AppColors.surface,
+                                  alignment: Alignment.center,
+                                  child: const Text('🎙️',
+                                      style: TextStyle(fontSize: 22)),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: [
+                            OutlinedButton(
+                                onPressed: _pickThumbnail,
+                                child: const Text('Change cover')),
+                            if (_thumbnail != null && _thumbnail!.isNotEmpty)
+                              TextButton(
+                                  onPressed: _clearThumbnail,
+                                  child: const Text('Use default')),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                if (_roomType == 'game') ...[
+                  const SizedBox(height: 14),
+                  for (final g in _kGameTypes)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: GestureDetector(
+                        onTap: () => setState(() => _gameType = g[0]),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: _gameType == g[0]
+                                ? AppColors.accent2.withValues(alpha: 0.1)
+                                : AppColors.surface,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                                color: _gameType == g[0]
+                                    ? AppColors.accent2
+                                    : AppColors.border),
+                          ),
+                          child: Text(g[1],
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: _gameType == g[0]
+                                      ? AppColors.accent2
+                                      : AppColors.textDim)),
+                        ),
+                      ),
+                    ),
+                ],
+                if (_roomType == 'watch') ...[
+                  const SizedBox(height: 14),
+                  if (_pinned != null)
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.border)),
+                      child: Row(
+                        children: [
+                          Expanded(
+                              child: Text(_pinned!['title'] as String? ?? '',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      color: AppColors.text, fontSize: 13))),
+                          TextButton(
+                            onPressed: () => setState(() {
+                              _pinned = null;
+                              _urlController.clear();
+                            }),
+                            child: const Text('Change'),
+                          ),
+                        ],
+                      ),
+                    )
+                  else ...[
+                    TextField(
+                      onChanged: _search,
+                      decoration: const InputDecoration(
+                          hintText: 'Search YouTube for a video…'),
+                      style:
+                          const TextStyle(color: AppColors.text, fontSize: 13),
+                    ),
+                    if (_searching)
+                      const Padding(
+                          padding: EdgeInsets.only(top: 8),
+                          child: LinearProgressIndicator()),
+                    if (_results.isNotEmpty)
+                      SizedBox(
+                        height: 200,
+                        child: ListView.builder(
+                          itemCount: _results.length,
+                          itemBuilder: (context, i) {
+                            final r = _results[i];
+                            return ListTile(
+                              dense: true,
+                              leading: ClipRRect(
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: Image.network(
+                                      r['thumbnail'] as String? ?? '',
+                                      width: 56,
+                                      height: 40,
+                                      fit: BoxFit.cover)),
+                              title: Text(r['title'] as String? ?? '',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      color: AppColors.text, fontSize: 12)),
+                              onTap: () => _pin(r),
+                            );
+                          },
                         ),
                       ),
                   ],
-                ),
-              ),
-              if (_roomType == 'voice') ...[
-                const SizedBox(height: 14),
-                const Text('ROOM COVER',
+                ],
+                const SizedBox(height: 16),
+                const Divider(color: AppColors.border),
+                const SizedBox(height: 8),
+                const Text('LOBBY VISIBILITY',
                     style: TextStyle(
                         color: AppColors.textFaint,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.5)),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: SizedBox(
-                        width: 56,
-                        height: 56,
-                        child: (_thumbnail != null && _thumbnail!.isNotEmpty)
-                            ? AppImage(source: _thumbnail, fit: BoxFit.cover)
-                            : Container(
-                                color: AppColors.surface,
-                                alignment: Alignment.center,
-                                child: const Text('🎙️',
-                                    style: TextStyle(fontSize: 22)),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
-                        children: [
-                          OutlinedButton(
-                              onPressed: _pickThumbnail,
-                              child: const Text('Change cover')),
-                          if (_thumbnail != null && _thumbnail!.isNotEmpty)
-                            TextButton(
-                                onPressed: _clearThumbnail,
-                                child: const Text('Use default')),
-                        ],
-                      ),
-                    ),
+                _optionRow(
+                  options: const [
+                    ['public', 'Public'],
+                    ['friends', 'Friends only'],
+                    ['private', 'Private']
                   ],
+                  value: _visibility,
+                  onChanged: (v) => setState(() => _visibility = v),
                 ),
-              ],
-              if (_roomType == 'game') ...[
                 const SizedBox(height: 14),
-                for (final g in _kGameTypes)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: GestureDetector(
-                      onTap: () => setState(() => _gameType = g[0]),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: _gameType == g[0]
-                              ? AppColors.accent2.withValues(alpha: 0.1)
-                              : AppColors.surface,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                              color: _gameType == g[0]
-                                  ? AppColors.accent2
-                                  : AppColors.border),
-                        ),
-                        child: Text(g[1],
-                            style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: _gameType == g[0]
-                                    ? AppColors.accent2
-                                    : AppColors.textDim)),
-                      ),
-                    ),
-                  ),
-              ],
-              if (_roomType == 'watch') ...[
-                const SizedBox(height: 14),
-                if (_pinned != null)
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppColors.border)),
-                    child: Row(
-                      children: [
-                        Expanded(
-                            child: Text(_pinned!['title'] as String? ?? '',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    color: AppColors.text, fontSize: 13))),
-                        TextButton(
-                          onPressed: () => setState(() {
-                            _pinned = null;
-                            _urlController.clear();
-                          }),
-                          child: const Text('Change'),
-                        ),
-                      ],
-                    ),
-                  )
-                else ...[
-                  TextField(
-                    onChanged: _search,
-                    decoration: const InputDecoration(
-                        hintText: 'Search YouTube for a video…'),
-                    style: const TextStyle(color: AppColors.text, fontSize: 13),
-                  ),
-                  if (_searching)
-                    const Padding(
-                        padding: EdgeInsets.only(top: 8),
-                        child: LinearProgressIndicator()),
-                  if (_results.isNotEmpty)
-                    SizedBox(
-                      height: 200,
-                      child: ListView.builder(
-                        itemCount: _results.length,
-                        itemBuilder: (context, i) {
-                          final r = _results[i];
-                          return ListTile(
-                            dense: true,
-                            leading: ClipRRect(
-                                borderRadius: BorderRadius.circular(6),
-                                child: Image.network(
-                                    r['thumbnail'] as String? ?? '',
-                                    width: 56,
-                                    height: 40,
-                                    fit: BoxFit.cover)),
-                            title: Text(r['title'] as String? ?? '',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    color: AppColors.text, fontSize: 12)),
-                            onTap: () => _pin(r),
-                          );
-                        },
-                      ),
-                    ),
-                ],
-              ],
-              const SizedBox(height: 16),
-              const Divider(color: AppColors.border),
-              const SizedBox(height: 8),
-              const Text('LOBBY VISIBILITY',
-                  style: TextStyle(
-                      color: AppColors.textFaint,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5)),
-              const SizedBox(height: 8),
-              _optionRow(
-                options: const [
-                  ['public', 'Public'],
-                  ['friends', 'Friends only'],
-                  ['private', 'Private']
-                ],
-                value: _visibility,
-                onChanged: (v) => setState(() => _visibility = v),
-              ),
-              const SizedBox(height: 14),
-              const Text('MIC',
-                  style: TextStyle(
-                      color: AppColors.textFaint,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5)),
-              const SizedBox(height: 8),
-              _optionRow(
-                options: const [
-                  ['on', 'Enabled for all'],
-                  ['off', 'Disabled for all']
-                ],
-                value: _micEnabled ? 'on' : 'off',
-                onChanged: (v) => setState(() => _micEnabled = v == 'on'),
-              ),
-              const SizedBox(height: 14),
-              const Text('WHO CAN ADD SONGS',
-                  style: TextStyle(
-                      color: AppColors.textFaint,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5)),
-              const SizedBox(height: 8),
-              _optionRow(
-                options: const [
-                  ['anyone', 'Anyone'],
-                  ['host', "Leader's choice only"]
-                ],
-                value: _songPermission,
-                onChanged: (v) => setState(() => _songPermission = v),
-              ),
-              const SizedBox(height: 14),
-              const Text('WHO CAN PIN A SONG TO PLAY NOW',
-                  style: TextStyle(
-                      color: AppColors.textFaint,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5)),
-              const SizedBox(height: 8),
-              _optionRow(
-                options: const [
-                  ['host', 'Host only'],
-                  ['anyone', 'Anyone can pin']
-                ],
-                value: _pinPermission,
-                onChanged: (v) => setState(() => _pinPermission = v),
-              ),
-              const SizedBox(height: 14),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.border)),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Auto-play next song',
-                        style: TextStyle(
-                            color: AppColors.text,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500)),
-                    Switch(
-                        value: _autoPlay,
-                        onChanged: (v) => setState(() => _autoPlay = v),
-                        activeThumbColor: AppColors.accent2),
+                const Text('MIC',
+                    style: TextStyle(
+                        color: AppColors.textFaint,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5)),
+                const SizedBox(height: 8),
+                _optionRow(
+                  options: const [
+                    ['on', 'Enabled for all'],
+                    ['off', 'Disabled for all']
                   ],
+                  value: _micEnabled ? 'on' : 'off',
+                  onChanged: (v) => setState(() => _micEnabled = v == 'on'),
                 ),
-              ),
-              const SizedBox(height: 20),
-              GestureDetector(
-                onTap: _saving ? null : _save,
-                child: Container(
-                  width: double.infinity,
-                  height: 48,
+                const SizedBox(height: 14),
+                const Text('WHO CAN ADD SONGS',
+                    style: TextStyle(
+                        color: AppColors.textFaint,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5)),
+                const SizedBox(height: 8),
+                _optionRow(
+                  options: const [
+                    ['anyone', 'Anyone'],
+                    ['host', "Leader's choice only"]
+                  ],
+                  value: _songPermission,
+                  onChanged: (v) => setState(() => _songPermission = v),
+                ),
+                const SizedBox(height: 14),
+                const Text('WHO CAN PIN A SONG TO PLAY NOW',
+                    style: TextStyle(
+                        color: AppColors.textFaint,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5)),
+                const SizedBox(height: 8),
+                _optionRow(
+                  options: const [
+                    ['host', 'Host only'],
+                    ['anyone', 'Anyone can pin']
+                  ],
+                  value: _pinPermission,
+                  onChanged: (v) => setState(() => _pinPermission = v),
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    gradient: _saving
-                        ? null
-                        : const LinearGradient(colors: AppGradients.brand),
-                    color: _saving ? AppColors.surface2 : null,
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.border)),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Auto-play next song',
+                          style: TextStyle(
+                              color: AppColors.text,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500)),
+                      Switch(
+                          value: _autoPlay,
+                          onChanged: (v) => setState(() => _autoPlay = v),
+                          activeThumbColor: AppColors.accent2),
+                    ],
                   ),
-                  alignment: Alignment.center,
-                  child: Text(_saving ? 'Saving…' : 'Save changes',
-                      style: TextStyle(
-                          color: _saving ? AppColors.textFaint : Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14)),
                 ),
-              ),
-            ],
+                const SizedBox(height: 20),
+                GestureDetector(
+                  onTap: _saving ? null : _save,
+                  child: Container(
+                    width: double.infinity,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: _saving
+                          ? null
+                          : const LinearGradient(colors: AppGradients.brand),
+                      color: _saving ? AppColors.surface2 : null,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(_saving ? 'Saving…' : 'Save changes',
+                        style: TextStyle(
+                            color: _saving ? AppColors.textFaint : Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14)),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -5,6 +5,7 @@ import '../../models/room_models.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/club_room_colors.dart';
 import '../../widgets/avatar.dart';
+import '../../widgets/glass.dart';
 import '../../widgets/chat_attachment_sheet.dart';
 
 class ChatPanel extends StatefulWidget {
@@ -273,33 +274,32 @@ class _ChatPanelState extends State<ChatPanel> {
                 ),
         ),
         if (matches.isNotEmpty)
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 8),
-            constraints: const BoxConstraints(maxHeight: 180),
-            decoration: BoxDecoration(
-              color: club ? ClubRoomColors.surface2 : AppColors.surface2,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: ListView.builder(
-              shrinkWrap: true,
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              itemCount: matches.length,
-              itemBuilder: (context, i) {
-                final p = matches[i];
-                final handle = p.username ?? p.name;
-                return ListTile(
-                  dense: true,
-                  visualDensity: VisualDensity.compact,
-                  leading: Avatar(
-                      src: p.avatarUrl, name: p.name, size: AvatarSize.sm),
-                  title: Text('@$handle',
-                      style: TextStyle(
-                          color: text,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600)),
-                  onTap: () => _selectMention(p),
-                );
-              },
+          GlassPanel(
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              constraints: const BoxConstraints(maxHeight: 180),
+              child: ListView.builder(
+                shrinkWrap: true,
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                itemCount: matches.length,
+                itemBuilder: (context, i) {
+                  final p = matches[i];
+                  final handle = p.username ?? p.name;
+                  return ListTile(
+                    dense: true,
+                    visualDensity: VisualDensity.compact,
+                    leading: Avatar(
+                        src: p.avatarUrl, name: p.name, size: AvatarSize.sm),
+                    title: Text('@$handle',
+                        style: TextStyle(
+                            color: text,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600)),
+                    onTap: () => _selectMention(p),
+                  );
+                },
+              ),
             ),
           ),
         Padding(
@@ -307,23 +307,16 @@ class _ChatPanelState extends State<ChatPanel> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              GestureDetector(
-                onTap: widget.onMicTap,
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: widget.myMicOn
-                        ? AppColors.danger
-                        : (widget.myMicRequested
-                            ? primary.withValues(alpha: 0.5)
-                            : (club
-                                ? ClubRoomColors.surface2
-                                : AppColors.surface2)),
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: GlassCircleButton(
+                  size: 36,
+                  onTap: widget.onMicTap,
+                  color: widget.myMicOn
+                      ? AppColors.danger
+                      : (widget.myMicRequested
+                          ? primary.withValues(alpha: 0.5)
+                          : null),
                   child: Icon(widget.myMicOn ? Icons.mic : Icons.mic_off,
                       color: widget.myMicOn ? Colors.white : textDim, size: 17),
                 ),

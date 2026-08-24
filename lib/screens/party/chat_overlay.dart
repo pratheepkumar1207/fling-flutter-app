@@ -3,6 +3,7 @@ import '../../core/profile_nav.dart';
 import '../../models/room_models.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/chat_attachment_sheet.dart';
+import '../../widgets/glass.dart';
 
 // Deterministic per-sender name color, cycling through a small palette —
 // matches WatchPartyDark.dc.html's floating chat, where each speaker's name
@@ -196,24 +197,25 @@ class _ChatOverlayState extends State<ChatOverlay> {
                           onTap: () => openProfile(context, senderId),
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 260),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 7),
-                              decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.5),
-                                  borderRadius: BorderRadius.circular(14)),
-                              child: RichText(
-                                text: TextSpan(
-                                  style: const TextStyle(
-                                      fontSize: 12.5, color: Colors.white),
-                                  children: [
-                                    TextSpan(
-                                        text: '$name  ',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            color: _nameColor(senderId))),
-                                    TextSpan(text: m['text'] as String? ?? ''),
-                                  ],
+                            child: GlassPanel(
+                              borderRadius: BorderRadius.circular(14),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 7),
+                                child: RichText(
+                                  text: TextSpan(
+                                    style: const TextStyle(
+                                        fontSize: 12.5, color: Colors.white),
+                                    children: [
+                                      TextSpan(
+                                          text: '$name  ',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              color: _nameColor(senderId))),
+                                      TextSpan(
+                                          text: m['text'] as String? ?? ''),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -225,108 +227,97 @@ class _ChatOverlayState extends State<ChatOverlay> {
                 ),
         ),
         if (matches.isNotEmpty)
-          Container(
-            margin: const EdgeInsets.only(bottom: 6),
-            constraints: const BoxConstraints(maxHeight: 180),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.85),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: ListView.builder(
-              shrinkWrap: true,
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              itemCount: matches.length,
-              itemBuilder: (context, i) {
-                final p = matches[i];
-                final handle = p.username ?? p.name;
-                return ListTile(
-                  dense: true,
-                  visualDensity: VisualDensity.compact,
-                  leading: Avatar(
-                    src: p.avatarUrl,
-                    name: p.name,
-                    size: AvatarSize.sm,
-                  ),
-                  title: Text('@$handle',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600)),
-                  onTap: () => _selectMention(p),
-                );
-              },
+          GlassPanel(
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 6),
+              constraints: const BoxConstraints(maxHeight: 180),
+              child: ListView.builder(
+                shrinkWrap: true,
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                itemCount: matches.length,
+                itemBuilder: (context, i) {
+                  final p = matches[i];
+                  final handle = p.username ?? p.name;
+                  return ListTile(
+                    dense: true,
+                    visualDensity: VisualDensity.compact,
+                    leading: Avatar(
+                      src: p.avatarUrl,
+                      name: p.name,
+                      size: AvatarSize.sm,
+                    ),
+                    title: Text('@$handle',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600)),
+                    onTap: () => _selectMention(p),
+                  );
+                },
+              ),
             ),
           ),
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            GestureDetector(
-              onTap: widget.onMicTap,
-              child: Container(
-                width: 38,
-                height: 38,
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(
-                  color: widget.myMicOn
-                      ? Colors.red.withValues(alpha: 0.85)
-                      : (widget.myMicRequested
-                          ? widget.primaryColor.withValues(alpha: 0.6)
-                          : Colors.black.withValues(alpha: 0.45)),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GlassCircleButton(
+                size: 38,
+                onTap: widget.onMicTap,
+                color: widget.myMicOn
+                    ? Colors.red.withValues(alpha: 0.85)
+                    : (widget.myMicRequested
+                        ? widget.primaryColor.withValues(alpha: 0.6)
+                        : null),
                 child: Icon(widget.myMicOn ? Icons.mic : Icons.mic_off,
                     color: Colors.white, size: 17),
               ),
             ),
             Expanded(
-              child: Container(
-                constraints: const BoxConstraints(minHeight: 38),
-                decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.45),
-                    borderRadius: BorderRadius.circular(100)),
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _controller,
-                        focusNode: _focusNode,
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 13),
-                        onSubmitted: (_) => _send(),
-                        decoration: const InputDecoration(
-                          hintText: 'Say something…',
-                          hintStyle: TextStyle(color: Colors.white54),
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(vertical: 9),
+              child: GlassPanel(
+                borderRadius: BorderRadius.circular(100),
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: 38),
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _controller,
+                          focusNode: _focusNode,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 13),
+                          onSubmitted: (_) => _send(),
+                          decoration: const InputDecoration(
+                            hintText: 'Say something…',
+                            hintStyle: TextStyle(color: Colors.white54),
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(vertical: 9),
+                          ),
                         ),
                       ),
-                    ),
-                    _inlineIcon(
-                        Icons.attach_file_rounded,
-                        () => showChatAttachmentSheet(context,
-                            onPoll: widget.onPoll)),
-                    _inlineIcon(Icons.card_giftcard_rounded, widget.onGift),
-                    _inlineIcon(
-                        Icons.person_add_alt_1_rounded, widget.onInvite),
-                  ],
+                      _inlineIcon(
+                          Icons.attach_file_rounded,
+                          () => showChatAttachmentSheet(context,
+                              onPoll: widget.onPoll)),
+                      _inlineIcon(Icons.card_giftcard_rounded, widget.onGift),
+                      _inlineIcon(
+                          Icons.person_add_alt_1_rounded, widget.onInvite),
+                    ],
+                  ),
                 ),
               ),
             ),
             const SizedBox(width: 8),
-            GestureDetector(
+            GlassCircleButton(
+              size: 38,
               onTap: _send,
-              child: Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                    color: widget.primaryColor, shape: BoxShape.circle),
-                alignment: Alignment.center,
-                child: const Icon(Icons.send_rounded,
-                    color: Colors.white, size: 17),
-              ),
+              color: widget.primaryColor,
+              child:
+                  const Icon(Icons.send_rounded, color: Colors.white, size: 17),
             ),
           ],
         ),

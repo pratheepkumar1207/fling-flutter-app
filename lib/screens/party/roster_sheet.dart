@@ -6,6 +6,7 @@ import '../../core/profile_nav.dart';
 import '../../models/room_models.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_image.dart';
+import '../../widgets/glass.dart';
 
 // Deterministic per-user gradient for the initials fallback, matching
 // RosterSheetDark.dc.html's colorful avatars — local to this screen, same
@@ -109,51 +110,54 @@ class _RosterSheetState extends State<RosterSheet> {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.transparent,
       width: 300,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.horizontal(left: Radius.circular(24))),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  RichText(
-                    text: TextSpan(
-                      style: const TextStyle(
-                          color: AppColors.text,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16),
-                      children: [
-                        const TextSpan(text: 'In the room '),
-                        TextSpan(
-                            text: '· ${widget.roster.length} people',
-                            style: const TextStyle(
-                                color: AppColors.textFaint,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 13)),
-                      ],
+      child: GlassPanel(
+        borderRadius: const BorderRadius.horizontal(left: Radius.circular(24)),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    RichText(
+                      text: TextSpan(
+                        style: const TextStyle(
+                            color: AppColors.text,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16),
+                        children: [
+                          const TextSpan(text: 'In the room '),
+                          TextSpan(
+                              text: '· ${widget.roster.length} people',
+                              style: const TextStyle(
+                                  color: AppColors.textFaint,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13)),
+                        ],
+                      ),
                     ),
-                  ),
-                  IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close_rounded,
-                          color: AppColors.textFaint)),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: widget.roster.length,
-                  itemBuilder: (context, i) =>
-                      _row(context, widget.roster[i], i),
+                    IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close_rounded,
+                            color: AppColors.textFaint)),
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: widget.roster.length,
+                    itemBuilder: (context, i) =>
+                        _row(context, widget.roster[i], i),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

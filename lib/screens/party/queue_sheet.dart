@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/add_to_queue_dialog.dart';
 import '../../widgets/app_image.dart';
+import '../../widgets/glass.dart';
 import '../lobby/source_picker_screen.dart';
 
 /// Matches QueueSheetDark.dc.html: a dimmed-backdrop rounded-top sheet
@@ -122,11 +123,9 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
             child: FractionallySizedBox(
               heightFactor: 0.82,
               widthFactor: 1,
-              child: Container(
-                decoration: const BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(24))),
+              child: GlassPanel(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
                 child: Column(
                   children: [
                     const SizedBox(height: 12),

@@ -12,6 +12,7 @@ import '../../theme/club_room_colors.dart';
 import '../../theme/vola_party_colors.dart';
 import '../../widgets/gift_bottom_sheet.dart';
 import '../../widgets/game_board_view.dart';
+import '../../widgets/glass.dart';
 import '../../widgets/live_video_view.dart';
 import '../../widgets/participant_avatar_row.dart';
 import '../../widgets/poll_bottom_sheet.dart';
@@ -363,41 +364,45 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: isVoice ? ClubRoomColors.surface : AppColors.surface,
+      backgroundColor: Colors.transparent,
       builder: (_) => AnimatedBuilder(
         animation: rs,
         builder: (context, _) => SizedBox(
           height: MediaQuery.of(context).size.height * 0.7,
-          child: SafeArea(
-            top: false,
-            child: ChatPanel(
-              messages: rs.messages,
-              onSend: (text, mentionedUserIds) =>
-                  rs.sendMessage(text, mentionedUserIds: mentionedUserIds),
-              myUserId: myId,
-              clubRoomTheme: isVoice,
-              roster: rs.roster,
-              myMicOn: myMicOn,
-              myMicRequested: myMicRequested,
-              onMicTap: onMicTap,
-              onPoll: () {
-                if (rs.isHost) {
-                  showPollCreatorBottomSheet(context, onCreate: rs.createPoll);
-                } else if (rs.poll['active'] == true) {
-                  showPollBottomSheet(context,
-                      poll: rs.poll,
-                      myUserId: myId ?? '',
-                      isHost: rs.isHost,
-                      roster: rs.roster,
-                      onVote: rs.votePoll,
-                      onReset: rs.resetPoll);
-                }
-              },
-              onGift: () => showGiftBottomSheet(context,
-                  toUserId: room?['hostId'] as String? ?? '',
-                  roomId: widget.roomId,
-                  targetKey: _hostKey),
-              onInvite: _openInvite,
+          child: GlassPanel(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            child: SafeArea(
+              top: false,
+              child: ChatPanel(
+                messages: rs.messages,
+                onSend: (text, mentionedUserIds) =>
+                    rs.sendMessage(text, mentionedUserIds: mentionedUserIds),
+                myUserId: myId,
+                clubRoomTheme: isVoice,
+                roster: rs.roster,
+                myMicOn: myMicOn,
+                myMicRequested: myMicRequested,
+                onMicTap: onMicTap,
+                onPoll: () {
+                  if (rs.isHost) {
+                    showPollCreatorBottomSheet(context,
+                        onCreate: rs.createPoll);
+                  } else if (rs.poll['active'] == true) {
+                    showPollBottomSheet(context,
+                        poll: rs.poll,
+                        myUserId: myId ?? '',
+                        isHost: rs.isHost,
+                        roster: rs.roster,
+                        onVote: rs.votePoll,
+                        onReset: rs.resetPoll);
+                  }
+                },
+                onGift: () => showGiftBottomSheet(context,
+                    toUserId: room?['hostId'] as String? ?? '',
+                    roomId: widget.roomId,
+                    targetKey: _hostKey),
+                onInvite: _openInvite,
+              ),
             ),
           ),
         ),
@@ -594,12 +599,6 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     // Voice/default.
     final roomBg = isVoice ? ClubRoomColors.bg : AppColors.bg;
     final roomBgGradient = isWatch ? VolaPartyColors.bgGradient : null;
-    final roomSurface = isVoice
-        ? ClubRoomColors.surface
-        : (isWatch ? VolaPartyColors.surface : AppColors.surface);
-    final roomBorder = isVoice
-        ? ClubRoomColors.border
-        : (isWatch ? VolaPartyColors.border : AppColors.border);
     final roomTextDim = isVoice
         ? ClubRoomColors.textDim
         : (isWatch ? VolaPartyColors.textDim : AppColors.textDim);
@@ -693,11 +692,9 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
             onForceUnmute: rs.forceUnmuteMic,
           ),
           appBar: AppBar(
-            backgroundColor: isVoice
-                ? ClubRoomColors.surface.withValues(alpha: 0.85)
-                : (isWatch
-                    ? VolaPartyColors.surface.withValues(alpha: 0.7)
-                    : null),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            flexibleSpace: const GlassAppBarBackground(),
             foregroundColor: isVoice
                 ? ClubRoomColors.text
                 : (isWatch ? VolaPartyColors.text : null),
@@ -814,21 +811,23 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                 onTap: _openRoster,
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 4),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                      color: roomSurface,
-                      borderRadius: BorderRadius.circular(999)),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.people_alt_rounded,
-                        size: 13, color: roomTextDim),
-                    const SizedBox(width: 5),
-                    Text('${rs.roster.length}',
-                        style: TextStyle(
-                            color: roomTextDim,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600)),
-                  ]),
+                  child: GlassPanel(
+                    borderRadius: BorderRadius.circular(999),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.people_alt_rounded,
+                            size: 13, color: roomTextDim),
+                        const SizedBox(width: 5),
+                        Text('${rs.roster.length}',
+                            style: TextStyle(
+                                color: roomTextDim,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600)),
+                      ]),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -1020,35 +1019,35 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                   if (isBoosted)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
-                        decoration: BoxDecoration(
-                            color: roomSurface,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: roomBorder)),
-                        child: Row(
-                          children: [
-                            Icon(Icons.star_rounded, color: roomGold, size: 20),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Featured',
-                                      style: TextStyle(
-                                          color: roomGold,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 13)),
-                                  Text('This watch party is featured',
-                                      style: TextStyle(
-                                          color: roomTextDim, fontSize: 11)),
-                                ],
+                      child: GlassPanel(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                          child: Row(
+                            children: [
+                              Icon(Icons.star_rounded,
+                                  color: roomGold, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Featured',
+                                        style: TextStyle(
+                                            color: roomGold,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 13)),
+                                    Text('This watch party is featured',
+                                        style: TextStyle(
+                                            color: roomTextDim, fontSize: 11)),
+                                  ],
+                                ),
                               ),
-                            ),
-                            Icon(Icons.chevron_right_rounded,
-                                color: roomTextDim),
-                          ],
+                              Icon(Icons.chevron_right_rounded,
+                                  color: roomTextDim),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -1219,41 +1218,32 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       {Color? color, int? badge, Color? badgeColor}) {
     return Padding(
       padding: const EdgeInsets.only(top: 10),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.black.withValues(alpha: 0.45)),
-              alignment: Alignment.center,
-              child: Icon(icon, color: color ?? Colors.white, size: 19),
-            ),
-            if (badge != null)
-              Positioned(
-                top: -4,
-                right: -4,
-                child: Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                      color: badgeColor ?? AppColors.primary,
-                      shape: BoxShape.circle),
-                  constraints:
-                      const BoxConstraints(minWidth: 16, minHeight: 16),
-                  child: Text('$badge',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold)),
-                ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          GlassCircleButton(
+            onTap: onTap,
+            child: Icon(icon, color: color ?? Colors.white, size: 19),
+          ),
+          if (badge != null)
+            Positioned(
+              top: -4,
+              right: -4,
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                    color: badgeColor ?? AppColors.primary,
+                    shape: BoxShape.circle),
+                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                child: Text('$badge',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold)),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -1262,17 +1252,9 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       {Color? color}) {
     return Padding(
       padding: const EdgeInsets.only(top: 10),
-      child: GestureDetector(
+      child: GlassCircleButton(
         onTap: onTap,
-        child: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.black.withValues(alpha: 0.45)),
-          alignment: Alignment.center,
-          child: Text(label, style: TextStyle(color: color, fontSize: 17)),
-        ),
+        child: Text(label, style: TextStyle(color: color, fontSize: 17)),
       ),
     );
   }
