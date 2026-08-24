@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-/// "+" attachment menu for the room chat input bars (chat_overlay.dart /
-/// chat_panel.dart) — replaces the old standalone poll icon. Poll is wired
+/// "+" attachment menu for the room chat input bar (chat_overlay.dart) —
+/// replaces the old standalone poll icon. Poll is wired
 /// to the existing, already-working poll flow; Image/Video/Audio/GIF are
 /// UI-only for now — there's no upload/storage/message-rendering support
 /// for media messages anywhere in this app yet, so tapping them is honest

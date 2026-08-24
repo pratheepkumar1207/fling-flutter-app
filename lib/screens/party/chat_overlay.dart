@@ -16,13 +16,10 @@ const _nameColors = [
   Color(0xFF9DC5E8), // sky
 ];
 
-/// Floating, translucent chat overlay for Watch Party — meant to sit inside
-/// a Stack over the room's "stage" area rather than in a bordered panel like
-/// ChatPanel. Deliberately a separate widget (not a ChatPanel variant): the
-/// message-bubble styling here (no avatar, no per-message timestamp, name
-/// colored inline) is specific to floating-over-content use and would be a
-/// bad fit for ChatPanel's other callers (Voice/Game room's chat sheet),
-/// where the plain bordered/bubbled look stays untouched.
+/// Floating, translucent chat — meant to sit inside a Stack over a room's
+/// "stage" area (video, game board, voice speaker grid). Used identically
+/// by every room type now (Watch/Voice/Game) so the bottom-chat experience
+/// reads the same everywhere, not just Watch Party.
 class ChatOverlay extends StatefulWidget {
   final List<Map<String, dynamic>> messages;
   // mentionedUserIds are exactly the roster userIds picked via the @mention
@@ -45,7 +42,13 @@ class ChatOverlay extends StatefulWidget {
   final VoidCallback onMicTap;
   final VoidCallback onPoll;
   final VoidCallback onGift;
+  final VoidCallback onShare;
   final VoidCallback onInvite;
+  // Lets the parent screen hide its own AppBar while the keyboard is up
+  // composing a message (the video/audio player then slides up into that
+  // freed space, chat gets the room below) — see party_screen.dart's
+  // _chatFocused.
+  final ValueChanged<bool>? onFocusChanged;
 
   const ChatOverlay({
     super.key,
@@ -60,7 +63,9 @@ class ChatOverlay extends StatefulWidget {
     required this.onMicTap,
     required this.onPoll,
     required this.onGift,
+    required this.onShare,
     required this.onInvite,
+    this.onFocusChanged,
   });
 
   @override
@@ -70,6 +75,7 @@ class ChatOverlay extends StatefulWidget {
 class _ChatOverlayState extends State<ChatOverlay> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
+  bool _focused = false;
   // Non-null while the text after the last '@' looks like an in-progress
   // handle (no whitespace yet) — drives the mention suggestion list. Empty
   // string matches "just typed @", not "no @ at all".
@@ -88,6 +94,13 @@ class _ChatOverlayState extends State<ChatOverlay> {
   void initState() {
     super.initState();
     _controller.addListener(_updateMentionQuery);
+    // Collapses the attachment/gift/share/invite row and hands the parent
+    // screen's AppBar space back while typing — restored once focus is
+    // lost so the full control set is there the rest of the time.
+    _focusNode.addListener(() {
+      setState(() => _focused = _focusNode.hasFocus);
+      widget.onFocusChanged?.call(_focusNode.hasFocus);
+    });
   }
 
   void _updateMentionQuery() {
@@ -299,13 +312,16 @@ class _ChatOverlayState extends State<ChatOverlay> {
                           ),
                         ),
                       ),
-                      _inlineIcon(
-                          Icons.attach_file_rounded,
-                          () => showChatAttachmentSheet(context,
-                              onPoll: widget.onPoll)),
-                      _inlineIcon(Icons.card_giftcard_rounded, widget.onGift),
-                      _inlineIcon(
-                          Icons.person_add_alt_1_rounded, widget.onInvite),
+                      if (!_focused) ...[
+                        _inlineIcon(
+                            Icons.attach_file_rounded,
+                            () => showChatAttachmentSheet(context,
+                                onPoll: widget.onPoll)),
+                        _inlineIcon(Icons.card_giftcard_rounded, widget.onGift),
+                        _inlineIcon(Icons.share_rounded, widget.onShare),
+                        _inlineIcon(
+                            Icons.person_add_alt_1_rounded, widget.onInvite),
+                      ],
                     ],
                   ),
                 ),
