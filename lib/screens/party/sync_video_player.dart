@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import '../../core/api_client.dart';
 import '../../core/format.dart';
 import '../../core/pip_service.dart';
 import '../../core/youtube_util.dart';
@@ -13,10 +15,25 @@ import '../../widgets/volume_dots.dart';
 
 /// Host-controlled real-time-synced YouTube player. Both the local-action
 /// path (tap/drag => emit) and the remote-sync path (incoming playback
-/// state => apply) are driven explicitly by us here, so — unlike the web
-/// app's IFrame-API version, which had to infer intent from onStateChange
-/// and hit a stale-closure bug doing it — there's no ambiguous callback to
-/// misread: we only emit on the paths we call ourselves.
+/// state => apply) are driven explicitly by us here, so there's no
+/// ambiguous callback to misread: we only emit on the paths we call
+/// ourselves.
+///
+/// Built directly on flutter_inappwebview (already a dependency, already
+/// proven working for the Netflix/Prime "browse together" rooms — see
+/// webview_room_player.dart), navigating to this app's own backend-hosted
+/// /youtube-embed.html (see embedPlayer.js) instead of using a Flutter
+/// YouTube-player package. Both youtube_player_flutter and
+/// youtube_player_iframe load their player HTML via loadHtmlString with a
+/// spoofed baseUrl claiming to be https://www.youtube.com, to sneak past
+/// the embed's same-origin check — that trick started failing outright
+/// ("Video unavailable") across both packages, almost certainly because
+/// YouTube tightened origin validation against exactly this kind of
+/// spoofing. The backend route serves the real thing from a real HTTPS
+/// origin, so there's no origin to spoof, and no package-internal
+/// auto-pause-on-background behavior to fight either — the JS on that page
+/// is ours, and it does nothing on its own in response to lifecycle
+/// changes.
 class SyncVideoPlayer extends StatefulWidget {
   final String? videoUrl;
   final bool isHost;
@@ -69,135 +86,142 @@ class SyncVideoPlayer extends StatefulWidget {
 
 class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     with WidgetsBindingObserver {
-  YoutubePlayerController? _controller;
+  InAppWebViewController? _controller;
   String? _currentVideoId;
+  bool _ready = false;
+  // Raw YouTube IFrame API state codes: -1 unstarted, 0 ended, 1 playing,
+  // 2 paused, 3 buffering, 5 cued. Null until the page's own onStateChange
+  // fires for the first time.
+  int? _stateCode;
+  Duration _duration = Duration.zero;
+  // Separate ValueNotifier (not setState) for position — the embed page
+  // ticks this every 500ms while playing, and funneling it through
+  // setState would rebuild the entire player tree (including the WebView
+  // platform view) that often for no reason. Only the seek bar / bloom
+  // player slider actually need it, via a scoped ValueListenableBuilder.
+  final ValueNotifier<Duration> _positionNotifier = ValueNotifier(
+    Duration.zero,
+  );
   num? _lastAppliedUpdatedAt;
   bool _dragging = false;
   double _dragPosition = 0;
   int _volume = 80;
   bool _volumePopoverOpen = false;
   bool? _lastReportedIsPlaying;
-  // Tracks controller.value.isReady transitions — see _onControllerStateChanged.
-  bool _lastReadyState = false;
-  // Android suspends the WebView (and its video element) while the app is
-  // backgrounded or the screen is locked — that silently flips isPlaying to
-  // false with no real intent behind it. Without this guard,
-  // _onControllerStateChanged would read that as the host actually pausing
-  // and broadcast it, freezing the video for every other participant just
-  // because the host's screen locked (confirmed live).
+  // True while genuinely backgrounded/screen-off — suppresses
+  // _onYtEvent's host-only auto-emit so Android suspending the WebView
+  // (a real possibility on a long screen-off stretch, independent of
+  // anything this file does) doesn't broadcast a fake pause to the room.
   bool _backgrounded = false;
   // Set alongside _backgrounded whenever PIP is involved on *either* side
   // of the current paused/inactive/hidden dip — entering PIP (isInPip is
   // usually still false at the very start, catching up moments later) or
   // leaving it (isInPip has already flipped back to false again by the
-  // time resumed fires, well before this dip is over) both need this,
-  // since checking isInPip only at the resumed instant misses whichever
-  // end hadn't updated yet. True background never touches PIP at all, so
-  // this only ever suppresses the resync for a PIP-involved dip.
+  // time resumed fires) both need this, since checking isInPip only at the
+  // resumed instant misses whichever end hadn't updated yet.
   bool _pipInvolvedInCurrentDip = false;
-  // Shows a "catching up" banner right after returning from background,
-  // instead of the video just looking frozen/broken while the resync round
-  // trip is in flight (see didChangeAppLifecycleState / _applyRemotePlaybackIfNeeded).
+  // Shows a "catching up" banner right after returning from a real
+  // background, instead of the video just looking frozen/broken while the
+  // resync round trip is in flight.
   bool _justResumed = false;
   Timer? _justResumedFallback;
-  // Counteracts youtube_player_flutter's own internal WidgetsBindingObserver
-  // (see raw_youtube_player.dart), which explicitly calls player.pauseVideo()
-  // on every AppLifecycleState.paused — a battery-saving default baked into
-  // the plugin, not something Android itself forces. Re-asserting play()
-  // periodically while backgrounded fights that so audio keeps going
-  // instead of cutting out the moment the screen locks/app backgrounds.
-  // EXPERIMENTAL: whether the underlying WebView's audio track actually
-  // keeps producing sound once the Activity itself isn't visible hasn't
-  // been confirmed on a real device — this assumes it does as long as the
-  // process stays alive (which RoomPresenceService's foreground service
-  // already guarantees) and nothing explicitly re-pauses it.
-  Timer? _backgroundKeepAliveTimer;
+
+  bool get _isPlaying => _stateCode == 1;
+
+  String _embedUrl(String videoId) =>
+      '${ApiClient.baseUrl}/youtube-embed.html?v=$videoId';
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     PipService.isInPip.addListener(_onPipChanged);
-    _rebuildControllerIfNeeded();
-    // playback:state can arrive (and update RoomSocketController.playback)
-    // before this widget's very first build — e.g. the server already
-    // sends it proactively on room:join, often within the same event-loop
-    // tick as the join itself. That means widget.playback can already be
-    // non-null right here, but didUpdateWidget (below) never fires for a
-    // first build, so without this call the initial state would silently
-    // never get applied and a joining viewer would just sit at 0:00
-    // forever instead of landing wherever the host actually is.
-    _applyRemotePlaybackIfNeeded();
+    _currentVideoId = extractYouTubeId(widget.videoUrl);
     if (!widget.isHost) widget.onRequestState();
   }
 
   @override
   void didUpdateWidget(covariant SyncVideoPlayer old) {
     super.didUpdateWidget(old);
-    _rebuildControllerIfNeeded();
+    final videoId = extractYouTubeId(widget.videoUrl);
+    if (videoId != null && videoId != _currentVideoId) {
+      _currentVideoId = videoId;
+      _ready = false;
+      _stateCode = null;
+      _duration = Duration.zero;
+      _positionNotifier.value = Duration.zero;
+      _lastReportedIsPlaying = null;
+      _lastAppliedUpdatedAt = null;
+      _controller?.loadUrl(
+        urlRequest: URLRequest(url: WebUri(_embedUrl(videoId))),
+      );
+    }
     _applyRemotePlaybackIfNeeded();
   }
 
-  void _rebuildControllerIfNeeded() {
-    final videoId = extractYouTubeId(widget.videoUrl);
-    if (videoId == null || videoId == _currentVideoId) return;
-    _currentVideoId = videoId;
-    _controller?.dispose();
-    _controller = YoutubePlayerController(
-      initialVideoId: videoId,
-      flags: const YoutubePlayerFlags(
-          autoPlay: false,
-          mute: false,
-          hideControls: true,
-          disableDragSeek: true,
-          enableCaption: false),
-    )
-      ..addListener(_onControllerStateChanged)
-      ..setVolume(_volume);
-    _lastReportedIsPlaying = false;
+  void _onWebViewCreated(InAppWebViewController controller) {
+    _controller = controller;
+    controller.addJavaScriptHandler(
+      handlerName: 'ytEvent',
+      callback: (args) {
+        if (args.isEmpty) return;
+        try {
+          final msg = jsonDecode(args.first as String) as Map<String, dynamic>;
+          _onYtEvent(
+            msg['type'] as String?,
+            (msg['data'] as Map?)?.cast<String, dynamic>() ?? const {},
+          );
+        } catch (_) {}
+      },
+    );
   }
 
-  void _handleVolumeChange(int next) {
-    final clamped = next.clamp(0, 100);
-    setState(() => _volume = clamped);
-    _controller?.setVolume(clamped);
-  }
-
-  void _onControllerStateChanged() {
-    final c = _controller;
-    if (c == null) return;
-    if (c.value.playerState == PlayerState.ended) widget.onEnded();
-
-    // A brand-new controller (new video — pinned, auto-advanced, or just
-    // selected) isn't ready to accept seek/play/pause the instant it's
-    // created; commands sent before the underlying WebView player reports
-    // ready get silently dropped. _applyRemotePlaybackIfNeeded's isReady
-    // guard skips applying until this fires true — retry here once it
-    // does, since nothing else would otherwise re-trigger that apply.
-    // Confirmed live: this is why a pinned song loaded but stayed paused —
-    // the real play command was sent too early and just got lost.
-    if (c.value.isReady && !_lastReadyState) {
-      _lastReadyState = true;
-      _applyRemotePlaybackIfNeeded();
-    } else if (!c.value.isReady) {
-      _lastReadyState = false;
+  void _onYtEvent(String? type, Map<String, dynamic> data) {
+    switch (type) {
+      case 'Ready':
+        _ready = true;
+        _controller?.evaluateJavascript(source: 'ytSetVolume($_volume);');
+        // Commands sent before the page reported ready (e.g. the initial
+        // _applyRemotePlaybackIfNeeded call from initState) were no-ops on
+        // the JS side — retry now that they'll actually land.
+        _applyRemotePlaybackIfNeeded();
+      case 'StateChange':
+        final code = (data['state'] as num?)?.toInt();
+        if (code == null) return;
+        setState(() => _stateCode = code);
+        if (code == 0) widget.onEnded();
+        _maybeReportPlayState();
+      case 'Tick':
+        final t = (data['time'] as num?)?.toDouble();
+        final d = (data['duration'] as num?)?.toDouble();
+        if (t != null) {
+          _positionNotifier.value = Duration(
+            milliseconds: (t * 1000).round(),
+          );
+        }
+        if (d != null && d > 0) {
+          final newDuration = Duration(milliseconds: (d * 1000).round());
+          if (newDuration != _duration) setState(() => _duration = newDuration);
+        }
+      case 'Error':
+        // Player errors (invalid id, removed video, etc.) — nothing
+        // actionable to do client-side beyond not crashing; the room stays
+        // on whatever it last showed.
+        break;
     }
+  }
 
-    // The host is the source of truth for playback state, but this
-    // WebView-backed YouTube embed doesn't always route play/pause through
-    // our own tap handler — e.g. it can resume on its own after the app
-    // returns from background. Relying solely on the explicit tap emit
-    // left the server's playbackStates never updated for those cases, so
-    // any viewer requesting state on join got nothing back and stayed
-    // frozen at 0:00 instead of landing wherever the host actually is.
-    // Mirroring the controller's real isPlaying here (host-only, deduped
-    // against the last value we reported) makes the emitted state match
-    // reality regardless of what triggered the change.
+  // The host is the source of truth for playback state, but this
+  // WebView-embedded YouTube player doesn't always route play/pause
+  // through our own tap handler. Mirroring the real state here (host-only,
+  // deduped against the last value reported) makes the emitted state match
+  // reality regardless of what triggered the change.
+  void _maybeReportPlayState() {
     if (!widget.isHost) return;
-    // Don't trust isPlaying while backgrounded — see _backgrounded's doc.
-    // didChangeAppLifecycleState re-syncs for real once we're back.
+    // Don't trust state while backgrounded — didChangeAppLifecycleState
+    // re-syncs for real once we're back.
     if (_backgrounded) return;
-    final isPlaying = c.value.isPlaying;
+    final isPlaying = _isPlaying;
     if (isPlaying == _lastReportedIsPlaying) return;
     _lastReportedIsPlaying = isPlaying;
     if (isPlaying) {
@@ -207,16 +231,16 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     }
   }
 
+  void _handleVolumeChange(int next) {
+    final clamped = next.clamp(0, 100);
+    setState(() => _volume = clamped);
+    _controller?.evaluateJavascript(source: 'ytSetVolume($clamped);');
+  }
+
   void _applyRemotePlaybackIfNeeded() {
     final p = widget.playback;
     final c = _controller;
-    // Mirrors drive_video_player.dart's isInitialized guard — a fresh
-    // controller can't reliably accept seek/play/pause before the
-    // underlying WebView player reports ready (see _onControllerStateChanged,
-    // which retries this once it does). Deliberately NOT marking
-    // _lastAppliedUpdatedAt below when this bails early, so the retry
-    // doesn't get swallowed by the dedup check once the player is ready.
-    if (p == null || c == null || !c.value.isReady) return;
+    if (p == null || c == null || !_ready) return;
     final updatedAt = p['updatedAt'] == null ? null : asNum(p['updatedAt']);
     if (updatedAt != null && updatedAt == _lastAppliedUpdatedAt) return;
     _lastAppliedUpdatedAt = updatedAt;
@@ -232,16 +256,15 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
           (DateTime.now().millisecondsSinceEpoch - updatedAt) / 1000;
       if (elapsedSeconds > 0) position += elapsedSeconds;
     }
-    c.seekTo(Duration(milliseconds: (position * 1000).round()));
+    c.evaluateJavascript(source: 'ytSeek($position);');
     if (p['isPlaying'] == true) {
-      c.play();
+      c.evaluateJavascript(source: 'ytPlay();');
     } else {
-      c.pause();
+      c.evaluateJavascript(source: 'ytPause();');
     }
     // A genuinely new state just landed — if this was the resync we asked
     // for on resume, it's now safe to stop suppressing locally-driven state
-    // changes (see didChangeAppLifecycleState's _backgrounded guard) and
-    // clear the catch-up banner.
+    // changes and clear the catch-up banner.
     _backgrounded = false;
     _clearJustResumed();
   }
@@ -268,53 +291,21 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
       case AppLifecycleState.hidden:
-        // NOT skipped for PIP (unlike the resumed-side check below) —
-        // youtube_player_flutter's own internal WidgetsBindingObserver
-        // (raw_youtube_player.dart) has no concept of PIP at all and
-        // unconditionally calls pause() on this exact same dip regardless
-        // of whether we're entering PIP or genuinely backgrounding. Only
-        // fighting that via _startBackgroundKeepAlive for a real
-        // background (skipping it during PIP, as this used to) left
-        // nothing to counteract the plugin's own PIP-triggered pause,
-        // which is what the reported PIP pause/resume glitch actually was.
         if (!_backgrounded) {
-          // Only reset at the *start* of a new dip — AppLifecycleState can
-          // report paused/inactive/hidden more than once in a row for the
-          // same underlying dip, and resetting on every one of those would
-          // throw away a PIP flag _onPipChanged already caught.
           _pipInvolvedInCurrentDip = PipService.isInPip.value;
         }
         _backgrounded = true;
-        _startBackgroundKeepAlive();
       case AppLifecycleState.resumed:
-        _backgroundKeepAliveTimer?.cancel();
-        _backgroundKeepAliveTimer = null;
         if (!_backgrounded) return;
         if (_pipInvolvedInCurrentDip || PipService.isInPip.value) {
-          // PIP was involved somewhere in this dip — either entering it
-          // (isInPip was still false at the very start, caught moments
-          // later by _onPipChanged) or leaving it (isInPip has already
-          // flipped back to false again by the time resumed fires, well
-          // before this dip is considered over). Either way nothing was
-          // ever actually backgrounded — the video kept playing the whole
-          // time — so skip the full just-resumed resync below entirely;
-          // running it anyway re-seeks an already-fine, already-playing
-          // video for no reason, which is what showed up as a ~1s
-          // pause/play glitch on every PIP transition, both directions.
+          // PIP was involved somewhere in this dip — nothing was ever
+          // actually backgrounded, so skip the just-resumed resync below
+          // entirely; running it anyway re-seeks an already-fine,
+          // already-playing video for no reason.
           _backgrounded = false;
           _pipInvolvedInCurrentDip = false;
           return;
         }
-        // Deliberately NOT cleared here — stays true (suppressing
-        // _onControllerStateChanged's host-only auto-emit) until the
-        // corrected resync actually lands in _applyRemotePlaybackIfNeeded.
-        // The WebView's YouTube embed can resume playback on its own as
-        // soon as the app foregrounds, before that resync arrives; without
-        // this, that auto-resume fired _onControllerStateChanged with
-        // wherever the video had been paused locally (not elapsed-time
-        // corrected) and broadcast that stale position as the room's real
-        // state — confirmed live: this is why a returning host's video
-        // wasn't resuming from where the room actually was.
         setState(() => _justResumed = true);
         _justResumedFallback?.cancel();
         // In case the server never answers (dropped connection etc.) —
@@ -323,48 +314,26 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
           _backgrounded = false;
           _clearJustResumed();
         });
-        // Whatever the WebView's player drifted to while suspended is
-        // untrustworthy for host or viewer alike — ask the room for its
-        // real, elapsed-time-corrected position instead of trusting local
-        // state (or, for the host, silently resuming from a stale spot).
+        // Whatever position drifted while genuinely backgrounded (e.g. a
+        // long screen-off stretch, if the WebView got suspended at the OS
+        // level) is untrustworthy for host or viewer alike — ask the room
+        // for its real, elapsed-time-corrected position instead of
+        // trusting local state.
         widget.onRequestState();
       case AppLifecycleState.detached:
         break;
     }
   }
 
-  void _startBackgroundKeepAlive() {
-    final c = _controller;
-    // Read isPlaying now, before youtube_player_flutter's own observer
-    // (registered on a State deeper in the tree, so it fires after ours for
-    // the same lifecycle event) gets a chance to call pause() itself.
-    if (c == null || !c.value.isPlaying) return;
-    _backgroundKeepAliveTimer?.cancel();
-    // A quick first re-assert shortly after the plugin's own pause() call
-    // (issued moments after this, later in the same lifecycle dispatch)
-    // has had time to actually reach the WebView, then keep re-asserting
-    // periodically in case Android's own throttling kicks in later. play()
-    // on an already-playing video is a no-op in the YouTube IFrame API
-    // (doesn't restart/seek), so this is safe to call repeatedly.
-    _backgroundKeepAliveTimer =
-        Timer.periodic(const Duration(milliseconds: 800), (_) {
-      _controller?.play();
-    });
-  }
+  double get _positionSeconds => _positionNotifier.value.inMilliseconds / 1000;
 
-  double get _positionSeconds =>
-      (_controller?.value.position.inMilliseconds ?? 0) / 1000;
-
-  // Just toggles the local controller — _onControllerStateChanged picks up
-  // the resulting isPlaying change and emits it, so this doesn't also emit
-  // directly (that would double-report the same transition).
+  // Just toggles the page's player — the resulting StateChange event picks
+  // up the change and emits it via _maybeReportPlayState, so this doesn't
+  // also emit directly (that would double-report the same transition).
   void _handleTap() {
     if (!widget.isHost || _controller == null) return;
-    if (_controller!.value.isPlaying) {
-      _controller!.pause();
-    } else {
-      _controller!.play();
-    }
+    _controller!
+        .evaluateJavascript(source: _isPlaying ? 'ytPause();' : 'ytPlay();');
   }
 
   void _handleSeekChanged(double v) {
@@ -375,7 +344,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
   }
 
   void _handleSeekEnd(double v) {
-    _controller?.seekTo(Duration(milliseconds: (v * 1000).round()));
+    _controller?.evaluateJavascript(source: 'ytSeek($v);');
     widget.onSeek(v);
     setState(() => _dragging = false);
   }
@@ -387,17 +356,42 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     return '$m:$s';
   }
 
+  InAppWebView _buildWebView() {
+    final videoId = _currentVideoId!;
+    return InAppWebView(
+      initialUrlRequest: URLRequest(url: WebUri(_embedUrl(videoId))),
+      initialSettings: InAppWebViewSettings(
+        javaScriptEnabled: true,
+        domStorageEnabled: true,
+        mediaPlaybackRequiresUserGesture: false,
+        transparentBackground: false,
+      ),
+      onWebViewCreated: _onWebViewCreated,
+      // Same "don't error out on a custom app-deeplink scheme" guard as
+      // webview_browse_screen.dart / webview_room_player.dart.
+      shouldOverrideUrlLoading: (controller, navigationAction) async {
+        final scheme = navigationAction.request.url?.scheme;
+        if (scheme != null && scheme != 'http' && scheme != 'https') {
+          return NavigationActionPolicy.CANCEL;
+        }
+        return NavigationActionPolicy.ALLOW;
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final controller = _controller;
-    if (controller == null) {
+    if (_currentVideoId == null) {
       return AspectRatio(
         aspectRatio: 16 / 9,
         child: Container(
-            color: AppColors.surface2,
-            alignment: Alignment.center,
-            child: const Text('No video',
-                style: TextStyle(color: AppColors.textFaint))),
+          color: AppColors.surface2,
+          alignment: Alignment.center,
+          child: const Text(
+            'No video',
+            style: TextStyle(color: AppColors.textFaint),
+          ),
+        ),
       );
     }
 
@@ -410,19 +404,16 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
       return SizedBox(
         width: 100,
         height: 100,
-        child: IgnorePointer(
-          child: YoutubePlayer(
-              controller: controller, showVideoProgressIndicator: false),
-        ),
+        child: IgnorePointer(child: _buildWebView()),
       );
     }
 
     final audioOnly = widget.mediaMode == 'audio';
 
-    // The YoutubePlayer widget stays mounted at a real (if tiny) size either
-    // way — it's what's actually producing the audio, and WebView-backed
-    // players commonly suspend playback if shrunk to a literal zero size or
-    // taken fully offstage. In audio-only mode it's just shrunk to 1x1 and
+    // The WebView stays mounted at a real (if tiny) size either way — it's
+    // what's actually producing the audio, and WebView-backed players
+    // commonly suspend playback if shrunk to a literal zero size or taken
+    // fully offstage. In audio-only mode it's just shrunk to 100x100 and
     // hidden behind the Static Bloom card instead.
     // No rounded-corner card/box — the video now runs edge-to-edge at full
     // screen width right under the header, so a "boxed" look doesn't apply.
@@ -432,8 +423,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
         child: Stack(
           fit: StackFit.expand,
           children: [
-            YoutubePlayer(
-                controller: controller, showVideoProgressIndicator: false),
+            _buildWebView(),
             // A dedicated button row, not a whole-video tap target — tapping
             // anywhere on the video (e.g. near the seek bar) was toggling
             // playback by accident. Skip buttons flank play/pause: left
@@ -447,13 +437,11 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     RoomSkipButton(
-                        forward: false, onTap: widget.onSkipPrevious),
-                    const SizedBox(width: 20),
-                    ValueListenableBuilder(
-                      valueListenable: controller,
-                      builder: (context, value, _) => RoomPlayPauseButton(
-                          playing: value.isPlaying, onTap: _handleTap),
+                      forward: false,
+                      onTap: widget.onSkipPrevious,
                     ),
+                    const SizedBox(width: 20),
+                    RoomPlayPauseButton(playing: _isPlaying, onTap: _handleTap),
                     const SizedBox(width: 20),
                     RoomSkipButton(forward: true, onTap: widget.onSkip),
                   ],
@@ -474,10 +462,14 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.5),
-                          shape: BoxShape.circle),
-                      child: const Icon(Icons.picture_in_picture_alt_rounded,
-                          color: Colors.white, size: 16),
+                        color: Colors.black.withValues(alpha: 0.5),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.picture_in_picture_alt_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
                     ),
                   ),
                   if (_justResumed)
@@ -486,24 +478,33 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                       child: IgnorePointer(
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 6),
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.7),
-                              borderRadius: BorderRadius.circular(999)),
+                            color: Colors.black.withValues(alpha: 0.7),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               SizedBox(
-                                  width: 12,
-                                  height: 12,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2, color: Colors.white)),
+                                width: 12,
+                                height: 12,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              ),
                               SizedBox(width: 8),
-                              Text('Catching up…',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600)),
+                              Text(
+                                'Catching up…',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -520,10 +521,13 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      shape: BoxShape.circle),
-                  child: Text(widget.liked ? '❤️' : '🤍',
-                      style: const TextStyle(fontSize: 16)),
+                    color: Colors.black.withValues(alpha: 0.5),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    widget.liked ? '❤️' : '🤍',
+                    style: const TextStyle(fontSize: 16),
+                  ),
                 ),
               ),
             ),
@@ -534,12 +538,14 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(16)),
+                    color: Colors.black.withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: VolumeDots(
-                      volume: _volume,
-                      onVolumeChange: _handleVolumeChange,
-                      trackColor: Colors.white24),
+                    volume: _volume,
+                    onVolumeChange: _handleVolumeChange,
+                    trackColor: Colors.white24,
+                  ),
                 ),
               ),
             Positioned(
@@ -549,32 +555,39 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
               child: Container(
                 padding: const EdgeInsets.fromLTRB(10, 20, 10, 6),
                 decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                        colors: [
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
                       Colors.black.withValues(alpha: 0.85),
-                      Colors.transparent
-                    ])),
-                child: ValueListenableBuilder(
-                  valueListenable: controller,
-                  builder: (context, value, _) {
-                    final duration =
-                        value.metaData.duration.inSeconds.toDouble();
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+                child: ValueListenableBuilder<Duration>(
+                  valueListenable: _positionNotifier,
+                  builder: (context, positionDuration, _) {
+                    final duration = _duration.inSeconds.toDouble();
                     final position = _dragging
                         ? _dragPosition
-                        : value.position.inSeconds.toDouble();
+                        : positionDuration.inSeconds.toDouble();
                     return Row(
                       children: [
-                        Text(_formatTime(position),
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 11)),
+                        Text(
+                          _formatTime(position),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                          ),
+                        ),
                         Expanded(
                           child: SliderTheme(
                             data: SliderTheme.of(context).copyWith(
-                                trackHeight: 3,
-                                thumbShape: const RoundSliderThumbShape(
-                                    enabledThumbRadius: 6)),
+                              trackHeight: 3,
+                              thumbShape: const RoundSliderThumbShape(
+                                enabledThumbRadius: 6,
+                              ),
+                            ),
                             child: Slider(
                               value: duration > 0
                                   ? position.clamp(0, duration)
@@ -589,20 +602,26 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                             ),
                           ),
                         ),
-                        Text(_formatTime(duration),
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 11)),
+                        Text(
+                          _formatTime(duration),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                          ),
+                        ),
                         IconButton(
                           onPressed: () => setState(
-                              () => _volumePopoverOpen = !_volumePopoverOpen),
+                            () => _volumePopoverOpen = !_volumePopoverOpen,
+                          ),
                           icon: Icon(
-                              _volume == 0
-                                  ? Icons.volume_off
-                                  : (_volume < 50
-                                      ? Icons.volume_down
-                                      : Icons.volume_up),
-                              color: Colors.white,
-                              size: 18),
+                            _volume == 0
+                                ? Icons.volume_off
+                                : (_volume < 50
+                                    ? Icons.volume_down
+                                    : Icons.volume_up),
+                            color: Colors.white,
+                            size: 18,
+                          ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),
@@ -629,12 +648,12 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     // video's aspect ratio (that stretch previously caused a layout
     // overflow — StaticBloomPlayer's own content doesn't fit an arbitrary
     // forced height).
-    return ValueListenableBuilder(
-      valueListenable: controller,
-      builder: (context, value, _) {
-        final duration = value.metaData.duration.inSeconds.toDouble();
+    return ValueListenableBuilder<Duration>(
+      valueListenable: _positionNotifier,
+      builder: (context, positionDuration, _) {
+        final duration = _duration.inSeconds.toDouble();
         final position =
-            _dragging ? _dragPosition : value.position.inSeconds.toDouble();
+            _dragging ? _dragPosition : positionDuration.inSeconds.toDouble();
         return Stack(
           children: [
             SizedBox(
@@ -642,7 +661,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                 height: 100,
                 child: IgnorePointer(child: videoTree)),
             StaticBloomPlayer(
-              playing: value.isPlaying,
+              playing: _isPlaying,
               title: widget.title,
               thumbnail: widget.thumbnail,
               volume: _volume,
@@ -668,9 +687,8 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     WidgetsBinding.instance.removeObserver(this);
     PipService.isInPip.removeListener(_onPipChanged);
     _justResumedFallback?.cancel();
-    _backgroundKeepAliveTimer?.cancel();
-    _controller?.removeListener(_onControllerStateChanged);
-    _controller?.dispose();
+    _positionNotifier.dispose();
+    _controller = null;
     super.dispose();
   }
 }
