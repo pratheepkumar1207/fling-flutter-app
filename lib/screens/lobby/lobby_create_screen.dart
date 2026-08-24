@@ -3,8 +3,48 @@ import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../theme/app_colors.dart';
 import '../party/party_screen.dart';
-import 'game_picker_screen.dart';
 import 'source_picker_screen.dart';
+
+// Plain line-icon-on-gradient treatment, matching GamePickerDark.dc.html's
+// game cards — inlined here (was its own GamePickerScreen/second page)
+// since choosing a game now happens on this same Create Room page.
+const _kGames = [
+  (
+    value: 'chess',
+    icon: Icons.shield_rounded,
+    label: 'Chess',
+    subtitle: '1 vs 1 · classic',
+    colors: [Color(0xFF7FA8D9), Color(0xFF4272D9)]
+  ),
+  (
+    value: 'ludo',
+    icon: Icons.grid_view_rounded,
+    label: 'Ludo',
+    subtitle: '2–4 players',
+    colors: [Color(0xFF6ED9A0), Color(0xFF2E9B5F)]
+  ),
+  (
+    value: 'tictactoe',
+    icon: Icons.apps_rounded,
+    label: 'Tic Tac Toe',
+    subtitle: '1 vs 1 · quick',
+    colors: [Color(0xFFE0836B), Color(0xFFB8422C)]
+  ),
+  (
+    value: 'uno',
+    icon: Icons.style_rounded,
+    label: 'UNO',
+    subtitle: '2–6 players',
+    colors: [Color(0xFFDBB155), Color(0xFFB98A3D)]
+  ),
+  (
+    value: 'truth_or_dare',
+    icon: Icons.mood_rounded,
+    label: 'Truth or Dare',
+    subtitle: 'Group · party',
+    colors: [Color(0xFFE0836B), Color(0xFFB8422C)]
+  ),
+];
 
 class LobbyCreateScreen extends StatefulWidget {
   const LobbyCreateScreen({super.key});
@@ -58,6 +98,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
   bool _micEnabled = true;
   bool _songPermission = true;
   bool _saving = false;
+  String _selectedGame = _kGames.first.value;
 
   Future<void> _create() async {
     setState(() => _saving = true);
@@ -82,6 +123,29 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  // Quick-create path for Game rooms — mirrors the old GamePickerScreen's
+  // _create() exactly: public visibility, no title/topic, just the chosen
+  // game type.
+  Future<void> _createGame() async {
+    setState(() => _saving = true);
+    try {
+      final room = await ApiClient.post('/rooms', body: {
+        'roomType': 'game',
+        'gameType': _selectedGame,
+        'visibility': 'public',
+      }) as Map<String, dynamic>;
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(MaterialPageRoute(
+          builder: (_) => PartyScreen(roomId: room['id'] as String)));
+    } on ApiException catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) setState(() => _saving = false);
+    } catch (_) {
       if (mounted) setState(() => _saving = false);
     }
   }
@@ -132,39 +196,15 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
                 ],
               ],
             ),
-            // Game rooms hop straight to the dedicated GamePickerScreen
-            // (matches GamePickerDark.dc.html — its own quick-create flow,
-            // public visibility, no title/topic) instead of continuing
-            // through this form's remaining steps.
+            // Game rooms pick their game right here (matches
+            // GamePickerDark.dc.html's cards) instead of hopping to a
+            // separate screen — quick-create flow: public visibility, no
+            // title/topic, same as before.
             if (_roomType == 'game') ...[
               const SizedBox(height: 20),
-              GestureDetector(
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => const GamePickerScreen())),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.border)),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.sports_esports_rounded,
-                          color: AppColors.accent2, size: 20),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                          child: Text('Choose a game',
-                              style: TextStyle(
-                                  color: AppColors.text,
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w600))),
-                      const Icon(Icons.chevron_right_rounded,
-                          color: AppColors.textFaint, size: 20),
-                    ],
-                  ),
-                ),
-              ),
+              _sectionLabel('2. Choose a game'),
+              const SizedBox(height: 10),
+              for (final game in _kGames) _gameCard(game),
             ] else ...[
               const SizedBox(height: 20),
               _sectionLabel('2. Who can join'),
@@ -184,42 +224,46 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
               _pillField(_nameController, 'Room Name (optional)'),
               const SizedBox(height: 10),
               _pillField(_topicController, 'Add a description (optional)'),
-              const SizedBox(height: 20),
-              // Watch parties skip the button below entirely — picking a video in
-              // the Rave-style source picker creates the room automatically (see
-              // watch_room_creator.dart), so there's nothing left to confirm here.
-              SizedBox(
-                width: double.infinity,
-                child: Container(
-                  decoration: BoxDecoration(
-                      gradient: AppGradients.volaCtaDiagonal,
-                      borderRadius: BorderRadius.circular(999)),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(999),
-                      onTap: _roomType == 'watch'
-                          ? _openSourcePicker
-                          : (_saving ? null : _create),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        child: Center(
-                          child: Text(
-                            _roomType == 'watch'
-                                ? 'Choose what to watch'
-                                : (_saving ? 'Creating…' : 'Create Room'),
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 15),
-                          ),
+            ],
+            const SizedBox(height: 20),
+            // Watch parties skip creating here entirely — picking a video in
+            // the Rave-style source picker creates the room automatically
+            // (see watch_room_creator.dart). Game rooms create straight off
+            // the chosen game card above (_createGame); Voice rooms use the
+            // full form above (_create).
+            SizedBox(
+              width: double.infinity,
+              child: Container(
+                decoration: BoxDecoration(
+                    gradient: AppGradients.volaCtaDiagonal,
+                    borderRadius: BorderRadius.circular(999)),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(999),
+                    onTap: _roomType == 'watch'
+                        ? _openSourcePicker
+                        : (_saving
+                            ? null
+                            : (_roomType == 'game' ? _createGame : _create)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Center(
+                        child: Text(
+                          _roomType == 'watch'
+                              ? 'Choose what to watch'
+                              : (_saving ? 'Creating…' : 'Create Room'),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15),
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ],
+            ),
           ],
         ),
       ),
@@ -229,6 +273,82 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
   Widget _sectionLabel(String text) => Text(text,
       style: const TextStyle(
           color: AppColors.text, fontSize: 15, fontWeight: FontWeight.w700));
+
+  Widget _gameCard(
+      ({
+        String value,
+        IconData icon,
+        String label,
+        String subtitle,
+        List<Color> colors
+      }) game) {
+    final selected = _selectedGame == game.value;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedGame = game.value),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+              color: selected ? AppColors.accent2 : AppColors.border,
+              width: 1.5),
+          color: selected
+              ? AppColors.accent2.withValues(alpha: 0.1)
+              : AppColors.surface,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: game.colors)),
+              alignment: Alignment.center,
+              child: Icon(game.icon, color: Colors.white, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(game.label,
+                      style: const TextStyle(
+                          color: AppColors.text,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14)),
+                  const SizedBox(height: 2),
+                  Text(game.subtitle,
+                      style: const TextStyle(
+                          color: AppColors.textFaint, fontSize: 11.5)),
+                ],
+              ),
+            ),
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: selected ? AppColors.accent2 : null,
+                border: selected
+                    ? null
+                    : Border.all(color: AppColors.border, width: 2),
+              ),
+              alignment: Alignment.center,
+              child: selected
+                  ? const Icon(Icons.check_rounded,
+                      color: Colors.white, size: 12)
+                  : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _typeCard(_RoomTypeSpec spec) {
     final selected = _roomType == spec.value;
