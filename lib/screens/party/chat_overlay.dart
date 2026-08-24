@@ -302,6 +302,11 @@ class _ChatOverlayState extends State<ChatOverlay> {
                           focusNode: _focusNode,
                           style: const TextStyle(
                               color: Colors.white, fontSize: 13),
+                          // Otherwise picks up the app's default theme
+                          // accent for the cursor/selection handles — a
+                          // stray splash of color against this glass bar's
+                          // neutral look while typing.
+                          cursorColor: Colors.white,
                           onSubmitted: (_) => _send(),
                           decoration: const InputDecoration(
                             hintText: 'Say something…',

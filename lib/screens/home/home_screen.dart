@@ -647,7 +647,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final thumbnail = r['nowPlayingThumbnail'] as String?;
     final nowPlaying =
         r['nowPlayingTitle'] as String? ?? r['title'] as String? ?? 'Video';
-    final memberCount = r['memberCount'] ?? 0;
+    final memberCount = (r['memberCount'] as num?)?.toInt() ?? 0;
+    final members = (r['members'] as List?) ?? const [];
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: GestureDetector(
@@ -656,7 +657,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: GlassPanel(
           borderRadius: BorderRadius.circular(16),
           child: SizedBox(
-            height: 88,
+            height: members.isNotEmpty ? 112 : 88,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -693,6 +694,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ],
                         ),
+                        if (members.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          MemberAvatarStrip(
+                              members: members, totalCount: memberCount),
+                        ],
                         const SizedBox(height: 6),
                         Row(
                           children: [
@@ -986,7 +992,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   Row(
                     children: [
                       if (members != null && members.isNotEmpty)
-                        Flexible(child: MemberAvatarStrip(members: members)),
+                        Flexible(
+                            child: MemberAvatarStrip(
+                                members: members, totalCount: memberCount)),
                       const SizedBox(width: 6),
                       _liveDot(size: 6),
                       const SizedBox(width: 4),
