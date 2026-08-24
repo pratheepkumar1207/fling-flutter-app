@@ -37,7 +37,9 @@ class _NotificationBellState extends State<NotificationBell> {
       final data = await ApiClient.get('/notifications');
       if (!mounted) return;
       setState(() {
-        _items = (data as List).map((e) => NotificationItem.fromJson(e as Map<String, dynamic>)).toList();
+        _items = (data as List)
+            .map((e) => NotificationItem.fromJson(e as Map<String, dynamic>))
+            .toList();
       });
     } catch (_) {
       // Best-effort — bell just stays empty on failure.
@@ -52,7 +54,10 @@ class _NotificationBellState extends State<NotificationBell> {
     socket.on('notification:new', (data) {
       if (!mounted || data is! Map) return;
       setState(() {
-        _items = [NotificationItem.fromJson(Map<String, dynamic>.from(data)), ..._items];
+        _items = [
+          NotificationItem.fromJson(Map<String, dynamic>.from(data)),
+          ..._items
+        ];
       });
     });
   }
@@ -60,9 +65,18 @@ class _NotificationBellState extends State<NotificationBell> {
   Future<void> _openNotification(NotificationItem n) async {
     if (!n.isRead) {
       setState(() {
-        _items = _items.map((it) => it.id == n.id
-            ? NotificationItem(id: it.id, type: it.type, title: it.title, body: it.body, data: it.data, isRead: true, createdAt: it.createdAt)
-            : it).toList();
+        _items = _items
+            .map((it) => it.id == n.id
+                ? NotificationItem(
+                    id: it.id,
+                    type: it.type,
+                    title: it.title,
+                    body: it.body,
+                    data: it.data,
+                    isRead: true,
+                    createdAt: it.createdAt)
+                : it)
+            .toList();
       });
       try {
         await ApiClient.post('/notifications/${n.id}/read');
@@ -71,10 +85,16 @@ class _NotificationBellState extends State<NotificationBell> {
     if (!mounted) return;
     if (n.type == 'room_invite') {
       final roomId = n.data?['roomId'] as String?;
-      if (roomId != null) Navigator.of(context).push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId)));
+      if (roomId != null) {
+        Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId)));
+      }
     } else if (n.type == 'mention') {
       final postId = n.data?['postId'] as String?;
-      if (postId != null) Navigator.of(context).push(MaterialPageRoute(builder: (_) => PostDetailScreen(postId: postId)));
+      if (postId != null) {
+        Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => PostDetailScreen(postId: postId)));
+      }
     }
   }
 
@@ -106,45 +126,79 @@ class _NotificationBellState extends State<NotificationBell> {
         label: Text('$_unreadCount'),
         backgroundColor: AppColors.primary,
         textColor: Colors.white,
-        child: Image.asset('assets/icons/app/notification.png', width: 48, height: 48),
+        child: Image.asset('assets/icons/app/notification.png',
+            width: 48, height: 48),
       ),
       color: AppColors.surface2,
       itemBuilder: (context) {
         if (_items.isEmpty) {
           return [
-            const PopupMenuItem<void>(enabled: false, child: Text('No notifications yet', style: TextStyle(color: AppColors.textFaint))),
+            const PopupMenuItem<void>(
+                enabled: false,
+                child: Text('No notifications yet',
+                    style: TextStyle(color: AppColors.textFaint))),
             PopupMenuItem<void>(
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NotificationsScreen())),
-              child: const Text('See all', style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w700)),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const NotificationsScreen())),
+              child: const Text('See all',
+                  style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700)),
             ),
           ];
         }
+        // Capped at 4 and single-line-only (was 10 items with a 2-line body
+        // preview each) — that stretched the dropdown tall enough to cover
+        // most of the screen, reading as if it had navigated to a full page
+        // instead of just opening a small menu. "See all" is what actually
+        // opens the full list.
         return [
           PopupMenuItem<void>(
+            height: 32,
             onTap: _markAllRead,
-            child: const Text('Mark all read', style: TextStyle(color: AppColors.primary, fontSize: 12)),
+            child: const Text('Mark all read',
+                style: TextStyle(color: AppColors.primary, fontSize: 12)),
           ),
-          ..._items.take(10).map(
+          ..._items.take(4).map(
                 (n) => PopupMenuItem<void>(
+                  height: 40,
                   onTap: () => _openNotification(n),
                   child: SizedBox(
                     width: 260,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
+                    child: Row(
                       children: [
-                        Text(n.title, style: TextStyle(color: AppColors.text, fontWeight: n.isRead ? FontWeight.normal : FontWeight.bold, fontSize: 13)),
-                        if (n.body.isNotEmpty)
-                          Text(n.body, style: const TextStyle(color: AppColors.textDim, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
-                        Text(formatRelativeTime(n.createdAt), style: const TextStyle(color: AppColors.textFaint, fontSize: 10)),
+                        Expanded(
+                          child: Text(
+                            n.title,
+                            style: TextStyle(
+                                color: AppColors.text,
+                                fontWeight: n.isRead
+                                    ? FontWeight.normal
+                                    : FontWeight.bold,
+                                fontSize: 13),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(formatRelativeTime(n.createdAt),
+                            style: const TextStyle(
+                                color: AppColors.textFaint, fontSize: 10)),
                       ],
                     ),
                   ),
                 ),
               ),
           PopupMenuItem<void>(
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NotificationsScreen())),
-            child: const Text('See all', style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w700)),
+            height: 32,
+            onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+            child: const Text('See all',
+                style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700)),
           ),
         ];
       },

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/auth_provider.dart';
 import '../../core/format.dart';
-import '../../core/theme_controller.dart';
 import '../../theme/clay_colors.dart';
 import '../../widgets/avatar.dart';
 import '../notifications/notification_bell.dart';
@@ -11,7 +10,7 @@ import '../search/search_screen.dart';
 import '../wallet/wallet_screen.dart';
 
 /// Flat bar (no card/pill background) — avatar->profile, wallet pill,
-/// theme toggle, search, notifications.
+/// search, notifications.
 class FlingTopBar extends StatelessWidget implements PreferredSizeWidget {
   const FlingTopBar({super.key});
 
@@ -22,7 +21,6 @@ class FlingTopBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
     final clay = ClayColors.of(context);
-    final themeController = context.watch<ThemeController>();
     return PreferredSize(
       preferredSize: preferredSize,
       child: SafeArea(
@@ -55,18 +53,6 @@ class FlingTopBar extends StatelessWidget implements PreferredSizeWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        IconButton(
-                          tooltip: themeController.isDark
-                              ? 'Switch to light'
-                              : 'Switch to dark',
-                          icon: Icon(
-                            themeController.isDark
-                                ? Icons.light_mode_rounded
-                                : Icons.dark_mode_rounded,
-                            color: clay.textDim,
-                          ),
-                          onPressed: () => themeController.toggle(),
-                        ),
                         GestureDetector(
                           onTap: () => Navigator.of(context).push(
                               MaterialPageRoute(

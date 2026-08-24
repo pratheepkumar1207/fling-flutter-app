@@ -33,7 +33,9 @@ class _WalletScreenState extends State<WalletScreen> {
   Future<void> _loadKyc() async {
     try {
       final data = await ApiClient.get('/kyc/status') as Map<String, dynamic>;
-      if (mounted) setState(() => _kycStatus = data['status'] as String? ?? 'none');
+      if (mounted) {
+        setState(() => _kycStatus = data['status'] as String? ?? 'none');
+      }
     } catch (_) {}
   }
 
@@ -57,10 +59,13 @@ class _WalletScreenState extends State<WalletScreen> {
     final giftType = t['giftType'] as String?;
     return switch (type) {
       'buy' => 'Bought coins',
-      'gift_sent' => relatedName != null ? 'Gift to $relatedName' : 'Sent a gift',
+      'gift_sent' =>
+        relatedName != null ? 'Gift to $relatedName' : 'Sent a gift',
       'gift_received' => giftType == 'spin_wheel'
           ? 'Daily spin'
-          : (relatedName != null ? '${_titleCase(giftType)} from $relatedName' : 'Received a gift'),
+          : (relatedName != null
+              ? '${_titleCase(giftType)} from $relatedName'
+              : 'Received a gift'),
       'cashout_requested' => 'Cash out requested',
       'cashout_paid' => 'Cash out to bank',
       'username_change' => 'Username change',
@@ -88,7 +93,9 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   void _snack(String msg) {
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    }
   }
 
   @override
@@ -96,7 +103,16 @@ class _WalletScreenState extends State<WalletScreen> {
     final user = context.watch<AuthProvider>().user;
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Wallet')),
+      // Explicit, not inherited — this screen's body is hardcoded to the
+      // dark AppColors palette regardless of the app's light/dark toggle,
+      // so a plain AppBar() would otherwise pick up a light AppBarTheme
+      // background when the user is in light mode, leaving what looks
+      // like a blank white bar (and clashing badly with the dark body).
+      appBar: AppBar(
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.text,
+        title: const Text('Wallet'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -104,20 +120,32 @@ class _WalletScreenState extends State<WalletScreen> {
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(22),
-              gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF3D2A4A), Color(0xFF261A38)]),
+              gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF3D2A4A), Color(0xFF261A38)]),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Coin balance', style: TextStyle(color: Colors.white70, fontSize: 11.5, fontWeight: FontWeight.w600)),
+                const Text('Coin balance',
+                    style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600)),
                 const SizedBox(height: 6),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
                   children: [
-                    Text(formatNumber(user?.coinBalance), style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w800)),
+                    Text(formatNumber(user?.coinBalance),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 32,
+                            fontWeight: FontWeight.w800)),
                     const SizedBox(width: 6),
-                    const Text('coins', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                    const Text('coins',
+                        style: TextStyle(color: Colors.white54, fontSize: 12)),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -125,24 +153,42 @@ class _WalletScreenState extends State<WalletScreen> {
                   children: [
                     Expanded(
                       child: GestureDetector(
-                        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WalletBuyScreen())),
+                        onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => const WalletBuyScreen())),
                         child: Container(
                           height: 40,
-                          decoration: BoxDecoration(gradient: const LinearGradient(colors: AppGradients.brand), borderRadius: BorderRadius.circular(999)),
+                          decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                  colors: AppGradients.brand),
+                              borderRadius: BorderRadius.circular(999)),
                           alignment: Alignment.center,
-                          child: const Text('Buy coins', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                          child: const Text('Buy coins',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13)),
                         ),
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: GestureDetector(
-                        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WalletCashoutScreen())),
+                        onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => const WalletCashoutScreen())),
                         child: Container(
                           height: 40,
-                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(999), border: Border.all(color: Colors.white.withValues(alpha: 0.25))),
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.25))),
                           alignment: Alignment.center,
-                          child: const Text('Cash out', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                          child: const Text('Cash out',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13)),
                         ),
                       ),
                     ),
@@ -156,15 +202,23 @@ class _WalletScreenState extends State<WalletScreen> {
             children: [
               Expanded(
                 child: GestureDetector(
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SpinWheelScreen())),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const SpinWheelScreen())),
                   child: Container(
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+                    decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.border)),
                     child: const Column(
                       children: [
                         Text('🎡', style: TextStyle(fontSize: 26)),
                         SizedBox(height: 4),
-                        Text('Daily spin', style: TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w500)),
+                        Text('Daily spin',
+                            style: TextStyle(
+                                color: AppColors.text,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500)),
                       ],
                     ),
                   ),
@@ -176,14 +230,23 @@ class _WalletScreenState extends State<WalletScreen> {
                   onTap: (user?.isVip == true || _buyingVip) ? null : _buyVip,
                   child: Container(
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: AppColors.gold.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.gold.withValues(alpha: 0.4))),
+                    decoration: BoxDecoration(
+                        color: AppColors.gold.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                            color: AppColors.gold.withValues(alpha: 0.4))),
                     child: Column(
                       children: [
                         const Text('👑', style: TextStyle(fontSize: 26)),
                         const SizedBox(height: 4),
                         Text(
-                          user?.isVip == true ? 'VIP active' : (_buyingVip ? 'Purchasing…' : 'Get VIP (500)'),
-                          style: const TextStyle(color: AppColors.gold, fontSize: 13, fontWeight: FontWeight.w500),
+                          user?.isVip == true
+                              ? 'VIP active'
+                              : (_buyingVip ? 'Purchasing…' : 'Get VIP (500)'),
+                          style: const TextStyle(
+                              color: AppColors.gold,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500),
                         ),
                       ],
                     ),
@@ -194,33 +257,66 @@ class _WalletScreenState extends State<WalletScreen> {
           ),
           const SizedBox(height: 16),
           GestureDetector(
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WalletKycScreen())).then((_) => _loadKyc()),
+            onTap: () => Navigator.of(context)
+                .push(
+                    MaterialPageRoute(builder: (_) => const WalletKycScreen()))
+                .then((_) => _loadKyc()),
             child: Container(
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+              decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.border)),
               child: Text.rich(
                 TextSpan(
                   children: [
-                    const TextSpan(text: 'KYC status: ', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-                    TextSpan(text: _kycStatus ?? 'none', style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w600)),
-                    const TextSpan(text: ' — tap to manage →', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+                    const TextSpan(
+                        text: 'KYC status: ',
+                        style:
+                            TextStyle(color: AppColors.textDim, fontSize: 13)),
+                    TextSpan(
+                        text: _kycStatus ?? 'none',
+                        style: const TextStyle(
+                            color: AppColors.text,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600)),
+                    const TextSpan(
+                        text: ' — tap to manage →',
+                        style:
+                            TextStyle(color: AppColors.textDim, fontSize: 13)),
                   ],
                 ),
               ),
             ),
           ),
           const SizedBox(height: 22),
-          const Text('RECENT ACTIVITY', style: TextStyle(color: AppColors.textFaint, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
+          const Text('RECENT ACTIVITY',
+              style: TextStyle(
+                  color: AppColors.textFaint,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.6)),
           const SizedBox(height: 8),
           if (_activityLoading)
-            const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))))
+            const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Center(
+                    child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2))))
           else if (_activity.isEmpty)
-            const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('No activity yet.', style: TextStyle(color: AppColors.textFaint, fontSize: 12.5)))
+            const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text('No activity yet.',
+                    style:
+                        TextStyle(color: AppColors.textFaint, fontSize: 12.5)))
           else
             ..._activity.map((t) {
               final coins = (t['coins'] as num?)?.toDouble() ?? 0;
               final positive = coins >= 0;
-              final createdAt = DateTime.tryParse(t['createdAt']?.toString() ?? '');
+              final createdAt =
+                  DateTime.tryParse(t['createdAt']?.toString() ?? '');
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Row(
@@ -228,23 +324,43 @@ class _WalletScreenState extends State<WalletScreen> {
                     Container(
                       width: 38,
                       height: 38,
-                      decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(11)),
+                      decoration: BoxDecoration(
+                          color: AppColors.surface2,
+                          borderRadius: BorderRadius.circular(11)),
                       alignment: Alignment.center,
-                      child: Icon(positive ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded, color: positive ? AppColors.success : AppColors.textDim, size: 16),
+                      child: Icon(
+                          positive
+                              ? Icons.arrow_downward_rounded
+                              : Icons.arrow_upward_rounded,
+                          color:
+                              positive ? AppColors.success : AppColors.textDim,
+                          size: 16),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(_activityTitle(t), style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w600)),
-                          Text(createdAt != null ? formatRelativeTime(createdAt) : '', style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
+                          Text(_activityTitle(t),
+                              style: const TextStyle(
+                                  color: AppColors.text,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600)),
+                          Text(
+                              createdAt != null
+                                  ? formatRelativeTime(createdAt)
+                                  : '',
+                              style: const TextStyle(
+                                  color: AppColors.textFaint, fontSize: 11)),
                         ],
                       ),
                     ),
                     Text(
                       '${positive ? '+' : ''}${formatNumber(coins)}',
-                      style: TextStyle(color: positive ? AppColors.success : AppColors.text, fontSize: 13, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                          color: positive ? AppColors.success : AppColors.text,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700),
                     ),
                   ],
                 ),

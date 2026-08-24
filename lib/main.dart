@@ -6,7 +6,6 @@ import 'core/auth_provider.dart';
 import 'core/background_audio_handler.dart';
 import 'core/firebase_service.dart';
 import 'core/socket_service.dart';
-import 'core/theme_controller.dart';
 import 'screens/splash_screen.dart';
 import 'theme/app_theme.dart';
 
@@ -35,18 +34,20 @@ class FlingApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => SocketService()),
-        ChangeNotifierProvider(create: (_) => ThemeController()..load()),
       ],
-      child: Consumer<ThemeController>(
-        builder: (context, themeController, _) => MaterialApp(
-          title: 'Insync',
-          scaffoldMessengerKey: scaffoldMessengerKey,
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.light,
-          darkTheme: AppTheme.dark,
-          themeMode: themeController.mode,
-          home: const SplashScreen(),
-        ),
+      // Single fixed dark theme — no light-mode toggle. Most of the app
+      // (room screens, Home, the glass chrome) hardcodes the dark
+      // AppColors palette in its body regardless of theme, so letting
+      // ambient chrome (AppBars etc.) switch to light independently used
+      // to produce a light bar over a dark body — worst case reading as a
+      // blank white screen. One theme, always installed, removes that
+      // whole class of mismatch.
+      child: MaterialApp(
+        title: 'Insync',
+        scaffoldMessengerKey: scaffoldMessengerKey,
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.dark,
+        home: const SplashScreen(),
       ),
     );
   }
