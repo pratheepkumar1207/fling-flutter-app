@@ -199,6 +199,10 @@ class _AppShellState extends State<AppShell> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: const FlingTopBar(),
+      // Lets Home's own scroll content show (blurred) through the glass
+      // bottom nav instead of the bar sitting over a dead solid-color gap —
+      // see LiquidGlassBottomNav.
+      extendBody: true,
       body: IndexedStack(index: _index, children: _screens),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,

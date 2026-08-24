@@ -74,6 +74,17 @@ Widget _roomTypeIcon(String? roomType, double size) {
       style: TextStyle(fontSize: size * 0.7));
 }
 
+/// Small solid "live" dot ahead of a participant count — matches the
+/// reference mockup's room-list rows (a green dot instead of a people
+/// icon) instead of this app's previous Icons.people_alt_rounded glyph.
+Widget _liveDot({double size = 7, Color color = AppColors.success}) {
+  return Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+  );
+}
+
 class _HomeScreenState extends State<HomeScreen> {
   bool _loading = true;
   List<Map<String, dynamic>> _rooms = [];
@@ -204,7 +215,10 @@ class _HomeScreenState extends State<HomeScreen> {
       child: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          // Extra bottom room — the Scaffold now extends its body behind
+          // the glass bottom nav (see app_shell.dart's extendBody) so the
+          // last section doesn't end up sitting under that bar.
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
           children: [
             Text('Hey $firstName 👋',
                 style: const TextStyle(
@@ -682,9 +696,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 6),
                         Row(
                           children: [
-                            const Icon(Icons.people_alt_rounded,
-                                size: 12, color: AppColors.textFaint),
-                            const SizedBox(width: 4),
+                            _liveDot(),
+                            const SizedBox(width: 5),
                             Text('$memberCount watching',
                                 style: const TextStyle(
                                     color: AppColors.textFaint,
@@ -780,10 +793,18 @@ class _HomeScreenState extends State<HomeScreen> {
                                 fontWeight: FontWeight.w700),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis),
-                        Text(
-                            '${r['memberCount'] ?? 0} ${_watchingLabel(roomType)}',
-                            style: const TextStyle(
-                                color: Colors.white70, fontSize: 10)),
+                        const SizedBox(height: 2),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _liveDot(size: 6),
+                            const SizedBox(width: 4),
+                            Text(
+                                '${r['memberCount'] ?? 0} ${_watchingLabel(roomType)}',
+                                style: const TextStyle(
+                                    color: Colors.white70, fontSize: 10)),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -967,9 +988,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       if (members != null && members.isNotEmpty)
                         Flexible(child: MemberAvatarStrip(members: members)),
                       const SizedBox(width: 6),
-                      Icon(Icons.people_alt_rounded,
-                          size: 12, color: AppColors.textFaint),
-                      const SizedBox(width: 3),
+                      _liveDot(size: 6),
+                      const SizedBox(width: 4),
                       Text(
                           '$memberCount ${isLive ? 'watching' : roomType == 'voice' ? 'listening' : roomType == 'game' ? 'spectating' : 'watching'}',
                           style: const TextStyle(

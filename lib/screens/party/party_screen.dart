@@ -8,7 +8,6 @@ import '../../core/room_presence_service.dart';
 import '../../core/room_source_types.dart';
 import '../../core/socket_service.dart';
 import '../../theme/app_colors.dart';
-import '../../theme/club_room_colors.dart';
 import '../../theme/vola_party_colors.dart';
 import '../../widgets/gift_bottom_sheet.dart';
 import '../../widgets/game_board_view.dart';
@@ -532,26 +531,20 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     // home from Home/Feed/chat/etc. shouldn't pop a PIP window with nothing
     // worth watching in it.
     _syncAutoPip(isWatch && currentItem != null);
-    // Voice Room and Watch Party each get their own dedicated reskin (see
-    // club_room_colors.dart / vola_party_colors.dart) — every other room
-    // type keeps the app's normal claymorphism theme via AppColors,
-    // unchanged below. Watch Party's background is an actual gradient
-    // (see roomBgGradient), not a flat color, so roomBg only matters for
-    // Voice/default.
-    final roomBg = isVoice ? ClubRoomColors.bg : AppColors.bg;
-    final roomBgGradient = isWatch ? VolaPartyColors.bgGradient : null;
-    final roomTextDim = isVoice
-        ? ClubRoomColors.textDim
-        : (isWatch ? VolaPartyColors.textDim : AppColors.textDim);
-    final roomPrimary = isVoice
-        ? ClubRoomColors.primary
-        : (isWatch ? VolaPartyColors.primary : AppColors.primary);
-    final roomGold = isVoice
-        ? ClubRoomColors.gold
-        : (isWatch ? VolaPartyColors.gold : AppColors.gold);
-    final roomText = isVoice
-        ? ClubRoomColors.text
-        : (isWatch ? VolaPartyColors.text : AppColors.text);
+    // Watch/Voice/Game all share Watch Party's Vola reskin now — same
+    // background gradient, same text/accent colors — instead of Voice
+    // having its own separate ClubRoomColors look. Only room types outside
+    // these three (e.g. 'live') keep the app's normal claymorphism theme
+    // via AppColors.
+    final useVolaTheme = isWatch || isVoice || isGame;
+    const roomBg = AppColors.bg;
+    final roomBgGradient = useVolaTheme ? VolaPartyColors.bgGradient : null;
+    final roomTextDim =
+        useVolaTheme ? VolaPartyColors.textDim : AppColors.textDim;
+    final roomPrimary =
+        useVolaTheme ? VolaPartyColors.primary : AppColors.primary;
+    final roomGold = useVolaTheme ? VolaPartyColors.gold : AppColors.gold;
+    final roomText = useVolaTheme ? VolaPartyColors.text : AppColors.text;
     final myId = context.read<AuthProvider>().user?.id;
     final boostedUntilRaw = room['boostedUntil'] as String?;
     final isBoosted = boostedUntilRaw != null &&
@@ -614,7 +607,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
         }
         return Scaffold(
           key: _scaffoldKey,
-          backgroundColor: isWatch ? Colors.transparent : roomBg,
+          backgroundColor: useVolaTheme ? Colors.transparent : roomBg,
           endDrawer: RosterSheet(
             roster: rs.roster,
             hostId: rs.hostId,
@@ -638,9 +631,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                   backgroundColor: Colors.transparent,
                   elevation: 0,
                   flexibleSpace: const GlassAppBarBackground(),
-                  foregroundColor: isVoice
-                      ? ClubRoomColors.text
-                      : (isWatch ? VolaPartyColors.text : null),
+                  foregroundColor: useVolaTheme ? VolaPartyColors.text : null,
                   // Leave, not back — a plain pop/minimize still works via the
                   // system back gesture (ActiveRoomHolder keeps the room running
                   // either way), but this top-left slot is now the explicit,
@@ -762,8 +753,12 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                 horizontal: 10, vertical: 6),
                             child:
                                 Row(mainAxisSize: MainAxisSize.min, children: [
-                              Icon(Icons.people_alt_rounded,
-                                  size: 13, color: roomTextDim),
+                              Container(
+                                  width: 7,
+                                  height: 7,
+                                  decoration: const BoxDecoration(
+                                      color: AppColors.success,
+                                      shape: BoxShape.circle)),
                               const SizedBox(width: 5),
                               Text('${rs.roster.length}',
                                   style: TextStyle(

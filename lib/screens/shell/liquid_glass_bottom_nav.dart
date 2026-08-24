@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/clay_colors.dart';
 import '../../theme/glass.dart';
+import '../../widgets/glass.dart' show GlassPanel;
 
 class NavItemData {
   final IconData icon;
@@ -13,10 +14,11 @@ class NavItemData {
   const NavItemData(this.icon, this.label, {this.iconAsset});
 }
 
-/// Flat bottom nav (no pill/card background) — a plain bar with the
-/// active tab highlighted by its own icon/label color. The "create room"
-/// action lives as a raised circle centered in the bar itself (split the
-/// tabs into two even halves either side of it) instead of a separately
+/// Frosted-glass bottom nav (matches the room chrome's GlassPanel look —
+/// see widgets/glass.dart) — the active tab is highlighted by its own
+/// icon/label color, not a background swap. The "create room" action
+/// lives as a raised circle centered in the bar itself (split the tabs
+/// into two even halves either side of it) instead of a separately
 /// floating Scaffold FAB.
 class LiquidGlassBottomNav extends StatelessWidget {
   final int currentIndex;
@@ -57,17 +59,22 @@ class LiquidGlassBottomNav extends StatelessWidget {
                   ? AnimatedOpacity(
                       opacity: selected ? 1 : 0.55,
                       duration: const Duration(milliseconds: 150),
-                      child: Image.asset(item.iconAsset!, width: 52, height: 52),
+                      child:
+                          Image.asset(item.iconAsset!, width: 52, height: 52),
                     )
-                  : Icon(item.icon, size: 24, color: selected ? clay.primary : clay.textFaint),
+                  : Icon(item.icon,
+                      size: 24,
+                      color: selected ? clay.primary : clay.textFaint),
             ),
           ),
         ),
       );
     }
 
-    return Container(
-      decoration: BoxDecoration(color: clay.bg, border: Border(top: BorderSide(color: clay.border))),
+    return GlassPanel(
+      borderRadius: BorderRadius.zero,
+      border:
+          Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.16))),
       child: SafeArea(
         top: false,
         // Clip.none so the center button can pop up above the bar's own
@@ -81,7 +88,8 @@ class LiquidGlassBottomNav extends StatelessWidget {
               Row(
                 children: [
                   ...List.generate(leftItems.length, (i) => tab(i)),
-                  const SizedBox(width: 80), // reserves space under the center button
+                  const SizedBox(
+                      width: 80), // reserves space under the center button
                   ...List.generate(rightItems.length, (i) => tab(half + i)),
                 ],
               ),
@@ -97,13 +105,16 @@ class LiquidGlassBottomNav extends StatelessWidget {
                       Container(
                         width: 56,
                         height: 56,
-                        decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: clay.bg, width: 3)),
+                        decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: clay.bg, width: 3)),
                       ),
                       GlassIcon.circle(
                         size: 50,
                         colors: AppGradients.volaCta,
                         glowColor: AppColors.primary.withValues(alpha: 0.5),
-                        child: const Icon(Icons.add, color: Colors.white, size: 28),
+                        child: const Icon(Icons.add,
+                            color: Colors.white, size: 28),
                       ),
                     ],
                   ),

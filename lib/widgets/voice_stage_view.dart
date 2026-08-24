@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/profile_nav.dart';
 import '../models/room_models.dart';
 import '../theme/app_colors.dart';
-import '../theme/club_room_colors.dart';
+import '../theme/vola_party_colors.dart';
 import 'avatar.dart';
 
 /// Speaker stage + listener grid for Voice rooms — matches VoiceRoomDark.dc.html:
@@ -55,10 +55,10 @@ class VoiceStageView extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 14),
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: ClubRoomColors.primary.withValues(alpha: 0.1),
+              color: VolaPartyColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                  color: ClubRoomColors.primary.withValues(alpha: 0.3)),
+                  color: VolaPartyColors.primary.withValues(alpha: 0.3)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,7 +66,7 @@ class VoiceStageView extends StatelessWidget {
                 Text(
                   '${pendingRequests.length} request${pendingRequests.length == 1 ? '' : 's'} to talk',
                   style: const TextStyle(
-                      color: ClubRoomColors.primary,
+                      color: VolaPartyColors.primary,
                       fontWeight: FontWeight.bold,
                       fontSize: 12),
                 ),
@@ -89,7 +89,7 @@ class VoiceStageView extends StatelessWidget {
                               const SizedBox(width: 8),
                               Text(p?.name ?? 'Someone',
                                   style: const TextStyle(
-                                      color: ClubRoomColors.text,
+                                      color: VolaPartyColors.text,
                                       fontSize: 13)),
                             ],
                           ),
@@ -102,7 +102,7 @@ class VoiceStageView extends StatelessWidget {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 10, vertical: 5),
                                 decoration: BoxDecoration(
-                                    color: ClubRoomColors.primary,
+                                    color: VolaPartyColors.primary,
                                     borderRadius: BorderRadius.circular(999)),
                                 child: const Text('Approve',
                                     style: TextStyle(
@@ -120,10 +120,10 @@ class VoiceStageView extends StatelessWidget {
                                 decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(999),
                                     border: Border.all(
-                                        color: ClubRoomColors.border)),
+                                        color: VolaPartyColors.border)),
                                 child: const Text('Deny',
                                     style: TextStyle(
-                                        color: ClubRoomColors.textDim,
+                                        color: VolaPartyColors.textDim,
                                         fontSize: 11)),
                               ),
                             ),
@@ -138,7 +138,7 @@ class VoiceStageView extends StatelessWidget {
           ),
         Text('SPEAKERS · ${activeMics.length}',
             style: const TextStyle(
-                color: ClubRoomColors.textFaint,
+                color: VolaPartyColors.textFaint,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.5)),
@@ -170,8 +170,9 @@ class VoiceStageView extends StatelessWidget {
                                       ? const LinearGradient(
                                           colors: AppGradients.brand)
                                       : null,
-                                  color:
-                                      isHostSlot ? null : ClubRoomColors.border,
+                                  color: isHostSlot
+                                      ? null
+                                      : VolaPartyColors.border,
                                 ),
                                 child: Avatar(
                                     src: p.avatarUrl,
@@ -185,12 +186,12 @@ class VoiceStageView extends StatelessWidget {
                               decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                      color: ClubRoomColors.border,
+                                      color: VolaPartyColors.border,
                                       width: 1.5,
                                       style: BorderStyle.solid)),
                               alignment: Alignment.center,
                               child: const Icon(Icons.add_rounded,
-                                  color: ClubRoomColors.textFaint, size: 20),
+                                  color: VolaPartyColors.textFaint, size: 20),
                             ),
                       if (isHost && p != null && uid != hostId)
                         Positioned(
@@ -202,10 +203,11 @@ class VoiceStageView extends StatelessWidget {
                               width: 18,
                               height: 18,
                               decoration: BoxDecoration(
-                                  color: ClubRoomColors.danger,
+                                  color: VolaPartyColors.danger,
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                      color: ClubRoomColors.surface, width: 2)),
+                                      color: VolaPartyColors.surface,
+                                      width: 2)),
                               alignment: Alignment.center,
                               child: const Icon(Icons.close,
                                   size: 10, color: Colors.white),
@@ -219,8 +221,8 @@ class VoiceStageView extends StatelessWidget {
                     p != null ? (isMe ? 'You' : p.name) : 'Open seat',
                     style: TextStyle(
                         color: p != null
-                            ? ClubRoomColors.text
-                            : ClubRoomColors.textFaint,
+                            ? VolaPartyColors.text
+                            : VolaPartyColors.textFaint,
                         fontSize: 11,
                         fontWeight:
                             p != null ? FontWeight.w600 : FontWeight.normal),
@@ -230,7 +232,7 @@ class VoiceStageView extends StatelessWidget {
                   if (isHostSlot)
                     const Text('HOST',
                         style: TextStyle(
-                            color: ClubRoomColors.gold,
+                            color: VolaPartyColors.gold,
                             fontSize: 9,
                             fontWeight: FontWeight.w700)),
                 ],
@@ -242,7 +244,7 @@ class VoiceStageView extends StatelessWidget {
           const SizedBox(height: 24),
           Text('LISTENING · ${listeners.length}',
               style: const TextStyle(
-                  color: ClubRoomColors.textFaint,
+                  color: VolaPartyColors.textFaint,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.5)),
