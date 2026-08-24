@@ -232,7 +232,7 @@ class SourcePickerBody extends StatelessWidget {
     final c = compact;
     return GridView.count(
       padding: EdgeInsets.all(c ? 10 : 16),
-      crossAxisCount: c ? 4 : 3,
+      crossAxisCount: c ? 5 : 3,
       mainAxisSpacing: c ? 8 : 12,
       crossAxisSpacing: c ? 8 : 12,
       childAspectRatio: c ? 0.85 : 0.68,

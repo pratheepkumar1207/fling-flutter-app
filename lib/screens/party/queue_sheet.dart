@@ -57,8 +57,6 @@ class QueueSheetScreen extends StatefulWidget {
 }
 
 class _QueueSheetScreenState extends State<QueueSheetScreen> {
-  bool _showPicker = false;
-
   // The one choke point every picker entry point (YouTube, Drive, OTT/
   // YouTube Surf, Liked, History, Playlists) funnels through — see
   // add_to_queue_dialog.dart for why the confirmation lives here instead
@@ -103,11 +101,6 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
   Widget build(BuildContext context) {
     final items = (widget.queue['items'] as List?) ?? [];
     final currentIndex = widget.queue['currentIndex'] as int? ?? 0;
-    // Once something's already playing, the picker moves below the queue
-    // list and shrinks to a compact ~3-row grid instead of the big one
-    // above it — the big picker above only makes sense for an empty room
-    // where there's nothing else on screen to push down.
-    final somethingPlaying = items.isNotEmpty;
     // First row (in existing array order) that isn't the current track —
     // that's where the "UP NEXT" label goes, right before it.
     final firstUpNextIndex = items.isEmpty
@@ -170,47 +163,25 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                               ],
                             ),
                           ),
-                          Row(
-                            children: [
-                              GestureDetector(
-                                onTap: widget.onOpenRoster,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(right: 12),
-                                  child: Text('👥 ${widget.participantCount}',
-                                      style: const TextStyle(
-                                          color: AppColors.textDim,
-                                          fontSize: 12)),
-                                ),
-                              ),
-                              if (widget.canAddSongs)
-                                GestureDetector(
-                                  onTap: () => setState(
-                                      () => _showPicker = !_showPicker),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 13, vertical: 7),
-                                    decoration: BoxDecoration(
-                                        borderRadius:
-                                            BorderRadius.circular(999),
-                                        border: Border.all(
-                                            color: AppColors.accent2,
-                                            width: 1.5)),
-                                    child: Text(_showPicker ? 'Hide' : '+ Add',
-                                        style: const TextStyle(
-                                            color: AppColors.accent2,
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 12)),
-                                  ),
-                                ),
-                            ],
+                          GestureDetector(
+                            onTap: widget.onOpenRoster,
+                            child: Text('👥 ${widget.participantCount}',
+                                style: const TextStyle(
+                                    color: AppColors.textDim, fontSize: 12)),
                           ),
                         ],
                       ),
                     ),
-                    if (widget.canAddSongs && _showPicker && !somethingPlaying)
+                    // Always visible now (search icon + this screen are the
+                    // single, merged entry point for finding and queueing a
+                    // song — see party_screen.dart's AppBar comment) instead
+                    // of behind a "+Add" toggle. 5 icons per row, sized for
+                    // ~3 rows before it scrolls.
+                    if (widget.canAddSongs)
                       SizedBox(
-                        height: 320,
+                        height: 270,
                         child: SourcePickerBody(
+                          compact: true,
                           roomId: widget.roomId,
                           onAddToQueue: _addToQueue,
                           onSwitchSource: widget.onSwitchSource,
@@ -362,16 +333,6 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                               },
                             ),
                     ),
-                    if (widget.canAddSongs && _showPicker && somethingPlaying)
-                      SizedBox(
-                        height: 150,
-                        child: SourcePickerBody(
-                          compact: true,
-                          roomId: widget.roomId,
-                          onAddToQueue: _addToQueue,
-                          onSwitchSource: widget.onSwitchSource,
-                        ),
-                      ),
                   ],
                 ),
               ),

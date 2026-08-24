@@ -11,6 +11,7 @@ import '../feed/feed_screen.dart';
 import '../home/home_screen.dart';
 import '../lobby/lobby_create_screen.dart';
 import '../lobby/lobby_join_screen.dart';
+import '../party/mention_notifier.dart';
 import '../party/party_screen.dart';
 import '../party/persistent_room_audio.dart';
 import '../../widgets/avatar.dart';
@@ -175,6 +176,7 @@ class _AppShellState extends State<AppShell> {
         // class doc above) is exactly what lets this survive navigating
         // away from PartyScreen — see persistent_room_audio.dart.
         const PersistentRoomAudio(),
+        const MentionNotifier(),
         _buildScaffold(),
       ],
     );

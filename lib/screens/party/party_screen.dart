@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/active_room_holder.dart';
 import '../../core/api_client.dart';
@@ -211,16 +210,9 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           .showSnackBar(SnackBar(content: Text(rs.queueDenied!)));
       rs.clearQueueDenied();
     }
-    if (rs.mention != null) {
-      final fromName = rs.mention!['fromName'] as String? ?? 'Someone';
-      SystemSound.play(SystemSoundType.alert);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('$fromName mentioned you'),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
-      ));
-      rs.clearMention();
-    }
+    // @mention pop-up/sound is handled globally now (see
+    // mention_notifier.dart, mounted in AppShell) — that fires no matter
+    // which screen is showing, not just while this one is mounted.
 
     // The host changed the room's type elsewhere (or another device) — pick
     // up the new fields so the video/voice/game UI switches over live.
@@ -760,11 +752,46 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                     color: roomTextDim,
                   ),
                 ),
+              // The single search+queue entry point for every room type —
+              // used to be a separate search icon here plus its own queue
+              // icon in each room type's floating rail; merged into just
+              // this one (search icon, still opens the same _openQueue
+              // screen) so there's one obvious place to add a song and see
+              // what's queued, not two icons doing overlapping things.
               if (isWatch || isGame || isVoice)
-                IconButton(
-                  tooltip: 'Find a song',
-                  onPressed: _openQueue,
-                  icon: Icon(Icons.search, color: roomTextDim),
+                Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: GestureDetector(
+                    onTap: _openQueue,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        IconButton(
+                          tooltip: 'Search & queue',
+                          onPressed: _openQueue,
+                          icon: Icon(Icons.search, color: roomTextDim),
+                        ),
+                        if (items.isNotEmpty)
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: BoxDecoration(
+                                  color: roomPrimary, shape: BoxShape.circle),
+                              constraints: const BoxConstraints(
+                                  minWidth: 16, minHeight: 16),
+                              child: Text('${items.length}',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               // Settings 2nd from right, participants at the very top
               // right — the control-bar share icon below (_shareRoom) now
@@ -937,12 +964,6 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                           roster: rs.roster,
                                           onVote: rs.votePoll,
                                           onReset: rs.resetPoll)),
-                                if (isGame || isVoice)
-                                  _floatingIconButton(
-                                      Icons.queue_music_rounded, _openQueue,
-                                      badge:
-                                          items.isEmpty ? null : items.length,
-                                      badgeColor: roomPrimary),
                                 _floatingIconButton(
                                     Icons.share_rounded, _shareRoom),
                                 _floatingIconButton(
@@ -1162,11 +1183,6 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                               roster: rs.roster,
                                               onVote: rs.votePoll,
                                               onReset: rs.resetPoll)),
-                                    _floatingIconButton(
-                                        Icons.queue_music_rounded, _openQueue,
-                                        badge:
-                                            items.isEmpty ? null : items.length,
-                                        badgeColor: roomPrimary),
                                     _floatingIconButton(
                                         Icons.share_rounded, _shareRoom),
                                     _floatingIconButton(
