@@ -377,6 +377,19 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
         domStorageEnabled: true,
         mediaPlaybackRequiresUserGesture: false,
         transparentBackground: false,
+        // flutter_inappwebview defaults to Hybrid Composition (a real
+        // native Android View embedded directly in the view hierarchy),
+        // which is known to be fragile exactly during Activity window
+        // reconfiguration — precisely what a PIP transition is (a real
+        // resize of the whole window, not just a visibility change). The
+        // texture-based composition here should be far more resilient to
+        // that, since it doesn't require re-coordinating a real embedded
+        // view's position with the OS resizing the window around it. This
+        // player has no text input/complex gestures into the page itself
+        // (touches are blocked entirely via pointer-events:none in
+        // embedPlayer.js, control is all through evaluateJavascript), so
+        // none of hybrid composition's usual advantages apply here anyway.
+        useHybridComposition: false,
       ),
       onWebViewCreated: _onWebViewCreated,
       // Same "don't error out on a custom app-deeplink scheme" guard as
