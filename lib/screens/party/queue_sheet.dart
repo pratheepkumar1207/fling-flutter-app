@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
-import '../../widgets/add_to_queue_dialog.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/glass.dart';
 import '../lobby/source_picker_screen.dart';
@@ -56,9 +55,12 @@ class QueueSheetScreen extends StatefulWidget {
 
 class _QueueSheetScreenState extends State<QueueSheetScreen> {
   // The one choke point every picker entry point (YouTube, Drive, OTT/
-  // YouTube Surf, Liked, History, Playlists) funnels through — see
-  // add_to_queue_dialog.dart for why the confirmation lives here instead
-  // of in each individual picker screen.
+  // YouTube Surf, Liked, History, Playlists) funnels through. Used to show
+  // a blocking "where should this go?" dialog before adding anything —
+  // replaced with adding straight away (bottom of the queue, or "starts
+  // now" when it's empty) plus a snackbar with icon actions for the two
+  // things that dialog used to ask about: move it to the top instead, or
+  // undo the add entirely.
   Future<void> _addToQueue(
       {required String videoUrl,
       required String title,
@@ -71,18 +73,70 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
     // items always includes the current item at currentIndex, that's
     // exactly items.length <= 1 (0 = truly nothing, 1 = only the item
     // that's already playing).
-    final position =
-        await showAddToQueueDialog(context, queueIsEmpty: items.length <= 1);
-    if (position == null || !mounted) return;
-    widget.onAdd(
-      {
-        'sourceType': sourceType,
-        'videoUrl': videoUrl,
-        'title': title,
-        'thumbnail': thumbnail,
-        'mediaMode': widget.audioOnly ? 'audio' : mediaMode
-      },
-      position: position,
+    final queueWasEmpty = items.length <= 1;
+    final item = {
+      'sourceType': sourceType,
+      'videoUrl': videoUrl,
+      'title': title,
+      'thumbnail': thumbnail,
+      'mediaMode': widget.audioOnly ? 'audio' : mediaMode,
+    };
+    widget.onAdd(item, position: 'bottom');
+    if (!mounted) return;
+    _showQueuedSnackBar(item, queueWasEmpty: queueWasEmpty);
+  }
+
+  // Best-effort match against the live queue — videoUrl is unique enough
+  // in practice (the rare case of the exact same song queued twice just
+  // means these two actions could target either copy, which is a fine
+  // trade-off for not blocking on a dialog anymore). Matches from the end
+  // since we always add to the bottom.
+  int? _findQueueIndex(Map<String, dynamic> item) {
+    final items = (widget.queue['items'] as List?) ?? [];
+    for (var i = items.length - 1; i >= 0; i--) {
+      if ((items[i] as Map)['videoUrl'] == item['videoUrl']) return i;
+    }
+    return null;
+  }
+
+  void _showQueuedSnackBar(Map<String, dynamic> item,
+      {required bool queueWasEmpty}) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        content: Row(
+          children: [
+            Expanded(
+              child: Text(queueWasEmpty ? 'Playing now' : 'Added to queue',
+                  style: const TextStyle(color: Colors.white, fontSize: 13)),
+            ),
+            if (!queueWasEmpty)
+              IconButton(
+                tooltip: 'Move to top',
+                icon: const Icon(Icons.vertical_align_top_rounded,
+                    color: Colors.white, size: 20),
+                onPressed: () {
+                  final index = _findQueueIndex(item);
+                  if (index != null && index > 0) {
+                    widget.onReorder(index, 0);
+                  }
+                },
+              ),
+            IconButton(
+              tooltip: 'Remove',
+              icon: const Icon(Icons.close_rounded,
+                  color: Colors.white, size: 20),
+              onPressed: () {
+                final index = _findQueueIndex(item);
+                if (index != null) widget.onRemove(index);
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 

@@ -128,8 +128,32 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
 
   bool get _isPlaying => _stateCode == 1;
 
+  // Defaults to the usual 16:9 box and only changes once the real size
+  // comes back (or stays put if the lookup fails) — see _loadAspectRatio.
+  double _aspectRatio = 16 / 9;
+
   String _embedUrl(String videoId) =>
       '${ApiClient.baseUrl}/youtube-embed.html?v=$videoId';
+
+  // The IFrame API has no way to report the video's real pixel dimensions
+  // (the actual <video> lives inside a cross-origin youtube.com iframe, out
+  // of reach of this page's own JS) — GET /youtube/embed-size asks the
+  // backend to look it up via YouTube's oEmbed endpoint instead. Guarded by
+  // videoId so a slow response for a video the user has since skipped past
+  // doesn't clobber the aspect ratio of whatever's playing now.
+  Future<void> _loadAspectRatio(String videoId) async {
+    try {
+      final data = await ApiClient.get('/youtube/embed-size?v=$videoId') as Map;
+      final width = (data['width'] as num?)?.toDouble();
+      final height = (data['height'] as num?)?.toDouble();
+      if (!mounted || videoId != _currentVideoId) return;
+      if (width != null && height != null && width > 0 && height > 0) {
+        setState(() => _aspectRatio = width / height);
+      }
+    } catch (_) {
+      // Best-effort — stays on the current (default 16:9) ratio.
+    }
+  }
 
   @override
   void initState() {
@@ -137,6 +161,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     WidgetsBinding.instance.addObserver(this);
     PipService.isInPip.addListener(_onPipChanged);
     _currentVideoId = extractYouTubeId(widget.videoUrl);
+    if (_currentVideoId != null) _loadAspectRatio(_currentVideoId!);
     if (!widget.isHost) widget.onRequestState();
   }
 
@@ -152,6 +177,8 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
       _positionNotifier.value = Duration.zero;
       _lastReportedIsPlaying = null;
       _lastAppliedUpdatedAt = null;
+      _aspectRatio = 16 / 9;
+      _loadAspectRatio(videoId);
       _controller?.loadUrl(
         urlRequest: URLRequest(url: WebUri(_embedUrl(videoId))),
       );
@@ -443,7 +470,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     // No rounded-corner card/box — the video now runs edge-to-edge at full
     // screen width right under the header, so a "boxed" look doesn't apply.
     final videoTree = AspectRatio(
-      aspectRatio: 16 / 9,
+      aspectRatio: _aspectRatio,
       child: ClipRect(
         child: Stack(
           fit: StackFit.expand,

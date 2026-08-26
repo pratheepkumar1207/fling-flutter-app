@@ -350,7 +350,11 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
     // No rounded-corner card/box — the video now runs edge-to-edge at full
     // screen width right under the header, so a "boxed" look doesn't apply.
     final videoTree = AspectRatio(
-      aspectRatio: 16 / 9,
+      // The real native aspect ratio (video_player exposes this once
+      // initialized from the actual stream's metadata) — was hardcoded
+      // 16:9, which pillarboxed/letterboxed anything else (e.g. a portrait
+      // phone recording) inside a wrong-shaped box.
+      aspectRatio: controller.value.aspectRatio,
       child: ClipRect(
         child: Stack(
           fit: StackFit.expand,

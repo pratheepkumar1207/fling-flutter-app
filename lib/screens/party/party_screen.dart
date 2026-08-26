@@ -991,7 +991,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                         ),
                       ),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
                       child: ParticipantAvatarRow(
                           roster: rs.roster, onOpenRoster: _openRoster),
                     ),
