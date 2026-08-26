@@ -12,7 +12,9 @@ import 'socket_service.dart';
 /// queue" behavior already used by QueueSheet, just reachable from places
 /// that aren't already inside a room's own socket/queue context.
 Future<void> playSongSmart(BuildContext context, Song s) async {
-  final videoUrl = s.videoId != null ? 'https://www.youtube.com/watch?v=${s.videoId}' : s.videoUrl;
+  final videoUrl = s.videoId != null
+      ? 'https://www.youtube.com/watch?v=${s.videoId}'
+      : s.videoUrl;
   final item = {
     'sourceType': s.sourceType,
     'videoUrl': videoUrl,
@@ -22,14 +24,17 @@ Future<void> playSongSmart(BuildContext context, Song s) async {
   };
 
   try {
-    final active = await ApiClient.get('/rooms/mine/active') as Map<String, dynamic>;
+    final active =
+        await ApiClient.get('/rooms/mine/active') as Map<String, dynamic>;
     final activeRoomId = active['roomId'] as String?;
     if (activeRoomId != null) {
       if (context.mounted) {
         final socket = context.read<SocketService>().socket;
         socket?.emit('queue:add', {'roomId': activeRoomId, 'item': item});
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Added to "${active['title'] ?? 'your room'}"')));
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: activeRoomId)));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Added to "${active['title'] ?? 'your room'}"')));
+        Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => PartyScreen(roomId: activeRoomId)));
       }
       return;
     }
@@ -49,12 +54,80 @@ Future<void> playSongSmart(BuildContext context, Song s) async {
       'visibility': 'public',
     }) as Map<String, dynamic>;
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Started a new room')));
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: room['id'] as String)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Started a new room')));
+      Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => PartyScreen(roomId: room['id'] as String)));
     }
   } catch (e) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not play this song')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not play this song')));
+    }
+  }
+}
+
+/// Same idea as [playSongSmart] but for a whole playlist at once (e.g. a
+/// liked playlist on Home) — queues every song into whatever room the user
+/// is already active in, or starts a new one seeded with the first song
+/// and queues the rest into it, instead of making the user add each song
+/// one at a time.
+Future<void> playPlaylistSmart(BuildContext context, List<Song> songs) async {
+  if (songs.isEmpty) return;
+  Map<String, dynamic> toItem(Song s) => {
+        'sourceType': s.sourceType,
+        'videoUrl': s.videoId != null
+            ? 'https://www.youtube.com/watch?v=${s.videoId}'
+            : s.videoUrl,
+        'title': s.title,
+        'thumbnail': s.thumbnail,
+        'mediaMode': 'video',
+      };
+
+  try {
+    final active =
+        await ApiClient.get('/rooms/mine/active') as Map<String, dynamic>;
+    final activeRoomId = active['roomId'] as String?;
+    if (activeRoomId != null) {
+      if (!context.mounted) return;
+      final socket = context.read<SocketService>().socket;
+      for (final s in songs) {
+        socket?.emit('queue:add', {'roomId': activeRoomId, 'item': toItem(s)});
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              'Added ${songs.length} songs to "${active['title'] ?? 'your room'}"')));
+      Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => PartyScreen(roomId: activeRoomId)));
+      return;
+    }
+
+    final first = songs.first;
+    final firstItem = toItem(first);
+    final room = await ApiClient.post('/rooms', body: {
+      'roomType': 'watch',
+      'sourceType': firstItem['sourceType'],
+      'videoUrl': firstItem['videoUrl'],
+      'videoTitle': first.title,
+      'videoThumbnail': first.thumbnail,
+      'visibility': 'public',
+    }) as Map<String, dynamic>;
+    if (!context.mounted) return;
+    final roomId = room['id'] as String;
+    if (songs.length > 1) {
+      final socket = context.read<SocketService>().socket;
+      for (final s in songs.skip(1)) {
+        socket?.emit('queue:add', {'roomId': roomId, 'item': toItem(s)});
+      }
+    }
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Started a new room')));
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId)));
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not play this playlist')));
     }
   }
 }

@@ -82,6 +82,35 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
     }
   }
 
+  Future<void> _toggleLikePlaylist(Playlist pl) async {
+    final index = _playlists.indexWhere((p) => p.id == pl.id);
+    if (index == -1) return;
+    final wasLiked = pl.isLiked;
+    setState(() {
+      _playlists[index] = Playlist(
+        id: pl.id,
+        name: pl.name,
+        visibility: pl.visibility,
+        songs: pl.songs,
+        isLiked: !wasLiked,
+        likeCount: pl.likeCount + (wasLiked ? -1 : 1),
+      );
+    });
+    try {
+      if (wasLiked) {
+        await ApiClient.delete('/playlists/${pl.id}/like');
+      } else {
+        await ApiClient.post('/playlists/${pl.id}/like');
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _playlists[index] = pl;
+      });
+      _snack('Action failed');
+    }
+  }
+
   Future<void> _toggleFollow() async {
     final isFollowed = _profile?['isFollowedByMe'] == true;
     try {
@@ -382,14 +411,53 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(pl.name,
-                        style: const TextStyle(
-                            color: AppColors.text,
-                            fontWeight: FontWeight.w600)),
-                    Text(
-                        '${pl.songs.length} song${pl.songs.length == 1 ? '' : 's'}',
-                        style: const TextStyle(
-                            color: AppColors.textFaint, fontSize: 11)),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(pl.name,
+                                  style: const TextStyle(
+                                      color: AppColors.text,
+                                      fontWeight: FontWeight.w600)),
+                              Text(
+                                  '${pl.songs.length} song${pl.songs.length == 1 ? '' : 's'}',
+                                  style: const TextStyle(
+                                      color: AppColors.textFaint,
+                                      fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                        // Members can like each other's playlists — shows
+                        // up on the liker's own Home/Lobby afterward (see
+                        // home_screen.dart's "Playlists you've liked").
+                        GestureDetector(
+                          onTap: () => _toggleLikePlaylist(pl),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                  pl.isLiked
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                  color: pl.isLiked
+                                      ? AppColors.danger
+                                      : AppColors.textFaint,
+                                  size: 18),
+                              if (pl.likeCount > 0) ...[
+                                const SizedBox(width: 4),
+                                Text('${pl.likeCount}',
+                                    style: const TextStyle(
+                                        color: AppColors.textFaint,
+                                        fontSize: 11.5)),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                     if (pl.songs.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       SizedBox(

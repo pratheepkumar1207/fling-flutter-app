@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_provider.dart';
 import '../../core/format.dart';
+import '../../core/smart_play_song.dart';
 import '../../core/socket_service.dart';
 import '../../models/room_models.dart';
+import '../../models/song.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/banner_carousel.dart';
@@ -91,6 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<RoomSummary> _invited = [];
   List<Map<String, dynamic>> _scheduledEvents = [];
   List<StoryEntry> _stories = [];
+  List<Map<String, dynamic>> _likedPlaylists = [];
   String? _typeFilter;
   Timer? _refreshTimer;
   Timer? _activityDebounce;
@@ -104,6 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _load();
     _loadStories();
+    _loadLikedPlaylists();
     // This poll is now mostly a fallback (missed socket event, screen was
     // opened before anything changed) — rooms:activity below is what
     // actually makes a room appearing/disappearing feel instant. Set to
@@ -175,6 +179,17 @@ class _HomeScreenState extends State<HomeScreen> {
           .toList());
     } catch (_) {
       // Stories are a non-critical preview strip — silently skip on failure.
+    }
+  }
+
+  Future<void> _loadLikedPlaylists() async {
+    try {
+      final data = await ApiClient.get('/playlists/liked');
+      if (!mounted) return;
+      setState(
+          () => _likedPlaylists = (data as List).cast<Map<String, dynamic>>());
+    } catch (_) {
+      // Non-critical rail — silently skip on failure.
     }
   }
 
@@ -411,6 +426,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 ..._invited.map((r) => _roomTile(
                     r.id, r.title, r.hostName, r.memberCount,
                     inviteLabel: 'Invited')),
+                const SizedBox(height: 20),
+              ],
+              if (_likedPlaylists.isNotEmpty) ...[
+                _sectionHeader('Playlists you\'ve liked'),
+                SizedBox(
+                  height: 150,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _likedPlaylists.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 10),
+                    itemBuilder: (context, i) =>
+                        _likedPlaylistCard(_likedPlaylists[i]),
+                  ),
+                ),
                 const SizedBox(height: 20),
               ],
               _sectionHeader('Featured',
@@ -727,6 +756,72 @@ class _HomeScreenState extends State<HomeScreen> {
         'game' => 'spectating',
         _ => 'watching',
       };
+
+  // Tapping a liked playlist queues every song into whatever room this
+  // user is already in (or starts a new one) — same "one click" bulk-add
+  // behavior as the in-room source picker's "Add all", see
+  // core/smart_play_song.dart's playPlaylistSmart.
+  Widget _likedPlaylistCard(Map<String, dynamic> p) {
+    final owner = p['owner'] as Map<String, dynamic>?;
+    final songs = ((p['songs'] as List?) ?? [])
+        .map((s) => Song.fromJson(s as Map<String, dynamic>))
+        .toList();
+    return GestureDetector(
+      onTap: () => playPlaylistSmart(context, songs),
+      child: Container(
+        width: 140,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Avatar(
+                    src: owner?['avatarUrl'] as String?,
+                    name: owner?['name'] as String?,
+                    size: AvatarSize.sm),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(owner?['name'] as String? ?? 'Someone',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          color: AppColors.textFaint, fontSize: 10.5)),
+                ),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(p['name'] as String? ?? 'Playlist',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: AppColors.text,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13)),
+                Row(
+                  children: [
+                    const Icon(Icons.favorite_rounded,
+                        color: AppColors.danger, size: 12),
+                    const SizedBox(width: 4),
+                    Text('${songs.length} song${songs.length == 1 ? '' : 's'}',
+                        style: const TextStyle(
+                            color: AppColors.textFaint, fontSize: 11)),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _posterCard(Map<String, dynamic> r,
       {double width = 110, double? height}) {
