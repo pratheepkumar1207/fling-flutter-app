@@ -19,6 +19,7 @@ import '../../widgets/spinner.dart';
 import '../../widgets/glass.dart';
 import '../../widgets/story_bar.dart';
 import '../../widgets/story_viewer_screen.dart';
+import '../experience/experience_hub.dart';
 import '../party/party_screen.dart';
 import '../profile/profile_screen.dart';
 import '../search/search_screen.dart';
@@ -314,6 +315,55 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Entry point for the newer feature hub (Vibe Match, Together,
+            // Safety Center, Verification, Creator Studio, etc.) — see
+            // experience_hub.dart's doc comment for what's real vs. still
+            // UI-only there.
+            GestureDetector(
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const FlingFeatureHubScreen())),
+              child: GlassPanel(
+                borderRadius: BorderRadius.circular(20),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                                colors: AppGradients.brand),
+                            borderRadius: BorderRadius.circular(13)),
+                        alignment: Alignment.center,
+                        child: const Icon(Icons.auto_awesome_rounded,
+                            color: Colors.white, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Do something together',
+                                style: TextStyle(
+                                    color: AppColors.text,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13.5)),
+                            Text('Vibe Match, Together, Creator Studio & more',
+                                style: TextStyle(
+                                    color: AppColors.textFaint, fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded,
+                          color: AppColors.textFaint),
+                    ],
+                  ),
                 ),
               ),
             ),

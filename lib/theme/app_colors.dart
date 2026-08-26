@@ -11,7 +11,8 @@ class AppColors {
   static const bg = Color(0xFF06070D);
   static const surface = Color(0xFF101119);
   static const surface2 = Color(0xFF191A23);
-  static const surface3 = Color(0xFF232430); // one step past surface2, same progression rate as the design's surface->surface2 step
+  static const surface3 = Color(
+      0xFF232430); // one step past surface2, same progression rate as the design's surface->surface2 step
   static const border = Color(0xFF2C2D38);
 
   // No separate --primary token in the design canvas — --accent is the
@@ -56,16 +57,18 @@ class AppColorsLight {
   static const warning = Color(0xFFDBB155);
 }
 
-/// Brand gradient — coral-to-violet, used for the avatar story-ring, CTAs
-/// and other decorative accents. Precisely matches the design canvas's
-/// `--grad` token: linear-gradient(135deg, oklch(67% .19 22), oklch(60% .19 320)) —
-/// identical in both light and dark canvas variants.
+/// Brand gradient — coral-to-champagne, used for the avatar story-ring,
+/// CTAs and other decorative accents. Swapped from the original coral-to-
+/// violet pairing per the "no purple branding" direction from the
+/// ChatGPT-authored reference design (ref: fling-flutter-app-all-features
+/// .zip's coral/champagne neutral glass system) — everything else about
+/// the gradient (angle, usage) is unchanged.
 class AppGradients {
   AppGradients._();
 
   static const List<Color> brand = [
-    Color(0xFFF4595E),
-    Color(0xFFB051C5),
+    Color(0xFFFF5A68),
+    Color(0xFFD8B36A),
   ];
 
   static const LinearGradient brandDiagonal = LinearGradient(
