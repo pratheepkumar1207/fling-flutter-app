@@ -800,82 +800,79 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                     // exact position in the Column either way, so this doesn't touch
                     // the player-identity invariant described below.
                     if (!isWatch)
-                      // Bottom chat now matches Watch Party exactly — a
-                      // floating ChatOverlay anchored over the lower part of
-                      // the stage, instead of the old rail-of-icons + a
-                      // chat-icon that opened a separate sheet.
+                      // Chat now gets its own dedicated, un-obscured space
+                      // below the stage — same "chat owns the rest of the
+                      // screen" treatment Watch Party's ChatOverlay already
+                      // gets — instead of floating on top of (and covering
+                      // part of) the game board/voice stage in a Stack.
                       Expanded(
-                        child: Stack(
+                        child: Column(
                           children: [
-                            SingleChildScrollView(
-                              child: Padding(
-                                padding:
-                                    const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                                // Voice's speaker/listener grid fills the width like the
-                                // mockup — only the square/aspect-locked content (game board,
-                                // live video, fallback icon) gets centered.
-                                child: room['roomType'] == 'live' &&
-                                        _live != null
-                                    ? Center(
-                                        child: LiveVideoView(
-                                            controller: _live!,
-                                            isHost: rs.isHost))
-                                    : isGame
-                                        ? Center(
-                                            child: GameBoardView(
-                                              gameType:
-                                                  room['gameType'] as String?,
-                                              game: rs.game,
-                                              myUserId: myId,
-                                              isHost: rs.isHost,
-                                              onJoin: rs.gameJoin,
-                                              onMove: rs.gameMove,
-                                              onReset: rs.gameReset,
-                                            ),
-                                          )
-                                        : isVoice
-                                            ? VoiceStageView(
-                                                roster: rs.roster,
-                                                activeMics: activeMics,
-                                                pendingRequests:
-                                                    pendingRequests,
-                                                maxSlots: maxSlots,
-                                                hostId: rs.hostId,
+                            Flexible(
+                              flex: 4,
+                              child: SingleChildScrollView(
+                                child: Padding(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                                  // Voice's speaker/listener grid fills the width like the
+                                  // mockup — only the square/aspect-locked content (game board,
+                                  // live video, fallback icon) gets centered.
+                                  child: room['roomType'] == 'live' &&
+                                          _live != null
+                                      ? Center(
+                                          child: LiveVideoView(
+                                              controller: _live!,
+                                              isHost: rs.isHost))
+                                      : isGame
+                                          ? Center(
+                                              child: GameBoardView(
+                                                gameType:
+                                                    room['gameType'] as String?,
+                                                game: rs.game,
                                                 myUserId: myId,
                                                 isHost: rs.isHost,
-                                                onApprove: rs.approveMic,
-                                                onDeny: rs.denyMic,
-                                                onRemove: rs.removeMic,
-                                              )
-                                            : Center(
-                                                child: AspectRatio(
-                                                  aspectRatio: 16 / 9,
-                                                  child: Container(
-                                                    decoration: BoxDecoration(
-                                                        color:
-                                                            AppColors.surface2,
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(16),
-                                                        border: Border.all(
-                                                            color: AppColors
-                                                                .border)),
-                                                    alignment: Alignment.center,
-                                                    child: const Text('🎙️',
-                                                        style: TextStyle(
-                                                            fontSize: 48)),
+                                                onJoin: rs.gameJoin,
+                                                onMove: rs.gameMove,
+                                                onReset: rs.gameReset,
+                                              ),
+                                            )
+                                          : isVoice
+                                              ? VoiceStageView(
+                                                  roster: rs.roster,
+                                                  activeMics: activeMics,
+                                                  pendingRequests:
+                                                      pendingRequests,
+                                                  maxSlots: maxSlots,
+                                                  hostId: rs.hostId,
+                                                  myUserId: myId,
+                                                  isHost: rs.isHost,
+                                                  onApprove: rs.approveMic,
+                                                  onDeny: rs.denyMic,
+                                                  onRemove: rs.removeMic,
+                                                )
+                                              : Center(
+                                                  child: AspectRatio(
+                                                    aspectRatio: 16 / 9,
+                                                    child: GlassPanel(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              16),
+                                                      child: const Center(
+                                                        child: Text('🎙️',
+                                                            style: TextStyle(
+                                                                fontSize: 48)),
+                                                      ),
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
+                                ),
                               ),
                             ),
-                            Positioned(
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              child: FractionallySizedBox(
-                                heightFactor: 0.48,
-                                alignment: Alignment.bottomCenter,
+                            Expanded(
+                              flex: 6,
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.fromLTRB(12, 0, 12, 12),
                                 child: ChatOverlay(
                                   messages: rs.messages,
                                   onSend: (text, mentionedUserIds) =>

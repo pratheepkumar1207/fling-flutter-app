@@ -366,6 +366,13 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
 
   double get _positionSeconds => _positionNotifier.value.inMilliseconds / 1000;
 
+  // Same idea as webview_room_player.dart's OTT fullscreen button — see
+  // ytRequestFullscreen's doc in embedPlayer.js for why this targets the
+  // <iframe> itself rather than a <video> element.
+  Future<void> _requestFullscreen() async {
+    await _controller?.evaluateJavascript(source: 'ytRequestFullscreen();');
+  }
+
   // Just toggles the page's player — the resulting StateChange event picks
   // up the change and emits it via _maybeReportPlayState, so this doesn't
   // also emit directly (that would double-report the same transition).
@@ -568,19 +575,42 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
             Positioned(
               top: 8,
               right: 8,
-              child: GestureDetector(
-                onTap: widget.onToggleLike,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    shape: BoxShape.circle,
+              child: Row(
+                children: [
+                  // Same fullscreen affordance the OTT player already has
+                  // (webview_room_player.dart) — now available for YouTube
+                  // too, via ytRequestFullscreen() on the embed page.
+                  GestureDetector(
+                    onTap: _requestFullscreen,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.fullscreen_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
                   ),
-                  child: Text(
-                    widget.liked ? '❤️' : '🤍',
-                    style: const TextStyle(fontSize: 16),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: widget.onToggleLike,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        widget.liked ? '❤️' : '🤍',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
             if (_volumePopoverOpen)
