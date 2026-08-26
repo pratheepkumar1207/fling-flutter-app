@@ -8,8 +8,11 @@ import 'api_exception.dart';
 class ApiClient {
   ApiClient._();
 
-  /// Same deployed backend the web app talks to.
-  static const String baseUrl = 'https://fling-production.up.railway.app';
+  /// Same deployed backend the web app talks to. Railway account moved in
+  /// 2026-08 — new project's public domain (fling-production.up.railway.app
+  /// no longer resolves to anything under the old account).
+  static const String baseUrl =
+      'https://fling-backend-production-581f.up.railway.app';
 
   static String? Function()? tokenGetter;
   static void Function()? onUnauthorized;
@@ -17,13 +20,16 @@ class ApiClient {
   static Future<dynamic> get(String path, {bool skipAuth = false}) =>
       _request(path, method: 'GET', skipAuth: skipAuth);
 
-  static Future<dynamic> post(String path, {dynamic body, bool skipAuth = false}) =>
+  static Future<dynamic> post(String path,
+          {dynamic body, bool skipAuth = false}) =>
       _request(path, method: 'POST', body: body, skipAuth: skipAuth);
 
-  static Future<dynamic> patch(String path, {dynamic body, bool skipAuth = false}) =>
+  static Future<dynamic> patch(String path,
+          {dynamic body, bool skipAuth = false}) =>
       _request(path, method: 'PATCH', body: body, skipAuth: skipAuth);
 
-  static Future<dynamic> delete(String path, {dynamic body, bool skipAuth = false}) =>
+  static Future<dynamic> delete(String path,
+          {dynamic body, bool skipAuth = false}) =>
       _request(path, method: 'DELETE', body: body, skipAuth: skipAuth);
 
   static Future<dynamic> _request(
@@ -70,11 +76,16 @@ class ApiClient {
 
     if (res.statusCode == 401 && !skipAuth) {
       onUnauthorized?.call();
-      throw ApiException(data is Map ? (data['error'] ?? 'Session expired') : 'Session expired', status: 401);
+      throw ApiException(
+          data is Map
+              ? (data['error'] ?? 'Session expired')
+              : 'Session expired',
+          status: 401);
     }
 
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      final message = data is Map ? (data['error'] ?? 'Request failed') : 'Request failed';
+      final message =
+          data is Map ? (data['error'] ?? 'Request failed') : 'Request failed';
       throw ApiException(message, status: res.statusCode, data: data);
     }
 
