@@ -479,6 +479,11 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           videoUrl: playerVideoUrl,
           title: currentItem?['title'] as String? ?? room['title'] as String?,
           compact: compact,
+          isHost: rs.isHost,
+          playback: rs.playback,
+          onPlay: rs.play,
+          onPause: rs.pause,
+          onRequestState: rs.requestState,
         );
       }
       if (playerSourceType == 'drive') {

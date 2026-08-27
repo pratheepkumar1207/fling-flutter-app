@@ -1,23 +1,52 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../../core/mobile_webview_settings.dart';
 import '../../theme/app_colors.dart';
 
 /// Netflix/Prime "browse together" sibling of sync_video_player.dart /
-/// drive_video_player.dart — but unlike those two, there is NO sync
-/// contract here at all (no onPlay/onPause/onSeek, no host-vs-guest
-/// distinction). DRM blocks reading play/pause/seek state from either
-/// platform's video element, so there's nothing to synchronize; this just
-/// keeps everyone's WebView pointed at the same URL the host started the
-/// room with. Room chat/mic/queue keep working normally alongside it —
-/// only the video itself isn't sync-able.
+/// drive_video_player.dart. Unlike those two there is still no *real* sync
+/// contract — DRM (Widevine) blocks any script, including this WebView's
+/// own JS, from reading or controlling the actual video element inside a
+/// cross-origin, DRM-protected page. That's a hard platform boundary, not
+/// a missing feature — see https://rave.io (a real, popular watch-party
+/// app) confirming the exact same constraint: "Every single person has to
+/// sign into their own Netflix account... No screen sharing at all."
+///
+/// What this DOES provide, reusing the same playback:play/pause/state
+/// socket channel the YouTube/Drive players already use (see
+/// room_socket_controller.dart's play/pause/playback, unchanged on the
+/// backend — this just treats `position` as an approximate elapsed-time
+/// clock instead of a real, seekable video position):
+///  - An elapsed-time estimate ("Room is ~10:30 in") so someone joining
+///    late knows roughly where to manually scrub to in their own player.
+///  - Host-only Play/Pause buttons that broadcast a "please press play/
+///    pause too" nudge banner to everyone else — a coordination aid, not
+///    remote control. Each participant still has to tap their own video.
+///  - A simple heuristic ("does the current URL look like a login page?")
+///    to nudge someone who hasn't signed into this platform yet.
 class WebviewRoomPlayer extends StatefulWidget {
   final String? videoUrl;
   final String? title;
   final bool compact;
+  final bool isHost;
+  final Map<String, dynamic>? playback;
+  final void Function(double position) onPlay;
+  final void Function(double position) onPause;
+  final VoidCallback onRequestState;
 
-  const WebviewRoomPlayer(
-      {super.key, required this.videoUrl, this.title, this.compact = false});
+  const WebviewRoomPlayer({
+    super.key,
+    required this.videoUrl,
+    this.title,
+    this.compact = false,
+    required this.isHost,
+    required this.playback,
+    required this.onPlay,
+    required this.onPause,
+    required this.onRequestState,
+  });
 
   @override
   State<WebviewRoomPlayer> createState() => _WebviewRoomPlayerState();
@@ -25,6 +54,91 @@ class WebviewRoomPlayer extends StatefulWidget {
 
 class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
   InAppWebViewController? _controller;
+  Timer? _tickTimer;
+  Timer? _nudgeDismissTimer;
+  String? _nudgeBanner;
+  bool _onLoginPage = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Same as the YouTube/Drive players — ask the room for the current
+    // state on join so a late joiner's elapsed-time estimate starts
+    // correct instead of at zero.
+    if (!widget.isHost) widget.onRequestState();
+    // Forces the elapsed-time display to keep advancing even when no new
+    // playback:state has arrived — purely cosmetic, doesn't affect
+    // anything sent to the backend.
+    _tickTimer =
+        Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
+  }
+
+  @override
+  void didUpdateWidget(covariant WebviewRoomPlayer old) {
+    super.didUpdateWidget(old);
+    final wasPlaying = old.playback?['isPlaying'] as bool?;
+    final isPlaying = widget.playback?['isPlaying'] as bool?;
+    if (!widget.isHost && isPlaying != null && isPlaying != wasPlaying) {
+      _showNudge(isPlaying
+          ? 'Host pressed play — press play in your app too'
+          : 'Host paused — pause yours too');
+    }
+  }
+
+  void _showNudge(String text) {
+    _nudgeDismissTimer?.cancel();
+    setState(() => _nudgeBanner = text);
+    _nudgeDismissTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) setState(() => _nudgeBanner = null);
+    });
+  }
+
+  // Not a real video position — position + elapsed wall-clock time since
+  // the host's last play/pause, same correction pattern
+  // sync_video_player.dart/drive_video_player.dart use for the real thing.
+  // Purely a display estimate; nothing here can seek anyone's actual video.
+  double get _elapsedSeconds {
+    final p = widget.playback;
+    if (p == null) return 0;
+    var position = (p['position'] as num?)?.toDouble() ?? 0;
+    final updatedAt = p['updatedAt'] == null ? null : (p['updatedAt'] as num);
+    if (p['isPlaying'] == true && updatedAt != null) {
+      final elapsed =
+          (DateTime.now().millisecondsSinceEpoch - updatedAt) / 1000;
+      if (elapsed > 0) position += elapsed;
+    }
+    return position;
+  }
+
+  bool get _isPlaying => widget.playback?['isPlaying'] == true;
+
+  String _formatTime(double seconds) {
+    final d = Duration(seconds: seconds.round());
+    final m = d.inMinutes.remainder(60).toString().padLeft(1, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  void _hostTogglePlay() {
+    if (_isPlaying) {
+      widget.onPause(_elapsedSeconds);
+    } else {
+      widget.onPlay(_elapsedSeconds);
+    }
+  }
+
+  // Best-effort only — platforms don't expose a stable "you're logged out"
+  // signal, so this just looks for the obvious login/signin URL patterns
+  // most of them share.
+  void _checkLoginUrl(Uri? url) {
+    final path = url?.toString().toLowerCase() ?? '';
+    final looksLikeLogin = path.contains('login') ||
+        path.contains('signin') ||
+        path.contains('sign-in');
+    if (looksLikeLogin != _onLoginPage) {
+      setState(() => _onLoginPage = looksLikeLogin);
+    }
+  }
 
   // Asks the page's own <video> element to go fullscreen, so the site's
   // surrounding chrome (nav bar, recommendations, search UI — whatever page
@@ -42,6 +156,13 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         else if (v && v.webkitRequestFullscreen) { v.webkitRequestFullscreen(); }
       })();
     ''');
+  }
+
+  @override
+  void dispose() {
+    _tickTimer?.cancel();
+    _nudgeDismissTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -76,6 +197,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
               // only the actual playback WebView needs to stay mobile.
               initialSettings: mobileWebViewSettings,
               onWebViewCreated: (controller) => _controller = controller,
+              onLoadStop: (controller, url) => _checkLoginUrl(url),
               // Same "don't error out on a custom app-deeplink scheme" guard
               // as webview_browse_screen.dart — see its comment for why.
               shouldOverrideUrlLoading: (controller, navigationAction) async {
@@ -111,6 +233,48 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
                 ),
               ),
             ),
+            if (_onLoginPage)
+              Positioned(
+                top: 8,
+                left: 8,
+                right: 48,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.75),
+                      borderRadius: BorderRadius.circular(999)),
+                  child: const Text(
+                    'Log in here, then come back to catch up with the room.',
+                    style: TextStyle(color: Colors.white, fontSize: 10),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            if (_nudgeBanner != null)
+              Positioned(
+                top: 44,
+                left: 8,
+                right: 8,
+                child: IgnorePointer(
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(12)),
+                    child: Text(
+                      _nudgeBanner!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ),
             Positioned(
               left: 0,
               right: 0,
@@ -119,11 +283,31 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 color: Colors.black54,
-                child: const Text(
-                  "No auto-sync here — everyone presses play together.",
-                  style: TextStyle(color: Colors.white, fontSize: 10),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: Row(
+                  children: [
+                    if (widget.isHost)
+                      GestureDetector(
+                        onTap: _hostTogglePlay,
+                        child: Icon(
+                            _isPlaying
+                                ? Icons.pause_circle_filled_rounded
+                                : Icons.play_circle_fill_rounded,
+                            color: Colors.white,
+                            size: 22),
+                      ),
+                    if (widget.isHost) const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        widget.isHost
+                            ? 'Tap play/pause to nudge everyone — room is at ${_formatTime(_elapsedSeconds)}'
+                            : 'Room is roughly ${_formatTime(_elapsedSeconds)} in — scrub to match, then press play together.',
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 10),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
