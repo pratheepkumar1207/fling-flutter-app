@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/api_client.dart';
@@ -84,6 +86,9 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
   // guards _handoffToForegroundVideo from pulling a stale/zero position
   // when there was nothing to hand off in the first place.
   bool _handedOffToBackground = false;
+  // Pending, cancellable version of the real background handoff — see the
+  // paused case below for why this can't just run immediately.
+  Timer? _pendingBackgroundHandoff;
 
   @override
   void initState() {
@@ -205,12 +210,28 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
         // exactly wrong: confirmed live, this is why the video paused/
         // went black the moment PIP kicked in instead of continuing.
         if (PipService.isInPip.value) return;
-        // Only truly-backgrounded (not the transient inactive/hidden blip a
-        // system dialog can cause) is worth the cost of spinning up a real
-        // audio handoff.
         if (!_backgrounded) _pipInvolvedInCurrentDip = PipService.isInPip.value;
         _backgrounded = true;
-        _handoffToBackgroundAudio();
+        // The check above only catches PIP entered via our own in-app
+        // enterPip() button, which sets isInPip optimistically before this
+        // event fires. Auto-PIP (pressing the home button) goes straight to
+        // the OS, so isInPip only flips true later, once the native
+        // onPipModeChanged round trip lands — this event can easily win
+        // that race. Handing off immediately here paused the controller
+        // before we knew better, and since the resumed case below just
+        // clears the PIP flag and returns without ever undoing that pause,
+        // the video was left frozen for the rest of the PIP session
+        // (confirmed live — this was the "not play continuously" glitch).
+        // Waiting a beat for the round trip to land, and re-checking right
+        // before actually committing to the handoff, avoids ever pausing a
+        // video that turns out to just be entering PIP.
+        _pendingBackgroundHandoff?.cancel();
+        _pendingBackgroundHandoff =
+            Timer(const Duration(milliseconds: 300), () {
+          if (!mounted || !_backgrounded) return;
+          if (_pipInvolvedInCurrentDip || PipService.isInPip.value) return;
+          _handoffToBackgroundAudio();
+        });
       case AppLifecycleState.inactive:
       case AppLifecycleState.hidden:
         if (PipService.isInPip.value) return;
@@ -219,6 +240,11 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
       case AppLifecycleState.resumed:
         if (!_backgrounded) return;
         _backgrounded = false;
+        // Whether or not it ever fired, a handoff scheduled for a dip that's
+        // now over is either stale or (if PIP) about to be skipped anyway —
+        // never let it land after we've already resumed.
+        _pendingBackgroundHandoff?.cancel();
+        _pendingBackgroundHandoff = null;
         if (_pipInvolvedInCurrentDip || PipService.isInPip.value) {
           // PIP was involved somewhere in this dip — either entering it
           // (isInPip was still false at the very start, caught moments
@@ -526,6 +552,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     PipService.isInPip.removeListener(_onPipChanged);
+    _pendingBackgroundHandoff?.cancel();
     if (_handedOffToBackground) {
       // Already playing through the background session (we were OS-
       // backgrounded) and now the widget itself is going away too — stop
