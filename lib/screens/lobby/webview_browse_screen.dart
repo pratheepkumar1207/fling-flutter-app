@@ -81,6 +81,14 @@ final _platformWatchPatterns = <String, RegExp>{
       caseSensitive: false),
   'hotstar': RegExp(r'hotstar\.com/.+/watch(?:[/?]|$)', caseSensitive: false),
   'sonyliv': RegExp(r'sonyliv\.com/watch/', caseSensitive: false),
+  // Prime Video is the odd one out: it never navigates to a distinct
+  // /watch/ path at all — browsing and playing both stay on the same
+  // /detail/<id> URL, and pressing play just appends ?autoplay=1 (and a
+  // resume timestamp) to that same URL (confirmed live from the page's own
+  // playbackURL/fallbackURL fields). The generic /watch|/play/ fallback
+  // below would never match this, so it needs its own pattern.
+  'amazon': RegExp(r'primevideo\.com/detail/[^?]+\?[^#]*\bautoplay=1\b',
+      caseSensitive: false),
 };
 // Slash/query/end-bounded so "/watchlist" (a real nav destination on
 // several of these platforms) never false-matches "/watch".
@@ -101,6 +109,19 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
     final specific = _platformWatchPatterns[widget.platform];
     if (specific != null) return specific.hasMatch(url);
     return _genericWatchPattern.hasMatch(url);
+  }
+
+  // Shared by onLoadStop (real page navigations) and onUpdateVisitedHistory
+  // (SPA history.pushState/replaceState — confirmed needed for Prime Video,
+  // which reaches its watch state on the same /detail/<id> URL by pushing
+  // ?autoplay=1 onto it client-side rather than doing a real navigation;
+  // onLoadStop alone would never see that).
+  void _maybeAutoStart(String? url) {
+    if (_autoStarted || _creatingRoom || url == null) return;
+    if (_looksReadyToStart(url)) {
+      _autoStarted = true;
+      _startHere();
+    }
   }
 
   Future<void> _startHere() async {
@@ -296,14 +317,12 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
               // straight into the room instead of waiting for the manual
               // "Start watch party here" tap below (still there as a
               // fallback for whatever this heuristic misses).
-              if (!_autoStarted &&
-                  !_creatingRoom &&
-                  url != null &&
-                  _looksReadyToStart(url.toString())) {
-                _autoStarted = true;
-                _startHere();
-              }
+              _maybeAutoStart(url?.toString());
             },
+            // Catches SPA route changes that never trigger onLoadStop at
+            // all — see _maybeAutoStart's comment.
+            onUpdateVisitedHistory: (controller, url, isReload) =>
+                _maybeAutoStart(url?.toString()),
             // Some sites try to deep-link into their own native app via a
             // custom URL scheme (e.g. "sunnxt://detail/268303") when you
             // tap a video — a WebView can't open that (there's no app to
