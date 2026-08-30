@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -104,6 +105,31 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
   // resource loads on the same page) and racing a second _startHere() call.
   bool _autoStarted = false;
 
+  // Belt-and-suspenders alongside onLoadStop/onUpdateVisitedHistory: Prime
+  // Video and YouTube's mobile site both reach their real watch page via
+  // client-side routing (history.replaceState/pushState), and confirmed
+  // live, that route change doesn't always reach either WebView callback —
+  // so poll the actual URL as a fallback that doesn't depend on either one
+  // firing.
+  Timer? _urlPoll;
+
+  @override
+  void initState() {
+    super.initState();
+    _urlPoll = Timer.periodic(const Duration(milliseconds: 700), (_) async {
+      if (_autoStarted || _creatingRoom || !mounted) return;
+      final url = await _controller?.getUrl();
+      if (!mounted) return;
+      _maybeAutoStart(url?.toString());
+    });
+  }
+
+  @override
+  void dispose() {
+    _urlPoll?.cancel();
+    super.dispose();
+  }
+
   bool _looksReadyToStart(String url) {
     if (widget.platform == 'youtube_surf') return extractYouTubeId(url) != null;
     final specific = _platformWatchPatterns[widget.platform];
@@ -120,6 +146,7 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
     if (_autoStarted || _creatingRoom || url == null) return;
     if (_looksReadyToStart(url)) {
       _autoStarted = true;
+      _urlPoll?.cancel();
       // Covers the WebView immediately, before _startHere's own async work
       // (a real network round trip to create the room) even starts — OTT
       // sites attempt real DRM playback the instant this URL lands, which
