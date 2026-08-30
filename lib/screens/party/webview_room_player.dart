@@ -30,6 +30,13 @@ class WebviewRoomPlayer extends StatefulWidget {
   final String? videoUrl;
   final String? title;
   final bool compact;
+  // When true, fills whatever box the parent gives it (party_screen.dart's
+  // immersive OTT layout hands this an Expanded slot) instead of boxing
+  // itself into a 16:9/21:9 crop. Unlike YouTube/Drive, this player is a
+  // whole embedded website, not a single video element — letting it use the
+  // full available space (not just full width) is a truer "full view" for
+  // it than an artificial aspect-ratio crop would be.
+  final bool fillHeight;
   final bool isHost;
   final Map<String, dynamic>? playback;
   final void Function(double position) onPlay;
@@ -41,6 +48,7 @@ class WebviewRoomPlayer extends StatefulWidget {
     required this.videoUrl,
     this.title,
     this.compact = false,
+    this.fillHeight = false,
     required this.isHost,
     required this.playback,
     required this.onPlay,
@@ -169,151 +177,148 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
   Widget build(BuildContext context) {
     final url = widget.videoUrl;
     if (url == null) {
-      return AspectRatio(
-        aspectRatio: 16 / 9,
-        child: Container(
-            color: AppColors.surface2,
-            alignment: Alignment.center,
-            child: const Text('No video',
-                style: TextStyle(color: AppColors.textFaint))),
-      );
+      final placeholder = Container(
+          color: AppColors.surface2,
+          alignment: Alignment.center,
+          child: const Text('No video',
+              style: TextStyle(color: AppColors.textFaint)));
+      return widget.fillHeight
+          ? SizedBox.expand(child: placeholder)
+          : AspectRatio(aspectRatio: 16 / 9, child: placeholder);
     }
     // No rounded-corner card/box — the video now runs edge-to-edge at full
     // screen width right under the header, so a "boxed" look doesn't apply.
-    return AspectRatio(
-      aspectRatio: widget.compact ? 21 / 9 : 16 / 9,
-      child: ClipRect(
+    final webview = ClipRect(
         child: Stack(
-          fit: StackFit.expand,
-          children: [
-            InAppWebView(
-              initialUrlRequest: URLRequest(url: WebUri(url)),
-              // Mobile UA here, not desktop: actual DRM video playback
-              // (Widevine) only works reliably in this WebView when Netflix
-              // thinks it's talking to mobile Chrome — a desktop UA makes it
-              // pick a playback path the WebView can't fulfill, surfacing as
-              // Netflix error M7701-1003 (confirmed live). Desktop mode stays
-              // on the browse/catalog screen (no DRM decode happens there);
-              // only the actual playback WebView needs to stay mobile.
-              initialSettings: mobileWebViewSettings,
-              onWebViewCreated: (controller) => _controller = controller,
-              onLoadStop: (controller, url) => _checkLoginUrl(url),
-              // Same "don't error out on a custom app-deeplink scheme" guard
-              // as webview_browse_screen.dart — see its comment for why.
-              shouldOverrideUrlLoading: (controller, navigationAction) async {
-                final scheme = navigationAction.request.url?.scheme;
-                if (scheme != null && scheme != 'http' && scheme != 'https') {
-                  return NavigationActionPolicy.CANCEL;
-                }
-                return NavigationActionPolicy.ALLOW;
-              },
-              // Android WebView denies DRM (Widevine) permission requests by
-              // default — without granting this, Netflix/Prime's player
-              // can't initialize EME at all and fails with a generic
-              // HTML5-player error (confirmed live: Netflix's M7701-1003)
-              // regardless of user agent or anything else being right.
-              onPermissionRequest: (controller, request) async {
-                return PermissionResponse(
-                    resources: request.resources,
-                    action: PermissionResponseAction.GRANT);
-              },
+      fit: StackFit.expand,
+      children: [
+        InAppWebView(
+          initialUrlRequest: URLRequest(url: WebUri(url)),
+          // Mobile UA here, not desktop: actual DRM video playback
+          // (Widevine) only works reliably in this WebView when Netflix
+          // thinks it's talking to mobile Chrome — a desktop UA makes it
+          // pick a playback path the WebView can't fulfill, surfacing as
+          // Netflix error M7701-1003 (confirmed live). Desktop mode stays
+          // on the browse/catalog screen (no DRM decode happens there);
+          // only the actual playback WebView needs to stay mobile.
+          initialSettings: mobileWebViewSettings,
+          onWebViewCreated: (controller) => _controller = controller,
+          onLoadStop: (controller, url) => _checkLoginUrl(url),
+          // Same "don't error out on a custom app-deeplink scheme" guard
+          // as webview_browse_screen.dart — see its comment for why.
+          shouldOverrideUrlLoading: (controller, navigationAction) async {
+            final scheme = navigationAction.request.url?.scheme;
+            if (scheme != null && scheme != 'http' && scheme != 'https') {
+              return NavigationActionPolicy.CANCEL;
+            }
+            return NavigationActionPolicy.ALLOW;
+          },
+          // Android WebView denies DRM (Widevine) permission requests by
+          // default — without granting this, Netflix/Prime's player
+          // can't initialize EME at all and fails with a generic
+          // HTML5-player error (confirmed live: Netflix's M7701-1003)
+          // regardless of user agent or anything else being right.
+          onPermissionRequest: (controller, request) async {
+            return PermissionResponse(
+                resources: request.resources,
+                action: PermissionResponseAction.GRANT);
+          },
+        ),
+        Positioned(
+          top: 8,
+          right: 8,
+          child: GestureDetector(
+            onTap: _requestFullscreen,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  shape: BoxShape.circle),
+              child: const Icon(Icons.fullscreen_rounded,
+                  color: Colors.white, size: 18),
             ),
-            Positioned(
-              top: 8,
-              right: 8,
-              child: GestureDetector(
-                onTap: _requestFullscreen,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      shape: BoxShape.circle),
-                  child: const Icon(Icons.fullscreen_rounded,
-                      color: Colors.white, size: 18),
+          ),
+        ),
+        if (_onLoginPage)
+          Positioned(
+            top: 8,
+            left: 8,
+            right: 48,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.75),
+                  borderRadius: BorderRadius.circular(999)),
+              child: const Text(
+                'Log in here, then come back to catch up with the room.',
+                style: TextStyle(color: Colors.white, fontSize: 10),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        if (_nudgeBanner != null)
+          Positioned(
+            top: 44,
+            left: 8,
+            right: 8,
+            child: IgnorePointer(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.92),
+                    borderRadius: BorderRadius.circular(12)),
+                child: Text(
+                  _nudgeBanner!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600),
                 ),
               ),
             ),
-            if (_onLoginPage)
-              Positioned(
-                top: 8,
-                left: 8,
-                right: 48,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.75),
-                      borderRadius: BorderRadius.circular(999)),
-                  child: const Text(
-                    'Log in here, then come back to catch up with the room.',
-                    style: TextStyle(color: Colors.white, fontSize: 10),
+          ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            color: Colors.black54,
+            child: Row(
+              children: [
+                if (widget.isHost)
+                  GestureDetector(
+                    onTap: _hostTogglePlay,
+                    child: Icon(
+                        _isPlaying
+                            ? Icons.pause_circle_filled_rounded
+                            : Icons.play_circle_fill_rounded,
+                        color: Colors.white,
+                        size: 22),
+                  ),
+                if (widget.isHost) const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    widget.isHost
+                        ? 'Tap play/pause to nudge everyone — room is at ${_formatTime(_elapsedSeconds)}'
+                        : 'Room is roughly ${_formatTime(_elapsedSeconds)} in — scrub to match, then press play together.',
+                    style: const TextStyle(color: Colors.white, fontSize: 10),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-              ),
-            if (_nudgeBanner != null)
-              Positioned(
-                top: 44,
-                left: 8,
-                right: 8,
-                child: IgnorePointer(
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.92),
-                        borderRadius: BorderRadius.circular(12)),
-                    child: Text(
-                      _nudgeBanner!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ),
-              ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                color: Colors.black54,
-                child: Row(
-                  children: [
-                    if (widget.isHost)
-                      GestureDetector(
-                        onTap: _hostTogglePlay,
-                        child: Icon(
-                            _isPlaying
-                                ? Icons.pause_circle_filled_rounded
-                                : Icons.play_circle_fill_rounded,
-                            color: Colors.white,
-                            size: 22),
-                      ),
-                    if (widget.isHost) const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        widget.isHost
-                            ? 'Tap play/pause to nudge everyone — room is at ${_formatTime(_elapsedSeconds)}'
-                            : 'Room is roughly ${_formatTime(_elapsedSeconds)} in — scrub to match, then press play together.',
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 10),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
-    );
+      ],
+    ));
+    return widget.fillHeight
+        ? SizedBox.expand(child: webview)
+        : AspectRatio(
+            aspectRatio: widget.compact ? 21 / 9 : 16 / 9, child: webview);
   }
 }
