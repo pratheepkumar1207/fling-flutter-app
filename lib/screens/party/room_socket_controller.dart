@@ -35,9 +35,17 @@ class RoomSocketController extends ChangeNotifier {
     'micEnabled': true,
     'songPermission': 'anyone',
     'autoPlay': true,
-    'pinPermission': 'host'
+    'pinPermission': 'host',
+    'nextTrackMode': 'justPlay',
   };
   String? queueDenied;
+  // Bumped (not just true/false — a screen already showing the prompt needs
+  // to notice a *second* one after dismissing the first) every time the
+  // server says the queue just ran dry with nothing pinned — see
+  // syncHandler.js's queue:promptPin. party_screen.dart reacts by opening
+  // the suggestion grid; there's nothing to clear, callers just compare
+  // this value against what they last saw.
+  int promptPinToken = 0;
   // One-shot signal — set when the server tells this client it was just
   // @mentioned, cleared by clearMention() once party_screen.dart has shown
   // the pop-up/played the sound for it. {fromName, text} — see
@@ -73,6 +81,10 @@ class RoomSocketController extends ChangeNotifier {
     });
     s.on('poll:state', (data) {
       poll = Map<String, dynamic>.from(data);
+      notifyListeners();
+    });
+    s.on('queue:promptPin', (_) {
+      promptPinToken++;
       notifyListeners();
     });
     s.on('room:hostChanged', (data) {
@@ -168,6 +180,7 @@ class RoomSocketController extends ChangeNotifier {
     socket?.off('chat:message');
     socket?.off('queue:state');
     socket?.off('poll:state');
+    socket?.off('queue:promptPin');
     socket?.off('room:hostChanged');
     socket?.off('playback:state');
     socket?.off('playback:play');

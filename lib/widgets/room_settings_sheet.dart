@@ -72,6 +72,14 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
   late bool _autoPlay = widget.room['autoPlay'] != false;
   late String _pinPermission =
       widget.room['pinPermission'] as String? ?? 'host';
+  // 'justPlay' = queue plays in pin order, same as always. 'autoFill' = a
+  // suggested video gets pinned automatically instead of the room going
+  // quiet when the queue runs dry. 'voting' = a 10s vote decides which
+  // upcoming queued item plays next instead of strict order. "Leader's
+  // choice" (host-only pinning) is the existing "WHO CAN ADD SONGS" control
+  // above, not part of this — the two are independent settings.
+  late String _nextTrackMode =
+      widget.room['nextTrackMode'] as String? ?? 'justPlay';
   // Voice-room cover shown in the Lobby list — null keeps the client's
   // default mic-icon tile. Only meaningful/host-editable for voice rooms;
   // watch parties derive their thumbnail from the picked video instead.
@@ -157,6 +165,7 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
         'songPermission': _songPermission,
         'autoPlay': _autoPlay,
         'pinPermission': _pinPermission,
+        'nextTrackMode': _nextTrackMode,
         if (_roomType == 'voice' && _thumbnailChanged) 'thumbnail': _thumbnail,
       });
       widget.onChanged();
@@ -494,6 +503,23 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
                   ],
                   value: _pinPermission,
                   onChanged: (v) => setState(() => _pinPermission = v),
+                ),
+                const SizedBox(height: 14),
+                const Text('WHEN A SONG ENDS',
+                    style: TextStyle(
+                        color: AppColors.textFaint,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5)),
+                const SizedBox(height: 8),
+                _optionRow(
+                  options: const [
+                    ['justPlay', 'Pin order'],
+                    ['autoFill', 'Auto-fill suggestions'],
+                    ['voting', 'Vote (10s)'],
+                  ],
+                  value: _nextTrackMode,
+                  onChanged: (v) => setState(() => _nextTrackMode = v),
                 ),
                 const SizedBox(height: 14),
                 Container(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/room_models.dart';
 import '../theme/app_colors.dart';
@@ -33,7 +34,7 @@ Future<void> showPollBottomSheet(
   );
 }
 
-class _PollSheet extends StatelessWidget {
+class _PollSheet extends StatefulWidget {
   final Map<String, dynamic> poll;
   final String myUserId;
   final bool isHost;
@@ -50,7 +51,37 @@ class _PollSheet extends StatelessWidget {
       required this.onReset});
 
   @override
+  State<_PollSheet> createState() => _PollSheetState();
+}
+
+class _PollSheetState extends State<_PollSheet> {
+  // Only ticks for a timed next-track vote (poll['endsAt'] present) — a
+  // regular host-created poll has no expiry at all, nothing to count down.
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.poll['endsAt'] != null) {
+      _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final poll = widget.poll;
+    final myUserId = widget.myUserId;
+    final isHost = widget.isHost;
+    final roster = widget.roster;
+    final onReset = widget.onReset;
     final options = (poll['options'] as List? ?? []).cast<String>();
     final votes = Map<String, dynamic>.from(poll['votes'] as Map? ?? {});
     final counts = List.generate(
@@ -90,9 +121,25 @@ class _PollSheet extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     fontSize: 16)),
             const SizedBox(height: 4),
-            Text('$total vote${total == 1 ? '' : 's'}',
-                style: const TextStyle(
-                    color: AppColors.textFaint, fontSize: 11.5)),
+            Row(
+              children: [
+                Text('$total vote${total == 1 ? '' : 's'}',
+                    style: const TextStyle(
+                        color: AppColors.textFaint, fontSize: 11.5)),
+                if (poll['endsAt'] != null) ...[
+                  const Text(' · ',
+                      style: TextStyle(
+                          color: AppColors.textFaint, fontSize: 11.5)),
+                  Text(
+                    '${_secondsLeft(poll['endsAt'] as num)}s left',
+                    style: const TextStyle(
+                        color: AppColors.accent2,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ],
+            ),
             for (var i = 0; i < options.length; i++)
               _optionRow(i, options[i], counts[i], total, myVote,
                   i == leadingIndex, voted),
@@ -141,7 +188,12 @@ class _PollSheet extends StatelessWidget {
                 ],
               ),
             ],
-            if (isHost) ...[
+            // Not offered for a next-track vote: resetting it would just
+            // leave the room stuck on the already-finished song, since
+            // nothing else is listening for "someone cancelled" to pick a
+            // winner or advance — it always resolves itself via its own
+            // 10s timer instead.
+            if (isHost && poll['isNextTrackVote'] != true) ...[
               const SizedBox(height: 14),
               SizedBox(
                 width: double.infinity,
@@ -163,6 +215,11 @@ class _PollSheet extends StatelessWidget {
     );
   }
 
+  int _secondsLeft(num endsAtMs) {
+    final left = (endsAtMs - DateTime.now().millisecondsSinceEpoch) / 1000;
+    return left > 0 ? left.ceil() : 0;
+  }
+
   Widget _optionRow(int i, String label, int count, int total, int? myVote,
       bool leading, bool voted) {
     final pct = total > 0 ? ((count / total) * 100).round() : 0;
@@ -172,7 +229,7 @@ class _PollSheet extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: GestureDetector(
-        onTap: voted ? null : () => onVote(i),
+        onTap: voted ? null : () => widget.onVote(i),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           clipBehavior: Clip.antiAlias,

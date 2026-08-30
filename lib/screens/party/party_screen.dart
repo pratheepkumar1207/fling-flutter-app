@@ -28,6 +28,7 @@ import 'queue_sheet.dart';
 import 'roster_sheet.dart';
 import 'room_socket_controller.dart';
 import 'sync_video_player.dart';
+import 'video_suggestions_panel.dart';
 import 'voice_chat_controller.dart';
 import 'webview_room_player.dart';
 
@@ -70,6 +71,34 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   // below — chat becomes an on-demand slide-up panel instead, toggled by
   // this. Irrelevant (and left false) for every other source type.
   bool _ottChatOpen = false;
+
+  // Right-to-left swipe ON THE PLAYER ITSELF shrinks it into a corner and
+  // shows a "pin something to play next" suggestion grid — a different
+  // gesture target than the existing right-to-left-anywhere-else swipe that
+  // opens the Queue sheet (see the body GestureDetector below), so a drag's
+  // start position decides which one it means instead of both firing.
+  bool _suggestionsMode = false;
+  final _playerAreaKey = GlobalKey();
+  Offset? _dragStartGlobal;
+  // Last queue:promptPin token this screen has already reacted to — see
+  // room_socket_controller.dart's promptPinToken. Compared (not just
+  // read) so a second dry queue after the first prompt was dismissed
+  // still reopens the grid.
+  int _lastPromptPinToken = 0;
+  // A next-track vote only runs for 10s — waiting for someone to notice and
+  // tap the small "Poll Active" banner (the normal way to open it) would
+  // burn a chunk of that window, so this pops the sheet open immediately
+  // instead. Guards against reopening it every rebuild while the same vote
+  // is still active, and resets once it isn't so the next one still opens.
+  bool _nextTrackVoteShown = false;
+
+  bool _dragStartedOnPlayer() {
+    final global = _dragStartGlobal;
+    if (global == null) return false;
+    final box = _playerAreaKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.attached) return false;
+    return (box.localToGlobal(Offset.zero) & box.size).contains(global);
+  }
 
   // Tracks what we last told the native PIP channel, so we only call it on
   // an actual change instead of every rebuild.
@@ -469,6 +498,14 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     // sense for a real watch party, not a compact/voice/game bar.
     final ottImmersive =
         isWatch && webviewSourceTypes.contains(playerSourceType);
+    // The queue just ran dry with nothing pinned — see
+    // syncHandler.js's queue:promptPin. Reacting here (not via a separate
+    // listener) means it's applied before this same build renders, same
+    // pattern _syncAutoPip below uses for a server-driven side effect.
+    if (isWatch && rs.promptPinToken != _lastPromptPinToken) {
+      _lastPromptPinToken = rs.promptPinToken;
+      _suggestionsMode = true;
+    }
     // Picks the player widget by the current queue item's (or the room's,
     // for a plain single-video watch party) sourceType — 'drive' streams
     // through a native VideoPlayerController (see drive_video_player.dart),
@@ -804,8 +841,20 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
               // Swipe right-to-left opens the Queue — same destination as tapping
               // the queue icon, just a gesture shortcut. QueueSheetScreen's own
               // swipe (left-to-right) mirrors this to close back to the room.
+              // The SAME gesture, started ON the player itself, instead
+              // shrinks it into a corner + shows suggestions (see
+              // _suggestionsMode) — the drag's start position (captured on
+              // Start, checked on End) decides which one a given swipe
+              // means, since both live on this one outer detector.
+              onHorizontalDragStart: (details) =>
+                  _dragStartGlobal = details.globalPosition,
               onHorizontalDragEnd: (details) {
-                if ((details.primaryVelocity ?? 0) < -250) _openQueue();
+                if ((details.primaryVelocity ?? 0) >= -250) return;
+                if (isWatch && !_suggestionsMode && _dragStartedOnPlayer()) {
+                  setState(() => _suggestionsMode = true);
+                } else {
+                  _openQueue();
+                }
               },
               child: Container(
                 decoration: roomBgGradient != null
@@ -944,7 +993,39 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                     // otherwise) instead of being conditionally nested, lets Flutter
                     // recognize it as the same widget across a type change instead
                     // of tearing it down.
-                    if (isWatch && ottImmersive)
+                    if (isWatch && _suggestionsMode)
+                      // Swiped the player left — it shrinks into a "now
+                      // playing" box instead of pausing/disappearing, and
+                      // the rest of this space becomes a suggestion grid to
+                      // pin from. mediaMode/compact mirror what the normal
+                      // branch below would have used, just rendered small.
+                      Expanded(
+                        child: VideoSuggestionsPanel(
+                          sourceType: playerSourceType,
+                          videoUrl: playerVideoUrl,
+                          miniPlayer: player(
+                            mediaMode: _viewModeOverride ??
+                                (currentItem?['mediaMode'] as String? ??
+                                    'video'),
+                            compact: true,
+                          ),
+                          onPin: (
+                                  {required videoUrl,
+                                  required title,
+                                  thumbnail,
+                                  required sourceType}) =>
+                              rs.queueAdd({
+                            'videoUrl': videoUrl,
+                            'title': title,
+                            'thumbnail': thumbnail,
+                            'sourceType': sourceType,
+                            'mediaMode': 'video',
+                          }, position: 'top'),
+                          onRestore: () =>
+                              setState(() => _suggestionsMode = false),
+                        ),
+                      )
+                    else if (isWatch && ottImmersive)
                       // Full-bleed instead of the usual 16:9 box — the OTT
                       // WebView (fillHeight: true, see the player() closure
                       // above) fills all the space this Expanded grants it.
@@ -952,6 +1033,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                       // on-demand slide-up panel so it doesn't eat into
                       // that space, toggled by the floating button here.
                       Expanded(
+                        key: _playerAreaKey,
                         child: Stack(
                           children: [
                             Positioned.fill(
@@ -1043,6 +1125,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                       )
                     else if (isWatch || currentItem != null)
                       Padding(
+                        key: isWatch ? _playerAreaKey : null,
                         padding: isWatch
                             ? EdgeInsets.zero
                             : const EdgeInsets.fromLTRB(12, 12, 12, 0),
@@ -1110,40 +1193,60 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                           roster: rs.roster, onOpenRoster: _openRoster),
                     ),
                     if (rs.poll['active'] == true)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                        child: GestureDetector(
-                          onTap: () => showPollBottomSheet(context,
-                              poll: rs.poll,
-                              myUserId: myId ?? '',
-                              isHost: rs.isHost,
-                              roster: rs.roster,
-                              onVote: rs.votePoll,
-                              onReset: rs.resetPoll),
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 10),
-                            decoration: BoxDecoration(
-                                color: roomPrimary.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                    color: roomPrimary.withValues(alpha: 0.3))),
-                            child: Row(
-                              children: [
-                                const Text('📊',
-                                    style: TextStyle(fontSize: 16)),
-                                const SizedBox(width: 8),
-                                Text('Poll Active',
-                                    style: TextStyle(
-                                        color: roomPrimary,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 13)),
-                              ],
+                      Builder(builder: (context) {
+                        final isNextTrackVote =
+                            rs.poll['isNextTrackVote'] == true;
+                        if (isNextTrackVote && !_nextTrackVoteShown) {
+                          _nextTrackVoteShown = true;
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!mounted) return;
+                            showPollBottomSheet(context,
+                                poll: rs.poll,
+                                myUserId: myId ?? '',
+                                isHost: rs.isHost,
+                                roster: rs.roster,
+                                onVote: rs.votePoll,
+                                onReset: rs.resetPoll);
+                          });
+                        } else if (!isNextTrackVote) {
+                          _nextTrackVoteShown = false;
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                          child: GestureDetector(
+                            onTap: () => showPollBottomSheet(context,
+                                poll: rs.poll,
+                                myUserId: myId ?? '',
+                                isHost: rs.isHost,
+                                roster: rs.roster,
+                                onVote: rs.votePoll,
+                                onReset: rs.resetPoll),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 10),
+                              decoration: BoxDecoration(
+                                  color: roomPrimary.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                      color:
+                                          roomPrimary.withValues(alpha: 0.3))),
+                              child: Row(
+                                children: [
+                                  const Text('📊',
+                                      style: TextStyle(fontSize: 16)),
+                                  const SizedBox(width: 8),
+                                  Text('Poll Active',
+                                      style: TextStyle(
+                                          color: roomPrimary,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13)),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ),
+                        );
+                      }),
                     // Everything below this point renders strictly AFTER the player in
                     // the tree — restructuring it can't affect the player's identity
                     // across a room-type switch, since that's governed by what
