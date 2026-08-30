@@ -120,13 +120,26 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
     if (_autoStarted || _creatingRoom || url == null) return;
     if (_looksReadyToStart(url)) {
       _autoStarted = true;
+      // Covers the WebView immediately, before _startHere's own async work
+      // (a real network round trip to create the room) even starts — OTT
+      // sites attempt real DRM playback the instant this URL lands, which
+      // always fails here (this WebView is desktop-UA for browsing; only
+      // the room's own player is mobile-UA, see mobile_webview_settings
+      // .dart). Without covering it up front, that failure is what's
+      // visible for however long the room-creation call takes, instead of
+      // a plain loading state.
+      setState(() => _creatingRoom = true);
       _startHere();
     }
   }
 
   Future<void> _startHere() async {
     final controller = _controller;
-    if (controller == null || _creatingRoom) return;
+    // Not a _creatingRoom guard here — the bottom button already disables
+    // itself while that's true, and _maybeAutoStart sets it *before*
+    // calling this (see its comment), so checking it here would make this
+    // whole method a no-op for every auto-triggered call.
+    if (controller == null) return;
     final url = await controller.getUrl();
     if (url == null || !mounted) return;
 
@@ -353,6 +366,29 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
                 left: 0,
                 right: 0,
                 child: Center(child: Spinner(size: 20))),
+          // Covers the WebView the moment a watch page is detected (see
+          // _maybeAutoStart) so nobody ever sees the OTT site's own failed
+          // playback attempt — this WebView is desktop-UA for browsing,
+          // which can't do real DRM (confirmed live, see
+          // mobile_webview_settings.dart); only the room's own player,
+          // loaded next with mobile-UA settings, actually plays it.
+          if (_creatingRoom)
+            Positioned.fill(
+              child: ColoredBox(
+                color: AppColors.bg,
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Spinner(size: 28),
+                      const SizedBox(height: 12),
+                      Text(_buttonLabel,
+                          style: const TextStyle(color: AppColors.textDim)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           Positioned(
             left: 16,
             right: 16,
