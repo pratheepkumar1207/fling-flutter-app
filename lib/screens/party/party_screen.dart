@@ -530,10 +530,13 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           videoUrl: playerVideoUrl,
           title: currentItem?['title'] as String? ?? room['title'] as String?,
           compact: compact,
-          // Full-bleed instead of a boxed 16:9 crop when the room's own
-          // layout below already gave this an Expanded slot to fill — see
-          // the isWatch block's ottImmersive branch.
-          fillHeight: isWatch && !compact,
+          // Always the standard 16:9 box, positioned at the top of the
+          // ottImmersive Expanded slot below — not full-bleed. Full-bleed
+          // stretched the video across however tall the screen is (often
+          // much taller than 16:9), which just leaves visible blank
+          // letterbox space around the actual video instead of the tight
+          // "16:9 box, exact video fit" look wanted here.
+          fillHeight: false,
           isHost: rs.isHost,
           playback: rs.playback,
           onPlay: rs.play,
@@ -1026,17 +1029,21 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                         ),
                       )
                     else if (isWatch && ottImmersive)
-                      // Full-bleed instead of the usual 16:9 box — the OTT
-                      // WebView (fillHeight: true, see the player() closure
-                      // above) fills all the space this Expanded grants it.
-                      // Chat moves from "always visible below" to an
-                      // on-demand slide-up panel so it doesn't eat into
-                      // that space, toggled by the floating button here.
+                      // Video stays a normal 16:9 box pinned to the top of
+                      // this Expanded slot (not full-bleed — see the
+                      // player() closure above) instead of stretching down
+                      // the whole screen. Chat still moves from "always
+                      // visible below" to an on-demand slide-up panel so it
+                      // doesn't eat into that space, toggled by the
+                      // floating button here.
                       Expanded(
                         key: _playerAreaKey,
                         child: Stack(
                           children: [
-                            Positioned.fill(
+                            Positioned(
+                              top: 0,
+                              left: 0,
+                              right: 0,
                               child: player(
                                 mediaMode: _viewModeOverride ??
                                     (currentItem?['mediaMode'] as String? ??

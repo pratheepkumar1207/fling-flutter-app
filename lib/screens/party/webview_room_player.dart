@@ -166,6 +166,39 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     ''');
   }
 
+  // Pins the page's own <video> element edge-to-edge over everything else,
+  // via plain CSS rather than the Fullscreen API above — confirmed live:
+  // on non-DRM sites (Aha, and similar), the page stays in its normal
+  // in-page layout (header, related-videos, description text) around a
+  // centered player instead of filling the screen, leaving visible "extra
+  // space" around the actual video. CSS positioning doesn't need a genuine
+  // user gesture the way requestFullscreen does, so it applies
+  // automatically on load instead of waiting for a tap. Content-only
+  // styling — doesn't read or control playback state, so it's a no-op on
+  // DRM pages (Netflix/Prime) whose player isn't a plain <video> tag in
+  // the same way; harmless to run there regardless.
+  Future<void> _injectFullBleedVideoCss() async {
+    await _controller?.evaluateJavascript(source: '''
+      (function() {
+        if (document.getElementById('__fling_fullbleed__')) return;
+        var style = document.createElement('style');
+        style.id = '__fling_fullbleed__';
+        style.innerHTML = `
+          video {
+            position: fixed !important;
+            top: 0 !important; left: 0 !important;
+            width: 100vw !important; height: 100vh !important;
+            object-fit: contain !important;
+            background: #000 !important;
+            z-index: 2147483647 !important;
+          }
+          html, body { overflow: hidden !important; margin: 0 !important; padding: 0 !important; }
+        `;
+        document.head.appendChild(style);
+      })();
+    ''');
+  }
+
   @override
   void dispose() {
     _tickTimer?.cancel();
@@ -203,7 +236,10 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
           // only the actual playback WebView needs to stay mobile.
           initialSettings: mobileWebViewSettings,
           onWebViewCreated: (controller) => _controller = controller,
-          onLoadStop: (controller, url) => _checkLoginUrl(url),
+          onLoadStop: (controller, url) {
+            _checkLoginUrl(url);
+            _injectFullBleedVideoCss();
+          },
           // Same "don't error out on a custom app-deeplink scheme" guard
           // as webview_browse_screen.dart — see its comment for why.
           shouldOverrideUrlLoading: (controller, navigationAction) async {
