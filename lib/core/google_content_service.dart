@@ -9,14 +9,16 @@ import 'api_client.dart';
 ///
 /// kGoogleOAuthWebClientId is a public identifier (same non-secret status
 /// as kAgoraAppId in voice_chat_controller.dart) — the actual secret is
-/// GOOGLE_OAUTH_CLIENT_SECRET, which stays server-side only. This must be
-/// the "Web application" OAuth Client ID from the SAME Google Cloud
-/// project the backend's GOOGLE_OAUTH_CLIENT_ID/SECRET use, created in
-/// Cloud Console with the YouTube Data API v3 and Google Drive API
-/// enabled — see the setup note in googleOAuth.js. Left blank until that's
-/// done; every entry point below checks isConfigured first instead of
-/// crashing on an empty client id.
-const String kGoogleOAuthWebClientId = '';
+/// GOOGLE_OAUTH_CLIENT_SECRET, which stays server-side only. Same Web
+/// application OAuth Client ID as google_auth_service.dart's
+/// kGoogleSignInWebClientId (SAME Google Cloud project, "fling final") —
+/// requires the youtube.readonly and drive.readonly scopes added on that
+/// project's OAuth consent screen (Data Access), which plain sign-in
+/// doesn't need. isConfigured stays false, and this feature stays a dead
+/// end for the user, until that scope setup is done and the backend's
+/// GOOGLE_OAUTH_CLIENT_ID/SECRET env vars are set to match.
+const String kGoogleOAuthWebClientId =
+    '409464876557-jiuv41mqj3e2mg4rqb0kovk5nj1ttt1j.apps.googleusercontent.com';
 
 class GoogleContentService {
   GoogleContentService._();
@@ -41,15 +43,18 @@ class GoogleContentService {
   /// Returns the granted scopes, or throws on cancel/failure.
   Future<List<String>> connect() async {
     if (!isConfigured) {
-      throw StateError('Google sign-in is not configured yet (kGoogleOAuthWebClientId is empty).');
+      throw StateError(
+          'Google sign-in is not configured yet (kGoogleOAuthWebClientId is empty).');
     }
     final account = await _signIn().signIn();
     if (account == null) throw StateError('Sign-in was cancelled.');
     final serverAuthCode = account.serverAuthCode;
     if (serverAuthCode == null) {
-      throw StateError('No serverAuthCode returned — check the Web Client ID matches the backend\'s GOOGLE_OAUTH_CLIENT_ID.');
+      throw StateError(
+          'No serverAuthCode returned — check the Web Client ID matches the backend\'s GOOGLE_OAUTH_CLIENT_ID.');
     }
-    final result = await ApiClient.post('/auth/google/connect', body: {'serverAuthCode': serverAuthCode}) as Map<String, dynamic>;
+    final result = await ApiClient.post('/auth/google/connect',
+        body: {'serverAuthCode': serverAuthCode}) as Map<String, dynamic>;
     return List<String>.from(result['scopes'] as List? ?? []);
   }
 
