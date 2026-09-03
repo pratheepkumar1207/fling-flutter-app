@@ -185,8 +185,9 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
         sourceType = 'youtube';
         videoUrl = 'https://www.youtube.com/watch?v=$videoId';
         final pageTitle = await controller.getTitle();
-        videoTitle =
-            pageTitle?.replaceAll(RegExp(r'\s*-\s*YouTube$'), '').trim();
+        videoTitle = pageTitle
+            ?.replaceAll(RegExp(r'\s*-\s*YouTube( Music)?$'), '')
+            .trim();
         if (videoTitle?.isEmpty ?? true) videoTitle = null;
         videoThumbnail = 'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
       }

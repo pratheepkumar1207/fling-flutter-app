@@ -411,7 +411,11 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
 
   void _openQueue() {
     final rs = _rs!;
-    final isVoice = _room?['roomType'] == 'voice';
+    final roomType = _room?['roomType'];
+    // Voice and Game rooms both have no video to show — see
+    // SourcePickerBody.audioOnly's comment for why this restricts the
+    // picker to just YouTube Music instead of the full source grid.
+    final audioOnly = roomType == 'voice' || roomType == 'game';
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => AnimatedBuilder(
         animation: rs,
@@ -426,7 +430,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           onReorder: rs.queueReorder,
           onOpenRoster: _openRoster,
           onSwitchSource: _switchRoomSource,
-          audioOnly: isVoice,
+          audioOnly: audioOnly,
           canPin: rs.canPin,
           canAddSongs: rs.settings['songPermission'] != 'host' || rs.isHost,
         ),

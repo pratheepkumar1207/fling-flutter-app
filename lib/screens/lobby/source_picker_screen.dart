@@ -66,6 +66,15 @@ class SourcePickerBody extends StatelessWidget {
   /// SourcePickerScreen.
   final bool compact;
 
+  /// Voice/Game rooms have no video to show — picking a source there is
+  /// only ever about background music, and the full 14-tile grid (Netflix,
+  /// Prime, Drive full videos, etc.) doesn't apply. Restricts the grid to
+  /// just YouTube Music, browsed the same way YouTube Surf browses regular
+  /// YouTube (see _openWebviewSource's 'youtube_surf' platform below —
+  /// music.youtube.com's /watch?v= URLs match the exact same
+  /// extractYouTubeId pattern, so no separate platform value is needed).
+  final bool audioOnly;
+
   const SourcePickerBody({
     super.key,
     this.visibility = 'public',
@@ -74,6 +83,7 @@ class SourcePickerBody extends StatelessWidget {
     this.onAddToQueue,
     this.onSwitchSource,
     this.compact = false,
+    this.audioOnly = false,
   });
 
   bool get _inRoom => roomId != null;
@@ -247,6 +257,26 @@ class SourcePickerBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = compact;
+    if (audioOnly) {
+      return GridView.count(
+        padding: EdgeInsets.all(c ? 10 : 16),
+        crossAxisCount: c ? 5 : 3,
+        mainAxisSpacing: c ? 8 : 12,
+        crossAxisSpacing: c ? 8 : 12,
+        childAspectRatio: c ? 0.85 : 0.68,
+        children: [
+          _SourceTile(
+              compact: c,
+              iconAsset: 'assets/icons/app/youtube.png',
+              label: 'YouTube Music',
+              available: true,
+              onTap: () => _openWebviewSource(context,
+                  platform: 'youtube_surf',
+                  label: 'YouTube Music',
+                  homeUrl: 'https://music.youtube.com')),
+        ],
+      );
+    }
     return GridView.count(
       padding: EdgeInsets.all(c ? 10 : 16),
       crossAxisCount: c ? 5 : 3,

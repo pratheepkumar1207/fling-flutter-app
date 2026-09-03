@@ -28,6 +28,9 @@ class QueueSheetScreen extends StatefulWidget {
   final VoidCallback onOpenRoster;
   final Future<void> Function(String sourceType, String videoUrl,
       {String? videoTitle, String? videoThumbnail}) onSwitchSource;
+  // Voice/Game rooms — queued items are tagged mediaMode:'audio' (see
+  // _addToQueue), and the picker below only offers YouTube Music instead
+  // of the full video-source grid (see SourcePickerBody.audioOnly).
   final bool audioOnly;
   final bool canPin;
   final bool canAddSongs;
@@ -228,6 +231,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                       roomId: widget.roomId,
                       onAddToQueue: _addToQueue,
                       onSwitchSource: widget.onSwitchSource,
+                      audioOnly: widget.audioOnly,
                     ),
                   ),
                 Expanded(
