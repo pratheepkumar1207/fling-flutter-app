@@ -669,6 +669,17 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                     (currentItem?['mediaMode'] as String? ?? 'video')),
           );
         }
+        // _chatFocused alone isn't enough — dismissing the keyboard via
+        // Android's swipe-down gesture (or the back button, on some
+        // versions) hides the IME without actually clearing the TextField's
+        // FocusNode.hasFocus, so _chatFocused can stay stuck true with no
+        // keyboard on screen, leaving the AppBar/icons hidden with nothing
+        // to show for it. viewInsets.bottom is the OS's own ground truth
+        // for whether the keyboard is actually visible right now — combine
+        // both so the chrome reliably comes back the instant the keyboard
+        // does, regardless of what focus state Flutter thinks it's in.
+        final hideChromeForChat =
+            _chatFocused && MediaQuery.of(context).viewInsets.bottom > 0;
         return Scaffold(
           key: _scaffoldKey,
           backgroundColor: useVolaTheme ? Colors.transparent : roomBg,
@@ -686,10 +697,10 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
             onForceMute: rs.forceMuteMic,
             onForceUnmute: rs.forceUnmuteMic,
           ),
-          // Hidden while composing a chat message — see _chatFocused — so
-          // chat gets the full screen instead of sharing it with chrome
+          // Hidden while composing a chat message — see hideChromeForChat —
+          // so chat gets the full screen instead of sharing it with chrome
           // nobody's looking at mid-type.
-          appBar: _chatFocused
+          appBar: hideChromeForChat
               ? null
               : AppBar(
                   backgroundColor: Colors.transparent,
@@ -837,12 +848,12 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                   ],
                 ),
           // Normally the AppBar itself accounts for the status bar/notch —
-          // once it's hidden (see _chatFocused above), the video would
+          // once it's hidden (see hideChromeForChat above), the video would
           // otherwise render right up under it, so this picks up that inset
           // only while typing, letting the video slide up into the AppBar's
           // old spot instead of leaving a dead gap.
           body: SafeArea(
-            top: _chatFocused,
+            top: hideChromeForChat,
             bottom: false,
             child: GestureDetector(
               // Swipe right-to-left opens the Queue — same destination as tapping
