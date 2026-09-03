@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/auth_provider.dart';
 import '../../core/firebase_service.dart';
+import '../../core/google_auth_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/glass.dart';
 import '../../widgets/mascot_eyes.dart';
@@ -61,6 +62,27 @@ class _LoginScreenState extends State<LoginScreen> {
         final authProvider = context.read<AuthProvider>();
         await _verifyPhone(phone, authProvider, _PhoneVerification());
       }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() {
+      _error = '';
+      _loading = true;
+    });
+    try {
+      final accessToken = await GoogleAuthService.signInAndGetAccessToken();
+      if (accessToken == null) return; // user cancelled the picker
+      if (!mounted) return;
+      await context
+          .read<AuthProvider>()
+          .loginWithSupabaseAccessToken(accessToken);
     } catch (e) {
       if (mounted) {
         setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
@@ -252,6 +274,48 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
+                        if (!_fakeLoginMode) ...[
+                          const SizedBox(height: 16),
+                          Row(children: [
+                            Expanded(
+                                child: Divider(
+                                    color: AppColors.border, height: 1)),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text('or',
+                                  style: TextStyle(
+                                      color: AppColors.textFaint,
+                                      fontSize: 12)),
+                            ),
+                            Expanded(
+                                child: Divider(
+                                    color: AppColors.border, height: 1)),
+                          ]),
+                          const SizedBox(height: 16),
+                          GestureDetector(
+                            onTap: _loading ? null : _handleGoogleSignIn,
+                            child: Container(
+                              width: double.infinity,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(999),
+                                color: AppColors.surface2,
+                                border: Border.all(color: AppColors.border),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                'Continue with Google',
+                                style: TextStyle(
+                                    color: _loading
+                                        ? AppColors.textFaint
+                                        : AppColors.text,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14),
+                              ),
+                            ),
+                          ),
+                        ],
                         if (!_fakeLoginMode)
                           if (firebaseConfigured)
                             TextButton(

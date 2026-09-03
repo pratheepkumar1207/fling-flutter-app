@@ -6,12 +6,16 @@ import 'core/auth_provider.dart';
 import 'core/background_audio_handler.dart';
 import 'core/firebase_service.dart';
 import 'core/socket_service.dart';
+import 'core/supabase_service.dart';
 import 'screens/splash_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initFirebase();
+  // Only used for "Sign in with Google" (see google_auth_service.dart) —
+  // phone login still goes through Firebase directly.
+  await initSupabase();
   // Ready before any room needs it — see background_audio_handler.dart.
   backgroundAudioHandler = await AudioService.init(
     builder: () => BackgroundAudioHandler(),

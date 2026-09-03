@@ -52,7 +52,8 @@ class AuthProvider extends ChangeNotifier {
   /// TEST-ONLY dev-login path (mirrors POST /auth/dev-login on the backend —
   /// only works for whitelisted phone numbers, disabled in production).
   Future<void> devLogin(String phone) async {
-    final data = await ApiClient.post('/auth/dev-login', body: {'phone': phone}, skipAuth: true);
+    final data = await ApiClient.post('/auth/dev-login',
+        body: {'phone': phone}, skipAuth: true);
     final map = data as Map<String, dynamic>;
     _token = map['token'] as String;
     _user = User.fromJson(map['user'] as Map<String, dynamic>);
@@ -64,7 +65,8 @@ class AuthProvider extends ChangeNotifier {
   /// Admin-created fake/bot accounts (see POST /admin/fake-users) log in
   /// with a username+password instead of phone OTP.
   Future<void> loginFake(String username, String password) async {
-    final data = await ApiClient.post('/auth/login-fake', body: {'username': username, 'password': password}, skipAuth: true);
+    final data = await ApiClient.post('/auth/login-fake',
+        body: {'username': username, 'password': password}, skipAuth: true);
     final map = data as Map<String, dynamic>;
     _token = map['token'] as String;
     _user = User.fromJson(map['user'] as Map<String, dynamic>);
@@ -74,7 +76,23 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> loginWithFirebaseIdToken(String idToken) async {
-    final data = await ApiClient.post('/auth/firebase', body: {'idToken': idToken}, skipAuth: true);
+    final data = await ApiClient.post('/auth/firebase',
+        body: {'idToken': idToken}, skipAuth: true);
+    final map = data as Map<String, dynamic>;
+    _token = map['token'] as String;
+    _user = User.fromJson(map['user'] as Map<String, dynamic>);
+    _status = AuthStatus.authed;
+    await _persistToken(_token!);
+    notifyListeners();
+  }
+
+  /// "Sign in with Google" — accessToken is a Supabase session token (see
+  /// google_auth_service.dart), verified server-side against Supabase's
+  /// own Auth API before we issue our own JWT. Mirrors
+  /// loginWithFirebaseIdToken's shape exactly.
+  Future<void> loginWithSupabaseAccessToken(String accessToken) async {
+    final data = await ApiClient.post('/auth/supabase',
+        body: {'accessToken': accessToken}, skipAuth: true);
     final map = data as Map<String, dynamic>;
     _token = map['token'] as String;
     _user = User.fromJson(map['user'] as Map<String, dynamic>);

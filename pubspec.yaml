@@ -29,6 +29,10 @@ dependencies:
   # login above; this requests youtube.readonly + drive.readonly scopes and
   # hands the resulting serverAuthCode to POST /auth/google/connect.
   google_sign_in: ^6.2.2
+  # Supabase Auth — used only for "Sign in with Google" (see
+  # google_auth_service.dart). Phone login above still goes through
+  # firebase_auth directly; Supabase isn't used as the app's database here.
+  supabase_flutter: ^2.8.0
 
   # State management
   provider: ^6.1.2
