@@ -135,8 +135,26 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
       // presence (a plain boolean), never reads, plays, or otherwise
       // touches the element or its content.
       if (widget.platform == 'amazon') {
-        final hasVideo = await _controller?.evaluateJavascript(
-            source: "document.querySelector('video') !== null");
+        // Also checks inside same-origin iframes — Amazon's player can sit
+        // in one rather than the top document. A cross-origin iframe would
+        // throw here (the browser's own Same-Origin Policy, not anything
+        // DRM-specific), which the try/catch just treats as "not found
+        // this way" rather than crashing the check.
+        final hasVideo = await _controller?.evaluateJavascript(source: '''
+          (function() {
+            if (document.querySelector('video')) return true;
+            var frames = document.querySelectorAll('iframe');
+            for (var i = 0; i < frames.length; i++) {
+              try {
+                if (frames[i].contentDocument &&
+                    frames[i].contentDocument.querySelector('video')) {
+                  return true;
+                }
+              } catch (e) {}
+            }
+            return false;
+          })();
+        ''');
         if (hasVideo == true && mounted && !_autoStarted && !_creatingRoom) {
           _triggerAutoStart(urlStr);
         }
