@@ -24,6 +24,10 @@ class RoomSocketController extends ChangeNotifier {
   // syncHandler.js's queue:voteSkip. required is a live majority of
   // whoever's actually in the room right now, not a fixed number.
   Map<String, dynamic> skipVote = {'count': 0, 'required': 1};
+  // Participant "vote to add this suggestion" tallies — see
+  // syncHandler.js's queue:voteAdd. Keyed by videoUrl since several
+  // suggestions can be mid-vote at once, unlike skipVote's single tally.
+  Map<String, Map<String, dynamic>> addVotes = {};
   String? hostId;
   String? joinError;
   bool kicked = false;
@@ -101,6 +105,13 @@ class RoomSocketController extends ChangeNotifier {
     });
     s.on('queue:skipVoteState', (data) {
       skipVote = Map<String, dynamic>.from(data);
+      notifyListeners();
+    });
+    s.on('queue:addVoteState', (data) {
+      final map = Map<String, dynamic>.from(data);
+      final videoUrl = map['videoUrl'] as String?;
+      if (videoUrl == null) return;
+      addVotes = {...addVotes, videoUrl: map};
       notifyListeners();
     });
     // The server now includes its own updatedAt in these payloads (see
@@ -192,6 +203,7 @@ class RoomSocketController extends ChangeNotifier {
     socket?.off('room:hostChanged');
     socket?.off('playback:state');
     socket?.off('queue:skipVoteState');
+    socket?.off('queue:addVoteState');
     socket?.off('playback:play');
     socket?.off('playback:seek');
     socket?.off('playback:pause');
@@ -276,6 +288,12 @@ class RoomSocketController extends ChangeNotifier {
   // immediate, no vote needed). Safe to call repeatedly; the server dedupes
   // by userId, so tapping it twice doesn't count twice.
   void voteSkip() => socket?.emit('queue:voteSkip', {'roomId': roomId});
+
+  // Participant "vote to add this suggestion" — see video_suggestions_panel
+  // .dart. The host adds directly via queueAdd instead (always immediate,
+  // no vote needed); this is the non-host path.
+  void voteAdd(Map<String, dynamic> item) =>
+      socket?.emit('queue:voteAdd', {'roomId': roomId, 'item': item});
 
   void queueReorder(int fromIndex, int toIndex) {
     if (isHost) {

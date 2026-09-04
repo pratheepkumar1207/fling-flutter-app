@@ -29,6 +29,17 @@ class VideoSuggestionsPanel extends StatefulWidget {
     required String sourceType,
   }) onPin;
   final VoidCallback onRestore;
+  // Host taps a card and it's added immediately (onPin above, unchanged).
+  // Everyone else's tap is a vote instead — see room_socket_controller
+  // .dart's voteAdd/addVotes.
+  final bool isHost;
+  final void Function({
+    required String videoUrl,
+    required String title,
+    String? thumbnail,
+    required String sourceType,
+  })? onVoteAdd;
+  final Map<String, Map<String, dynamic>> addVotes;
 
   const VideoSuggestionsPanel({
     super.key,
@@ -37,6 +48,9 @@ class VideoSuggestionsPanel extends StatefulWidget {
     required this.videoUrl,
     required this.onPin,
     required this.onRestore,
+    this.isHost = false,
+    this.onVoteAdd,
+    this.addVotes = const {},
   });
 
   @override
@@ -77,6 +91,7 @@ class _VideoSuggestionsPanelState extends State<VideoSuggestionsPanel> {
               'title': v['title'],
               'thumbnail': v['thumbnail'],
               'sourceType': 'youtube',
+              'durationSeconds': v['durationSeconds'],
             })
         .toList();
   }
@@ -110,6 +125,23 @@ class _VideoSuggestionsPanelState extends State<VideoSuggestionsPanel> {
       thumbnail: item['thumbnail'] as String?,
       sourceType: item['sourceType'] as String? ?? widget.sourceType ?? '',
     );
+  }
+
+  void _vote(Map<String, dynamic> item) {
+    widget.onVoteAdd?.call(
+      videoUrl: item['videoUrl'] as String,
+      title: item['title'] as String? ?? 'Untitled',
+      thumbnail: item['thumbnail'] as String?,
+      sourceType: item['sourceType'] as String? ?? widget.sourceType ?? '',
+    );
+  }
+
+  void _handleTap(Map<String, dynamic> item) {
+    if (widget.isHost || widget.onVoteAdd == null) {
+      _pin(item);
+    } else {
+      _vote(item);
+    }
   }
 
   @override
@@ -163,14 +195,25 @@ class _VideoSuggestionsPanelState extends State<VideoSuggestionsPanel> {
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
-                        mainAxisSpacing: 10,
+                        mainAxisSpacing: 12,
                         crossAxisSpacing: 10,
-                        childAspectRatio: 1.5,
+                        // Thumbnail (~1:1) + a title/subtitle area below it,
+                        // not text overlaid on the image — needs a taller
+                        // tile than the old single-image card did.
+                        childAspectRatio: 0.95,
                       ),
                       itemCount: _suggestions.length,
-                      itemBuilder: (context, i) => _SuggestionCard(
-                          item: _suggestions[i],
-                          onTap: () => _pin(_suggestions[i])),
+                      itemBuilder: (context, i) {
+                        final item = _suggestions[i];
+                        final vote = widget.addVotes[item['videoUrl']];
+                        return _SuggestionCard(
+                          item: item,
+                          isHost: widget.isHost,
+                          voteCount: (vote?['count'] as int?) ?? 0,
+                          voteRequired: (vote?['required'] as int?) ?? 1,
+                          onTap: () => _handleTap(item),
+                        );
+                      },
                     ),
         ),
       ],
@@ -178,62 +221,116 @@ class _VideoSuggestionsPanelState extends State<VideoSuggestionsPanel> {
   }
 }
 
+// Thumbnail (with a duration badge, if known) on top, title + a status line
+// below it — a real info area, not text overlaid on the image. Tapping
+// either adds immediately (host) or casts a vote (everyone else, showing
+// live progress toward the room's required majority).
 class _SuggestionCard extends StatelessWidget {
   final Map<String, dynamic> item;
+  final bool isHost;
+  final int voteCount;
+  final int voteRequired;
   final VoidCallback onTap;
-  const _SuggestionCard({required this.item, required this.onTap});
+
+  const _SuggestionCard({
+    required this.item,
+    required this.onTap,
+    this.isHost = false,
+    this.voteCount = 0,
+    this.voteRequired = 1,
+  });
+
+  String? get _durationLabel {
+    final seconds = item['durationSeconds'];
+    if (seconds is! num || seconds <= 0) return null;
+    final d = Duration(seconds: seconds.round());
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60);
+    final s = d.inSeconds.remainder(60);
+    final mm = h > 0 ? m.toString().padLeft(2, '0') : m.toString();
+    final ss = s.toString().padLeft(2, '0');
+    return h > 0 ? '$h:$mm:$ss' : '$mm:$ss';
+  }
 
   @override
   Widget build(BuildContext context) {
+    final duration = _durationLabel;
+    final hasVote = !isHost && voteCount > 0;
     return GestureDetector(
       onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Container(color: AppColors.surface2),
-            if (item['thumbnail'] != null)
-              AppImage(source: item['thumbnail'] as String?, fit: BoxFit.cover),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.8)
-                    ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Container(color: AppColors.surface2),
+                  if (item['thumbnail'] != null)
+                    AppImage(
+                        source: item['thumbnail'] as String?,
+                        fit: BoxFit.cover),
+                  if (duration != null)
+                    Positioned(
+                      right: 6,
+                      bottom: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.75),
+                            borderRadius: BorderRadius.circular(4)),
+                        child: Text(duration,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.55),
+                          shape: BoxShape.circle),
+                      child: Icon(
+                          isHost
+                              ? Icons.push_pin_rounded
+                              : Icons.how_to_vote_rounded,
+                          color: Colors.white,
+                          size: 13),
+                    ),
                   ),
-                ),
-                child: Text(item['title'] as String? ?? '',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600)),
+                ],
               ),
             ),
-            Positioned(
-              top: 6,
-              right: 6,
-              child: Container(
-                padding: const EdgeInsets.all(5),
-                decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.55),
-                    shape: BoxShape.circle),
-                child: const Icon(Icons.push_pin_rounded,
-                    color: Colors.white, size: 13),
-              ),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 6),
+          Text(item['title'] as String? ?? '',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  color: AppColors.text,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600)),
+          if (hasVote)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text('$voteCount/$voteRequired votes to add',
+                  style: const TextStyle(
+                      color: AppColors.accent2,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w600)),
+            )
+          else
+            Text(isHost ? 'Tap to add' : 'Tap to vote',
+                style: const TextStyle(
+                    color: AppColors.textFaint, fontSize: 10.5)),
+        ],
       ),
     );
   }

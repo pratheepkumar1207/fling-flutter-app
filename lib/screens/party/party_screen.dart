@@ -1174,6 +1174,20 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                             'sourceType': sourceType,
                             'mediaMode': 'video',
                           }, position: 'top'),
+                          isHost: rs.isHost,
+                          onVoteAdd: (
+                                  {required videoUrl,
+                                  required title,
+                                  thumbnail,
+                                  required sourceType}) =>
+                              rs.voteAdd({
+                            'videoUrl': videoUrl,
+                            'title': title,
+                            'thumbnail': thumbnail,
+                            'sourceType': sourceType,
+                            'mediaMode': 'video',
+                          }),
+                          addVotes: rs.addVotes,
                           onRestore: () =>
                               setState(() => _suggestionsMode = false),
                         ),
