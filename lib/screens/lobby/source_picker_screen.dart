@@ -258,23 +258,38 @@ class SourcePickerBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = compact;
     if (audioOnly) {
-      return GridView.count(
-        padding: EdgeInsets.all(c ? 10 : 16),
-        crossAxisCount: c ? 5 : 3,
-        mainAxisSpacing: c ? 8 : 12,
-        crossAxisSpacing: c ? 8 : 12,
-        childAspectRatio: c ? 0.85 : 0.68,
-        children: [
-          _SourceTile(
-              compact: c,
-              iconAsset: 'assets/icons/app/youtube.png',
-              label: 'YouTube Music',
-              available: true,
-              onTap: () => _openWebviewSource(context,
-                  platform: 'youtube_surf',
-                  label: 'YouTube Music',
-                  homeUrl: 'https://music.youtube.com')),
-        ],
+      // Just a search entry point, not a source grid — Voice/Game rooms
+      // only ever have the one music source, so a whole tile naming it
+      // (and requiring an extra tap to open) added nothing a plain search
+      // icon doesn't already say. Tapping it goes straight into browsing.
+      return Center(
+        child: GestureDetector(
+          onTap: () => _openWebviewSource(context,
+              platform: 'youtube_surf',
+              label: 'Search songs',
+              homeUrl: 'https://music.youtube.com'),
+          child: Container(
+            padding: EdgeInsets.symmetric(
+                horizontal: c ? 12 : 16, vertical: c ? 8 : 10),
+            decoration: BoxDecoration(
+                color: AppColors.surface,
+                border: Border.all(color: AppColors.border),
+                borderRadius: BorderRadius.circular(999)),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.search_rounded,
+                    color: AppColors.textDim, size: c ? 16 : 18),
+                const SizedBox(width: 6),
+                Text('Search songs',
+                    style: TextStyle(
+                        color: AppColors.textDim,
+                        fontSize: c ? 11 : 13,
+                        fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+        ),
       );
     }
     return GridView.count(
