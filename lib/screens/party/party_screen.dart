@@ -573,6 +573,10 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           onPlay: rs.play,
           onPause: rs.pause,
           onRequestState: rs.requestState,
+          onSkip: rs.isHost ? rs.queueSkip : null,
+          onVoteSkip: rs.isHost ? null : rs.voteSkip,
+          skipVoteCount: (rs.skipVote['count'] as int?) ?? 0,
+          skipVoteRequired: (rs.skipVote['required'] as int?) ?? 1,
         );
       }
       if (playerSourceType == 'drive') {

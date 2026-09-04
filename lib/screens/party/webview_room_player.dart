@@ -42,6 +42,16 @@ class WebviewRoomPlayer extends StatefulWidget {
   final void Function(double position) onPlay;
   final void Function(double position) onPause;
   final VoidCallback onRequestState;
+  // Same skip contract as sync_video_player.dart/drive_video_player.dart —
+  // "skip" here just means "move to the next queued item" (a real,
+  // well-defined queue operation) rather than anything about the current
+  // item's playback position, which OTT never had control over anyway.
+  // isHost gets onSkip (always immediate); everyone else gets onVoteSkip,
+  // same "one consistent player control" treatment across every source.
+  final VoidCallback? onSkip;
+  final VoidCallback? onVoteSkip;
+  final int skipVoteCount;
+  final int skipVoteRequired;
 
   const WebviewRoomPlayer({
     super.key,
@@ -54,6 +64,10 @@ class WebviewRoomPlayer extends StatefulWidget {
     required this.onPlay,
     required this.onPause,
     required this.onRequestState,
+    this.onSkip,
+    this.onVoteSkip,
+    this.skipVoteCount = 0,
+    this.skipVoteRequired = 1,
   });
 
   @override
@@ -346,6 +360,40 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                // Same skip control every source's player shows now — host
+                // gets an immediate skip to the next queued item, everyone
+                // else gets the same vote-to-skip pill YouTube/Drive use.
+                if (widget.isHost && widget.onSkip != null)
+                  GestureDetector(
+                    onTap: widget.onSkip,
+                    child: const Padding(
+                      padding: EdgeInsets.only(left: 8),
+                      child: Icon(Icons.skip_next_rounded,
+                          color: Colors.white, size: 20),
+                    ),
+                  )
+                else if (!widget.isHost && widget.onVoteSkip != null)
+                  GestureDetector(
+                    onTap: widget.onVoteSkip,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.skip_next_rounded,
+                              color: Colors.white, size: 18),
+                          const SizedBox(width: 3),
+                          Text(
+                            '${widget.skipVoteCount}/${widget.skipVoteRequired}',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
