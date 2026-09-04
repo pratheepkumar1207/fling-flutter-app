@@ -1156,6 +1156,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                         child: VideoSuggestionsPanel(
                           sourceType: playerSourceType,
                           videoUrl: playerVideoUrl,
+                          nowPlayingTitle: currentItem?['title'] as String? ??
+                              room['title'] as String?,
                           miniPlayer: player(
                             mediaMode: _viewModeOverride ??
                                 (currentItem?['mediaMode'] as String? ??

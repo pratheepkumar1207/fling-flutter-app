@@ -20,6 +20,7 @@ import '../../widgets/spinner.dart';
 /// but a real, buildable "something to pin" list rather than an empty grid.
 class VideoSuggestionsPanel extends StatefulWidget {
   final Widget miniPlayer;
+  final String? nowPlayingTitle;
   final String? sourceType;
   final String? videoUrl;
   final void Function({
@@ -49,6 +50,7 @@ class VideoSuggestionsPanel extends StatefulWidget {
   const VideoSuggestionsPanel({
     super.key,
     required this.miniPlayer,
+    this.nowPlayingTitle,
     required this.sourceType,
     required this.videoUrl,
     required this.onPin,
@@ -162,80 +164,145 @@ class _VideoSuggestionsPanelState extends State<VideoSuggestionsPanel> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child:
-                    SizedBox(width: 140, height: 79, child: widget.miniPlayer),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Now playing',
-                        style: TextStyle(
-                            color: AppColors.textFaint,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 4),
-                    const Text('Pin something to play next',
-                        style: TextStyle(color: AppColors.text, fontSize: 13)),
-                  ],
+    return GestureDetector(
+      // Swipe left-to-right anywhere on this view goes back to the normal
+      // player — the mirror image of the right-to-left swipe on the player
+      // itself that opens this view (see party_screen.dart's
+      // onHorizontalDragEnd). The restore icon in the header stays too, as
+      // a non-gesture fallback.
+      onHorizontalDragEnd: (details) {
+        if ((details.primaryVelocity ?? 0) > 250) widget.onRestore();
+      },
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text('Suggestions',
+                      style: TextStyle(
+                          color: AppColors.text,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15)),
                 ),
-              ),
-              IconButton(
-                tooltip: 'Back to full view',
-                onPressed: widget.onRestore,
-                icon: const Icon(Icons.unfold_more_rounded,
-                    color: AppColors.textDim),
-              ),
-            ],
+                IconButton(
+                  tooltip: 'Back to full view',
+                  onPressed: widget.onRestore,
+                  icon: const Icon(Icons.unfold_more_rounded,
+                      color: AppColors.textDim),
+                ),
+              ],
+            ),
           ),
-        ),
-        Expanded(
-          child: _loading
-              ? const Center(child: Spinner())
-              : _suggestions.isEmpty
-                  ? const Center(
-                      child: Text('No suggestions right now',
-                          style: TextStyle(color: AppColors.textFaint)))
-                  : GridView.builder(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 10,
-                        // A true 1:1 square thumbnail (see _SuggestionCard's
-                        // AspectRatio) plus a title/subtitle area below it —
-                        // shorter than the thumbnail alone, so the tile as a
-                        // whole needs to be taller than it is wide.
-                        childAspectRatio: 0.8,
-                      ),
-                      itemCount: _suggestions.length,
-                      itemBuilder: (context, i) {
-                        final item = _suggestions[i];
-                        final videoUrl = item['videoUrl'] as String;
-                        final vote = widget.addVotes[videoUrl];
-                        return _SuggestionCard(
-                          item: item,
-                          isHost: widget.isHost,
-                          voteCount: (vote?['count'] as int?) ?? 0,
-                          voteRequired: (vote?['required'] as int?) ?? 1,
-                          hasVoted: _hasVoted(videoUrl),
-                          onTap: () => _handleTap(item),
-                        );
-                      },
+          Expanded(
+            child: _loading
+                ? const Center(child: Spinner())
+                : GridView.builder(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 10,
+                      // A landscape (16:9) thumbnail (see _SuggestionCard's
+                      // AspectRatio) plus a title/subtitle area below it.
+                      childAspectRatio: 1.05,
                     ),
-        ),
-      ],
+                    // +1 — whatever's actually playing right now is the
+                    // first cell in this same grid (see _NowPlayingCard
+                    // below), not a separate box above it; everything
+                    // after that first cell is a plain suggestion.
+                    itemCount: _suggestions.length + 1,
+                    itemBuilder: (context, i) {
+                      if (i == 0) {
+                        return _NowPlayingCard(
+                          player: widget.miniPlayer,
+                          title: widget.nowPlayingTitle,
+                          onTap: widget.onRestore,
+                        );
+                      }
+                      final item = _suggestions[i - 1];
+                      final videoUrl = item['videoUrl'] as String;
+                      final vote = widget.addVotes[videoUrl];
+                      return _SuggestionCard(
+                        item: item,
+                        isHost: widget.isHost,
+                        voteCount: (vote?['count'] as int?) ?? 0,
+                        voteRequired: (vote?['required'] as int?) ?? 1,
+                        hasVoted: _hasVoted(videoUrl),
+                        onTap: () => _handleTap(item),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// The first cell in the suggestions grid — whatever's actually playing
+// right now, using the live miniPlayer (not a static thumbnail) so it
+// keeps playing uninterrupted while this view is up. Tapping it is the
+// same as tapping the restore button: you're looking at what's already
+// playing, so there's nothing to vote/pin here.
+class _NowPlayingCard extends StatelessWidget {
+  final Widget player;
+  final String? title;
+  final VoidCallback onTap;
+
+  const _NowPlayingCard(
+      {required this.player, required this.title, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  player,
+                  Positioned(
+                    top: 6,
+                    left: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 3),
+                      decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(4)),
+                      child: const Text('PLAYING',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.4)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(title ?? 'Now playing',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  color: AppColors.text,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600)),
+          const Text('Tap to go back',
+              style: TextStyle(color: AppColors.textFaint, fontSize: 10.5)),
+        ],
+      ),
     );
   }
 }
@@ -283,7 +350,7 @@ class _SuggestionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AspectRatio(
-            aspectRatio: 1,
+            aspectRatio: 16 / 9,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Stack(
