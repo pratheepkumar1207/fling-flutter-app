@@ -39,6 +39,11 @@ class VideoSuggestionsPanel extends StatefulWidget {
     String? thumbnail,
     required String sourceType,
   })? onVoteAdd;
+  // Tapping a suggestion you've already voted for retracts it instead —
+  // see RoomSocketController.unvoteAdd. Needs myUserId to know locally
+  // whether "you" are one of a candidate's current voterIds.
+  final void Function(String videoUrl)? onUnvoteAdd;
+  final String? myUserId;
   final Map<String, Map<String, dynamic>> addVotes;
 
   const VideoSuggestionsPanel({
@@ -50,6 +55,8 @@ class VideoSuggestionsPanel extends StatefulWidget {
     required this.onRestore,
     this.isHost = false,
     this.onVoteAdd,
+    this.onUnvoteAdd,
+    this.myUserId,
     this.addVotes = const {},
   });
 
@@ -136,9 +143,18 @@ class _VideoSuggestionsPanelState extends State<VideoSuggestionsPanel> {
     );
   }
 
+  bool _hasVoted(String videoUrl) {
+    final myId = widget.myUserId;
+    if (myId == null) return false;
+    final voterIds = widget.addVotes[videoUrl]?['voterIds'] as List?;
+    return voterIds?.contains(myId) ?? false;
+  }
+
   void _handleTap(Map<String, dynamic> item) {
     if (widget.isHost || widget.onVoteAdd == null) {
       _pin(item);
+    } else if (_hasVoted(item['videoUrl'] as String)) {
+      widget.onUnvoteAdd?.call(item['videoUrl'] as String);
     } else {
       _vote(item);
     }
@@ -197,20 +213,23 @@ class _VideoSuggestionsPanelState extends State<VideoSuggestionsPanel> {
                         crossAxisCount: 2,
                         mainAxisSpacing: 12,
                         crossAxisSpacing: 10,
-                        // Thumbnail (~1:1) + a title/subtitle area below it,
-                        // not text overlaid on the image — needs a taller
-                        // tile than the old single-image card did.
-                        childAspectRatio: 0.95,
+                        // A true 1:1 square thumbnail (see _SuggestionCard's
+                        // AspectRatio) plus a title/subtitle area below it —
+                        // shorter than the thumbnail alone, so the tile as a
+                        // whole needs to be taller than it is wide.
+                        childAspectRatio: 0.8,
                       ),
                       itemCount: _suggestions.length,
                       itemBuilder: (context, i) {
                         final item = _suggestions[i];
-                        final vote = widget.addVotes[item['videoUrl']];
+                        final videoUrl = item['videoUrl'] as String;
+                        final vote = widget.addVotes[videoUrl];
                         return _SuggestionCard(
                           item: item,
                           isHost: widget.isHost,
                           voteCount: (vote?['count'] as int?) ?? 0,
                           voteRequired: (vote?['required'] as int?) ?? 1,
+                          hasVoted: _hasVoted(videoUrl),
                           onTap: () => _handleTap(item),
                         );
                       },
@@ -230,6 +249,7 @@ class _SuggestionCard extends StatelessWidget {
   final bool isHost;
   final int voteCount;
   final int voteRequired;
+  final bool hasVoted;
   final VoidCallback onTap;
 
   const _SuggestionCard({
@@ -238,6 +258,7 @@ class _SuggestionCard extends StatelessWidget {
     this.isHost = false,
     this.voteCount = 0,
     this.voteRequired = 1,
+    this.hasVoted = false,
   });
 
   String? get _durationLabel {
@@ -261,7 +282,8 @@ class _SuggestionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
+          AspectRatio(
+            aspectRatio: 1,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Stack(
@@ -295,12 +317,16 @@ class _SuggestionCard extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.all(5),
                       decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.55),
+                          color: hasVoted
+                              ? AppColors.accent2.withValues(alpha: 0.9)
+                              : Colors.black.withValues(alpha: 0.55),
                           shape: BoxShape.circle),
                       child: Icon(
                           isHost
                               ? Icons.push_pin_rounded
-                              : Icons.how_to_vote_rounded,
+                              : (hasVoted
+                                  ? Icons.check_rounded
+                                  : Icons.how_to_vote_rounded),
                           color: Colors.white,
                           size: 13),
                     ),
@@ -320,7 +346,10 @@ class _SuggestionCard extends StatelessWidget {
           if (hasVote)
             Padding(
               padding: const EdgeInsets.only(top: 2),
-              child: Text('$voteCount/$voteRequired votes to add',
+              child: Text(
+                  hasVoted
+                      ? '$voteCount/$voteRequired — tap to remove your vote'
+                      : '$voteCount/$voteRequired votes to add',
                   style: const TextStyle(
                       color: AppColors.accent2,
                       fontSize: 10.5,

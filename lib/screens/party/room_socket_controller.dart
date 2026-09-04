@@ -295,6 +295,11 @@ class RoomSocketController extends ChangeNotifier {
   void voteAdd(Map<String, dynamic> item) =>
       socket?.emit('queue:voteAdd', {'roomId': roomId, 'item': item});
 
+  // Tapping a suggestion you've already voted for retracts it instead —
+  // see video_suggestions_panel.dart's toggle behavior.
+  void unvoteAdd(String videoUrl) =>
+      socket?.emit('queue:unvoteAdd', {'roomId': roomId, 'videoUrl': videoUrl});
+
   void queueReorder(int fromIndex, int toIndex) {
     if (isHost) {
       socket?.emit('queue:reorder',
