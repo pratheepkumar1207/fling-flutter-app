@@ -119,8 +119,28 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
     _urlPoll = Timer.periodic(const Duration(milliseconds: 700), (_) async {
       if (_autoStarted || _creatingRoom || !mounted) return;
       final url = await _controller?.getUrl();
-      if (!mounted) return;
-      _maybeAutoStart(url?.toString());
+      if (!mounted || url == null) return;
+      final urlStr = url.toString();
+      if (_looksReadyToStart(urlStr)) {
+        _triggerAutoStart(urlStr);
+        return;
+      }
+      // Prime Video's play button doesn't reliably touch the URL at all —
+      // it can open the video as an in-page overlay with no ?autoplay=1
+      // ever landing in the address bar and no navigation/history entry
+      // either, which every URL-based check above is structurally unable
+      // to see (confirmed by user report — selecting Play/Resume just sits
+      // on the same page). Falling back to "does a <video> element exist
+      // on the page yet" catches that case too — this only checks
+      // presence (a plain boolean), never reads, plays, or otherwise
+      // touches the element or its content.
+      if (widget.platform == 'amazon') {
+        final hasVideo = await _controller?.evaluateJavascript(
+            source: "document.querySelector('video') !== null");
+        if (hasVideo == true && mounted && !_autoStarted && !_creatingRoom) {
+          _triggerAutoStart(urlStr);
+        }
+      }
     });
   }
 
@@ -144,20 +164,27 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
   // onLoadStop alone would never see that).
   void _maybeAutoStart(String? url) {
     if (_autoStarted || _creatingRoom || url == null) return;
-    if (_looksReadyToStart(url)) {
-      _autoStarted = true;
-      _urlPoll?.cancel();
-      // Covers the WebView immediately, before _startHere's own async work
-      // (a real network round trip to create the room) even starts — OTT
-      // sites attempt real DRM playback the instant this URL lands, which
-      // always fails here (this WebView is desktop-UA for browsing; only
-      // the room's own player is mobile-UA, see mobile_webview_settings
-      // .dart). Without covering it up front, that failure is what's
-      // visible for however long the room-creation call takes, instead of
-      // a plain loading state.
-      setState(() => _creatingRoom = true);
-      _startHere();
-    }
+    if (_looksReadyToStart(url)) _triggerAutoStart(url);
+  }
+
+  // The actual "we're ready, go" action — split out of _maybeAutoStart so
+  // the Amazon DOM-presence fallback in the _urlPoll timer above can invoke
+  // it directly without needing the URL to match a pattern first (that
+  // fallback exists precisely because the URL sometimes never does).
+  void _triggerAutoStart(String url) {
+    if (_autoStarted || _creatingRoom) return;
+    _autoStarted = true;
+    _urlPoll?.cancel();
+    // Covers the WebView immediately, before _startHere's own async work
+    // (a real network round trip to create the room) even starts — OTT
+    // sites attempt real DRM playback the instant this URL lands, which
+    // always fails here (this WebView is desktop-UA for browsing; only
+    // the room's own player is mobile-UA, see mobile_webview_settings
+    // .dart). Without covering it up front, that failure is what's
+    // visible for however long the room-creation call takes, instead of
+    // a plain loading state.
+    setState(() => _creatingRoom = true);
+    _startHere();
   }
 
   Future<void> _startHere() async {
