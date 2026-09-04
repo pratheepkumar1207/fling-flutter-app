@@ -92,6 +92,32 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   // is still active, and resets once it isn't so the next one still opens.
   bool _nextTrackVoteShown = false;
 
+  // Watch Party's collapsing header — scrolling the chat below up hides the
+  // player/banners toward the top (see the NestedScrollView in build()); the
+  // down-arrow button restores it. _playerCollapsed just drives whether that
+  // button shows, based on the controller's own offset.
+  final _watchScrollController = ScrollController();
+  bool _playerCollapsed = false;
+  // Whatever video was showing last time we checked — a change means a new
+  // video started playing (queue advanced, host switched source, etc.), so
+  // the header should snap back open instead of staying collapsed on
+  // whatever the viewer scrolled to before.
+  String? _lastSeenPlayerVideoUrl;
+
+  void _onWatchScroll() {
+    final collapsed = _watchScrollController.hasClients &&
+        _watchScrollController.offset > 40;
+    if (collapsed != _playerCollapsed) {
+      setState(() => _playerCollapsed = collapsed);
+    }
+  }
+
+  void _scrollWatchHeaderToTop() {
+    if (!_watchScrollController.hasClients) return;
+    _watchScrollController.animateTo(0,
+        duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+  }
+
   bool _dragStartedOnPlayer() {
     final global = _dragStartGlobal;
     if (global == null) return false;
@@ -134,6 +160,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _watchScrollController.addListener(_onWatchScroll);
     // Tells persistent_room_audio.dart's hidden player it can stand down —
     // this screen's own (visible, full-UI) player is about to be the one
     // actually producing audio. Cleared in dispose().
@@ -656,6 +683,104 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       }
     }
 
+    // Shared by the Watch collapsing header (see the NestedScrollView below)
+    // and the plain unconditional spot every other room type still uses —
+    // same widget either way, just two different places it can end up in
+    // the tree, so this stays a single source of truth instead of two
+    // copies drifting apart.
+    Widget boostedBanner() => Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+          child: GlassPanel(
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  Icon(Icons.star_rounded, color: roomGold, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Featured',
+                            style: TextStyle(
+                                color: roomGold,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13)),
+                        Text('This watch party is featured',
+                            style: TextStyle(color: roomTextDim, fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded, color: roomTextDim),
+                ],
+              ),
+            ),
+          ),
+        );
+
+    Widget pollBanner() => Builder(builder: (context) {
+          final isNextTrackVote = rs.poll['isNextTrackVote'] == true;
+          if (isNextTrackVote && !_nextTrackVoteShown) {
+            _nextTrackVoteShown = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              showPollBottomSheet(context,
+                  poll: rs.poll,
+                  myUserId: myId ?? '',
+                  isHost: rs.isHost,
+                  roster: rs.roster,
+                  onVote: rs.votePoll,
+                  onReset: rs.resetPoll);
+            });
+          } else if (!isNextTrackVote) {
+            _nextTrackVoteShown = false;
+          }
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            child: GestureDetector(
+              onTap: () => showPollBottomSheet(context,
+                  poll: rs.poll,
+                  myUserId: myId ?? '',
+                  isHost: rs.isHost,
+                  roster: rs.roster,
+                  onVote: rs.votePoll,
+                  onReset: rs.resetPoll),
+              child: Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                    color: roomPrimary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border:
+                        Border.all(color: roomPrimary.withValues(alpha: 0.3))),
+                child: Row(
+                  children: [
+                    const Text('📊', style: TextStyle(fontSize: 16)),
+                    const SizedBox(width: 8),
+                    Text('Poll Active',
+                        style: TextStyle(
+                            color: roomPrimary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13)),
+                  ],
+                ),
+              ),
+            ),
+          );
+        });
+
+    // A new video started (queue advanced, host switched source, a fresh
+    // room load) — snap the collapsing header back open instead of leaving
+    // it wherever the viewer had scrolled to for the previous video.
+    if (isWatch && playerVideoUrl != _lastSeenPlayerVideoUrl) {
+      _lastSeenPlayerVideoUrl = playerVideoUrl;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _scrollWatchHeaderToTop();
+      });
+    }
+
     return ValueListenableBuilder<bool>(
       valueListenable: PipService.isInPip,
       builder: (context, inPip, _) {
@@ -1145,136 +1270,135 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                           ],
                         ),
                       )
-                    else if (isWatch || currentItem != null)
-                      Padding(
-                        key: isWatch ? _playerAreaKey : null,
-                        padding: isWatch
-                            ? EdgeInsets.zero
-                            : const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                        // Full screen width, real 16:9 (no cropping), flush under the
-                        // header — the player widgets already wrap themselves in
-                        // AspectRatio(16/9) internally, so this just needs to not
-                        // fight that. Same widget, same position in this Column
-                        // either way, whatever platform the video is from.
-                        child: isWatch
-                            ? player(
-                                mediaMode: _viewModeOverride ??
-                                    (currentItem?['mediaMode'] as String? ??
-                                        'video'),
-                                compact: false,
-                              )
-                            : player(
-                                mediaMode: 'audio',
-                                // Compact bar for every non-watch type (voice, game, live) —
-                                // this used to only check isVoice, so a game room with a
-                                // queued track rendered the full-size player stacked below
-                                // the GameBoardView instead of a small audio bar.
-                                compact: true,
-                              ),
-                      ),
-                    if (isBoosted)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                        child: GlassPanel(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 10),
-                            child: Row(
-                              children: [
-                                Icon(Icons.star_rounded,
-                                    color: roomGold, size: 20),
-                                const SizedBox(width: 10),
-                                Expanded(
+                    else if (isWatch)
+                      // Video sits right under the app bar; scrolling the
+                      // chat below it up scrolls this whole header
+                      // (player + boosted banner + participants + poll)
+                      // away too — NestedScrollView links the two
+                      // scrollables so the header only moves once chat's
+                      // own message list is already at its own top/bottom
+                      // edge, instead of fighting it for the drag. The
+                      // down-arrow (see _playerCollapsed) and a fresh video
+                      // starting (see _lastSeenPlayerVideoUrl above) both
+                      // snap it back open.
+                      Expanded(
+                        child: Stack(
+                          children: [
+                            NestedScrollView(
+                              controller: _watchScrollController,
+                              headerSliverBuilder: (context, _) => [
+                                SliverToBoxAdapter(
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text('Featured',
-                                          style: TextStyle(
-                                              color: roomGold,
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 13)),
-                                      Text('This watch party is featured',
-                                          style: TextStyle(
-                                              color: roomTextDim,
-                                              fontSize: 11)),
+                                      Padding(
+                                        key: _playerAreaKey,
+                                        padding: EdgeInsets.zero,
+                                        child: player(
+                                          mediaMode: _viewModeOverride ??
+                                              (currentItem?['mediaMode']
+                                                      as String? ??
+                                                  'video'),
+                                          compact: false,
+                                        ),
+                                      ),
+                                      if (isBoosted) boostedBanner(),
+                                      Padding(
+                                        padding: const EdgeInsets.fromLTRB(
+                                            12, 12, 12, 8),
+                                        child: ParticipantAvatarRow(
+                                            roster: rs.roster,
+                                            onOpenRoster: _openRoster),
+                                      ),
+                                      if (rs.poll['active'] == true)
+                                        pollBanner(),
                                     ],
                                   ),
                                 ),
-                                Icon(Icons.chevron_right_rounded,
-                                    color: roomTextDim),
                               ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                      child: ParticipantAvatarRow(
-                          roster: rs.roster, onOpenRoster: _openRoster),
-                    ),
-                    if (rs.poll['active'] == true)
-                      Builder(builder: (context) {
-                        final isNextTrackVote =
-                            rs.poll['isNextTrackVote'] == true;
-                        if (isNextTrackVote && !_nextTrackVoteShown) {
-                          _nextTrackVoteShown = true;
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (!mounted) return;
-                            showPollBottomSheet(context,
-                                poll: rs.poll,
-                                myUserId: myId ?? '',
-                                isHost: rs.isHost,
-                                roster: rs.roster,
-                                onVote: rs.votePoll,
-                                onReset: rs.resetPoll);
-                          });
-                        } else if (!isNextTrackVote) {
-                          _nextTrackVoteShown = false;
-                        }
-                        return Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                          child: GestureDetector(
-                            onTap: () => showPollBottomSheet(context,
-                                poll: rs.poll,
-                                myUserId: myId ?? '',
-                                isHost: rs.isHost,
-                                roster: rs.roster,
-                                onVote: rs.votePoll,
-                                onReset: rs.resetPoll),
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 10),
-                              decoration: BoxDecoration(
-                                  color: roomPrimary.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                      color:
-                                          roomPrimary.withValues(alpha: 0.3))),
-                              child: Row(
-                                children: [
-                                  const Text('📊',
-                                      style: TextStyle(fontSize: 16)),
-                                  const SizedBox(width: 8),
-                                  Text('Poll Active',
-                                      style: TextStyle(
-                                          color: roomPrimary,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 13)),
-                                ],
+                              body: Padding(
+                                padding:
+                                    const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                                child: ChatOverlay(
+                                  messages: rs.messages,
+                                  onSend: (text, mentionedUserIds) =>
+                                      rs.sendMessage(text,
+                                          mentionedUserIds: mentionedUserIds),
+                                  myUserId: myId,
+                                  primaryColor: roomPrimary,
+                                  textColor: roomText,
+                                  roster: rs.roster,
+                                  myMicOn: myMicOn,
+                                  myMicRequested: myMicRequested,
+                                  onMicTap: handleMicTap,
+                                  onPoll: () {
+                                    if (rs.isHost) {
+                                      showPollCreatorBottomSheet(context,
+                                          onCreate: rs.createPoll);
+                                    } else if (rs.poll['active'] == true) {
+                                      showPollBottomSheet(context,
+                                          poll: rs.poll,
+                                          myUserId: myId ?? '',
+                                          isHost: rs.isHost,
+                                          roster: rs.roster,
+                                          onVote: rs.votePoll,
+                                          onReset: rs.resetPoll);
+                                    }
+                                  },
+                                  onGift: () => showGiftBottomSheet(context,
+                                      toUserId: room['hostId'] as String? ?? '',
+                                      roomId: widget.roomId,
+                                      targetKey: _hostKey),
+                                  onShare: _shareRoom,
+                                  onInvite: _openInvite,
+                                  onFocusChanged: _setChatFocused,
+                                ),
                               ),
                             ),
-                          ),
-                        );
-                      }),
+                            if (_playerCollapsed)
+                              Positioned(
+                                top: 8,
+                                right: 12,
+                                child: GlassCircleButton(
+                                  onTap: _scrollWatchHeaderToTop,
+                                  child: const Icon(
+                                      Icons.keyboard_arrow_down_rounded,
+                                      color: Colors.white,
+                                      size: 20),
+                                ),
+                              ),
+                          ],
+                        ),
+                      )
+                    else if (currentItem != null)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                        // Compact bar for every non-watch type (voice, game, live) —
+                        // this used to only check isVoice, so a game room with a
+                        // queued track rendered the full-size player stacked below
+                        // the GameBoardView instead of a small audio bar.
+                        child: player(mediaMode: 'audio', compact: true),
+                      ),
+                    // Skipped for isWatch — that case already renders these
+                    // same widgets (via the shared boostedBanner/pollBanner
+                    // closures above) inside the collapsing header instead.
+                    if (isBoosted && !isWatch) boostedBanner(),
+                    if (!isWatch)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                        child: ParticipantAvatarRow(
+                            roster: rs.roster, onOpenRoster: _openRoster),
+                      ),
+                    if (rs.poll['active'] == true && !isWatch) pollBanner(),
                     // Everything below this point renders strictly AFTER the player in
                     // the tree — restructuring it can't affect the player's identity
                     // across a room-type switch, since that's governed by what
                     // precedes it (see the big comment above the player block), which
                     // is untouched here.
-                    if (isWatch && !ottImmersive)
+                    // Only the suggestions-grid case still needs this —
+                    // plain isWatch now has chat built into the collapsing
+                    // header above instead (see the NestedScrollView), and
+                    // ottImmersive keeps its own slide-up chat.
+                    if (isWatch && !ottImmersive && _suggestionsMode)
                       // Chat floats over an open "stage" instead of living in
                       // its own boxed panel — matches WatchPartyDark.dc.html.
                       // No more floating icon rail alongside it (mic/boost/
@@ -1334,6 +1458,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _watchScrollController.dispose();
     _rs?.removeListener(_onRoomStateChanged);
     // Leaving this screen either way (minimize or real leave) — clear this
     // before ActiveRoomHolder.leave() below so persistent_room_audio.dart's
