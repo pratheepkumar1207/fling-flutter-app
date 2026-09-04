@@ -505,43 +505,90 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
                       Colors.black.withValues(alpha: 0.85),
                       Colors.transparent
                     ])),
-                child: Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_formatTime(position),
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 11)),
-                    Expanded(
-                      child: SliderTheme(
-                        data: SliderTheme.of(context).copyWith(
-                            trackHeight: 3,
-                            thumbShape: const RoundSliderThumbShape(
-                                enabledThumbRadius: 6)),
-                        child: Slider(
-                          value: duration > 0 ? position.clamp(0, duration) : 0,
-                          max: duration > 0 ? duration : 1,
-                          activeColor: AppColors.primary,
-                          inactiveColor: Colors.white24,
-                          onChanged: widget.isHost ? _handleSeekChanged : null,
-                          onChangeEnd: widget.isHost ? _handleSeekEnd : null,
+                    if (widget.title != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Row(
+                          children: [
+                            if (widget.thumbnail != null)
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: Image.network(widget.thumbnail!,
+                                    width: 28, height: 28, fit: BoxFit.cover),
+                              ),
+                            if (widget.thumbnail != null)
+                              const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    widget.title!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 12.5),
+                                  ),
+                                  const Text('Playing via Drive',
+                                      style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 10.5)),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    Text(_formatTime(duration),
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 11)),
-                    IconButton(
-                      onPressed: () => setState(
-                          () => _volumePopoverOpen = !_volumePopoverOpen),
-                      icon: Icon(
-                          _volume == 0
-                              ? Icons.volume_off
-                              : (_volume < 50
-                                  ? Icons.volume_down
-                                  : Icons.volume_up),
-                          color: Colors.white,
-                          size: 18),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                    Row(
+                      children: [
+                        Text(_formatTime(position),
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 11)),
+                        Expanded(
+                          child: SliderTheme(
+                            data: SliderTheme.of(context).copyWith(
+                                trackHeight: 3,
+                                thumbShape: const RoundSliderThumbShape(
+                                    enabledThumbRadius: 6)),
+                            child: Slider(
+                              value: duration > 0
+                                  ? position.clamp(0, duration)
+                                  : 0,
+                              max: duration > 0 ? duration : 1,
+                              activeColor: AppColors.primary,
+                              inactiveColor: Colors.white24,
+                              onChanged:
+                                  widget.isHost ? _handleSeekChanged : null,
+                              onChangeEnd:
+                                  widget.isHost ? _handleSeekEnd : null,
+                            ),
+                          ),
+                        ),
+                        Text(_formatTime(duration),
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 11)),
+                        IconButton(
+                          onPressed: () => setState(
+                              () => _volumePopoverOpen = !_volumePopoverOpen),
+                          icon: Icon(
+                              _volume == 0
+                                  ? Icons.volume_off
+                                  : (_volume < 50
+                                      ? Icons.volume_down
+                                      : Icons.volume_up),
+                              color: Colors.white,
+                              size: 18),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
                     ),
                   ],
                 ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 
 /// Center-of-video play/pause control shared by sync_video_player.dart and
 /// drive_video_player.dart — a dedicated button, not a whole-video tap
@@ -22,13 +23,24 @@ class RoomPlayPauseButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 56,
-        height: 56,
+        width: 64,
+        height: 64,
         decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.45),
-            shape: BoxShape.circle),
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: AppGradients.brand,
+          ),
+          boxShadow: [
+            BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.4),
+                blurRadius: 16,
+                spreadRadius: 1),
+          ],
+        ),
         child: Icon(playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-            color: Colors.white, size: 32),
+            color: Colors.white, size: 34),
       ),
     );
   }

@@ -337,63 +337,83 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             color: Colors.black54,
-            child: Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (widget.isHost)
-                  GestureDetector(
-                    onTap: _hostTogglePlay,
-                    child: Icon(
-                        _isPlaying
-                            ? Icons.pause_circle_filled_rounded
-                            : Icons.play_circle_fill_rounded,
-                        color: Colors.white,
-                        size: 22),
-                  ),
-                if (widget.isHost) const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    widget.isHost
-                        ? 'Tap play/pause to nudge everyone — room is at ${_formatTime(_elapsedSeconds)}'
-                        : 'Room is roughly ${_formatTime(_elapsedSeconds)} in — scrub to match, then press play together.',
-                    style: const TextStyle(color: Colors.white, fontSize: 10),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                // Same skip control every source's player shows now — host
-                // gets an immediate skip to the next queued item, everyone
-                // else gets the same vote-to-skip pill YouTube/Drive use.
-                if (widget.isHost && widget.onSkip != null)
-                  GestureDetector(
-                    onTap: widget.onSkip,
-                    child: const Padding(
-                      padding: EdgeInsets.only(left: 8),
-                      child: Icon(Icons.skip_next_rounded,
-                          color: Colors.white, size: 20),
+                if (widget.title != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      widget.title!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12),
                     ),
-                  )
-                else if (!widget.isHost && widget.onVoteSkip != null)
-                  GestureDetector(
-                    onTap: widget.onVoteSkip,
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 8),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.skip_next_rounded,
-                              color: Colors.white, size: 18),
-                          const SizedBox(width: 3),
-                          Text(
-                            '${widget.skipVoteCount}/${widget.skipVoteRequired}',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600),
-                          ),
-                        ],
+                  ),
+                Row(
+                  children: [
+                    if (widget.isHost)
+                      GestureDetector(
+                        onTap: _hostTogglePlay,
+                        child: Icon(
+                            _isPlaying
+                                ? Icons.pause_circle_filled_rounded
+                                : Icons.play_circle_fill_rounded,
+                            color: Colors.white,
+                            size: 22),
+                      ),
+                    if (widget.isHost) const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        widget.isHost
+                            ? 'Tap play/pause to nudge everyone — room is at ${_formatTime(_elapsedSeconds)}'
+                            : 'Room is roughly ${_formatTime(_elapsedSeconds)} in — scrub to match, then press play together.',
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 10),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  ),
+                    // Same skip control every source's player shows now — host
+                    // gets an immediate skip to the next queued item, everyone
+                    // else gets the same vote-to-skip pill YouTube/Drive use.
+                    if (widget.isHost && widget.onSkip != null)
+                      GestureDetector(
+                        onTap: widget.onSkip,
+                        child: const Padding(
+                          padding: EdgeInsets.only(left: 8),
+                          child: Icon(Icons.skip_next_rounded,
+                              color: Colors.white, size: 20),
+                        ),
+                      )
+                    else if (!widget.isHost && widget.onVoteSkip != null)
+                      GestureDetector(
+                        onTap: widget.onVoteSkip,
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.skip_next_rounded,
+                                  color: Colors.white, size: 18),
+                              const SizedBox(width: 3),
+                              Text(
+                                '${widget.skipVoteCount}/${widget.skipVoteRequired}',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ],
             ),
           ),

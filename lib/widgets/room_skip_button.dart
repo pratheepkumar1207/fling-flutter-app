@@ -16,15 +16,14 @@ class RoomSkipButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 40,
-        height: 40,
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.45),
-            shape: BoxShape.circle),
+            color: Colors.black.withValues(alpha: 0.4), shape: BoxShape.circle),
         child: Icon(
           forward ? Icons.skip_next_rounded : Icons.skip_previous_rounded,
           color: enabled ? Colors.white : Colors.white38,
-          size: 22,
+          size: 24,
         ),
       ),
     );
