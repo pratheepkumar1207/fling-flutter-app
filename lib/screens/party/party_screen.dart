@@ -105,8 +105,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   String? _lastSeenPlayerVideoUrl;
 
   void _onWatchScroll() {
-    final collapsed = _watchScrollController.hasClients &&
-        _watchScrollController.offset > 40;
+    final collapsed =
+        _watchScrollController.hasClients && _watchScrollController.offset > 40;
     if (collapsed != _playerCollapsed) {
       setState(() => _playerCollapsed = collapsed);
     }
@@ -593,6 +593,9 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           onEnded: rs.queueNext,
           onSkip: rs.queueSkip,
           onSkipPrevious: onSkipPrevious,
+          onVoteSkip: rs.isHost ? null : rs.voteSkip,
+          skipVoteCount: (rs.skipVote['count'] as int?) ?? 0,
+          skipVoteRequired: (rs.skipVote['required'] as int?) ?? 1,
           liked: liked,
           onToggleLike: () => _toggleLike(currentItem),
         );
@@ -613,6 +616,9 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
         onEnded: rs.queueNext,
         onSkip: rs.queueSkip,
         onSkipPrevious: onSkipPrevious,
+        onVoteSkip: rs.isHost ? null : rs.voteSkip,
+        skipVoteCount: (rs.skipVote['count'] as int?) ?? 0,
+        skipVoteRequired: (rs.skipVote['required'] as int?) ?? 1,
         liked: liked,
         onToggleLike: () => _toggleLike(currentItem),
       );

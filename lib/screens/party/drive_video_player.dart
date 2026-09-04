@@ -35,6 +35,12 @@ class DriveVideoPlayer extends StatefulWidget {
   final VoidCallback onEnded;
   final VoidCallback onSkip;
   final VoidCallback? onSkipPrevious;
+  // Non-host "vote to skip the current song" — see room_socket_controller
+  // .dart's skipVote/voteSkip. isHost gets the always-immediate onSkip
+  // above instead; this row is what everyone else taps.
+  final VoidCallback? onVoteSkip;
+  final int skipVoteCount;
+  final int skipVoteRequired;
   final bool liked;
   final VoidCallback onToggleLike;
   final bool compact;
@@ -55,6 +61,9 @@ class DriveVideoPlayer extends StatefulWidget {
     required this.onEnded,
     required this.onSkip,
     this.onSkipPrevious,
+    this.onVoteSkip,
+    this.skipVoteCount = 0,
+    this.skipVoteRequired = 1,
     required this.liked,
     required this.onToggleLike,
     this.compact = false,
@@ -402,6 +411,35 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
                     const SizedBox(width: 24),
                     RoomSkipButton(forward: true, onTap: widget.onSkip),
                   ],
+                ),
+              )
+            else if (widget.onVoteSkip != null)
+              Center(
+                child: GestureDetector(
+                  onTap: widget.onVoteSkip,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.55),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.skip_next_rounded,
+                            color: Colors.white, size: 18),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Vote to skip (${widget.skipVoteCount}/${widget.skipVoteRequired})',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             Positioned(
