@@ -49,6 +49,12 @@ class ChatOverlay extends StatefulWidget {
   // freed space, chat gets the room below) — see party_screen.dart's
   // _chatFocused.
   final ValueChanged<bool>? onFocusChanged;
+  // For the "now playing" chat card's like icon (see syncHandler.js's
+  // chat:message type:'nowPlaying') — reuses the same liked-songs set/
+  // toggle the video players themselves use, so liking from chat and
+  // liking from the player stay in sync.
+  final Set<String> likedUrls;
+  final void Function(Map<String, dynamic> item)? onToggleLike;
 
   const ChatOverlay({
     super.key,
@@ -66,6 +72,8 @@ class ChatOverlay extends StatefulWidget {
     required this.onShare,
     required this.onInvite,
     this.onFocusChanged,
+    this.likedUrls = const {},
+    this.onToggleLike,
   });
 
   @override
@@ -182,8 +190,11 @@ class _ChatOverlayState extends State<ChatOverlay> {
 
   @override
   Widget build(BuildContext context) {
+    // Other system messages (joins, "added to queue") stay out of the
+    // bubble list as before — only the rich nowPlaying card is meant to
+    // appear inline here.
     final visible = widget.messages
-        .where((m) => m['system'] != true)
+        .where((m) => m['system'] != true || m['type'] == 'nowPlaying')
         .toList()
         .reversed
         .toList();
@@ -200,6 +211,22 @@ class _ChatOverlayState extends State<ChatOverlay> {
                   itemCount: visible.length,
                   itemBuilder: (context, i) {
                     final m = visible[i];
+                    if (m['type'] == 'nowPlaying') {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: _NowPlayingChatCard(
+                            message: m,
+                            liked: widget.likedUrls
+                                .contains(m['videoUrl'] as String?),
+                            onToggleLike: widget.onToggleLike == null
+                                ? null
+                                : () => widget.onToggleLike!(m),
+                          ),
+                        ),
+                      );
+                    }
                     final name = m['name'] as String? ?? 'Someone';
                     final senderId = m['senderId'] as String?;
                     return Padding(
@@ -352,6 +379,75 @@ class _ChatOverlayState extends State<ChatOverlay> {
       child: GestureDetector(
         onTap: onTap,
         child: Icon(icon, color: Colors.white70, size: 19),
+      ),
+    );
+  }
+}
+
+// The "now playing" entry in chat itself — see syncHandler.js's
+// chat:message type:'nowPlaying'. Same GlassPanel bubble treatment as a
+// normal message, just with a thumbnail and a tappable like icon instead
+// of plain text.
+class _NowPlayingChatCard extends StatelessWidget {
+  final Map<String, dynamic> message;
+  final bool liked;
+  final VoidCallback? onToggleLike;
+
+  const _NowPlayingChatCard(
+      {required this.message, required this.liked, this.onToggleLike});
+
+  @override
+  Widget build(BuildContext context) {
+    final thumbnail = message['thumbnail'] as String?;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 260),
+      child: GlassPanel(
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Row(
+            children: [
+              if (thumbnail != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(thumbnail,
+                      width: 36, height: 36, fit: BoxFit.cover),
+                ),
+              if (thumbnail != null) const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('🎵 Now playing',
+                        style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600)),
+                    Text(
+                      message['title'] as String? ?? 'Untitled',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+              if (onToggleLike != null)
+                GestureDetector(
+                  onTap: onToggleLike,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 6),
+                    child: Text(liked ? '❤️' : '🤍',
+                        style: const TextStyle(fontSize: 16)),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
