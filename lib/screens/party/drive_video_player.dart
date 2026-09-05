@@ -178,7 +178,49 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
       _endFired = true;
       widget.onEnded();
     }
+    _checkDrift(c);
     if (mounted) setState(() {});
+  }
+
+  // Continuous drift correction — unlike _applyRemotePlaybackIfNeeded
+  // (which only reacts to a genuinely new host event), this re-checks on
+  // every tick against the room's authoritative position as it stands
+  // *right now*, so drift that accumulates naturally between events (no
+  // new play/pause/seek, just ordinary buffering/clock differences pulling
+  // viewers apart over time) still gets caught instead of only being
+  // corrected the next time the host happens to act.
+  //   <0.3s  — already close enough, ensure normal speed
+  //   <1.5s  — nudge playback rate instead of a visible/audible seek jump
+  //   >=1.5s — a rate nudge would take too long to matter; hard-seek
+  double _currentPlaybackRate = 1.0;
+  void _checkDrift(VideoPlayerController c) {
+    if (widget.isHost) return; // the host IS the authoritative position
+    final p = widget.playback;
+    if (p == null || p['isPlaying'] != true) return;
+    final updatedAt = p['updatedAt'] == null ? null : asNum(p['updatedAt']);
+    if (updatedAt == null) return;
+    var expected = asNum(p['position']).toDouble();
+    final elapsed = (DateTime.now().millisecondsSinceEpoch - updatedAt) / 1000;
+    if (elapsed > 0) expected += elapsed;
+
+    final local = c.value.position.inMilliseconds / 1000;
+    final drift = local - expected;
+    final absDrift = drift.abs();
+
+    double targetRate;
+    if (absDrift >= 1.5) {
+      c.seekTo(Duration(milliseconds: (expected * 1000).round()));
+      targetRate = 1.0;
+    } else if (absDrift >= 0.3) {
+      // Behind (drift negative) speeds up to catch up; ahead slows down.
+      targetRate = drift < 0 ? 1.05 : 0.95;
+    } else {
+      targetRate = 1.0;
+    }
+    if (targetRate != _currentPlaybackRate) {
+      _currentPlaybackRate = targetRate;
+      c.setPlaybackSpeed(targetRate);
+    }
   }
 
   void _handleVolumeChange(int next) {

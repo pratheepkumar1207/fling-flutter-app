@@ -259,6 +259,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
           final newDuration = Duration(milliseconds: (d * 1000).round());
           if (newDuration != _duration) setState(() => _duration = newDuration);
         }
+        if (t != null) _checkDrift(t);
       case 'Error':
         // Player errors (invalid id, removed video, etc.) — nothing
         // actionable to do client-side beyond not crashing; the room stays
@@ -433,6 +434,47 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
         .clamp(0, max > 0 ? max : 1e9)
         .toDouble();
     _handleSeekEnd(target);
+  }
+
+  // Continuous drift correction against the room's authoritative position
+  // — same tiers as drive_video_player.dart's _checkDrift, called on every
+  // 'Tick' (fires every ~500ms from the embed page) instead of only when a
+  // new host event arrives, so natural drift between events still gets
+  // caught. One real caveat unique to YouTube: the IFrame API quantizes
+  // setPlaybackRate to a small per-video list (usually around
+  // 0.25/0.5/0.75/1/1.25/1.5/2) rather than accepting an arbitrary value —
+  // a requested 1.05x most likely just rounds back down to 1x, so the
+  // "small drift" tier may end up a no-op here even though it works
+  // smoothly on Drive's native player. The large-drift hard-seek tier is
+  // unaffected either way.
+  double _currentPlaybackRate = 1.0;
+  void _checkDrift(double localT) {
+    if (widget.isHost) return; // the host IS the authoritative position
+    final p = widget.playback;
+    if (p == null || p['isPlaying'] != true) return;
+    final updatedAt = p['updatedAt'] == null ? null : asNum(p['updatedAt']);
+    if (updatedAt == null) return;
+    var expected = asNum(p['position']).toDouble();
+    final elapsed = (DateTime.now().millisecondsSinceEpoch - updatedAt) / 1000;
+    if (elapsed > 0) expected += elapsed;
+
+    final drift = localT - expected;
+    final absDrift = drift.abs();
+
+    double targetRate;
+    if (absDrift >= 1.5) {
+      _controller?.evaluateJavascript(source: 'ytSeek($expected);');
+      targetRate = 1.0;
+    } else if (absDrift >= 0.3) {
+      targetRate = drift < 0 ? 1.05 : 0.95;
+    } else {
+      targetRate = 1.0;
+    }
+    if (targetRate != _currentPlaybackRate) {
+      _currentPlaybackRate = targetRate;
+      _controller?.evaluateJavascript(
+          source: 'ytSetPlaybackRate($targetRate);');
+    }
   }
 
   String _formatTime(double seconds) {
