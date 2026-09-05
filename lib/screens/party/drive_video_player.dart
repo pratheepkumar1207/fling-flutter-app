@@ -8,7 +8,7 @@ import '../../core/format.dart';
 import '../../core/pip_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/room_play_pause_button.dart';
-import '../../widgets/room_skip_button.dart';
+import '../../widgets/room_seek_ten_button.dart';
 import '../../widgets/spinner.dart';
 import '../../widgets/static_bloom_player.dart';
 import '../../widgets/volume_dots.dart';
@@ -356,6 +356,18 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
     setState(() => _dragging = false);
   }
 
+  // ±10s buttons flanking play/pause — see the matching method's doc in
+  // sync_video_player.dart.
+  void _seekBy(double deltaSeconds) {
+    final c = _controller;
+    if (!widget.isHost || c == null || !c.value.isInitialized) return;
+    final max = c.value.duration.inSeconds.toDouble();
+    final target = (_positionSeconds + deltaSeconds)
+        .clamp(0, max > 0 ? max : 1e9)
+        .toDouble();
+    _handleSeekEnd(target);
+  }
+
   String _formatTime(double seconds) {
     final d = Duration(seconds: seconds.round());
     final m = d.inMinutes.remainder(60).toString().padLeft(1, '0');
@@ -398,48 +410,21 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
             // A dedicated button, not a whole-video tap target — tapping
             // anywhere on the video (e.g. near the seek bar) was toggling
             // playback by accident.
+            // ±10s flank play/pause — a real seek. Queue skip moved to the
+            // progress bar row below (see the "Moved here" comment there).
             if (widget.isHost)
               Center(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    RoomSkipButton(
-                        forward: false, onTap: widget.onSkipPrevious),
+                    RoomSeekTenButton(
+                        forward: false, onTap: () => _seekBy(-10)),
                     const SizedBox(width: 24),
                     RoomPlayPauseButton(
                         playing: controller.value.isPlaying, onTap: _handleTap),
                     const SizedBox(width: 24),
-                    RoomSkipButton(forward: true, onTap: widget.onSkip),
+                    RoomSeekTenButton(forward: true, onTap: () => _seekBy(10)),
                   ],
-                ),
-              )
-            else if (widget.onVoteSkip != null)
-              Center(
-                child: GestureDetector(
-                  onTap: widget.onVoteSkip,
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.55),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.skip_next_rounded,
-                            color: Colors.white, size: 18),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Vote to skip (${widget.skipVoteCount}/${widget.skipVoteRequired})',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
               ),
             Positioned(
@@ -588,6 +573,39 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),
+                        // Moved here from the center cluster — see the
+                        // matching comment in sync_video_player.dart.
+                        if (widget.isHost)
+                          GestureDetector(
+                            onTap: widget.onSkip,
+                            child: const Padding(
+                              padding: EdgeInsets.only(left: 8),
+                              child: Icon(Icons.skip_next_rounded,
+                                  color: Colors.white, size: 20),
+                            ),
+                          )
+                        else if (widget.onVoteSkip != null)
+                          GestureDetector(
+                            onTap: widget.onVoteSkip,
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 8),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.skip_next_rounded,
+                                      color: Colors.white, size: 18),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    '${widget.skipVoteCount}/${widget.skipVoteRequired}',
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ],

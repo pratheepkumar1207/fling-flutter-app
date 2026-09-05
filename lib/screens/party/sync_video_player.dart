@@ -9,7 +9,7 @@ import '../../core/pip_service.dart';
 import '../../core/youtube_util.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/room_play_pause_button.dart';
-import '../../widgets/room_skip_button.dart';
+import '../../widgets/room_seek_ten_button.dart';
 import '../../widgets/static_bloom_player.dart';
 import '../../widgets/volume_dots.dart';
 
@@ -404,6 +404,17 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     setState(() => _dragging = false);
   }
 
+  // ±10s buttons flanking play/pause — a real seek (unlike OTT's elapsed-
+  // time drag), since YouTube's actual position is genuinely ours to move.
+  void _seekBy(double deltaSeconds) {
+    if (!widget.isHost) return;
+    final max = _duration.inSeconds.toDouble();
+    final target = (_positionSeconds + deltaSeconds)
+        .clamp(0, max > 0 ? max : 1e9)
+        .toDouble();
+    _handleSeekEnd(target);
+  }
+
   String _formatTime(double seconds) {
     final d = Duration(seconds: seconds.round());
     final m = d.inMinutes.remainder(60).toString().padLeft(1, '0');
@@ -494,54 +505,28 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
             _buildWebView(),
             // A dedicated button row, not a whole-video tap target — tapping
             // anywhere on the video (e.g. near the seek bar) was toggling
-            // playback by accident. Skip buttons flank play/pause: left
-            // jumps back to the previous queue item (non-destructive —
-            // reuses queue:jump, same as tapping "play" on an earlier queue
-            // row), right is the existing skip-forward (removes the current
-            // item and advances, same as it always has).
+            // playback by accident. ±10s flank play/pause here — a real
+            // seek within the current video, unlike the queue skip (moved
+            // to the progress bar row below, alongside the duration —
+            // that's a "move to a different song" action, not a seek, so
+            // it doesn't belong in this cluster anymore).
             if (widget.isHost)
               Center(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    RoomSkipButton(
+                    RoomSeekTenButton(
                       forward: false,
-                      onTap: widget.onSkipPrevious,
+                      onTap: () => _seekBy(-10),
                     ),
                     const SizedBox(width: 20),
                     RoomPlayPauseButton(playing: _isPlaying, onTap: _handleTap),
                     const SizedBox(width: 20),
-                    RoomSkipButton(forward: true, onTap: widget.onSkip),
+                    RoomSeekTenButton(
+                      forward: true,
+                      onTap: () => _seekBy(10),
+                    ),
                   ],
-                ),
-              )
-            else if (widget.onVoteSkip != null)
-              Center(
-                child: GestureDetector(
-                  onTap: widget.onVoteSkip,
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.55),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.skip_next_rounded,
-                            color: Colors.white, size: 18),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Vote to skip (${widget.skipVoteCount}/${widget.skipVoteRequired})',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
               ),
             Positioned(
@@ -786,6 +771,41 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(),
                             ),
+                            // Moved here from the center cluster — this is
+                            // "play a different song," not a seek, so it
+                            // sits with the progress bar/duration instead
+                            // of flanking play/pause anymore.
+                            if (widget.isHost)
+                              GestureDetector(
+                                onTap: widget.onSkip,
+                                child: const Padding(
+                                  padding: EdgeInsets.only(left: 8),
+                                  child: Icon(Icons.skip_next_rounded,
+                                      color: Colors.white, size: 20),
+                                ),
+                              )
+                            else if (widget.onVoteSkip != null)
+                              GestureDetector(
+                                onTap: widget.onVoteSkip,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(left: 8),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.skip_next_rounded,
+                                          color: Colors.white, size: 18),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        '${widget.skipVoteCount}/${widget.skipVoteRequired}',
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                           ],
                         );
                       },
