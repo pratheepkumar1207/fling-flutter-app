@@ -63,6 +63,35 @@ class RoomSocketController extends ChangeNotifier {
   bool get isHost => hostId != null && myUserId != null && hostId == myUserId;
   bool get canPin => isHost || settings['pinPermission'] == 'anyone';
 
+  // How far ahead (+) or behind (-) the server's clock is from this
+  // device's own — every elapsed-time drift calculation across the three
+  // video players should add this before comparing against a server
+  // updatedAt timestamp, instead of trusting the device's raw clock. Two
+  // phones with a few seconds of ordinary clock skew between them was
+  // enough to make "current playing time" visibly disagree; correcting
+  // against the server's clock instead of each device's own is what
+  // actually makes it match.
+  int serverTimeOffsetMs = 0;
+  int get correctedNowMs =>
+      DateTime.now().millisecondsSinceEpoch + serverTimeOffsetMs;
+
+  // Classic NTP-lite round trip: assumes the network delay is roughly
+  // symmetric (request and response take about the same time each way),
+  // so the server's clock at the moment it replied is approximated as
+  // sitting at the midpoint of our own send/receive timestamps.
+  void _syncServerTime() {
+    final s = socket;
+    if (s == null) return;
+    final sentAt = DateTime.now().millisecondsSinceEpoch;
+    s.emitWithAck('time:sync', {}, ack: (dynamic response) {
+      final receivedAt = DateTime.now().millisecondsSinceEpoch;
+      final serverTime = (response as Map)['serverTime'] as int?;
+      if (serverTime == null) return;
+      final roundTripMidpoint = sentAt + ((receivedAt - sentAt) ~/ 2);
+      serverTimeOffsetMs = serverTime - roundTripMidpoint;
+    });
+  }
+
   RoomSocketController(
       {required this.socket, required this.roomId, required this.myUserId}) {
     _bind();
@@ -72,6 +101,7 @@ class RoomSocketController extends ChangeNotifier {
     final s = socket;
     if (s == null) return;
     s.emit('room:join', {'roomId': roomId});
+    _syncServerTime();
 
     s.on('presence:roster', (data) {
       roster = (data as List)

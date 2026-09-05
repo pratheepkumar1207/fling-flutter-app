@@ -135,6 +135,25 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
   bool _justResumed = false;
   Timer? _justResumedFallback;
 
+  // Auto-hide overlay controls (play/pause, seek, skip, progress bar) 3s
+  // after the last tap, same as any standard video player — shown again by
+  // tapping anywhere on the video. Starts visible so a first-time viewer
+  // isn't left guessing where the controls went.
+  bool _controlsVisible = true;
+  Timer? _hideControlsTimer;
+
+  void _scheduleHideControls() {
+    _hideControlsTimer?.cancel();
+    _hideControlsTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _controlsVisible = false);
+    });
+  }
+
+  void _showControls() {
+    setState(() => _controlsVisible = true);
+    _scheduleHideControls();
+  }
+
   bool get _isPlaying => _stateCode == 1;
 
   // Defaults to the usual 16:9 box and only changes once the real size
@@ -172,6 +191,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     _currentVideoId = extractYouTubeId(widget.videoUrl);
     if (_currentVideoId != null) _loadAspectRatio(_currentVideoId!);
     if (!widget.isHost) widget.onRequestState();
+    _scheduleHideControls();
   }
 
   @override
@@ -503,317 +523,344 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
           fit: StackFit.expand,
           children: [
             _buildWebView(),
-            // A dedicated button row, not a whole-video tap target — tapping
-            // anywhere on the video (e.g. near the seek bar) was toggling
-            // playback by accident. ±10s flank play/pause here — a real
-            // seek within the current video, unlike the queue skip (moved
-            // to the progress bar row below, alongside the duration —
-            // that's a "move to a different song" action, not a seek, so
-            // it doesn't belong in this cluster anymore).
-            if (widget.isHost)
-              Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    RoomSeekTenButton(
-                      forward: false,
-                      onTap: () => _seekBy(-10),
-                    ),
-                    const SizedBox(width: 20),
-                    RoomPlayPauseButton(playing: _isPlaying, onTap: _handleTap),
-                    const SizedBox(width: 20),
-                    RoomSeekTenButton(
-                      forward: true,
-                      onTap: () => _seekBy(10),
-                    ),
-                  ],
+            // Tap-to-show only exists while controls are actually hidden —
+            // doesn't compete with normal WebView interaction (scrolling,
+            // etc.) the rest of the time, and disappears the instant
+            // controls come back so it never blocks a real button tap.
+            if (!_controlsVisible)
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: _showControls,
                 ),
               ),
-            Positioned(
-              top: 8,
-              left: 8,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Manual PIP trigger — auto-PIP-on-minimize has been
-                  // unreliable (see PipService/MainActivity.kt), so this
-                  // gives a direct, always-available way in rather than
-                  // depending solely on Android detecting the app leaving.
-                  GestureDetector(
-                    onTap: PipService.enterPip,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.5),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.picture_in_picture_alt_rounded,
-                        color: Colors.white,
-                        size: 16,
+            // Auto-hides 3s after the last tap on any control below (see
+            // _scheduleHideControls) — a standard player convention so the
+            // video itself is what's visible most of the time, not chrome.
+            if (_controlsVisible)
+              Listener(
+                onPointerDown: (_) => _scheduleHideControls(),
+                child: Stack(children: [
+                  // A dedicated button row, not a whole-video tap target — tapping
+                  // anywhere on the video (e.g. near the seek bar) was toggling
+                  // playback by accident. ±10s flank play/pause here — a real
+                  // seek within the current video, unlike the queue skip (moved
+                  // to the progress bar row below, alongside the duration —
+                  // that's a "move to a different song" action, not a seek, so
+                  // it doesn't belong in this cluster anymore).
+                  if (widget.isHost)
+                    Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          RoomSeekTenButton(
+                            forward: false,
+                            onTap: () => _seekBy(-10),
+                          ),
+                          const SizedBox(width: 20),
+                          RoomPlayPauseButton(
+                              playing: _isPlaying, onTap: _handleTap),
+                          const SizedBox(width: 20),
+                          RoomSeekTenButton(
+                            forward: true,
+                            onTap: () => _seekBy(10),
+                          ),
+                        ],
                       ),
                     ),
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Manual PIP trigger — auto-PIP-on-minimize has been
+                        // unreliable (see PipService/MainActivity.kt), so this
+                        // gives a direct, always-available way in rather than
+                        // depending solely on Android detecting the app leaving.
+                        GestureDetector(
+                          onTap: PipService.enterPip,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.picture_in_picture_alt_rounded,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                          ),
+                        ),
+                        if (_justResumed)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: IgnorePointer(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.7),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(
+                                      width: 12,
+                                      height: 12,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Catching up…',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                  if (_justResumed)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: IgnorePointer(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Row(
+                      children: [
+                        // Same fullscreen affordance the OTT player already has
+                        // (webview_room_player.dart) — now available for YouTube
+                        // too, via ytRequestFullscreen() on the embed page.
+                        GestureDetector(
+                          onTap: _requestFullscreen,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.fullscreen_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
                           ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.7),
-                            borderRadius: BorderRadius.circular(999),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: widget.onToggleLike,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              widget.liked ? '❤️' : '🤍',
+                              style: const TextStyle(fontSize: 16),
+                            ),
                           ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SizedBox(
-                                width: 12,
-                                height: 12,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Catching up…',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_volumePopoverOpen)
+                    Positioned(
+                      right: 8,
+                      bottom: 64,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.85),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: VolumeDots(
+                          volume: _volume,
+                          onVolumeChange: _handleVolumeChange,
+                          trackColor: Colors.white24,
                         ),
                       ),
                     ),
-                ],
-              ),
-            ),
-            Positioned(
-              top: 8,
-              right: 8,
-              child: Row(
-                children: [
-                  // Same fullscreen affordance the OTT player already has
-                  // (webview_room_player.dart) — now available for YouTube
-                  // too, via ytRequestFullscreen() on the embed page.
-                  GestureDetector(
-                    onTap: _requestFullscreen,
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
                     child: Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.fromLTRB(10, 20, 10, 6),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.5),
-                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.85),
+                            Colors.transparent,
+                          ],
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.fullscreen_rounded,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: widget.onToggleLike,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.5),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text(
-                        widget.liked ? '❤️' : '🤍',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (_volumePopoverOpen)
-              Positioned(
-                right: 8,
-                bottom: 64,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.85),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: VolumeDots(
-                    volume: _volume,
-                    onVolumeChange: _handleVolumeChange,
-                    trackColor: Colors.white24,
-                  ),
-                ),
-              ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(10, 20, 10, 6),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.85),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (widget.title != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Row(
-                          children: [
-                            if (widget.thumbnail != null)
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(6),
-                                child: Image.network(widget.thumbnail!,
-                                    width: 28, height: 28, fit: BoxFit.cover),
-                              ),
-                            if (widget.thumbnail != null)
-                              const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (widget.title != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              child: Row(
                                 children: [
-                                  Text(
-                                    widget.title!,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 12.5),
+                                  if (widget.thumbnail != null)
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(6),
+                                      child: Image.network(widget.thumbnail!,
+                                          width: 28,
+                                          height: 28,
+                                          fit: BoxFit.cover),
+                                    ),
+                                  if (widget.thumbnail != null)
+                                    const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          widget.title!,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 12.5),
+                                        ),
+                                        const Text('Playing via YouTube',
+                                            style: TextStyle(
+                                                color: Colors.white70,
+                                                fontSize: 10.5)),
+                                      ],
+                                    ),
                                   ),
-                                  const Text('Playing via YouTube',
-                                      style: TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 10.5)),
                                 ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ValueListenableBuilder<Duration>(
-                      valueListenable: _positionNotifier,
-                      builder: (context, positionDuration, _) {
-                        final duration = _duration.inSeconds.toDouble();
-                        final position = _dragging
-                            ? _dragPosition
-                            : positionDuration.inSeconds.toDouble();
-                        return Row(
-                          children: [
-                            Text(
-                              _formatTime(position),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                              ),
-                            ),
-                            Expanded(
-                              child: SliderTheme(
-                                data: SliderTheme.of(context).copyWith(
-                                  trackHeight: 3,
-                                  thumbShape: const RoundSliderThumbShape(
-                                    enabledThumbRadius: 6,
+                          ValueListenableBuilder<Duration>(
+                            valueListenable: _positionNotifier,
+                            builder: (context, positionDuration, _) {
+                              final duration = _duration.inSeconds.toDouble();
+                              final position = _dragging
+                                  ? _dragPosition
+                                  : positionDuration.inSeconds.toDouble();
+                              return Row(
+                                children: [
+                                  Text(
+                                    _formatTime(position),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                    ),
                                   ),
-                                ),
-                                child: Slider(
-                                  value: duration > 0
-                                      ? position.clamp(0, duration)
-                                      : 0,
-                                  max: duration > 0 ? duration : 1,
-                                  activeColor: AppColors.primary,
-                                  inactiveColor: Colors.white24,
-                                  onChanged:
-                                      widget.isHost ? _handleSeekChanged : null,
-                                  onChangeEnd:
-                                      widget.isHost ? _handleSeekEnd : null,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              _formatTime(duration),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => setState(
-                                () => _volumePopoverOpen = !_volumePopoverOpen,
-                              ),
-                              icon: Icon(
-                                _volume == 0
-                                    ? Icons.volume_off
-                                    : (_volume < 50
-                                        ? Icons.volume_down
-                                        : Icons.volume_up),
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                            ),
-                            // Moved here from the center cluster — this is
-                            // "play a different song," not a seek, so it
-                            // sits with the progress bar/duration instead
-                            // of flanking play/pause anymore.
-                            if (widget.isHost)
-                              GestureDetector(
-                                onTap: widget.onSkip,
-                                child: const Padding(
-                                  padding: EdgeInsets.only(left: 8),
-                                  child: Icon(Icons.skip_next_rounded,
-                                      color: Colors.white, size: 20),
-                                ),
-                              )
-                            else if (widget.onVoteSkip != null)
-                              GestureDetector(
-                                onTap: widget.onVoteSkip,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(left: 8),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.skip_next_rounded,
-                                          color: Colors.white, size: 18),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        '${widget.skipVoteCount}/${widget.skipVoteRequired}',
-                                        style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w600),
+                                  Expanded(
+                                    child: SliderTheme(
+                                      data: SliderTheme.of(context).copyWith(
+                                        trackHeight: 3,
+                                        thumbShape: const RoundSliderThumbShape(
+                                          enabledThumbRadius: 6,
+                                        ),
                                       ),
-                                    ],
+                                      child: Slider(
+                                        value: duration > 0
+                                            ? position.clamp(0, duration)
+                                            : 0,
+                                        max: duration > 0 ? duration : 1,
+                                        activeColor: AppColors.primary,
+                                        inactiveColor: Colors.white24,
+                                        onChanged: widget.isHost
+                                            ? _handleSeekChanged
+                                            : null,
+                                        onChangeEnd: widget.isHost
+                                            ? _handleSeekEnd
+                                            : null,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
-                          ],
-                        );
-                      },
+                                  Text(
+                                    _formatTime(duration),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () => setState(
+                                      () => _volumePopoverOpen =
+                                          !_volumePopoverOpen,
+                                    ),
+                                    icon: Icon(
+                                      _volume == 0
+                                          ? Icons.volume_off
+                                          : (_volume < 50
+                                              ? Icons.volume_down
+                                              : Icons.volume_up),
+                                      color: Colors.white,
+                                      size: 18,
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                  ),
+                                  // Moved here from the center cluster — this is
+                                  // "play a different song," not a seek, so it
+                                  // sits with the progress bar/duration instead
+                                  // of flanking play/pause anymore.
+                                  if (widget.isHost)
+                                    GestureDetector(
+                                      onTap: widget.onSkip,
+                                      child: const Padding(
+                                        padding: EdgeInsets.only(left: 8),
+                                        child: Icon(Icons.skip_next_rounded,
+                                            color: Colors.white, size: 20),
+                                      ),
+                                    )
+                                  else if (widget.onVoteSkip != null)
+                                    GestureDetector(
+                                      onTap: widget.onVoteSkip,
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(left: 8),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.skip_next_rounded,
+                                                color: Colors.white, size: 18),
+                                            const SizedBox(width: 3),
+                                            Text(
+                                              '${widget.skipVoteCount}/${widget.skipVoteRequired}',
+                                              style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w600),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
+                  ),
+                ]),
               ),
-            ),
           ],
         ),
       ),
@@ -870,6 +917,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     WidgetsBinding.instance.removeObserver(this);
     PipService.isInPip.removeListener(_onPipChanged);
     _justResumedFallback?.cancel();
+    _hideControlsTimer?.cancel();
     _positionNotifier.dispose();
     _controller = null;
     super.dispose();

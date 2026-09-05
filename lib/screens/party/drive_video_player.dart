@@ -99,6 +99,23 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
   // paused case below for why this can't just run immediately.
   Timer? _pendingBackgroundHandoff;
 
+  // Auto-hide overlay controls — see the matching fields/methods' doc in
+  // sync_video_player.dart.
+  bool _controlsVisible = true;
+  Timer? _hideControlsTimer;
+
+  void _scheduleHideControls() {
+    _hideControlsTimer?.cancel();
+    _hideControlsTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _controlsVisible = false);
+    });
+  }
+
+  void _showControls() {
+    setState(() => _controlsVisible = true);
+    _scheduleHideControls();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -112,6 +129,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
     // silently stay at 0:00 instead of landing on the host's position.
     _applyRemotePlaybackIfNeeded();
     if (!widget.isHost) widget.onRequestState();
+    _scheduleHideControls();
   }
 
   @override
@@ -407,211 +425,232 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
           fit: StackFit.expand,
           children: [
             VideoPlayer(controller),
-            // A dedicated button, not a whole-video tap target — tapping
-            // anywhere on the video (e.g. near the seek bar) was toggling
-            // playback by accident.
-            // ±10s flank play/pause — a real seek. Queue skip moved to the
-            // progress bar row below (see the "Moved here" comment there).
-            if (widget.isHost)
-              Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    RoomSeekTenButton(
-                        forward: false, onTap: () => _seekBy(-10)),
-                    const SizedBox(width: 24),
-                    RoomPlayPauseButton(
-                        playing: controller.value.isPlaying, onTap: _handleTap),
-                    const SizedBox(width: 24),
-                    RoomSeekTenButton(forward: true, onTap: () => _seekBy(10)),
-                  ],
+            // See the matching comments in sync_video_player.dart for both
+            // of these — same auto-hide-controls treatment.
+            if (!_controlsVisible)
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: _showControls,
                 ),
               ),
-            Positioned(
-              top: 8,
-              left: 8,
-              // Manual PIP trigger — auto-PIP-on-minimize has been
-              // unreliable (see PipService/MainActivity.kt), so this gives
-              // a direct, always-available way in rather than depending
-              // solely on Android detecting the app leaving.
-              child: GestureDetector(
-                onTap: PipService.enterPip,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      shape: BoxShape.circle),
-                  child: const Icon(Icons.picture_in_picture_alt_rounded,
-                      color: Colors.white, size: 16),
-                ),
-              ),
-            ),
-            Positioned(
-              top: 8,
-              right: 8,
-              child: GestureDetector(
-                onTap: widget.onToggleLike,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      shape: BoxShape.circle),
-                  child: Text(widget.liked ? '❤️' : '🤍',
-                      style: const TextStyle(fontSize: 16)),
-                ),
-              ),
-            ),
-            if (_volumePopoverOpen)
-              Positioned(
-                right: 8,
-                bottom: 64,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(16)),
-                  child: VolumeDots(
-                      volume: _volume,
-                      onVolumeChange: _handleVolumeChange,
-                      trackColor: Colors.white24),
-                ),
-              ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(10, 20, 10, 6),
-                decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                        colors: [
-                      Colors.black.withValues(alpha: 0.85),
-                      Colors.transparent
-                    ])),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (widget.title != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Row(
-                          children: [
-                            if (widget.thumbnail != null)
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(6),
-                                child: Image.network(widget.thumbnail!,
-                                    width: 28, height: 28, fit: BoxFit.cover),
-                              ),
-                            if (widget.thumbnail != null)
-                              const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    widget.title!,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 12.5),
-                                  ),
-                                  const Text('Playing via Drive',
-                                      style: TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 10.5)),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+            if (_controlsVisible)
+              Listener(
+                onPointerDown: (_) => _scheduleHideControls(),
+                child: Stack(children: [
+                  // A dedicated button, not a whole-video tap target — tapping
+                  // anywhere on the video (e.g. near the seek bar) was toggling
+                  // playback by accident.
+                  // ±10s flank play/pause — a real seek. Queue skip moved to the
+                  // progress bar row below (see the "Moved here" comment there).
+                  if (widget.isHost)
+                    Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          RoomSeekTenButton(
+                              forward: false, onTap: () => _seekBy(-10)),
+                          const SizedBox(width: 24),
+                          RoomPlayPauseButton(
+                              playing: controller.value.isPlaying,
+                              onTap: _handleTap),
+                          const SizedBox(width: 24),
+                          RoomSeekTenButton(
+                              forward: true, onTap: () => _seekBy(10)),
+                        ],
                       ),
-                    Row(
-                      children: [
-                        Text(_formatTime(position),
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 11)),
-                        Expanded(
-                          child: SliderTheme(
-                            data: SliderTheme.of(context).copyWith(
-                                trackHeight: 3,
-                                thumbShape: const RoundSliderThumbShape(
-                                    enabledThumbRadius: 6)),
-                            child: Slider(
-                              value: duration > 0
-                                  ? position.clamp(0, duration)
-                                  : 0,
-                              max: duration > 0 ? duration : 1,
-                              activeColor: AppColors.primary,
-                              inactiveColor: Colors.white24,
-                              onChanged:
-                                  widget.isHost ? _handleSeekChanged : null,
-                              onChangeEnd:
-                                  widget.isHost ? _handleSeekEnd : null,
-                            ),
-                          ),
-                        ),
-                        Text(_formatTime(duration),
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 11)),
-                        IconButton(
-                          onPressed: () => setState(
-                              () => _volumePopoverOpen = !_volumePopoverOpen),
-                          icon: Icon(
-                              _volume == 0
-                                  ? Icons.volume_off
-                                  : (_volume < 50
-                                      ? Icons.volume_down
-                                      : Icons.volume_up),
-                              color: Colors.white,
-                              size: 18),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
-                        // Moved here from the center cluster — see the
-                        // matching comment in sync_video_player.dart.
-                        if (widget.isHost)
-                          GestureDetector(
-                            onTap: widget.onSkip,
-                            child: const Padding(
-                              padding: EdgeInsets.only(left: 8),
-                              child: Icon(Icons.skip_next_rounded,
-                                  color: Colors.white, size: 20),
-                            ),
-                          )
-                        else if (widget.onVoteSkip != null)
-                          GestureDetector(
-                            onTap: widget.onVoteSkip,
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 8),
+                    ),
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    // Manual PIP trigger — auto-PIP-on-minimize has been
+                    // unreliable (see PipService/MainActivity.kt), so this gives
+                    // a direct, always-available way in rather than depending
+                    // solely on Android detecting the app leaving.
+                    child: GestureDetector(
+                      onTap: PipService.enterPip,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            shape: BoxShape.circle),
+                        child: const Icon(Icons.picture_in_picture_alt_rounded,
+                            color: Colors.white, size: 16),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: GestureDetector(
+                      onTap: widget.onToggleLike,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            shape: BoxShape.circle),
+                        child: Text(widget.liked ? '❤️' : '🤍',
+                            style: const TextStyle(fontSize: 16)),
+                      ),
+                    ),
+                  ),
+                  if (_volumePopoverOpen)
+                    Positioned(
+                      right: 8,
+                      bottom: 64,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.85),
+                            borderRadius: BorderRadius.circular(16)),
+                        child: VolumeDots(
+                            volume: _volume,
+                            onVolumeChange: _handleVolumeChange,
+                            trackColor: Colors.white24),
+                      ),
+                    ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(10, 20, 10, 6),
+                      decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [
+                            Colors.black.withValues(alpha: 0.85),
+                            Colors.transparent
+                          ])),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (widget.title != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
                               child: Row(
-                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.skip_next_rounded,
-                                      color: Colors.white, size: 18),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    '${widget.skipVoteCount}/${widget.skipVoteRequired}',
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w600),
+                                  if (widget.thumbnail != null)
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(6),
+                                      child: Image.network(widget.thumbnail!,
+                                          width: 28,
+                                          height: 28,
+                                          fit: BoxFit.cover),
+                                    ),
+                                  if (widget.thumbnail != null)
+                                    const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          widget.title!,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 12.5),
+                                        ),
+                                        const Text('Playing via Drive',
+                                            style: TextStyle(
+                                                color: Colors.white70,
+                                                fontSize: 10.5)),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
+                          Row(
+                            children: [
+                              Text(_formatTime(position),
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 11)),
+                              Expanded(
+                                child: SliderTheme(
+                                  data: SliderTheme.of(context).copyWith(
+                                      trackHeight: 3,
+                                      thumbShape: const RoundSliderThumbShape(
+                                          enabledThumbRadius: 6)),
+                                  child: Slider(
+                                    value: duration > 0
+                                        ? position.clamp(0, duration)
+                                        : 0,
+                                    max: duration > 0 ? duration : 1,
+                                    activeColor: AppColors.primary,
+                                    inactiveColor: Colors.white24,
+                                    onChanged: widget.isHost
+                                        ? _handleSeekChanged
+                                        : null,
+                                    onChangeEnd:
+                                        widget.isHost ? _handleSeekEnd : null,
+                                  ),
+                                ),
+                              ),
+                              Text(_formatTime(duration),
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 11)),
+                              IconButton(
+                                onPressed: () => setState(() =>
+                                    _volumePopoverOpen = !_volumePopoverOpen),
+                                icon: Icon(
+                                    _volume == 0
+                                        ? Icons.volume_off
+                                        : (_volume < 50
+                                            ? Icons.volume_down
+                                            : Icons.volume_up),
+                                    color: Colors.white,
+                                    size: 18),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              ),
+                              // Moved here from the center cluster — see the
+                              // matching comment in sync_video_player.dart.
+                              if (widget.isHost)
+                                GestureDetector(
+                                  onTap: widget.onSkip,
+                                  child: const Padding(
+                                    padding: EdgeInsets.only(left: 8),
+                                    child: Icon(Icons.skip_next_rounded,
+                                        color: Colors.white, size: 20),
+                                  ),
+                                )
+                              else if (widget.onVoteSkip != null)
+                                GestureDetector(
+                                  onTap: widget.onVoteSkip,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(left: 8),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.skip_next_rounded,
+                                            color: Colors.white, size: 18),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          '${widget.skipVoteCount}/${widget.skipVoteRequired}',
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ],
-                ),
+                  ),
+                ]),
               ),
-            ),
           ],
         ),
       ),
@@ -656,6 +695,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
     WidgetsBinding.instance.removeObserver(this);
     PipService.isInPip.removeListener(_onPipChanged);
     _pendingBackgroundHandoff?.cancel();
+    _hideControlsTimer?.cancel();
     if (_handedOffToBackground) {
       // Already playing through the background session (we were OS-
       // backgrounded) and now the widget itself is going away too — stop
