@@ -41,6 +41,9 @@ class WebviewRoomPlayer extends StatefulWidget {
   final Map<String, dynamic>? playback;
   final void Function(double position) onPlay;
   final void Function(double position) onPause;
+  // Host-only drag on the elapsed-time bar below — see _buildProgressBar's
+  // doc comment for exactly what this does and doesn't do.
+  final void Function(double position)? onSeek;
   final VoidCallback onRequestState;
   // Same skip contract as sync_video_player.dart/drive_video_player.dart —
   // "skip" here just means "move to the next queued item" (a real,
@@ -63,6 +66,7 @@ class WebviewRoomPlayer extends StatefulWidget {
     required this.playback,
     required this.onPlay,
     required this.onPause,
+    this.onSeek,
     required this.onRequestState,
     this.onSkip,
     this.onVoteSkip,
@@ -80,6 +84,10 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
   Timer? _nudgeDismissTimer;
   String? _nudgeBanner;
   bool _onLoginPage = false;
+  // Non-null only while the host has a finger on the elapsed-time slider —
+  // shows the drag position immediately instead of visibly snapping back
+  // to the old value until the emit round-trips. See _buildProgressBar.
+  double? _dragPosition;
 
   @override
   void initState() {
@@ -147,6 +155,30 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     } else {
       widget.onPlay(_elapsedSeconds);
     }
+  }
+
+  // There's no real duration to size this against — Netflix/Prime never
+  // expose the actual video's length to an embedded page, DRM or not — so
+  // this is just a generous, round upper bound for the drag range (most
+  // movies/episodes fit well inside it), not a real "time remaining"
+  // figure. Grows if elapsed ever exceeds it instead of clamping, so a
+  // longer title doesn't cap the bar at its own current position.
+  double get _maxDragSeconds {
+    const defaultMax = 4 * 3600.0;
+    return _elapsedSeconds > defaultMax ? _elapsedSeconds + 600 : defaultMax;
+  }
+
+  void _handleSeekChanged(double value) =>
+      setState(() => _dragPosition = value);
+
+  void _handleSeekEnd(double value) {
+    setState(() => _dragPosition = null);
+    // Dragging the estimate forward/back is itself a "please match this"
+    // signal to the room, same spirit as play/pause — always broadcasts,
+    // regardless of whether it happened to be playing or paused right
+    // before the drag (the backend's playback:seek marks it playing
+    // either way, same as YouTube/Drive's real seek bar already does).
+    widget.onSeek?.call(value);
   }
 
   // Best-effort only — platforms don't expose a stable "you're logged out"
@@ -353,6 +385,39 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
                           fontWeight: FontWeight.w700,
                           fontSize: 12),
                     ),
+                  ),
+                // Host-draggable elapsed-time estimate — dragging this
+                // does NOT seek the actual Netflix/Prime video (DRM blocks
+                // that for anyone), it just moves the room's shared
+                // "roughly here" marker, same as the play/pause nudge
+                // already does. No known real duration to size the bar
+                // against (see _maxDragSeconds), so there's no "time
+                // remaining" figure, only elapsed / an assumed ceiling.
+                if (widget.isHost && widget.onSeek != null)
+                  Row(
+                    children: [
+                      Text(_formatTime(_dragPosition ?? _elapsedSeconds),
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 10)),
+                      Expanded(
+                        child: SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            trackHeight: 2,
+                            thumbShape: const RoundSliderThumbShape(
+                                enabledThumbRadius: 5),
+                          ),
+                          child: Slider(
+                            value: (_dragPosition ?? _elapsedSeconds)
+                                .clamp(0, _maxDragSeconds),
+                            max: _maxDragSeconds,
+                            activeColor: AppColors.primary,
+                            inactiveColor: Colors.white24,
+                            onChanged: _handleSeekChanged,
+                            onChangeEnd: _handleSeekEnd,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 Row(
                   children: [

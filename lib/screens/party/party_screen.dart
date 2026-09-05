@@ -572,6 +572,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           playback: rs.playback,
           onPlay: rs.play,
           onPause: rs.pause,
+          onSeek: rs.seek,
           onRequestState: rs.requestState,
           onSkip: rs.isHost ? rs.queueSkip : null,
           onVoteSkip: rs.isHost ? null : rs.voteSkip,
