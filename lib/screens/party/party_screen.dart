@@ -805,6 +805,23 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                     (currentItem?['mediaMode'] as String? ?? 'video')),
           );
         }
+        // Landscape (device rotated, or the player's own fullscreen button
+        // for platforms that trigger it — see _requestFullscreen in each
+        // player) drops the app bar/chat/queue/collapsing-header entirely
+        // for just the video, full-bleed, no scrolling. Reverts the moment
+        // the phone goes back to portrait.
+        if (isWatch &&
+            !inPip &&
+            MediaQuery.orientationOf(context) == Orientation.landscape) {
+          return Scaffold(
+            backgroundColor: Colors.black,
+            body: Center(
+              child: player(
+                  mediaMode: _viewModeOverride ??
+                      (currentItem?['mediaMode'] as String? ?? 'video')),
+            ),
+          );
+        }
         // _chatFocused alone isn't enough — dismissing the keyboard via
         // Android's swipe-down gesture (or the back button, on some
         // versions) hides the IME without actually clearing the TextField's
