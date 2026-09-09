@@ -51,6 +51,17 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Without this, iOS suspends the app outright the moment it's
+	     backgrounded — background_audio_handler.dart's audio_service/
+	     just_audio session (real for Drive-hosted rooms on Android, see
+	     docs/FLING_AUDIT.md §5.2) has never actually been able to run in
+	     the background on iOS at all, regardless of provider, until this
+	     key exists. Confirmed missing via direct inspection before this
+	     fix — not a design choice, a genuine gap. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
