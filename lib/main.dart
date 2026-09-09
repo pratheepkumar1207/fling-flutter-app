@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/app_messenger.dart';
+import 'core/app_navigator.dart';
 import 'core/auth_provider.dart';
 import 'core/background_audio_handler.dart';
 import 'core/firebase_service.dart';
+import 'core/push_notifications.dart';
 import 'core/socket_service.dart';
 import 'core/supabase_service.dart';
 import 'screens/splash_screen.dart';
@@ -26,6 +30,10 @@ void main() async {
       androidStopForegroundOnPause: true,
     ),
   );
+  // Not awaited — restoring a notification-tapped PartySession shouldn't
+  // delay the app's own startup; both listeners it registers stay valid
+  // however long the actual setup takes to complete.
+  unawaited(setupNotificationTapHandling());
   runApp(const FlingApp());
 }
 
@@ -48,6 +56,7 @@ class FlingApp extends StatelessWidget {
       // whole class of mismatch.
       child: MaterialApp(
         title: 'Insync',
+        navigatorKey: navigatorKey,
         scaffoldMessengerKey: scaffoldMessengerKey,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.dark,
