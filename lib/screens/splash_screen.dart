@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../core/auth_provider.dart';
 import '../core/avatar_frame_cache.dart';
+import '../core/app_navigator.dart';
 import '../core/location_service.dart';
 import '../theme/app_colors.dart';
 import 'auth/complete_profile_screen.dart';
@@ -76,6 +77,13 @@ class _SplashScreenState extends State<SplashScreen> {
               return const SafetyGuidelinesScreen();
             }
             _pingLocationIfOptedIn(auth);
+            // A notification can wake a terminated app before its JWT has
+            // been restored. Flush the queued room link only after AppShell
+            // is in the Navigator tree, otherwise PartyScreen would attempt
+            // its initial room request unauthenticated.
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              openPendingPartyNotification();
+            });
             if (!_frameCacheLoaded) {
               _frameCacheLoaded = true;
               AvatarFrameCache
