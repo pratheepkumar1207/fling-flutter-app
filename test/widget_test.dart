@@ -9,6 +9,6 @@ import 'package:fling/main.dart';
 void main() {
   testWidgets('FlingApp builds without throwing', (WidgetTester tester) async {
     await tester.pumpWidget(const FlingApp());
-    expect(find.text('Fling'), findsWidgets);
+    expect(find.text('Insync'), findsWidgets);
   });
 }
