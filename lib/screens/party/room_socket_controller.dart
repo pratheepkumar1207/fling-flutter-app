@@ -60,6 +60,14 @@ class RoomSocketController extends ChangeNotifier {
   // syncHandler.js's chat:mentioned emit.
   Map<String, dynamic>? mention;
 
+  // True from the moment the transport drops until a fresh room:join's
+  // presence:roster actually lands — see the reconnect handling in _bind()
+  // below. party_screen.dart can show a subtle "Reconnecting…" indicator
+  // off this instead of the room silently sitting on stale roster/queue/
+  // playback data during a network blip (spec: "player continues locally
+  // temporarily" — this doesn't block anything, it's purely informational).
+  bool reconnecting = false;
+
   bool get isHost => hostId != null && myUserId != null && hostId == myUserId;
   bool get canPin => isHost || settings['pinPermission'] == 'anyone';
 
@@ -97,16 +105,53 @@ class RoomSocketController extends ChangeNotifier {
     _bind();
   }
 
+  // Left false here deliberately — _onSocketConnect below is what flips it
+  // to true, the *first* time the socket actually completes its handshake
+  // (fired asynchronously; the room:join emitted synchronously two lines
+  // down is safely queued by the client and flushed once that happens, the
+  // same way this class has always joined). Only calls from then on are
+  // genuine reconnects. Setting this true here instead — before that first
+  // real 'connect' event fires — would make _onSocketConnect's own guard
+  // useless: it would already see true on the very first connection and
+  // redundantly re-emit room:join on every fresh session, not just a drop.
+  bool _joinedOnce = false;
+
   void _bind() {
     final s = socket;
     if (s == null) return;
     s.emit('room:join', {'roomId': roomId});
     _syncServerTime();
 
+    // Realtime recovery (spec Step 28): socket_io_client reconnects the
+    // transport automatically after a drop (infinite attempts, exponential
+    // backoff — see socket_service.dart), but nothing previously re-joined
+    // the room or refreshed state once it did, leaving roster/queue/
+    // playback silently stale after any network blip. The backend's
+    // room:join handler already returns a full, fresh snapshot on a
+    // rejoin — not a replay of missed events — so the fix is just: actually
+    // call it again once the transport comes back.
+    //
+    // Registered as named instance-method tear-offs, NOT inline closures —
+    // SocketService (core/socket_service.dart) already listens to this same
+    // *shared, app-wide* socket's 'connect'/'disconnect' events for its own
+    // isConnected tracking, and this package's EventEmitter.off(event) with
+    // no handler argument removes EVERY listener for that event name, not
+    // just this class's own. leave() below must remove only these two
+    // specific listeners by reference, or it would silently break
+    // SocketService's connection tracking for the rest of the app session
+    // every time any room is left.
+    s.on('connect', _onSocketConnect);
+    s.on('disconnect', _onSocketDisconnect);
+
     s.on('presence:roster', (data) {
       roster = (data as List)
           .map((e) => RosterEntry.fromJson(Map<String, dynamic>.from(e)))
           .toList();
+      // presence:roster is sent as part of room:join's own response (see
+      // syncHandler.js) — its arrival is the first reliable signal that a
+      // post-drop rejoin actually completed, so this is where the
+      // "reconnecting" indicator clears rather than a fixed timer.
+      reconnecting = false;
       notifyListeners();
     });
     s.on('chat:message', (data) {
@@ -223,8 +268,26 @@ class RoomSocketController extends ChangeNotifier {
     });
   }
 
+  void _onSocketConnect(dynamic _) {
+    if (!_joinedOnce) {
+      _joinedOnce = true;
+      return; // the initial connect — already joined synchronously in _bind().
+    }
+    final s = socket;
+    if (s == null) return;
+    s.emit('room:join', {'roomId': roomId});
+    _syncServerTime();
+  }
+
+  void _onSocketDisconnect(dynamic _) {
+    reconnecting = true;
+    notifyListeners();
+  }
+
   void leave() {
     socket?.emit('room:leave', {'roomId': roomId});
+    socket?.off('connect', _onSocketConnect);
+    socket?.off('disconnect', _onSocketDisconnect);
     socket?.off('presence:roster');
     socket?.off('chat:message');
     socket?.off('queue:state');
