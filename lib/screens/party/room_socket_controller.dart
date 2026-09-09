@@ -362,13 +362,21 @@ class RoomSocketController extends ChangeNotifier {
           'queue:add', {'roomId': roomId, 'item': item, 'position': position});
   void queueInit(Map<String, dynamic> item) =>
       socket?.emit('queue:init', {'roomId': roomId, 'item': item});
+  // expectedVersion: whatever queue:state.version this client's own copy of
+  // `queue` was last updated from — lets the server reject the mutation
+  // (via the existing queue:denied mechanism) if the queue has changed
+  // since this client last saw it, rather than silently applying an
+  // index the user picked against a now-stale ordering. Spec: "Server is
+  // authoritative. Reject stale client mutations."
   void queueJump(int index) {
-    if (canPin) socket?.emit('queue:jump', {'roomId': roomId, 'index': index});
+    if (canPin) {
+      socket?.emit('queue:jump', {'roomId': roomId, 'index': index, 'expectedVersion': queue['version']});
+    }
   }
 
   void queueRemove(int index) {
     if (isHost) {
-      socket?.emit('queue:remove', {'roomId': roomId, 'index': index});
+      socket?.emit('queue:remove', {'roomId': roomId, 'index': index, 'expectedVersion': queue['version']});
     }
   }
 
@@ -395,8 +403,12 @@ class RoomSocketController extends ChangeNotifier {
 
   void queueReorder(int fromIndex, int toIndex) {
     if (isHost) {
-      socket?.emit('queue:reorder',
-          {'roomId': roomId, 'fromIndex': fromIndex, 'toIndex': toIndex});
+      socket?.emit('queue:reorder', {
+        'roomId': roomId,
+        'fromIndex': fromIndex,
+        'toIndex': toIndex,
+        'expectedVersion': queue['version'],
+      });
     }
   }
 
