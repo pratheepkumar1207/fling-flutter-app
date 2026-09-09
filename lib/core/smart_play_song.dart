@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../models/song.dart';
 import '../screens/party/party_screen.dart';
 import 'api_client.dart';
@@ -28,14 +31,16 @@ Future<void> playSongSmart(BuildContext context, Song s) async {
         await ApiClient.get('/rooms/mine/active') as Map<String, dynamic>;
     final activeRoomId = active['roomId'] as String?;
     if (activeRoomId != null) {
-      if (context.mounted) {
-        final socket = context.read<SocketService>().socket;
-        socket?.emit('queue:add', {'roomId': activeRoomId, 'item': item});
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Added to "${active['title'] ?? 'your room'}"')));
-        Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => PartyScreen(roomId: activeRoomId)));
-      }
+      if (!context.mounted) return;
+      final socket = context.read<SocketService>().socket;
+      final added = await _addToQueueAndConfirm(socket, activeRoomId, item);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(added
+              ? 'Added to "${active['title'] ?? 'your room'}"'
+              : 'Could not add — only the host can add songs right now')));
+      Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => PartyScreen(roomId: activeRoomId)));
       return;
     }
 
@@ -91,12 +96,21 @@ Future<void> playPlaylistSmart(BuildContext context, List<Song> songs) async {
     if (activeRoomId != null) {
       if (!context.mounted) return;
       final socket = context.read<SocketService>().socket;
-      for (final s in songs) {
-        socket?.emit('queue:add', {'roomId': activeRoomId, 'item': toItem(s)});
+      // Only the first add needs to wait for a possible denial — if
+      // songPermission is host-only and this user isn't the host, every
+      // subsequent add in the same room would be denied identically, so
+      // there's nothing more to learn from waiting on each one.
+      final firstAdded = await _addToQueueAndConfirm(socket, activeRoomId, toItem(songs.first));
+      if (firstAdded) {
+        for (final s in songs.skip(1)) {
+          socket?.emit('queue:add', {'roomId': activeRoomId, 'item': toItem(s)});
+        }
       }
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-              'Added ${songs.length} songs to "${active['title'] ?? 'your room'}"')));
+          content: Text(firstAdded
+              ? 'Added ${songs.length} songs to "${active['title'] ?? 'your room'}"'
+              : 'Could not add — only the host can add songs right now')));
       Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => PartyScreen(roomId: activeRoomId)));
       return;
@@ -130,4 +144,40 @@ Future<void> playPlaylistSmart(BuildContext context, List<Song> songs) async {
           const SnackBar(content: Text('Could not play this playlist')));
     }
   }
+}
+
+/// Emits queue:add and waits briefly to see whether the server accepted it
+/// or rejected it via `queue:denied` (e.g. the room's songPermission is
+/// host-only and this caller isn't the host) — previously both callers
+/// above showed "Added to <room>" unconditionally right after firing the
+/// emit, regardless of whether the server actually added anything. There's
+/// no ack-based confirmation for a *successful* add (queue:state broadcasts
+/// to the whole room, not a targeted response to this one request), so a
+/// short grace window with no denial arriving is treated as success —
+/// the same trust level this call already had, just no longer blind to an
+/// explicit rejection.
+///
+/// Registers its listener with a named reference and removes only that
+/// same reference afterward (`.off('queue:denied', onDenied)`, not the
+/// no-argument form) — this is the app's one shared, app-wide socket, and
+/// a live RoomSocketController for this same room may already have its own
+/// `queue:denied` listener registered on it; removing by reference instead
+/// of blanket-clearing the event avoids silently breaking that (see
+/// PARTY.md's realtime-recovery section for the identical lesson learned
+/// the first time this exact mistake was almost made).
+Future<bool> _addToQueueAndConfirm(io.Socket? socket, String roomId, Map<String, dynamic> item) async {
+  if (socket == null) return false;
+  final completer = Completer<bool>();
+  void onDenied(dynamic _) {
+    if (!completer.isCompleted) completer.complete(false);
+  }
+
+  socket.on('queue:denied', onDenied);
+  socket.emit('queue:add', {'roomId': roomId, 'item': item});
+  unawaited(Future.delayed(const Duration(milliseconds: 600), () {
+    if (!completer.isCompleted) completer.complete(true);
+  }));
+  final result = await completer.future;
+  socket.off('queue:denied', onDenied);
+  return result;
 }
