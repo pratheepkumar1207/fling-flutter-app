@@ -6,6 +6,7 @@ import android.os.Build
 import android.util.Log
 import android.util.Rational
 import androidx.annotation.NonNull
+import com.fling.app.media3.Media3PlayerViewFactory
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -32,6 +33,16 @@ class MainActivity : AudioServiceActivity() {
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        // Native Media3/ExoPlayer surface (see media3/Media3PlayerView.kt) —
+        // registered under the same view-type string sync_video_player.dart/
+        // drive_video_player.dart's native-player path creates an AndroidView
+        // with.
+        flutterEngine.platformViewsController.registry.registerViewFactory(
+            "fling/media3_player",
+            Media3PlayerViewFactory(flutterEngine.dartExecutor.binaryMessenger),
+        )
+
         val channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, pipChannelName)
         pipChannel = channel
         channel.setMethodCallHandler { call, result ->

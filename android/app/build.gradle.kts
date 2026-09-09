@@ -66,4 +66,18 @@ configurations.all {
 
 dependencies {
     implementation(files("libs/iris-rtc-4.3.2-build.1-patched.aar"))
+
+    // Media3/ExoPlayer native player (see media3/ package) — media3-exoplayer
+    // is the core Player implementation, media3-ui provides PlayerView (the
+    // actual <video>-equivalent surface), -hls/-dash add adaptive-streaming
+    // MediaSource support (spec: "HLS/DASH/progressive media"), -datasource
+    // adds HTTP/cache DataSource implementations progressive+adaptive sources
+    // both need.
+    val media3Version = "1.5.1"
+    implementation("androidx.media3:media3-exoplayer:$media3Version")
+    implementation("androidx.media3:media3-exoplayer-hls:$media3Version")
+    implementation("androidx.media3:media3-exoplayer-dash:$media3Version")
+    implementation("androidx.media3:media3-ui:$media3Version")
+    implementation("androidx.media3:media3-datasource:$media3Version")
+    implementation("androidx.media3:media3-common:$media3Version")
 }
