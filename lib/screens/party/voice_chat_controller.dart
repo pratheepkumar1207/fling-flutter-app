@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
+import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/api_client.dart';
 
@@ -17,12 +18,23 @@ import '../../core/api_client.dart';
 /// but leave this blank until you've added your own.
 const String kAgoraAppId = '8bb5fdf025274326813950466686c483';
 
-class VoiceChatController {
+/// Surfaced to callers instead of the previous silent no-op (see git
+/// history — every failure path used to disappear into a bare `catch (_) {}`
+/// with no way for party_screen.dart, or anyone, to tell "voice is still
+/// connecting" from "voice permanently failed this session and the mic
+/// button should say so" from "the user said no to the mic permission
+/// prompt, which needs different messaging than a network/server failure").
+enum VoiceChatStatus { idle, connecting, connected, permissionDenied, failed }
+
+class VoiceChatController extends ChangeNotifier {
   final String roomId;
   RtcEngine? _engine;
   bool _joined = false;
   bool _micEnabled = false;
   Future<void>? _initFuture;
+  VoiceChatStatus _status = VoiceChatStatus.idle;
+
+  VoiceChatStatus get status => _status;
 
   VoiceChatController({required this.roomId});
 
@@ -37,20 +49,43 @@ class VoiceChatController {
   // means a broken Agora build no longer takes the entire app down just
   // for opening a room — see ensureInitialized() below, called from
   // party_screen.dart's mic tap handler instead of eagerly here.
+  //
+  // Note this only protects against the crash happening at all — it can't
+  // make that specific failure mode catchable or reportable via `status`
+  // below if it does happen, since a native crash takes the process down
+  // before any Dart catch clause (or this class) runs again. Every OTHER
+  // failure path (permission denied, token fetch failing, joinChannel
+  // rejecting, a post-join connection error) is a real Dart exception or
+  // engine callback, and those are what `status` now actually reports.
   Future<void> ensureInitialized() {
     if (kAgoraAppId.isEmpty) return Future.value();
     return _initFuture ??= _init();
   }
 
   Future<void> _init() async {
+    _setStatus(VoiceChatStatus.connecting);
+    final micStatus = await Permission.microphone.request();
+    if (!micStatus.isGranted) {
+      _setStatus(VoiceChatStatus.permissionDenied);
+      return;
+    }
     try {
-      await Permission.microphone.request();
       final engine = createAgoraRtcEngine();
       await engine.initialize(RtcEngineContext(appId: kAgoraAppId));
       await engine.setChannelProfile(ChannelProfileType.channelProfileCommunication);
       await engine.disableVideo();
       await engine.enableAudio();
       await engine.muteLocalAudioStream(true);
+      // Previously unregistered entirely — a connection that dropped or
+      // errored out *after* a successful join had no way to tell this
+      // controller (or anything downstream of it) that voice had actually
+      // stopped working; `_joined` would stay true forever.
+      engine.registerEventHandler(RtcEngineEventHandler(
+        onError: (ErrorCodeType err, String msg) {
+          _joined = false;
+          _setStatus(VoiceChatStatus.failed);
+        },
+      ));
       _engine = engine;
 
       final uid = Random().nextInt(1000000);
@@ -65,9 +100,21 @@ class VoiceChatController {
         ),
       );
       _joined = true;
+      _setStatus(VoiceChatStatus.connected);
     } catch (_) {
-      // Voice chat just won't work this session — not fatal to the room.
+      // Still a real possibility even with the lazy-init deferral above
+      // (e.g. engine.initialize() throwing a catchable Dart exception
+      // rather than crashing natively, or the token fetch/joinChannel
+      // failing) — voice just won't work this session, not fatal to the
+      // room, but now at least observable via `status` instead of silent.
+      _setStatus(VoiceChatStatus.failed);
     }
+  }
+
+  void _setStatus(VoiceChatStatus next) {
+    if (_status == next) return;
+    _status = next;
+    notifyListeners();
   }
 
   Future<void> setMicEnabled(bool enabled) async {
@@ -76,8 +123,10 @@ class VoiceChatController {
     await _engine?.muteLocalAudioStream(!enabled);
   }
 
+  @override
   void dispose() {
     _engine?.leaveChannel();
     _engine?.release();
+    super.dispose();
   }
 }
