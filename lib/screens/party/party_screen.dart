@@ -4,7 +4,6 @@ import '../../core/active_room_holder.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_provider.dart';
 import '../../core/pip_service.dart';
-import '../../core/room_presence_service.dart';
 import '../../core/room_source_types.dart';
 import '../../core/socket_service.dart';
 import '../../theme/app_colors.dart';
@@ -21,6 +20,7 @@ import '../../widgets/share_bottom_sheet.dart';
 import '../../widgets/spinner.dart';
 import '../../widgets/voice_stage_view.dart';
 import '../lobby/invite_screen.dart';
+import '../../features/party/data/party_engine_impl.dart';
 import 'chat_overlay.dart';
 import 'drive_video_player.dart';
 import 'live_broadcast_controller.dart';
@@ -155,12 +155,17 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   // — see _leaveRoom(). Guards dispose() from tearing down a connection
   // that a plain back-navigation/tab-switch should leave alone.
   bool _didLeaveRoom = false;
+  late final PartyEngineImpl _partyEngine;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _watchScrollController.addListener(_onWatchScroll);
+    _partyEngine = PartyEngineImpl(
+      socketService: context.read<SocketService>(),
+      currentUserId: () => context.read<AuthProvider>().user?.id,
+    );
     // Tells persistent_room_audio.dart's hidden player it can stand down —
     // this screen's own (visible, full-UI) player is about to be the one
     // actually producing audio. Cleared in dispose().
@@ -169,33 +174,36 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     // user minimized it earlier, not left it) — reuse everything instead
     // of rejoining from scratch, which would otherwise show a blank
     // "joining…" state and briefly desync from whatever's already playing.
-    if (ActiveRoomHolder.roomId == widget.roomId &&
-        ActiveRoomHolder.controller != null) {
-      _room = ActiveRoomHolder.room;
-      _rs = ActiveRoomHolder.controller;
-      _voice = ActiveRoomHolder.voice;
-      _live = ActiveRoomHolder.live;
+    final activeSession = ActiveRoomHolder.session;
+    if (activeSession?.roomId == widget.roomId &&
+        activeSession?.roomController != null) {
+      _room = activeSession!.room;
+      _rs = activeSession.roomController;
+      _voice = activeSession.voice;
+      _live = activeSession.live;
       _loading = false;
       _rs!.addListener(_onRoomStateChanged);
       _loadLiked();
       return;
     }
-    _loadRoom();
     _loadLiked();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _initSocket());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _joinParty());
   }
 
-  Future<void> _loadRoom() async {
+  Future<void> _joinParty() async {
     try {
-      final data = await ApiClient.get('/rooms/${widget.roomId}');
+      await _partyEngine.join(widget.roomId);
       if (!mounted) return;
       setState(() {
-        _room = data as Map<String, dynamic>;
+        final runtime = ActiveRoomHolder.session;
+        _room = runtime?.room;
+        _rs = runtime?.roomController;
+        _voice = runtime?.voice;
+        _live = runtime?.live;
         _loading = false;
       });
-      RoomPresenceService.start((_room?['title'] as String?) ?? 'Watch Party');
+      _rs?.addListener(_onRoomStateChanged);
       _maybeInitLive();
-      _maybeRegisterActiveRoom();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -218,39 +226,14 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     } catch (_) {}
   }
 
-  void _initSocket() {
-    final socket = context.read<SocketService>().socket;
-    final myId = context.read<AuthProvider>().user?.id;
-    final rs = RoomSocketController(
-        socket: socket, roomId: widget.roomId, myUserId: myId);
-    rs.addListener(_onRoomStateChanged);
-    setState(() => _rs = rs);
-    RoomPresenceService.start((_room?['title'] as String?) ?? 'Watch Party');
-    _voice = VoiceChatController(roomId: widget.roomId);
-    _maybeInitLive();
-    _maybeRegisterActiveRoom();
-  }
-
-  // _room (REST) and _rs (socket) load independently and finish in
-  // whichever order the network happens to resolve them — this fires from
-  // both paths and only actually registers once both are in.
-  void _maybeRegisterActiveRoom() {
-    final room = _room;
-    final rs = _rs;
-    if (room == null || rs == null) return;
-    ActiveRoomHolder.set(
-        roomId: widget.roomId,
-        controller: rs,
-        room: room,
-        voice: _voice,
-        live: _live);
-  }
-
   void _maybeInitLive() {
-    if (_live != null || _room == null || _rs == null) return;
-    if (_room!['roomType'] != 'live') return;
-    setState(() => _live =
-        LiveBroadcastController(roomId: widget.roomId, isHost: _rs!.isHost));
+    final runtime = ActiveRoomHolder.session;
+    if (runtime == null) return;
+    runtime.ensureLive();
+    ActiveRoomHolder.refreshSessionReferences();
+    if (_live != runtime.live && mounted) {
+      setState(() => _live = runtime.live);
+    }
   }
 
   void _onRoomStateChanged() {
@@ -433,7 +416,28 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       'videoTitle': videoTitle,
       'videoThumbnail': videoThumbnail,
     });
-    await _loadRoom();
+    await _refreshRoom();
+  }
+
+  Future<void> _refreshRoom() async {
+    final runtime = ActiveRoomHolder.session;
+    if (runtime == null) return;
+    try {
+      await runtime.refreshRoom();
+      ActiveRoomHolder.refreshSessionReferences();
+      if (!mounted) return;
+      setState(() {
+        _room = runtime.room;
+        _rs = runtime.roomController;
+        _voice = runtime.voice;
+        _live = runtime.live;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not refresh room: $e')));
+      }
+    }
   }
 
   void _openQueue() {
@@ -965,7 +969,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                       IconButton(
                         tooltip: 'Room settings',
                         onPressed: () => showRoomSettingsSheet(context,
-                            room: room, onChanged: _loadRoom),
+                            room: room, onChanged: _refreshRoom),
                         icon: Icon(Icons.settings_outlined, color: roomTextDim),
                       ),
                     // Pill-styled participant count, matching the redesign's .pill

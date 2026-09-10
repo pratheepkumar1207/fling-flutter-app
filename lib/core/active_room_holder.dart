@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../screens/party/live_broadcast_controller.dart';
 import '../screens/party/room_socket_controller.dart';
 import '../screens/party/voice_chat_controller.dart';
+import '../features/party/application/party_session_controller.dart';
 import 'background_audio_handler.dart';
 import 'room_presence_service.dart';
 
@@ -18,6 +19,10 @@ import 'room_presence_service.dart';
 /// AppShell's mini-bar (see app_shell.dart) only needs to know *whether*
 /// a room is active, via [hasActive]/[roomIdNotifier].
 class ActiveRoomHolder {
+  /// The persistent Party owner. Legacy fields below are retained as
+  /// read-compatible views while existing widgets migrate, but new code must
+  /// create and tear down rooms through this runtime only.
+  static PartySessionController? session;
   static String? roomId;
   static String? roomTitle;
   static RoomSocketController? controller;
@@ -60,14 +65,53 @@ class ActiveRoomHolder {
     activeLabel.value = ActiveRoomHolder.roomTitle ?? roomId;
   }
 
+  /// Installs a fully joined PartySession runtime. This is now the only
+  /// creation path used by PartyEngine/PartyScreen.
+  static void setSession(PartySessionController runtime) {
+    session = runtime;
+    final joinedRoomId = runtime.roomId;
+    final joinedController = runtime.roomController;
+    final joinedRoom = runtime.room;
+    if (joinedRoomId == null ||
+        joinedController == null ||
+        joinedRoom == null) {
+      return;
+    }
+    roomId = joinedRoomId;
+    roomTitle = joinedRoom['title'] as String?;
+    controller = joinedController;
+    room = joinedRoom;
+    voice = runtime.voice;
+    live = runtime.live;
+    activeLabel.value = roomTitle ?? joinedRoomId;
+  }
+
+  /// Refreshes legacy compatibility references after the session creates an
+  /// optional controller (for example the live broadcaster).
+  static void refreshSessionReferences() {
+    final runtime = session;
+    if (runtime == null) return;
+    controller = runtime.roomController;
+    room = runtime.room;
+    voice = runtime.voice;
+    live = runtime.live;
+  }
+
   /// Real teardown — only call this from an explicit "Leave Room" action,
   /// never from a plain screen pop (that's a minimize, not a leave).
   static void leave() {
-    controller?.leave();
-    controller?.dispose();
-    voice?.dispose();
-    live?.dispose();
-    RoomPresenceService.stop();
+    final runtime = session;
+    session = null;
+    if (runtime != null) {
+      runtime.leave();
+      runtime.dispose();
+    } else {
+      controller?.leave();
+      controller?.dispose();
+      voice?.dispose();
+      live?.dispose();
+      RoomPresenceService.stop();
+    }
     // A real leave, not a minimize — stop any Drive audio that a room
     // screen's own dispose() may have just handed off to the background
     // session (see drive_video_player.dart), or it'd keep playing forever
