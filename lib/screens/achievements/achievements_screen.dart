@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/spinner.dart';
@@ -24,10 +25,12 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
 
   Future<void> _load() async {
     try {
-      final data = await ApiClient.get('/gamification/achievements') as Map<String, dynamic>;
+      final data = await ApiClient.get('/gamification/achievements')
+          as Map<String, dynamic>;
       if (!mounted) return;
       setState(() {
-        _achievements = (data['achievements'] as List).cast<Map<String, dynamic>>();
+        _achievements =
+            (data['achievements'] as List).cast<Map<String, dynamic>>();
         _unlocked = data['unlockedCount'] as int? ?? 0;
         _total = data['totalCount'] as int? ?? 0;
         _loading = false;
@@ -50,8 +53,13 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Achievements'), actions: [
-        if (!_loading) Padding(padding: const EdgeInsets.only(right: 16), child: Center(child: Text('$_unlocked/$_total', style: const TextStyle(color: AppColors.textDim)))),
+      appBar: AppBar(title: const InsyncPageTitle('Achievements'), actions: [
+        if (!_loading)
+          Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Center(
+                  child: Text('$_unlocked/$_total',
+                      style: const TextStyle(color: AppColors.textDim)))),
       ]),
       body: _loading
           ? const Center(child: Spinner())
@@ -60,7 +68,12 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
               children: [
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Text('Badges', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textFaint, letterSpacing: 0.6)),
+                  child: Text('Badges',
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textFaint,
+                          letterSpacing: 0.6)),
                 ),
                 const SizedBox(height: 12),
                 Padding(
@@ -68,12 +81,18 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                   child: GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 4, mainAxisSpacing: 16, crossAxisSpacing: 10, childAspectRatio: 0.72),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 16,
+                            crossAxisSpacing: 10,
+                            childAspectRatio: 1.05),
                     itemCount: _achievements.length,
                     itemBuilder: (context, i) {
                       final a = _achievements[i];
                       final unlocked = a['unlocked'] == true;
-                      final gradient = _badgeGradients[i % _badgeGradients.length];
+                      final gradient =
+                          _badgeGradients[i % _badgeGradients.length];
                       return Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -83,14 +102,29 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                             decoration: unlocked
                                 ? BoxDecoration(
                                     shape: BoxShape.circle,
-                                    gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient),
-                                    boxShadow: [BoxShadow(color: gradient[1].withValues(alpha: 0.4), blurRadius: 14, offset: const Offset(0, 6))],
+                                    gradient: LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: gradient),
+                                    boxShadow: [
+                                      BoxShadow(
+                                          color: gradient[1]
+                                              .withValues(alpha: 0.4),
+                                          blurRadius: 14,
+                                          offset: const Offset(0, 6))
+                                    ],
                                   )
-                                : BoxDecoration(shape: BoxShape.circle, color: AppColors.surface2, border: Border.all(color: AppColors.border, width: 1.5)),
+                                : BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: AppColors.surface2,
+                                    border: Border.all(
+                                        color: AppColors.border, width: 1.5)),
                             alignment: Alignment.center,
                             child: unlocked
-                                ? Text(a['icon'] as String? ?? '🏅', style: const TextStyle(fontSize: 24))
-                                : Icon(Icons.lock_rounded, color: AppColors.textFaint, size: 20),
+                                ? Text(a['icon'] as String? ?? '🏅',
+                                    style: const TextStyle(fontSize: 24))
+                                : Icon(Icons.lock_rounded,
+                                    color: AppColors.textFaint, size: 20),
                           ),
                           const SizedBox(height: 6),
                           Text(
@@ -98,7 +132,12 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                             textAlign: TextAlign.center,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: unlocked ? AppColors.textDim : AppColors.textFaint, fontSize: 10, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                                color: unlocked
+                                    ? AppColors.textDim
+                                    : AppColors.textFaint,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600),
                           ),
                         ],
                       );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../theme/app_colors.dart';
@@ -177,12 +178,10 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
                     onPressed: () => Navigator.of(context).pop()),
               ],
             ),
-            const Text('Create a room',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: AppColors.text,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800)),
+            const InsyncSectionBanner(
+                title: 'Bring your people',
+                subtitle: 'Pick a vibe. Start something together.',
+                icon: Icons.groups_rounded),
             const SizedBox(height: 20),
             _sectionLabel('1. Select Room Type'),
             const SizedBox(height: 10),
@@ -307,7 +306,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
                   gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: game.colors)),
+                      colors: AppGradients.brand)),
               alignment: Alignment.center,
               child: Icon(game.icon, color: Colors.white, size: 22),
             ),
@@ -341,7 +340,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
               alignment: Alignment.center,
               child: selected
                   ? const Icon(Icons.check_rounded,
-                      color: Colors.white, size: 12)
+                      color: AppColors.ink, size: 12)
                   : null,
             ),
           ],
@@ -460,10 +459,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
 
   Widget _pillField(TextEditingController controller, String hint) {
     return Container(
-      decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border)),
+      decoration: insyncClay(radius: 22),
       child: TextField(
         controller: controller,
         style: const TextStyle(color: AppColors.text),

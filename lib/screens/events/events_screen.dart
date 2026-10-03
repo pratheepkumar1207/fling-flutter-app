@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import 'package:intl/intl.dart';
 import '../../core/api_client.dart';
 import '../../theme/app_colors.dart';
@@ -99,7 +100,7 @@ class _EventsScreenState extends State<EventsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Upcoming')),
+      appBar: AppBar(title: const InsyncPageTitle('Upcoming')),
       body: _loading
           ? const Center(child: Spinner())
           : _events.isEmpty
@@ -153,10 +154,7 @@ class _EventsScreenState extends State<EventsScreen> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border)),
+        decoration: insyncClay(radius: 22),
         child: Row(
           children: [
             Container(

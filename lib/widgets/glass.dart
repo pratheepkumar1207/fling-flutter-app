@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 
 /// Frosted-glass panel — blurs whatever sits behind it and tints with a
 /// low-opacity white overlay instead of a flat/solid or room-tinted
@@ -30,7 +31,13 @@ class GlassPanel extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: opacity),
+            gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.surface3.withValues(alpha: .94),
+                  AppColors.surface.withValues(alpha: .94)
+                ]),
             borderRadius: borderRadius,
             border: border ??
                 Border.all(color: Colors.white.withValues(alpha: 0.16)),
@@ -90,7 +97,13 @@ class GlassCircleButton extends StatelessWidget {
             height: size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: color ?? Colors.white.withValues(alpha: 0.14),
+              color: color ?? AppColors.surface2,
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withValues(alpha: .25),
+                    blurRadius: 8,
+                    offset: const Offset(2, 4))
+              ],
               border: Border.all(
                   color: color?.withValues(alpha: 0.9) ??
                       Colors.white.withValues(alpha: 0.22)),

@@ -1,3 +1,4 @@
+import 'room_discovery_header.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -12,16 +13,12 @@ import '../../theme/app_colors.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/banner_carousel.dart';
 import '../../widgets/avatar.dart';
-import '../../widgets/countdown_badge.dart';
-import '../../widgets/member_avatar_strip.dart';
 import '../../widgets/post_composer_sheet.dart';
-import '../../widgets/spinner.dart';
-import '../../widgets/glass.dart';
 import '../../widgets/story_bar.dart';
 import '../../widgets/story_viewer_screen.dart';
 import '../experience/experience_hub.dart';
 import '../party/party_screen.dart';
-import '../profile/profile_screen.dart';
+import '../lobby/lobby_create_screen.dart';
 import '../search/search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -31,65 +28,9 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-const _roomFilters = [
-  {'key': null, 'label': 'All', 'emoji': '✨'},
-  {
-    'key': 'watch',
-    'label': 'Watch Party',
-    'emoji': '📺',
-    'icon': 'assets/icons/rooms/watch_party.png'
-  },
-  {
-    'key': 'voice',
-    'label': 'Voice Room',
-    'emoji': '🎙️',
-    'icon': 'assets/icons/rooms/voice_lobby.png'
-  },
-  {
-    'key': 'game',
-    'label': 'Game',
-    'emoji': '🎮',
-    'icon': 'assets/icons/rooms/game_lobby.png'
-  },
-];
-
-/// Real 3D-style room-type icon asset for a room's roomType, falling back
-/// to null (caller shows an emoji) for types with no shipped asset yet.
-String? _roomTypeIconAsset(String? roomType) {
-  switch (roomType) {
-    case 'watch':
-      return 'assets/icons/rooms/watch_party.png';
-    case 'voice':
-      return 'assets/icons/rooms/voice_lobby.png';
-    case 'game':
-      return 'assets/icons/rooms/game_lobby.png';
-    default:
-      return null;
-  }
-}
-
-/// Renders the real icon asset for [roomType] when one exists, otherwise
-/// falls back to the closest emoji.
-Widget _roomTypeIcon(String? roomType, double size) {
-  final asset = _roomTypeIconAsset(roomType);
-  if (asset != null) return Image.asset(asset, width: size, height: size);
-  return Text(roomType == 'voice' ? '🎙️' : '📺',
-      style: TextStyle(fontSize: size * 0.7));
-}
-
-/// Small solid "live" dot ahead of a participant count — matches the
-/// reference mockup's room-list rows (a green dot instead of a people
-/// icon) instead of this app's previous Icons.people_alt_rounded glyph.
-Widget _liveDot({double size = 7, Color color = AppColors.success}) {
-  return Container(
-    width: size,
-    height: size,
-    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-  );
-}
-
 class _HomeScreenState extends State<HomeScreen> {
   bool _loading = true;
+  bool _roomsLoadFailed = false;
   List<Map<String, dynamic>> _rooms = [];
   List<RoomSummary> _invited = [];
   List<Map<String, dynamic>> _scheduledEvents = [];
@@ -154,13 +95,16 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _load({bool silent = false}) async {
     if (!silent) setState(() => _loading = true);
     final results = await Future.wait([
-      ApiClient.get('/rooms/browse').catchError((_) => []),
+      ApiClient.get('/rooms/browse').catchError((_) => null),
       ApiClient.get('/rooms/invited').catchError((_) => []),
       ApiClient.get('/rooms/events').catchError((_) => []),
     ]);
     if (!mounted) return;
     setState(() {
-      _rooms = ((results[0] as List?) ?? []).cast<Map<String, dynamic>>();
+      _roomsLoadFailed = results[0] == null;
+      if (!_roomsLoadFailed) {
+        _rooms = ((results[0] as List?) ?? []).cast<Map<String, dynamic>>();
+      }
       _invited = ((results[1] as List?) ?? [])
           .map((e) => RoomSummary.fromJson(e as Map<String, dynamic>))
           .where((r) => r.memberCount == 0)
@@ -202,1007 +146,314 @@ class _HomeScreenState extends State<HomeScreen> {
             StoryViewerScreen(groups: _stories, startGroupIndex: index)));
   }
 
+  void _createRoom() => Navigator.of(context)
+      .push(MaterialPageRoute(builder: (_) => const LobbyCreateScreen()));
+
+  Future<void> _showJoinSheet() async {
+    await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        backgroundColor: AppColors.surface,
+        builder: (sheetContext) => Padding(
+              padding: EdgeInsets.fromLTRB(
+                  24, 8, 24, MediaQuery.viewInsetsOf(sheetContext).bottom + 24),
+              child: SafeArea(
+                  top: false,
+                  child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Your invitation starts here',
+                            style: Theme.of(context).textTheme.headlineSmall),
+                        const SizedBox(height: 8),
+                        const Text('Enter the room code your friend shared.',
+                            style: TextStyle(color: AppColors.textDim)),
+                        const SizedBox(height: 20),
+                        TextField(
+                            controller: _roomIdController,
+                            autofocus: true,
+                            textInputAction: TextInputAction.go,
+                            decoration:
+                                const InputDecoration(labelText: 'Room code'),
+                            onSubmitted: (_) {
+                              if (_roomIdController.text.trim().isEmpty) {
+                                return;
+                              }
+                              Navigator.pop(sheetContext);
+                              _joinByCode();
+                            }),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                            width: double.infinity,
+                            child: FilledButton(
+                                onPressed: () {
+                                  if (_roomIdController.text.trim().isEmpty) {
+                                    return;
+                                  }
+                                  Navigator.pop(sheetContext);
+                                  _joinByCode();
+                                },
+                                child: const Text('Enter room'))),
+                      ])),
+            ));
+  }
+
+  void _openRoom(String id) => Navigator.of(context)
+      .push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: id)));
+
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
-    final firstName = (user?.name ?? 'there').split(' ').first;
-    // Only surface a boosted room while it actually has people in it — an
-    // empty boosted room isn't "trending", it's just paid-for and idle.
-    final typeFiltered = _typeFilter == null
-        ? _rooms
-        : _rooms.where((r) => r['roomType'] == _typeFilter).toList();
-    final featured = typeFiltered
-        .where((r) => r['isBoosted'] == true && asNum(r['memberCount']) > 0)
-        .toList();
-    final active = typeFiltered
-        .where((r) => r['isBoosted'] != true && asNum(r['memberCount']) > 0)
-        .toList();
-
-    return GestureDetector(
-      // Swipe left-to-right anywhere on Home opens the profile screen, same
-      // destination as tapping the top-bar avatar — a shortcut mirroring the
-      // reference design's edge-swipe-to-profile gesture.
-      onHorizontalDragEnd: (details) {
-        if ((details.primaryVelocity ?? 0) > 250) {
-          Navigator.of(context)
-              .push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
-        }
+    final firstName = (user?.name ?? 'friend').split(' ').first;
+    final active = _rooms
+        .where((r) =>
+            asNum(r['memberCount']) > 0 &&
+            (_typeFilter == null || r['roomType'] == _typeFilter))
+        .toList()
+      ..sort((a, b) => (b['isBoosted'] == true ? 1 : 0)
+          .compareTo(a['isBoosted'] == true ? 1 : 0));
+    return RefreshIndicator(
+      onRefresh: () async {
+        await Future.wait([_load(), _loadStories(), _loadLikedPlaylists()]);
       },
-      child: RefreshIndicator(
-        onRefresh: _load,
-        child: ListView(
-          // Extra bottom room — the Scaffold now extends its body behind
-          // the glass bottom nav (see app_shell.dart's extendBody) so the
-          // last section doesn't end up sitting under that bar.
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-          children: [
-            Text('Hey $firstName 👋',
-                style: const TextStyle(
-                    color: AppColors.text,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            const Text("Here's what's happening right now.",
-                style: TextStyle(color: AppColors.textDim)),
-            const SizedBox(height: 16),
-            GestureDetector(
-              onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const SearchScreen())),
-              child: GlassPanel(
-                borderRadius: BorderRadius.circular(999),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.search_rounded,
-                          color: AppColors.textFaint, size: 20),
-                      const SizedBox(width: 10),
-                      const Expanded(
-                        child: Text('Search lobbies, movies, people…',
-                            style: TextStyle(
-                                color: AppColors.textFaint, fontSize: 14)),
-                      ),
-                      Icon(Icons.tune_rounded,
-                          color: AppColors.primary, size: 18),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            // Moved here from the now-removed Rooms tab — joining by ID/link
-            // is a real feature (someone pastes a link a friend sent them),
-            // just not one that earned its own bottom-nav slot.
-            GlassPanel(
-              borderRadius: BorderRadius.circular(999),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                child: Row(
-                  children: [
-                    const SizedBox(width: 10),
-                    const Icon(Icons.vpn_key_rounded,
-                        color: AppColors.textFaint, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: _roomIdController,
-                        style: const TextStyle(
-                            color: AppColors.text, fontSize: 14),
-                        onSubmitted: (_) => _joinByCode(),
-                        decoration: const InputDecoration(
-                          hintText: 'Have a room code or link?',
-                          hintStyle: TextStyle(
-                              color: AppColors.textFaint, fontSize: 13.5),
-                          border: InputBorder.none,
-                          isDense: true,
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: _joinByCode,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                            gradient: AppGradients.volaCtaDiagonal,
-                            borderRadius: BorderRadius.circular(999)),
-                        child: const Text('Join',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w700)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Entry point for the newer feature hub (Vibe Match, Together,
-            // Safety Center, Verification, Creator Studio, etc.) — see
-            // experience_hub.dart's doc comment for what's real vs. still
-            // UI-only there.
-            GestureDetector(
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => const FlingFeatureHubScreen())),
-              child: GlassPanel(
-                borderRadius: BorderRadius.circular(20),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                                colors: AppGradients.brand),
-                            borderRadius: BorderRadius.circular(13)),
-                        alignment: Alignment.center,
-                        child: const Icon(Icons.auto_awesome_rounded,
-                            color: Colors.white, size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Do something together',
-                                style: TextStyle(
-                                    color: AppColors.text,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13.5)),
-                            Text('Vibe Match, Together, Creator Studio & more',
-                                style: TextStyle(
-                                    color: AppColors.textFaint, fontSize: 11)),
-                          ],
-                        ),
-                      ),
-                      const Icon(Icons.chevron_right_rounded,
-                          color: AppColors.textFaint),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            StoryBar(
-              stories: _stories,
-              onOpen: _openStoryViewer,
-              leading: GestureDetector(
-                onTap: () => showPostComposerSheet(context,
-                    onPosted: _loadStories, initialIsStory: true),
-                child: SizedBox(
-                  width: 64,
-                  child: Column(
-                    children: [
-                      Stack(
-                        children: [
-                          Avatar(
-                              src: user?.avatarUrl,
-                              name: user?.name,
-                              size: AvatarSize.lg),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              width: 18,
-                              height: 18,
-                              decoration: const BoxDecoration(
-                                  color: AppColors.primary,
-                                  shape: BoxShape.circle),
-                              alignment: Alignment.center,
-                              child: const Text('+',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold)),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      const Text('My status',
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: AppColors.textDim, fontSize: 11)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 48,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+        children: [
+          const SizedBox(height: 28),
+          _heading('Your circle'),
+          const SizedBox(height: 14),
+          SizedBox(
+              height: 92,
               child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: _roomFilters.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (context, i) {
-                  final f = _roomFilters[i];
-                  final selected = _typeFilter == f['key'];
-                  final chipChild = Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        f['icon'] != null
-                            ? Image.asset(f['icon']!, width: 32, height: 32)
-                            : Text(f['emoji']!,
-                                style: const TextStyle(fontSize: 13)),
-                        const SizedBox(width: 5),
-                        Text(
-                          f['label']!,
-                          style: TextStyle(
-                              color:
-                                  selected ? Colors.white : AppColors.textDim,
-                              fontSize: 12,
-                              fontWeight:
-                                  selected ? FontWeight.w700 : FontWeight.w500),
-                        ),
-                      ],
-                    ),
-                  );
-                  return GestureDetector(
-                    onTap: () => setState(() => _typeFilter = f['key']),
-                    child: selected
-                        ? Container(
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                                gradient: AppGradients.volaCtaDiagonal,
-                                borderRadius: BorderRadius.circular(999)),
-                            child: chipChild,
-                          )
-                        : GlassPanel(
-                            borderRadius: BorderRadius.circular(999),
-                            child: chipChild),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-            const BannerCarousel(placement: 'home'),
-            const SizedBox(height: 20),
-            if (_loading)
-              const Center(
-                  child: Padding(padding: EdgeInsets.all(24), child: Spinner()))
-            else ...[
-              if (_invited.isNotEmpty) ...[
-                _sectionHeader('Invited'),
-                ..._invited.map((r) => _roomTile(
-                    r.id, r.title, r.hostName, r.memberCount,
-                    inviteLabel: 'Invited')),
-                const SizedBox(height: 20),
-              ],
-              if (_likedPlaylists.isNotEmpty) ...[
-                _sectionHeader('Playlists you\'ve liked'),
-                SizedBox(
-                  height: 150,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _likedPlaylists.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 10),
-                    itemBuilder: (context, i) =>
-                        _likedPlaylistCard(_likedPlaylists[i]),
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
-              _sectionHeader('Featured',
-                  iconAsset: 'assets/icons/rooms/featured.png'),
-              featured.isEmpty
-                  ? const Text('No featured rooms right now.',
-                      style: TextStyle(color: AppColors.textFaint))
-                  : _heroBanner(featured[0]),
-              if (featured.length > 1) ...[
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 150,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: featured.length - 1,
-                    separatorBuilder: (_, __) => const SizedBox(width: 10),
-                    itemBuilder: (context, i) {
-                      final r = featured[i + 1];
-                      return _posterCard(r);
-                    },
-                  ),
-                ),
-              ],
-              // Type-grouped horizontal rails — matches LobbyDark.dc.html's
-              // "Live now" / "Trending watch parties" / "Voice rooms" /
-              // "Game rooms" rows, instead of one mixed vertical list. Same
-              // /rooms/browse data, just grouped by roomType client-side
-              // (no new backend endpoint needed).
-              if (active.isEmpty && _scheduledEvents.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(top: 20),
-                  child: Text(
-                      'No active rooms right now. Be the first to start one.',
-                      style: TextStyle(color: AppColors.textFaint)),
-                )
-              else ...[
-                ..._rail('Live now',
-                    active.where((r) => r['roomType'] == 'live').toList(),
-                    width: 118, height: 158),
-                // Watch Party gets its own row layout (thumbnail ~30% left,
-                // now-playing title + participant count 70% right) instead of
-                // a horizontal poster-card scroll — see _watchPartyRow.
-                ..._watchPartySection(
-                    active.where((r) => r['roomType'] == 'watch').toList()),
-                // Voice matches Game's card size/shape exactly — same
-                // _posterCard, same dimensions, just a different data set.
-                ..._rail('Voice rooms',
-                    active.where((r) => r['roomType'] == 'voice').toList(),
-                    width: 118, height: 118),
-                ..._rail('Game rooms',
-                    active.where((r) => r['roomType'] == 'game').toList(),
-                    width: 118, height: 118),
-                if (_scheduledEvents.isNotEmpty) ...[
-                  const SizedBox(height: 20),
-                  _sectionHeader('Coming up'),
-                  ..._scheduledEvents.map(_eventTile),
-                ],
-              ],
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _sectionHeader(String title, {String? iconAsset}) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Row(
-          children: [
-            if (iconAsset != null) ...[
-              Image.asset(iconAsset, width: 40, height: 40),
-              const SizedBox(width: 6),
-            ],
-            Text(title,
-                style: const TextStyle(
-                    color: AppColors.text,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16)),
-          ],
-        ),
-      );
-
-  Widget _heroBanner(Map<String, dynamic> r) {
-    final thumbnail = r['nowPlayingThumbnail'] as String?;
-    return GestureDetector(
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => PartyScreen(roomId: r['id'] as String))),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: AspectRatio(
-          aspectRatio: 16 / 10,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              (thumbnail != null && thumbnail.isNotEmpty)
-                  ? AppImage(source: thumbnail, fit: BoxFit.cover)
-                  : Container(
-                      decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: AppGradients.brand)),
-                      alignment: Alignment.center,
-                      child: _roomTypeIcon(r['roomType'] as String?, 64),
-                    ),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Colors.black87],
-                        stops: [0.4, 1])),
-              ),
-              Positioned(
-                top: 12,
-                left: 12,
-                child: GlassPanel(
-                  borderRadius: BorderRadius.circular(999),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    child: Text('🔥 Trending Now',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700)),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 16,
-                right: 16,
-                bottom: 16,
-                child: GlassPanel(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(r['title'] as String? ?? '',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis),
-                        const SizedBox(height: 2),
-                        Text(
-                            '${r['hostName'] ?? ''} · ${r['memberCount'] ?? 0} watching',
-                            style: const TextStyle(
-                                color: Colors.white70, fontSize: 13)),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 18, vertical: 9),
-                              decoration: BoxDecoration(
-                                  gradient: AppGradients.volaCtaDiagonal,
-                                  borderRadius: BorderRadius.circular(999),
-                                  boxShadow: [
-                                    BoxShadow(
-                                        color: AppColors.primary
-                                            .withValues(alpha: 0.4),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 4))
-                                  ]),
-                              child: const Text('▶ Watch',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700)),
-                            ),
-                            const SizedBox(width: 8),
-                            GlassPanel(
-                              borderRadius: BorderRadius.circular(999),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 9),
-                                child: Text('👥 ${r['memberCount'] ?? 0}',
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600)),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // One rail section (header + horizontal scroll of poster cards) — empty
-  // list (no header, no row) when this type has nothing active, so a quiet
-  // category just doesn't take up space rather than showing an empty rail.
-  List<Widget> _rail(String title, List<Map<String, dynamic>> rooms,
-      {required double width, required double height}) {
-    if (rooms.isEmpty) return const [];
-    return [
-      const SizedBox(height: 20),
-      _sectionHeader(title),
-      SizedBox(
-        height: height,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          itemCount: rooms.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 10),
-          itemBuilder: (context, i) =>
-              _posterCard(rooms[i], width: width, height: height),
-        ),
-      ),
-    ];
-  }
-
-  List<Widget> _watchPartySection(List<Map<String, dynamic>> rooms) {
-    if (rooms.isEmpty) return const [];
-    return [
-      const SizedBox(height: 20),
-      _sectionHeader('Trending watch parties'),
-      ...rooms.map(_watchPartyRow),
-    ];
-  }
-
-  Widget _watchPartyRow(Map<String, dynamic> r) {
-    final thumbnail = r['nowPlayingThumbnail'] as String?;
-    final nowPlaying =
-        r['nowPlayingTitle'] as String? ?? r['title'] as String? ?? 'Video';
-    final memberCount = (r['memberCount'] as num?)?.toInt() ?? 0;
-    final members = (r['members'] as List?) ?? const [];
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: GestureDetector(
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => PartyScreen(roomId: r['id'] as String))),
-        child: GlassPanel(
-          borderRadius: BorderRadius.circular(16),
-          child: SizedBox(
-            height: members.isNotEmpty ? 112 : 88,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: (thumbnail != null && thumbnail.isNotEmpty)
-                      ? AppImage(source: thumbnail, fit: BoxFit.cover)
-                      : Container(
-                          color: AppColors.surface3,
-                          alignment: Alignment.center,
-                          child: _roomTypeIcon('watch', 28)),
-                ),
-                Expanded(
-                  flex: 7,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.play_arrow_rounded,
-                                size: 14, color: AppColors.primary),
-                            const SizedBox(width: 3),
-                            Expanded(
-                              child: Text(nowPlaying,
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _stories.length + 1,
+                  separatorBuilder: (_, __) => const SizedBox(width: 16),
+                  itemBuilder: (context, index) {
+                    final story = index == 0 ? null : _stories[index - 1];
+                    return SizedBox(
+                        width: 64,
+                        child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () => story == null
+                                ? showPostComposerSheet(context,
+                                    onPosted: _loadStories,
+                                    initialIsStory: true)
+                                : _openStoryViewer(story),
+                            child: Column(children: [
+                              Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                          color: story == null
+                                              ? AppColors.border
+                                              : AppColors.primary)),
+                                  child: story == null
+                                      ? const SizedBox(
+                                          width: 48,
+                                          height: 48,
+                                          child: Icon(Icons.add_rounded,
+                                              color: AppColors.text))
+                                      : Avatar(
+                                          src: story.avatarUrl,
+                                          name: story.name,
+                                          size: AvatarSize.md)),
+                              const SizedBox(height: 8),
+                              Text(story?.name ?? 'Your story',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                      color: AppColors.text,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 13.5)),
-                            ),
-                          ],
-                        ),
-                        if (members.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          MemberAvatarStrip(
-                              members: members, totalCount: memberCount),
-                        ],
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            _liveDot(),
-                            const SizedBox(width: 5),
-                            Text('$memberCount watching',
-                                style: const TextStyle(
-                                    color: AppColors.textFaint,
-                                    fontSize: 11.5)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _watchingLabel(String? roomType) => switch (roomType) {
-        'voice' => 'listening',
-        'game' => 'spectating',
-        _ => 'watching',
-      };
-
-  // Tapping a liked playlist queues every song into whatever room this
-  // user is already in (or starts a new one) — same "one click" bulk-add
-  // behavior as the in-room source picker's "Add all", see
-  // core/smart_play_song.dart's playPlaylistSmart.
-  Widget _likedPlaylistCard(Map<String, dynamic> p) {
-    final owner = p['owner'] as Map<String, dynamic>?;
-    final songs = ((p['songs'] as List?) ?? [])
-        .map((s) => Song.fromJson(s as Map<String, dynamic>))
-        .toList();
-    return GestureDetector(
-      onTap: () => playPlaylistSmart(context, songs),
-      child: Container(
-        width: 140,
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.border)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Avatar(
-                    src: owner?['avatarUrl'] as String?,
-                    name: owner?['name'] as String?,
-                    size: AvatarSize.sm),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(owner?['name'] as String? ?? 'Someone',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: AppColors.textFaint, fontSize: 10.5)),
-                ),
-              ],
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(p['name'] as String? ?? 'Playlist',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        color: AppColors.text,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13)),
-                Row(
-                  children: [
-                    const Icon(Icons.favorite_rounded,
-                        color: AppColors.danger, size: 12),
-                    const SizedBox(width: 4),
-                    Text('${songs.length} song${songs.length == 1 ? '' : 's'}',
-                        style: const TextStyle(
-                            color: AppColors.textFaint, fontSize: 11)),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _posterCard(Map<String, dynamic> r,
-      {double width = 110, double? height}) {
-    final thumbnail = r['nowPlayingThumbnail'] as String?;
-    final roomType = r['roomType'] as String?;
-    final isLive = roomType == 'live';
-    return GestureDetector(
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => PartyScreen(roomId: r['id'] as String))),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: SizedBox(
-          width: width,
-          height: height,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              (thumbnail != null && thumbnail.isNotEmpty)
-                  ? AppImage(source: thumbnail, fit: BoxFit.cover)
-                  : Container(
-                      color: AppColors.surface3,
-                      alignment: Alignment.center,
-                      child: _roomTypeIcon(roomType, 32)),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Colors.black87],
-                        stops: [0.5, 1])),
-              ),
-              if (isLive)
-                Positioned(
-                  top: 8,
-                  left: 8,
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                        color: AppColors.danger.withValues(alpha: 0.9),
-                        borderRadius: BorderRadius.circular(999)),
-                    child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.circle, size: 5, color: Colors.white),
-                      SizedBox(width: 4),
-                      Text('LIVE',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700)),
-                    ]),
-                  ),
-                ),
-              Positioned(
-                left: 8,
-                right: 8,
-                bottom: 8,
-                child: GlassPanel(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(r['title'] as String? ?? '',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis),
-                        const SizedBox(height: 2),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _liveDot(size: 6),
-                            const SizedBox(width: 4),
-                            Text(
-                                '${r['memberCount'] ?? 0} ${_watchingLabel(roomType)}',
-                                style: const TextStyle(
-                                    color: Colors.white70, fontSize: 10)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // roomType -> (badge label, badge tint) matching Lobby.dc.html's
-  // per-type pastel pill colors. 'live' gets its own accent-tinted "Live
-  // now" pill instead of always stamping every room with a LIVE badge
-  // regardless of type, which is what this replaced.
-  static const _typeBadges = {
-    'watch': ('Watch party', Color(0xFF4272D9)),
-    'voice': ('Voice room', Color(0xFFA23FCB)),
-    'game': ('Game room', Color(0xFF2E9E5B)),
-    'live': ('Live now', AppColors.accent),
-  };
-
-  Widget _roomTile(
-    String id,
-    String? title,
-    String? hostName,
-    int memberCount, {
-    String? thumbnail,
-    List<dynamic>? members,
-    String? roomType,
-    String? nowPlayingTitle,
-    bool isBoosted = false,
-    String? inviteLabel,
-  }) {
-    final isLive = roomType == 'live';
-    final (badgeLabel, badgeColor) =
-        _typeBadges[roomType] ?? ('Room', AppColors.textFaint);
-    return GestureDetector(
-      onTap: () => Navigator.of(context)
-          .push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: id))),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-              color: isLive
-                  ? AppColors.accent.withValues(alpha: 0.35)
-                  : AppColors.border),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: SizedBox(
-                    width: 64,
-                    height: 64,
-                    child: (thumbnail != null && thumbnail.isNotEmpty)
-                        ? AppImage(source: thumbnail, fit: BoxFit.cover)
-                        : Container(
-                            decoration: const BoxDecoration(
-                                gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: AppGradients.brand)),
-                            alignment: Alignment.center,
-                            child: _roomTypeIcon(roomType, 24),
-                          ),
-                  ),
-                ),
-                if (isLive)
-                  Positioned(
-                    top: 5,
-                    left: 5,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.55),
-                          borderRadius: BorderRadius.circular(999)),
-                      child:
-                          const Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.circle, size: 5, color: Colors.white),
-                        SizedBox(width: 3),
-                        Text('LIVE',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 8,
-                                fontWeight: FontWeight.w700)),
-                      ]),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                            color: badgeColor.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(999)),
-                        child: Text(badgeLabel,
-                            style: TextStyle(
-                                color: badgeColor,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700)),
-                      ),
-                      if (isBoosted) ...[
-                        const SizedBox(width: 6),
-                        const Icon(Icons.star_rounded,
-                            size: 11, color: AppColors.gold),
-                        const SizedBox(width: 2),
-                        const Text('Boosted',
-                            style: TextStyle(
-                                color: AppColors.gold,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700)),
-                      ],
-                      if (inviteLabel != null) ...[
-                        const SizedBox(width: 6),
-                        Container(
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.copyWith(color: AppColors.textDim)),
+                            ])));
+                  })),
+          RoomDiscoveryHeader(
+              firstName: firstName,
+              onCreate: _createRoom,
+              onJoin: _showJoinSheet,
+              onSearch: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SearchScreen()))),
+          const SizedBox(height: 28),
+          _heading('Find your room', trailing: '${active.length} live'),
+          const SizedBox(height: 14),
+          SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: [
+                for (final filter in const <(String?, String, IconData)>[
+                  (null, 'For you', Icons.grid_view_rounded),
+                  ('watch', 'Watch', Icons.play_circle_outline),
+                  ('voice', 'Talk', Icons.graphic_eq_rounded),
+                  ('game', 'Play', Icons.sports_esports_outlined),
+                  ('live', 'Live', Icons.sensors_rounded),
+                ])
+                  Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                          showCheckmark: false,
+                          avatar: Icon(filter.$3,
+                              size: 18,
+                              color: _typeFilter == filter.$1
+                                  ? AppColors.ink
+                                  : AppColors.textDim),
+                          label: Text(filter.$2),
+                          selected: _typeFilter == filter.$1,
+                          selectedColor: AppColors.paper,
+                          backgroundColor: AppColors.surface,
+                          labelStyle: TextStyle(
+                              color: _typeFilter == filter.$1
+                                  ? AppColors.ink
+                                  : AppColors.textDim),
+                          side: BorderSide.none,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(999)),
-                          child: Text(inviteLabel,
-                              style: const TextStyle(
-                                  color: AppColors.primary,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700)),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(title ?? 'Untitled room',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: AppColors.text,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14)),
-                  Text('Hosted by ${hostName ?? 'Unknown'}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: AppColors.textFaint, fontSize: 11.5)),
-                  if (roomType == 'watch' &&
-                      nowPlayingTitle != null &&
-                      nowPlayingTitle.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 3),
-                      child: Row(children: [
-                        const Icon(Icons.play_arrow_rounded,
-                            size: 12, color: AppColors.primary),
-                        const SizedBox(width: 2),
-                        Expanded(
-                            child: Text('Now playing — $nowPlayingTitle',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    color: AppColors.primary,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600))),
-                      ]),
-                    ),
-                  const SizedBox(height: 6),
-                  Row(
+                              horizontal: 10, vertical: 10),
+                          onSelected: (_) =>
+                              setState(() => _typeFilter = filter.$1))),
+              ])),
+          const SizedBox(height: 18),
+          if (_loading)
+            const Padding(
+                padding: EdgeInsets.all(32),
+                child: Center(child: CircularProgressIndicator()))
+          else if (_roomsLoadFailed && active.isEmpty)
+            _actionRow(Icons.cloud_off_outlined, 'Could not load rooms',
+                'Tap to try again', () => _load())
+          else if (active.isEmpty)
+            Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.border),
+                    borderRadius: BorderRadius.circular(18)),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (members != null && members.isNotEmpty)
-                        Flexible(
-                            child: MemberAvatarStrip(
-                                members: members, totalCount: memberCount)),
-                      const SizedBox(width: 6),
-                      _liveDot(size: 6),
-                      const SizedBox(width: 4),
-                      Text(
-                          '$memberCount ${isLive ? 'watching' : roomType == 'voice' ? 'listening' : roomType == 'game' ? 'spectating' : 'watching'}',
-                          style: const TextStyle(
-                              color: AppColors.textFaint, fontSize: 11)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+                      const Icon(Icons.chair_alt_outlined,
+                          color: AppColors.textDim, size: 28),
+                      const SizedBox(height: 16),
+                      Text('The next great room could be yours.',
+                          style: Theme.of(context).textTheme.titleMedium),
+                      const SizedBox(height: 8),
+                      const Text(
+                          'It’s quiet here. Pick something to watch and invite someone along.',
+                          style:
+                              TextStyle(color: AppColors.textDim, height: 1.5)),
+                      const SizedBox(height: 12),
+                      TextButton.icon(
+                          onPressed: _createRoom,
+                          label: const Text('Start something'),
+                          icon: const Icon(Icons.arrow_forward_rounded,
+                              size: 18)),
+                    ]))
+          else
+            ...active.map((r) => DiscoveryRoomCard(
+                title: (r['roomType'] == 'watch'
+                        ? r['nowPlayingTitle']
+                        : r['title']) as String? ??
+                    r['title'] as String? ??
+                    'Untitled room',
+                subtitle: r['hostName'] as String? ?? 'Come hang out',
+                kind: r['roomType'] as String? ?? 'watch',
+                count: asNum(r['memberCount']).toInt(),
+                gameType: r['gameType'] as String?,
+                participants: ((r['members'] as List?) ?? const [])
+                    .whereType<Map<String, dynamic>>()
+                    .toList(),
+                positionSeconds: (r['playbackPosition'] as num?)?.toDouble(),
+                isPlaying: r['isPlaying'] == true,
+                image: (r['nowPlayingThumbnail'] as String?)?.isNotEmpty == true
+                    ? AppImage(
+                        source: r['nowPlayingThumbnail'] as String,
+                        fit: BoxFit.cover)
+                    : null,
+                onTap: () => _openRoom(r['id'] as String))),
+          if (_invited.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            _heading('You’re invited'),
+            const SizedBox(height: 12),
+            ..._invited.map((r) => _actionRow(
+                Icons.mail_outline_rounded,
+                r.title,
+                r.hostName ?? 'A room is waiting for you',
+                () => _openRoom(r.id))),
           ],
-        ),
+          if (_likedPlaylists.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            _heading('On repeat'),
+            const SizedBox(height: 12),
+            ..._likedPlaylists.map((p) {
+              final songs = ((p['songs'] as List?) ?? [])
+                  .map((s) => Song.fromJson(s as Map<String, dynamic>))
+                  .toList();
+              return _actionRow(
+                  Icons.queue_music_rounded,
+                  p['name'] as String? ?? 'Saved playlist',
+                  '${songs.length} tracks · Your saved collection',
+                  () => playPlaylistSmart(context, songs));
+            }),
+          ],
+          if (_scheduledEvents.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            _heading('Coming up'),
+            const SizedBox(height: 12),
+            ..._scheduledEvents.map((ev) => _actionRow(
+                Icons.event_outlined,
+                ev['title'] as String? ?? 'Upcoming room',
+                ev['hostName'] as String? ?? 'Scheduled room',
+                () => _openRoom(ev['id'] as String))),
+          ],
+          const SizedBox(height: 24),
+          _actionRow(
+              Icons.explore_outlined,
+              'More ways to connect',
+              'Matching, communities & your creator space',
+              () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const FlingFeatureHubScreen()))),
+          const SizedBox(height: 16),
+          const BannerCarousel(placement: 'home'),
+        ],
       ),
     );
   }
 
-  Widget _eventTile(Map<String, dynamic> ev) {
-    final scheduledAt = DateTime.tryParse(ev['scheduledAt'] as String? ?? '');
-    return GestureDetector(
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => PartyScreen(roomId: ev['id'] as String))),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.border)),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                  color: AppColors.surface3,
-                  borderRadius: BorderRadius.circular(10)),
-              alignment: Alignment.center,
-              child: _roomTypeIcon(ev['roomType'] as String?, 24),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(ev['title'] as String? ?? '',
-                      maxLines: 1,
+  Widget _heading(String title, {String? trailing}) => Row(children: [
+        Expanded(
+            child: Text(title,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700, letterSpacing: -0.5))),
+        if (trailing != null)
+          Text(trailing,
+              style: Theme.of(context)
+                  .textTheme
+                  .labelMedium
+                  ?.copyWith(color: AppColors.textDim)),
+      ]);
+
+  Widget _actionRow(
+          IconData icon, String title, String subtitle, VoidCallback onTap) =>
+      Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Material(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              child: ListTile(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  leading: Icon(icon, color: AppColors.primary),
+                  title: Text(title,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: AppColors.text, fontWeight: FontWeight.w500)),
-                  Text(ev['hostName'] as String? ?? '',
-                      maxLines: 1,
+                      style: Theme.of(context).textTheme.titleSmall),
+                  subtitle: Text(subtitle,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: AppColors.textFaint, fontSize: 12)),
-                ],
-              ),
-            ),
-            if (scheduledAt != null) CountdownBadge(scheduledAt: scheduledAt),
-          ],
-        ),
-      ),
-    );
-  }
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: AppColors.textDim)),
+                  trailing: const Icon(Icons.arrow_forward_rounded, size: 18),
+                  onTap: onTap)));
 }

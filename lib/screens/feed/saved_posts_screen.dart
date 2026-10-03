@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
 import '../../models/post.dart';
 import '../../theme/app_colors.dart';
@@ -32,7 +33,9 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
       final data = await ApiClient.get('/feed/saved');
       if (!mounted) return;
       setState(() {
-        _posts = (data as List).map((e) => Post.fromJson(e as Map<String, dynamic>)).toList();
+        _posts = (data as List)
+            .map((e) => Post.fromJson(e as Map<String, dynamic>))
+            .toList();
         _loading = false;
       });
     } catch (_) {
@@ -51,31 +54,54 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Saved')),
+      appBar: AppBar(title: const InsyncPageTitle('Saved')),
       body: _loading
           ? const Center(child: Spinner())
           : _posts.isEmpty
-              ? const Center(child: Text('Nothing saved yet.', style: TextStyle(color: AppColors.textFaint)))
+              ? const Center(
+                  child: Text('Nothing saved yet.',
+                      style: TextStyle(color: AppColors.textFaint)))
               : GridView.builder(
                   padding: const EdgeInsets.all(2),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 2, crossAxisSpacing: 2),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 2,
+                      crossAxisSpacing: 2),
                   itemCount: _posts.length,
                   itemBuilder: (context, i) {
                     final p = _posts[i];
-                    final gradient = _placeholderGradients[p.id.hashCode.abs() % _placeholderGradients.length];
+                    final gradient = _placeholderGradients[
+                        p.id.hashCode.abs() % _placeholderGradients.length];
                     return GestureDetector(
-                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PostDetailScreen(postId: p.id))).then((_) => _load()),
+                      onTap: () => Navigator.of(context)
+                          .push(MaterialPageRoute(
+                              builder: (_) => PostDetailScreen(postId: p.id)))
+                          .then((_) => _load()),
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
                           if (p.imageData != null)
                             AppImage(source: p.imageData, fit: BoxFit.cover)
                           else
-                            Container(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient))),
-                          if (p.mediaType == 'video_link' || p.mediaType == 'reel')
-                            const Positioned(top: 6, right: 6, child: Icon(Icons.play_arrow_rounded, color: Colors.white, size: 16)),
+                            Container(
+                                decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: gradient))),
+                          if (p.mediaType == 'video_link' ||
+                              p.mediaType == 'reel')
+                            const Positioned(
+                                top: 6,
+                                right: 6,
+                                child: Icon(Icons.play_arrow_rounded,
+                                    color: Colors.white, size: 16)),
                           if (p.mediaType == 'poll')
-                            const Positioned(top: 6, right: 6, child: Icon(Icons.bar_chart_rounded, color: Colors.white, size: 16)),
+                            const Positioned(
+                                top: 6,
+                                right: 6,
+                                child: Icon(Icons.bar_chart_rounded,
+                                    color: Colors.white, size: 16)),
                         ],
                       ),
                     );

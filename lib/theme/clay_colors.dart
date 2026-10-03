@@ -67,7 +67,7 @@ class ClayColors extends ThemeExtension<ClayColors> {
     success: AppColors.success,
     danger: AppColors.danger,
     warning: AppColors.warning,
-    shadowLight: Color(0xFF6B4AA8),
+    shadowLight: Color(0xFF7295FF),
     shadowDark: Color(0xFF000000),
     gradient: AppGradients.brand,
   );
@@ -90,7 +90,7 @@ class ClayColors extends ThemeExtension<ClayColors> {
     danger: AppColorsLight.danger,
     warning: AppColorsLight.warning,
     shadowLight: Color(0xFFFFFFFF),
-    shadowDark: Color(0xFFB49BDD),
+    shadowDark: Color(0xFF9DAFD9),
     gradient: AppGradients.brand,
   );
 
@@ -163,5 +163,6 @@ class ClayColors extends ThemeExtension<ClayColors> {
   }
 
   /// Shorthand for `Theme.of(context).extension<ClayColors>()!`.
-  static ClayColors of(BuildContext context) => Theme.of(context).extension<ClayColors>()!;
+  static ClayColors of(BuildContext context) =>
+      Theme.of(context).extension<ClayColors>()!;
 }

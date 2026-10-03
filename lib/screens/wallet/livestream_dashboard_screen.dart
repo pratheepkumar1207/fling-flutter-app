@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../core/format.dart';
@@ -76,8 +77,8 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
       if (mounted) _load();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Failed to start a live broadcast')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to start a live broadcast')));
       }
     } finally {
       if (mounted) setState(() => _goingLive = false);
@@ -92,7 +93,7 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Livestream')),
+      appBar: AppBar(title: const InsyncPageTitle('Livestream')),
       body: _loading
           ? const Center(child: Spinner())
           : d == null

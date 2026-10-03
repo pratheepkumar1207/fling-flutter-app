@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
@@ -88,7 +89,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('Challenges'),
+        title: const InsyncPageTitle('Challenges'),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16),
@@ -96,10 +97,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
               child: Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-                decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: AppColors.border)),
+                decoration: insyncClay(radius: 22),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -138,10 +136,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.border)),
+                    decoration: insyncClay(radius: 22),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

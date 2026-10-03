@@ -1,38 +1,32 @@
 import 'package:flutter/material.dart';
 
-/// Dark-mode palette — precisely converted (oklch -> sRGB) from the
-/// fling-redesign design canvas's :root tokens (--bg:oklch(13% .014 280)
-/// etc.), which is the single source of truth for both light and dark.
-/// success/danger stay as functional status signals regardless of brand
-/// color. See AppColorsLight for the light-mode sibling.
 class AppColors {
   AppColors._();
+  static const paper = Color(0xFFD4FF65);
+  static const ink = Color(0xFF101B35);
+  static const inkMuted = Color(0xFF34435E);
 
-  static const bg = Color(0xFF06070D);
-  static const surface = Color(0xFF101119);
-  static const surface2 = Color(0xFF191A23);
+  static const bg = Color(0xFF0C1226);
+  static const surface = Color(0xFF16213D);
+  static const surface2 = Color(0xFF203052);
   static const surface3 = Color(
-      0xFF232430); // one step past surface2, same progression rate as the design's surface->surface2 step
-  static const border = Color(0xFF2C2D38);
-
-  // No separate --primary token in the design canvas — --accent is the
-  // single solid brand color used for CTAs/highlights/selected states.
-  static const primary = Color(0xFFE74D68);
-  static const primaryDim = Color(0xFFC13750);
-  static const accent = Color(0xFFE74D68);
-  static const accent2 = Color(0xFFA161E0);
+      0xFF2B4069); // one step past surface2, same progression rate as the design's surface->surface2 step
+  static const border = Color(0xFF34496F);
+  static const primary = Color(0xFF2455F5);
+  static const primaryDim = Color(0xFF193CB8);
+  static const accent = Color(0xFFD4FF65);
+  static const accent2 = Color(0xFFD4FF65);
   static const gold = Color(0xFFDBB155);
 
   static const text = Color(0xFFF1F1F4);
-  static const textDim = Color(0xFFA9AAB2);
-  static const textFaint = Color(0xFF676871);
+  static const textDim = Color(0xFFADBBD7);
+  static const textFaint = Color(0xFF91A1C2);
 
   static const success = Color(0xFF43B966);
   static const danger = Color(0xFFED4B43);
   static const warning = Color(0xFFDBB155);
 }
 
-/// Light-mode palette — warm off-white ground, same coral/violet identity.
 class AppColorsLight {
   AppColorsLight._();
 
@@ -42,10 +36,10 @@ class AppColorsLight {
   static const surface3 = Color(0xFFEBE7E1);
   static const border = Color(0xFFE4E1DD);
 
-  static const primary = Color(0xFFE74D68);
-  static const primaryDim = Color(0xFFC13750);
-  static const accent = Color(0xFFE74D68);
-  static const accent2 = Color(0xFFA161E0);
+  static const primary = Color(0xFF2455F5);
+  static const primaryDim = Color(0xFF193CB8);
+  static const accent = Color(0xFFD4FF65);
+  static const accent2 = Color(0xFFD4FF65);
   static const gold = Color(0xFFDBB155);
 
   static const text = Color(0xFF16130F);
@@ -57,18 +51,12 @@ class AppColorsLight {
   static const warning = Color(0xFFDBB155);
 }
 
-/// Brand gradient — coral-to-champagne, used for the avatar story-ring,
-/// CTAs and other decorative accents. Swapped from the original coral-to-
-/// violet pairing per the "no purple branding" direction from the
-/// ChatGPT-authored reference design (ref: fling-flutter-app-all-features
-/// .zip's coral/champagne neutral glass system) — everything else about
-/// the gradient (angle, usage) is unchanged.
 class AppGradients {
   AppGradients._();
 
   static const List<Color> brand = [
-    Color(0xFFFF5A68),
-    Color(0xFFD8B36A),
+    Color(0xFF2455F5),
+    Color(0xFF315EDC),
   ];
 
   static const LinearGradient brandDiagonal = LinearGradient(
@@ -76,9 +64,6 @@ class AppGradients {
     end: Alignment.bottomRight,
     colors: brand,
   );
-
-  /// Primary CTA pill gradient — same coral-to-violet brand gradient, for
-  /// buttons like "Create Room" / "Upgrade Now" / the floating "+" action.
   static const List<Color> volaCta = brand;
 
   static const LinearGradient volaCtaDiagonal = LinearGradient(

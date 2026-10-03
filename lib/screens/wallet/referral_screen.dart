@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/api_client.dart';
@@ -42,7 +43,8 @@ class _ReferralScreenState extends State<ReferralScreen> {
 
   Future<void> _load() async {
     try {
-      final data = await ApiClient.get('/gamification/me') as Map<String, dynamic>;
+      final data =
+          await ApiClient.get('/gamification/me') as Map<String, dynamic>;
       if (!mounted) return;
       setState(() {
         _code = data['referralCode'] as String?;
@@ -58,7 +60,8 @@ class _ReferralScreenState extends State<ReferralScreen> {
   Future<void> _generateCode() async {
     setState(() => _generating = true);
     try {
-      final res = await ApiClient.post('/gamification/referral-code') as Map<String, dynamic>;
+      final res = await ApiClient.post('/gamification/referral-code')
+          as Map<String, dynamic>;
       if (mounted) setState(() => _code = res['referralCode'] as String?);
     } catch (_) {
       _snack('Failed to generate code');
@@ -70,7 +73,8 @@ class _ReferralScreenState extends State<ReferralScreen> {
   Future<void> _shareCode() async {
     final code = _code;
     if (code == null) return;
-    await Share.share('Join me on Insync! Use my code $code when you sign up and we both get 50 coins.');
+    await Share.share(
+        'Join me on Insync! Use my code $code when you sign up and we both get 50 coins.');
   }
 
   Future<void> _redeem() async {
@@ -78,7 +82,8 @@ class _ReferralScreenState extends State<ReferralScreen> {
     if (code.isEmpty || _redeeming) return;
     setState(() => _redeeming = true);
     try {
-      final res = await ApiClient.post('/gamification/redeem-referral', body: {'code': code}) as Map<String, dynamic>;
+      final res = await ApiClient.post('/gamification/redeem-referral',
+          body: {'code': code}) as Map<String, dynamic>;
       _snack('+${res['coinsAwarded']} coins!');
       _redeemController.clear();
       _load();
@@ -92,14 +97,16 @@ class _ReferralScreenState extends State<ReferralScreen> {
   }
 
   void _snack(String msg) {
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Invite friends')),
+      appBar: AppBar(title: const InsyncPageTitle('Invite friends')),
       body: _loading
           ? const Center(child: Spinner())
           : ListView(
@@ -111,20 +118,33 @@ class _ReferralScreenState extends State<ReferralScreen> {
                     height: 76,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(22),
-                      gradient: const LinearGradient(colors: AppGradients.brand),
-                      boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.4), blurRadius: 30, offset: const Offset(0, 16))],
+                      gradient:
+                          const LinearGradient(colors: AppGradients.brand),
+                      boxShadow: [
+                        BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.4),
+                            blurRadius: 30,
+                            offset: const Offset(0, 16))
+                      ],
                     ),
                     alignment: Alignment.center,
-                    child: const Icon(Icons.people_alt_rounded, color: Colors.white, size: 32),
+                    child: const Icon(Icons.people_alt_rounded,
+                        color: Colors.white, size: 32),
                   ),
                 ),
                 const SizedBox(height: 18),
-                const Text('Give 50, get 50', textAlign: TextAlign.center, style: TextStyle(color: AppColors.text, fontSize: 19, fontWeight: FontWeight.w700)),
+                const Text('Give 50, get 50',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: AppColors.text,
+                        fontSize: 19,
+                        fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
                 const Text(
                   'Share your code — you both get 50 coins when your friend joins.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textFaint, fontSize: 12.5, height: 1.4),
+                  style: TextStyle(
+                      color: AppColors.textFaint, fontSize: 12.5, height: 1.4),
                 ),
                 const SizedBox(height: 24),
                 Container(
@@ -136,11 +156,20 @@ class _ReferralScreenState extends State<ReferralScreen> {
                   ),
                   child: Column(
                     children: [
-                      const Text('YOUR CODE', style: TextStyle(color: AppColors.textFaint, fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+                      const Text('YOUR CODE',
+                          style: TextStyle(
+                              color: AppColors.textFaint,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.8)),
                       const SizedBox(height: 6),
                       Text(
                         _generating ? '…' : (_code ?? '—'),
-                        style: const TextStyle(color: AppColors.accent, fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: 0.8),
+                        style: const TextStyle(
+                            color: AppColors.accent,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8),
                       ),
                     ],
                   ),
@@ -153,38 +182,63 @@ class _ReferralScreenState extends State<ReferralScreen> {
                         onTap: _code == null ? null : _shareCode,
                         child: Container(
                           height: 46,
-                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), gradient: const LinearGradient(colors: AppGradients.brand)),
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              gradient: const LinearGradient(
+                                  colors: AppGradients.brand)),
                           alignment: Alignment.center,
-                          child: const Text('Share code', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                          child: const Text('Share code',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13)),
                         ),
                       ),
                     ),
                     const SizedBox(width: 10),
                     GestureDetector(
-                      onTap: _code == null ? null : () => Clipboard.setData(ClipboardData(text: _code!)).then((_) => _snack('Code copied')),
+                      onTap: _code == null
+                          ? null
+                          : () => Clipboard.setData(ClipboardData(text: _code!))
+                              .then((_) => _snack('Code copied')),
                       child: Container(
                         width: 46,
                         height: 46,
-                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+                        decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: AppColors.border)),
                         alignment: Alignment.center,
-                        child: const Icon(Icons.copy_rounded, color: AppColors.textDim, size: 18),
+                        child: const Icon(Icons.copy_rounded,
+                            color: AppColors.textDim, size: 18),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
-                const Text('HAVE A CODE?', style: TextStyle(color: AppColors.textFaint, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
+                const Text('HAVE A CODE?',
+                    style: TextStyle(
+                        color: AppColors.textFaint,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.6)),
                 const SizedBox(height: 10),
                 Row(
                   children: [
                     Expanded(
                       child: Container(
                         height: 44,
-                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+                        decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.border)),
                         child: TextField(
                           controller: _redeemController,
-                          style: const TextStyle(color: AppColors.text, fontSize: 13),
-                          decoration: const InputDecoration(hintText: 'Enter code', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 14)),
+                          style: const TextStyle(
+                              color: AppColors.text, fontSize: 13),
+                          decoration: const InputDecoration(
+                              hintText: 'Enter code',
+                              border: InputBorder.none,
+                              contentPadding:
+                                  EdgeInsets.symmetric(horizontal: 14)),
                         ),
                       ),
                     ),
@@ -194,9 +248,19 @@ class _ReferralScreenState extends State<ReferralScreen> {
                       child: Container(
                         height: 44,
                         padding: const EdgeInsets.symmetric(horizontal: 18),
-                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: _redeeming ? AppColors.surface2 : AppColors.text),
+                        decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            color: _redeeming
+                                ? AppColors.surface2
+                                : AppColors.text),
                         alignment: Alignment.center,
-                        child: Text(_redeeming ? '…' : 'Redeem', style: TextStyle(color: _redeeming ? AppColors.textFaint : AppColors.bg, fontWeight: FontWeight.w700, fontSize: 12.5)),
+                        child: Text(_redeeming ? '…' : 'Redeem',
+                            style: TextStyle(
+                                color: _redeeming
+                                    ? AppColors.textFaint
+                                    : AppColors.bg,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12.5)),
                       ),
                     ),
                   ],
@@ -205,7 +269,8 @@ class _ReferralScreenState extends State<ReferralScreen> {
                 Text(
                   '$_referralCount friend${_referralCount == 1 ? '' : 's'} joined with your code so far',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.textFaint, fontSize: 11),
+                  style:
+                      const TextStyle(color: AppColors.textFaint, fontSize: 11),
                 ),
               ],
             ),

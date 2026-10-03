@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import 'package:intl/intl.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
@@ -75,11 +76,7 @@ class _DiscoverMatchesScreenState extends State<DiscoverMatchesScreen> {
                           onPressed: () => Navigator.of(context).maybePop(),
                           icon: const Icon(Icons.arrow_back_rounded,
                               color: AppColors.text)),
-                      const Text('Your Matches',
-                          style: TextStyle(
-                              color: AppColors.text,
-                              fontSize: 19,
-                              fontWeight: FontWeight.w800)),
+                      const InsyncPageTitle('Your Matches'),
                     ],
                   ),
                   if (!_loading)

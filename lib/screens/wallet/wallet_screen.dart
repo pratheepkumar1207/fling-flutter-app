@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
@@ -116,6 +117,10 @@ class _WalletScreenState extends State<WalletScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const InsyncSectionBanner(
+              title: 'Make someone’s day',
+              subtitle: 'Your coins, gifts and rewards in one place.',
+              icon: Icons.redeem_rounded),
           Container(
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
@@ -123,7 +128,7 @@ class _WalletScreenState extends State<WalletScreen> {
               gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF3D2A4A), Color(0xFF261A38)]),
+                  colors: [Color(0xFF396AFF), Color(0xFF1941CE)]),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,10 +211,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       builder: (_) => const SpinWheelScreen())),
                   child: Container(
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.border)),
+                    decoration: insyncClay(radius: 22),
                     child: const Column(
                       children: [
                         Text('🎡', style: TextStyle(fontSize: 26)),
@@ -263,10 +265,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 .then((_) => _loadKyc()),
             child: Container(
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.border)),
+              decoration: insyncClay(radius: 22),
               child: Text.rich(
                 TextSpan(
                   children: [

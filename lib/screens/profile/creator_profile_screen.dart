@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../core/format.dart';
@@ -194,7 +195,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(title: const InsyncPageTitle('Profile')),
       body: _loading
           ? const Center(child: Spinner(size: 28))
           : (_error != null || _profile == null)
@@ -404,10 +405,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
               (pl) => Container(
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border)),
+                decoration: insyncClay(radius: 22),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -688,10 +686,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
         child: Container(
           margin: const EdgeInsets.only(bottom: 6),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.border)),
+          decoration: insyncClay(radius: 22),
           child: Row(
             children: [
               SizedBox(
@@ -759,10 +754,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
         child: Container(
           margin: const EdgeInsets.only(bottom: 6),
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.border)),
+          decoration: insyncClay(radius: 22),
           child: Row(
             children: [
               Container(

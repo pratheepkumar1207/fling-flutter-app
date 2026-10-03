@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
@@ -68,7 +69,9 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       final data = await ApiClient.get('/gallery/me');
       if (!mounted) return;
       setState(() {
-        _gallery = (data as List).map((e) => Photo.fromJson(e as Map<String, dynamic>)).toList();
+        _gallery = (data as List)
+            .map((e) => Photo.fromJson(e as Map<String, dynamic>))
+            .toList();
         _galleryLoading = false;
       });
     } catch (_) {
@@ -77,11 +80,16 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   }
 
   bool get _canContinue =>
-      _isAdult && _ageConfirmed18 && _interests.length >= kMinInterests && _lookingFor.isNotEmpty && _gallery.length >= _kMinGalleryPhotos;
+      _isAdult &&
+      _ageConfirmed18 &&
+      _interests.length >= kMinInterests &&
+      _lookingFor.isNotEmpty &&
+      _gallery.length >= _kMinGalleryPhotos;
 
   Future<void> _addPhoto() async {
     final picker = ImagePicker();
-    final file = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    final file =
+        await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
     if (file == null) return;
     final bytes = await file.readAsBytes();
     final ext = file.name.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
@@ -90,7 +98,10 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       await ApiClient.post('/gallery', body: {'imageData': dataUri});
       _loadGallery();
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to add photo')));
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Failed to add photo')));
+      }
     }
   }
 
@@ -99,7 +110,10 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       await ApiClient.delete('/gallery/$id');
       _loadGallery();
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to remove photo')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to remove photo')));
+      }
     }
   }
 
@@ -117,7 +131,10 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       if (!mounted) return;
       await context.read<AuthProvider>().refreshUser();
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to save your profile')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to save your profile')));
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -137,38 +154,60 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 12),
-                const Text('Complete your profile', textAlign: TextAlign.center, style: TextStyle(color: AppColors.text, fontSize: 22, fontWeight: FontWeight.w800)),
+                const Text('Complete your profile',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: AppColors.text,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800)),
                 const SizedBox(height: 4),
-                const Text('Just a few details before you jump in.', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+                const Text('Just a few details before you jump in.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textDim, fontSize: 13)),
                 const SizedBox(height: 24),
-
-                const Text('Your age', style: TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w600)),
+                const Text('Your age',
+                    style: TextStyle(
+                        color: AppColors.text,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 Container(
-                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+                  decoration: insyncClay(radius: 22),
                   child: TextField(
                     controller: _ageController,
                     keyboardType: TextInputType.number,
                     onChanged: (_) => setState(() {}),
                     style: const TextStyle(color: AppColors.text),
-                    decoration: const InputDecoration(hintText: 'Age', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
+                    decoration: const InputDecoration(
+                        hintText: 'Age',
+                        border: InputBorder.none,
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
                   ),
                 ),
                 if (_ageController.text.isNotEmpty && !_isAdult)
                   const Padding(
                     padding: EdgeInsets.only(top: 4),
-                    child: Text('You must be at least 18 to use Insync.', style: TextStyle(color: AppColors.danger, fontSize: 11)),
+                    child: Text('You must be at least 18 to use Insync.',
+                        style:
+                            TextStyle(color: AppColors.danger, fontSize: 11)),
                   ),
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
                   child: GestureDetector(
-                    onTap: _isAdult ? () => setState(() => _ageConfirmed18 = !_ageConfirmed18) : null,
+                    onTap: _isAdult
+                        ? () =>
+                            setState(() => _ageConfirmed18 = !_ageConfirmed18)
+                        : null,
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Checkbox(
                           value: _ageConfirmed18,
-                          onChanged: _isAdult ? (v) => setState(() => _ageConfirmed18 = v ?? false) : null,
+                          onChanged: _isAdult
+                              ? (v) =>
+                                  setState(() => _ageConfirmed18 = v ?? false)
+                              : null,
                           activeColor: AppColors.primary,
                         ),
                         const Expanded(
@@ -176,7 +215,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                             padding: EdgeInsets.only(top: 12),
                             child: Text(
                               'I confirm I am 18 years or older and the information I\'ve provided is accurate.',
-                              style: TextStyle(color: AppColors.textDim, fontSize: 13),
+                              style: TextStyle(
+                                  color: AppColors.textDim, fontSize: 13),
                             ),
                           ),
                         ),
@@ -184,10 +224,12 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 24),
-
-                const Text('What are you looking for?', style: TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w600)),
+                const Text('What are you looking for?',
+                    style: TextStyle(
+                        color: AppColors.text,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 for (final o in _kLookingForOptions)
                   Padding(
@@ -195,49 +237,93 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                     child: GestureDetector(
                       onTap: () => setState(() => _lookingFor = o[0]),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
                         decoration: BoxDecoration(
-                          color: _lookingFor == o[0] ? AppColors.accent.withValues(alpha: 0.14) : AppColors.surface,
+                          color: _lookingFor == o[0]
+                              ? AppColors.accent.withValues(alpha: 0.14)
+                              : AppColors.surface,
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: _lookingFor == o[0] ? AppColors.accent : AppColors.border, width: _lookingFor == o[0] ? 1.5 : 1),
+                          border: Border.all(
+                              color: _lookingFor == o[0]
+                                  ? AppColors.accent
+                                  : AppColors.border,
+                              width: _lookingFor == o[0] ? 1.5 : 1),
                         ),
-                        child: Text(o[1], style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _lookingFor == o[0] ? AppColors.accent : AppColors.textDim)),
+                        child: Text(o[1],
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: _lookingFor == o[0]
+                                    ? AppColors.accent
+                                    : AppColors.textDim)),
                       ),
                     ),
                   ),
-
                 const SizedBox(height: 16),
-                Text('Your interests (${_interests.length}/$kMinInterests min)', style: const TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w600)),
+                Text('Your interests (${_interests.length}/$kMinInterests min)',
+                    style: const TextStyle(
+                        color: AppColors.text,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
-                InterestPicker(selected: _interests, onChanged: (v) => setState(() => _interests = v), options: _interestOptions),
+                InterestPicker(
+                    selected: _interests,
+                    onChanged: (v) => setState(() => _interests = v),
+                    options: _interestOptions),
                 const SizedBox(height: 4),
-                Text('Pick at least $kMinInterests — this helps match you with people who vibe with you.', style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
-
+                Text(
+                    'Pick at least $kMinInterests — this helps match you with people who vibe with you.',
+                    style: const TextStyle(
+                        color: AppColors.textFaint, fontSize: 11)),
                 const SizedBox(height: 16),
-                const Text('Languages you speak (optional)', style: TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w600)),
+                const Text('Languages you speak (optional)',
+                    style: TextStyle(
+                        color: AppColors.text,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
-                InterestPicker(selected: _languages, onChanged: (v) => setState(() => _languages = v), options: kLanguageOptions),
-
+                InterestPicker(
+                    selected: _languages,
+                    onChanged: (v) => setState(() => _languages = v),
+                    options: kLanguageOptions),
                 const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Gallery photos (${galleryCount.clamp(0, _kMinGalleryPhotos)}/$_kMinGalleryPhotos)', style: const TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w600)),
-                    TextButton(onPressed: _addPhoto, child: const Text('+ Add photo')),
+                    Text(
+                        'Gallery photos (${galleryCount.clamp(0, _kMinGalleryPhotos)}/$_kMinGalleryPhotos)',
+                        style: const TextStyle(
+                            color: AppColors.text,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600)),
+                    TextButton(
+                        onPressed: _addPhoto, child: const Text('+ Add photo')),
                   ],
                 ),
-                const Text('Add at least 5 photos so people can get a real sense of you.', style: TextStyle(color: AppColors.textFaint, fontSize: 11)),
+                const Text(
+                    'Add at least 5 photos so people can get a real sense of you.',
+                    style: TextStyle(color: AppColors.textFaint, fontSize: 11)),
                 const SizedBox(height: 8),
                 if (_galleryLoading)
-                  const Center(child: Padding(padding: EdgeInsets.all(12), child: Spinner(size: 20)))
+                  const Center(
+                      child: Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Spinner(size: 20)))
                 else if (galleryCount == 0)
-                  const Text('No photos yet.', style: TextStyle(color: AppColors.textFaint, fontSize: 13))
+                  const Text('No photos yet.',
+                      style:
+                          TextStyle(color: AppColors.textFaint, fontSize: 13))
                 else
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: _gallery.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 8, crossAxisSpacing: 8),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            mainAxisSpacing: 8,
+                            crossAxisSpacing: 8),
                     itemBuilder: (context, i) {
                       final p = _gallery[i];
                       return Stack(
@@ -259,9 +345,12 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                               child: Container(
                                 width: 22,
                                 height: 22,
-                                decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                                decoration: const BoxDecoration(
+                                    color: Colors.black54,
+                                    shape: BoxShape.circle),
                                 alignment: Alignment.center,
-                                child: const Icon(Icons.close, size: 13, color: Colors.white),
+                                child: const Icon(Icons.close,
+                                    size: 13, color: Colors.white),
                               ),
                             ),
                           ),
@@ -269,7 +358,6 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                       );
                     },
                   ),
-
                 const SizedBox(height: 24),
                 GestureDetector(
                   onTap: (_canContinue && !_saving) ? _continue : null,
@@ -278,13 +366,22 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                     height: 48,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(14),
-                      gradient: (_canContinue && !_saving) ? const LinearGradient(colors: AppGradients.brand) : null,
-                      color: (_canContinue && !_saving) ? null : AppColors.surface2,
+                      gradient: (_canContinue && !_saving)
+                          ? const LinearGradient(colors: AppGradients.brand)
+                          : null,
+                      color: (_canContinue && !_saving)
+                          ? null
+                          : AppColors.surface2,
                     ),
                     alignment: Alignment.center,
                     child: Text(
                       _saving ? 'Saving…' : 'Continue',
-                      style: TextStyle(color: (_canContinue && !_saving) ? Colors.white : AppColors.textFaint, fontWeight: FontWeight.w700, fontSize: 14),
+                      style: TextStyle(
+                          color: (_canContinue && !_saving)
+                              ? Colors.white
+                              : AppColors.textFaint,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14),
                     ),
                   ),
                 ),

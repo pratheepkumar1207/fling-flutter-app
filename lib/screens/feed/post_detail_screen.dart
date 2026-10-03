@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
 import '../../core/profile_nav.dart';
@@ -50,7 +51,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   Future<void> _load() async {
     try {
-      final data = await ApiClient.get('/feed/${widget.postId}') as Map<String, dynamic>;
+      final data =
+          await ApiClient.get('/feed/${widget.postId}') as Map<String, dynamic>;
       if (!mounted) return;
       setState(() {
         _post = Post.fromJson(data);
@@ -139,7 +141,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     if (text.isEmpty || _sending) return;
     setState(() => _sending = true);
     try {
-      await ApiClient.post('/feed/${widget.postId}/comments', body: {'text': text});
+      await ApiClient.post('/feed/${widget.postId}/comments',
+          body: {'text': text});
       _controller.clear();
       await _loadComments();
       final post = _post;
@@ -176,11 +179,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     final post = _post;
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Post')),
+      appBar: AppBar(title: const InsyncPageTitle('Post')),
       body: _loading
           ? const Center(child: Spinner())
           : post == null
-              ? const Center(child: Text('Post not found.', style: TextStyle(color: AppColors.textFaint)))
+              ? const Center(
+                  child: Text('Post not found.',
+                      style: TextStyle(color: AppColors.textFaint)))
               : Column(
                   children: [
                     Expanded(
@@ -190,26 +195,55 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           GestureDetector(
                             onTap: () => openProfile(context, post.author.id),
                             child: Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+                              padding:
+                                  const EdgeInsets.fromLTRB(16, 12, 16, 10),
                               child: Row(
                                 children: [
-                                  Avatar(src: post.author.avatarUrl, name: post.author.name, size: AvatarSize.sm),
+                                  Avatar(
+                                      src: post.author.avatarUrl,
+                                      name: post.author.name,
+                                      size: AvatarSize.sm),
                                   const SizedBox(width: 10),
-                                  Expanded(child: Text(post.author.name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.5))),
-                                  Text(formatRelativeTime(post.createdAt), style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
+                                  Expanded(
+                                      child: Text(post.author.name,
+                                          style: const TextStyle(
+                                              color: AppColors.text,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 13.5))),
+                                  Text(formatRelativeTime(post.createdAt),
+                                      style: const TextStyle(
+                                          color: AppColors.textFaint,
+                                          fontSize: 11)),
                                 ],
                               ),
                             ),
                           ),
-                          if (post.imageData != null) AspectRatio(aspectRatio: 1, child: AppImage(source: post.imageData, fit: BoxFit.cover)),
-                          if (post.mediaType == 'video_link' && post.videoUrl != null) _videoLinkTile(post.videoUrl!),
-                          if (post.mediaType == 'voice' && post.voiceData != null)
+                          if (post.imageData != null)
+                            AspectRatio(
+                                aspectRatio: 1,
+                                child: AppImage(
+                                    source: post.imageData, fit: BoxFit.cover)),
+                          if (post.mediaType == 'video_link' &&
+                              post.videoUrl != null)
+                            _videoLinkTile(post.videoUrl!),
+                          if (post.mediaType == 'voice' &&
+                              post.voiceData != null)
                             Padding(
                               padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
                               child: Container(
                                 padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(10)),
-                                child: const Row(children: [Icon(Icons.graphic_eq, color: AppColors.primary, size: 18), SizedBox(width: 8), Text('Voice note', style: TextStyle(color: AppColors.textDim, fontSize: 12))]),
+                                decoration: BoxDecoration(
+                                    color: AppColors.surface2,
+                                    borderRadius: BorderRadius.circular(10)),
+                                child: const Row(children: [
+                                  Icon(Icons.graphic_eq,
+                                      color: AppColors.primary, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('Voice note',
+                                      style: TextStyle(
+                                          color: AppColors.textDim,
+                                          fontSize: 12))
+                                ]),
                               ),
                             ),
                           Padding(
@@ -218,16 +252,29 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                               children: [
                                 GestureDetector(
                                   onTap: _toggleLike,
-                                  child: Icon(post.likedByMe ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: post.likedByMe ? AppColors.danger : AppColors.text, size: 24),
+                                  child: Icon(
+                                      post.likedByMe
+                                          ? Icons.favorite_rounded
+                                          : Icons.favorite_border_rounded,
+                                      color: post.likedByMe
+                                          ? AppColors.danger
+                                          : AppColors.text,
+                                      size: 24),
                                 ),
                                 const SizedBox(width: 16),
-                                const Icon(Icons.mode_comment_outlined, color: AppColors.text, size: 23),
+                                const Icon(Icons.mode_comment_outlined,
+                                    color: AppColors.text, size: 23),
                                 const SizedBox(width: 16),
                                 ShareRow(text: post.text),
                                 const Spacer(),
                                 GestureDetector(
                                   onTap: _toggleSave,
-                                  child: Icon(post.savedByMe ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, color: AppColors.text, size: 22),
+                                  child: Icon(
+                                      post.savedByMe
+                                          ? Icons.bookmark_rounded
+                                          : Icons.bookmark_border_rounded,
+                                      color: AppColors.text,
+                                      size: 22),
                                 ),
                               ],
                             ),
@@ -236,8 +283,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                             Padding(
                               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                               child: GestureDetector(
-                                onTap: () => showPostLikesSheet(context, postId: post.id),
-                                child: Text('${post.likesCount} likes', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13)),
+                                onTap: () => showPostLikesSheet(context,
+                                    postId: post.id),
+                                child: Text('${post.likesCount} likes',
+                                    style: const TextStyle(
+                                        color: AppColors.text,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13)),
                               ),
                             ),
                           if (post.text != null && post.text!.isNotEmpty)
@@ -245,19 +297,33 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                               padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
                               child: RichText(
                                 text: TextSpan(children: [
-                                  TextSpan(text: '${post.author.name}  ', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13)),
-                                  TextSpan(text: post.text!, style: const TextStyle(color: AppColors.text, fontSize: 13)),
+                                  TextSpan(
+                                      text: '${post.author.name}  ',
+                                      style: const TextStyle(
+                                          color: AppColors.text,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 13)),
+                                  TextSpan(
+                                      text: post.text!,
+                                      style: const TextStyle(
+                                          color: AppColors.text, fontSize: 13)),
                                 ]),
                               ),
                             ),
                           const Divider(color: AppColors.border, height: 1),
                           const SizedBox(height: 4),
                           if (_commentsLoading)
-                            const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Center(child: Spinner(size: 20)))
+                            const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 24),
+                                child: Center(child: Spinner(size: 20)))
                           else if (_comments.isEmpty)
                             const Padding(
                               padding: EdgeInsets.symmetric(vertical: 24),
-                              child: Center(child: Text('No comments yet.', style: TextStyle(color: AppColors.textFaint, fontSize: 13))),
+                              child: Center(
+                                  child: Text('No comments yet.',
+                                      style: TextStyle(
+                                          color: AppColors.textFaint,
+                                          fontSize: 13))),
                             )
                           else
                             ..._comments.map(_commentRow),
@@ -269,19 +335,30 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                       top: false,
                       child: Container(
                         padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                        decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppColors.border))),
+                        decoration: const BoxDecoration(
+                            border: Border(
+                                top: BorderSide(color: AppColors.border))),
                         child: Row(
                           children: [
-                            Expanded(child: MentionTextField(controller: _controller, hintText: 'Add a comment…')),
+                            Expanded(
+                                child: MentionTextField(
+                                    controller: _controller,
+                                    hintText: 'Add a comment…')),
                             const SizedBox(width: 8),
                             GestureDetector(
                               onTap: _sending ? null : _sendComment,
                               child: Container(
                                 width: 38,
                                 height: 38,
-                                decoration: const BoxDecoration(gradient: LinearGradient(colors: AppGradients.brand), shape: BoxShape.circle),
+                                decoration: const BoxDecoration(
+                                    gradient: LinearGradient(
+                                        colors: AppGradients.brand),
+                                    shape: BoxShape.circle),
                                 alignment: Alignment.center,
-                                child: _sending ? const Spinner(size: 16) : const Icon(Icons.send_rounded, color: Colors.white, size: 17),
+                                child: _sending
+                                    ? const Spinner(size: 16)
+                                    : const Icon(Icons.send_rounded,
+                                        color: Colors.white, size: 17),
                               ),
                             ),
                           ],
@@ -298,14 +375,20 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
       child: GestureDetector(
-        onTap: () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+        onTap: () =>
+            launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
         child: AspectRatio(
           aspectRatio: 16 / 9,
           child: Container(
             decoration: BoxDecoration(
               color: Colors.black,
               borderRadius: BorderRadius.circular(12),
-              image: youtubeId != null ? DecorationImage(image: NetworkImage('https://img.youtube.com/vi/$youtubeId/hqdefault.jpg'), fit: BoxFit.cover) : null,
+              image: youtubeId != null
+                  ? DecorationImage(
+                      image: NetworkImage(
+                          'https://img.youtube.com/vi/$youtubeId/hqdefault.jpg'),
+                      fit: BoxFit.cover)
+                  : null,
             ),
             clipBehavior: Clip.antiAlias,
             alignment: Alignment.center,
@@ -313,7 +396,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               size: 52,
               colors: const [AppColors.accent2, AppColors.primary],
               glowColor: AppColors.primary.withValues(alpha: 0.4),
-              child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 30),
+              child: const Icon(Icons.play_arrow_rounded,
+                  color: Colors.white, size: 30),
             ),
           ),
         ),
@@ -336,12 +420,25 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               children: [
                 RichText(
                   text: TextSpan(children: [
-                    TextSpan(text: '${author?['name'] ?? 'Unknown'}  ', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 12.5)),
-                    TextSpan(text: c['text'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontSize: 12.5)),
+                    TextSpan(
+                        text: '${author?['name'] ?? 'Unknown'}  ',
+                        style: const TextStyle(
+                            color: AppColors.text,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12.5)),
+                    TextSpan(
+                        text: c['text'] as String? ?? '',
+                        style: const TextStyle(
+                            color: AppColors.text, fontSize: 12.5)),
                   ]),
                 ),
                 const SizedBox(height: 2),
-                Text(formatRelativeTime(DateTime.tryParse(c['createdAt']?.toString() ?? '') ?? DateTime.now()), style: const TextStyle(color: AppColors.textFaint, fontSize: 10.5)),
+                Text(
+                    formatRelativeTime(
+                        DateTime.tryParse(c['createdAt']?.toString() ?? '') ??
+                            DateTime.now()),
+                    style: const TextStyle(
+                        color: AppColors.textFaint, fontSize: 10.5)),
               ],
             ),
           ),

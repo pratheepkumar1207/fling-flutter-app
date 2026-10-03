@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
 import '../../models/user.dart';
 import '../../theme/app_colors.dart';
@@ -35,7 +36,9 @@ class _RandomMatchScreenState extends State<RandomMatchScreen> {
       final data = await ApiClient.get('/discover/random$query');
       if (!mounted) return;
       setState(() {
-        _current = data == null ? null : DiscoverProfile.fromJson(data as Map<String, dynamic>);
+        _current = data == null
+            ? null
+            : DiscoverProfile.fromJson(data as Map<String, dynamic>);
         _loading = false;
       });
     } catch (_) {
@@ -48,7 +51,9 @@ class _RandomMatchScreenState extends State<RandomMatchScreen> {
     if (current == null) return;
     setState(() => _current = null);
     try {
-      final res = await ApiClient.post('/swipe', body: {'toUserId': current.id, 'action': action}) as Map<String, dynamic>;
+      final res = await ApiClient.post('/swipe',
+              body: {'toUserId': current.id, 'action': action})
+          as Map<String, dynamic>;
       if (!mounted) return;
       if (res['matched'] == true) {
         setState(() => _matchName = current.name);
@@ -67,10 +72,11 @@ class _RandomMatchScreenState extends State<RandomMatchScreen> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('🎲 Random Match'),
+        title: const InsyncPageTitle('🎲 Random Match'),
         actions: [
           PopupMenuButton<String?>(
-            icon: const Icon(Icons.filter_alt_outlined, color: AppColors.textDim),
+            icon:
+                const Icon(Icons.filter_alt_outlined, color: AppColors.textDim),
             color: AppColors.surface2,
             onSelected: (v) {
               setState(() => _gender = v);
@@ -93,7 +99,10 @@ class _RandomMatchScreenState extends State<RandomMatchScreen> {
             const Center(
               child: Padding(
                 padding: EdgeInsets.all(24),
-                child: Text('No one new right now.\nTry again later or widen your filter.', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textFaint)),
+                child: Text(
+                    'No one new right now.\nTry again later or widen your filter.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textFaint)),
               ),
             )
           else
@@ -102,7 +111,11 @@ class _RandomMatchScreenState extends State<RandomMatchScreen> {
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: SwipeCard(key: ValueKey(current.id), profile: current, active: true, onSwipe: _handleSwipe),
+                    child: SwipeCard(
+                        key: ValueKey(current.id),
+                        profile: current,
+                        active: true,
+                        onSwipe: _handleSwipe),
                   ),
                 ),
                 Padding(
@@ -110,11 +123,14 @@ class _RandomMatchScreenState extends State<RandomMatchScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _roundButton('✕', AppColors.danger, () => _handleSwipe('pass')),
+                      _roundButton(
+                          '✕', AppColors.danger, () => _handleSwipe('pass')),
                       const SizedBox(width: 20),
-                      _roundButton('★', AppColors.accent, () => _handleSwipe('superlike')),
+                      _roundButton('★', AppColors.accent,
+                          () => _handleSwipe('superlike')),
                       const SizedBox(width: 20),
-                      _roundButton('♥', AppColors.primary, () => _handleSwipe('like')),
+                      _roundButton(
+                          '♥', AppColors.primary, () => _handleSwipe('like')),
                     ],
                   ),
                 ),
@@ -132,13 +148,19 @@ class _RandomMatchScreenState extends State<RandomMatchScreen> {
                 child: Container(
                   margin: const EdgeInsets.all(24),
                   padding: const EdgeInsets.all(28),
-                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.border)),
+                  decoration: insyncClay(radius: 22),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text("It's a match! 🎉", style: TextStyle(color: AppColors.primary, fontSize: 26, fontWeight: FontWeight.bold)),
+                      const Text("It's a match! 🎉",
+                          style: TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
-                      Text('You and $_matchName liked each other.', style: const TextStyle(color: AppColors.textDim), textAlign: TextAlign.center),
+                      Text('You and $_matchName liked each other.',
+                          style: const TextStyle(color: AppColors.textDim),
+                          textAlign: TextAlign.center),
                     ],
                   ),
                 ),
@@ -155,7 +177,10 @@ class _RandomMatchScreenState extends State<RandomMatchScreen> {
       child: Container(
         width: 56,
         height: 56,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.surface, border: Border.all(color: AppColors.border)),
+        decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppColors.surface,
+            border: Border.all(color: AppColors.border)),
         alignment: Alignment.center,
         child: Text(label, style: TextStyle(color: color, fontSize: 24)),
       ),

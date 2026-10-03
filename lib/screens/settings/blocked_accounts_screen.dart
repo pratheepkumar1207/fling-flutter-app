@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
@@ -74,7 +75,7 @@ class _BlockedAccountsScreenState extends State<BlockedAccountsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Blocked accounts')),
+      appBar: AppBar(title: const InsyncPageTitle('Blocked accounts')),
       body: _loading
           ? const Center(child: Spinner())
           : _blocked.isEmpty

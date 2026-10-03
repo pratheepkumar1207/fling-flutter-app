@@ -146,7 +146,7 @@ class _CallScreenState extends State<CallScreen> {
                       gradient: LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          colors: [Color(0xFF3D2340), Color(0xFF190E1E)]),
+                          colors: [Color(0xFF203052), Color(0xFF0C1226)]),
                     ),
                   ),
                   if (widget.video && connected)

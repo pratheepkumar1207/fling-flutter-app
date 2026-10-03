@@ -333,6 +333,16 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                           colors: AppGradients.brand)
                                       : null,
                                   color: mine ? null : AppColors.surface2,
+                                  border: Border.all(
+                                      color:
+                                          Colors.white.withValues(alpha: .10)),
+                                  boxShadow: [
+                                    BoxShadow(
+                                        color:
+                                            Colors.black.withValues(alpha: .14),
+                                        blurRadius: 8,
+                                        offset: const Offset(2, 3))
+                                  ],
                                   // Flat corner on the "tail" side (bottom-right for mine, bottom-left
                                   // for theirs) — matches ChatDark.dc.html's speech-bubble shape.
                                   borderRadius: BorderRadius.only(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
@@ -149,6 +150,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Row(
                 children: [
+                  const Padding(
+                      padding: EdgeInsets.only(right: 12),
+                      child: InsyncClayIcon(Icons.explore_rounded, size: 44)),
                   const Text('Discover',
                       style: TextStyle(
                           color: AppColors.text,
@@ -158,8 +162,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   GestureDetector(
                     onTap: () => setState(() => _showFilters = !_showFilters),
                     child: Container(
-                      width: 36,
-                      height: 36,
+                      width: 48,
+                      height: 48,
                       decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: AppColors.surface,
@@ -202,10 +206,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16),
                 padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.border)),
+                decoration: insyncClay(radius: 22),
                 child: Column(
                   children: [
                     TextField(
@@ -409,10 +410,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               child: Container(
                 margin: const EdgeInsets.all(24),
                 padding: const EdgeInsets.all(28),
-                decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.border)),
+                decoration: insyncClay(radius: 22),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -474,10 +472,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.border)),
+        decoration: insyncClay(radius: 22),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

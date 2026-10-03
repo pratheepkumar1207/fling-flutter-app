@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_client.dart';
@@ -48,11 +49,15 @@ class _FeedScreenState extends State<FeedScreen> {
       final data = await ApiClient.get('/feed');
       if (!mounted) return;
       setState(() {
-        _posts = (data as List).map((e) => Post.fromJson(e as Map<String, dynamic>)).toList();
+        _posts = (data as List)
+            .map((e) => Post.fromJson(e as Map<String, dynamic>))
+            .toList();
         _loading = false;
       });
       for (final post in _posts) {
-        if (post.mediaType == 'poll' && post.myVote != null) _loadPollResults(post.id);
+        if (post.mediaType == 'poll' && post.myVote != null) {
+          _loadPollResults(post.id);
+        }
       }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
@@ -63,7 +68,9 @@ class _FeedScreenState extends State<FeedScreen> {
     try {
       final data = await ApiClient.get('/feed/stories');
       if (!mounted) return;
-      setState(() => _stories = (data as List).map((e) => StoryEntry.fromJson(e as Map<String, dynamic>)).toList());
+      setState(() => _stories = (data as List)
+          .map((e) => StoryEntry.fromJson(e as Map<String, dynamic>))
+          .toList());
     } catch (_) {
       // Stories are a non-critical preview strip — silently skip on failure.
     }
@@ -84,7 +91,8 @@ class _FeedScreenState extends State<FeedScreen> {
           videoData: post.videoData,
           pollOptions: post.pollOptions,
           myVote: post.myVote,
-          likesCount: post.likedByMe ? post.likesCount - 1 : post.likesCount + 1,
+          likesCount:
+              post.likedByMe ? post.likesCount - 1 : post.likesCount + 1,
           commentsCount: post.commentsCount,
           likedByMe: !post.likedByMe,
           savedByMe: post.savedByMe,
@@ -102,7 +110,8 @@ class _FeedScreenState extends State<FeedScreen> {
 
   Future<void> _loadPollResults(String postId) async {
     try {
-      final data = await ApiClient.get('/feed/$postId/results') as Map<String, dynamic>;
+      final data =
+          await ApiClient.get('/feed/$postId/results') as Map<String, dynamic>;
       if (!mounted) return;
       setState(() => _pollResults[postId] = data);
     } catch (_) {
@@ -132,7 +141,8 @@ class _FeedScreenState extends State<FeedScreen> {
       }
     });
     try {
-      await ApiClient.post('/feed/${post.id}/vote', body: {'optionIndex': optionIndex});
+      await ApiClient.post('/feed/${post.id}/vote',
+          body: {'optionIndex': optionIndex});
       _loadPollResults(post.id);
     } catch (_) {
       _load();
@@ -149,7 +159,9 @@ class _FeedScreenState extends State<FeedScreen> {
   }
 
   void _snack(String msg) {
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    }
   }
 
   // "Your story" leading tile — was entirely missing before (StoryBar was
@@ -158,7 +170,10 @@ class _FeedScreenState extends State<FeedScreen> {
   Widget _yourStoryTile() {
     final user = context.watch<AuthProvider>().user;
     return GestureDetector(
-      onTap: () => showPostComposerSheet(context, onPosted: () { _load(); _loadStories(); }, initialIsStory: true),
+      onTap: () => showPostComposerSheet(context, onPosted: () {
+        _load();
+        _loadStories();
+      }, initialIsStory: true),
       child: SizedBox(
         width: 64,
         child: Column(
@@ -171,9 +186,17 @@ class _FeedScreenState extends State<FeedScreen> {
                   Container(
                     width: 60,
                     height: 60,
-                    decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.border, width: 1.5, style: BorderStyle.solid)),
+                    decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                            color: AppColors.border,
+                            width: 1.5,
+                            style: BorderStyle.solid)),
                     padding: const EdgeInsets.all(6),
-                    child: Avatar(src: user?.avatarUrl, name: user?.name, size: AvatarSize.md),
+                    child: Avatar(
+                        src: user?.avatarUrl,
+                        name: user?.name,
+                        size: AvatarSize.md),
                   ),
                   Positioned(
                     bottom: 0,
@@ -183,18 +206,24 @@ class _FeedScreenState extends State<FeedScreen> {
                       height: 22,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: const LinearGradient(colors: AppGradients.brand),
+                        gradient:
+                            const LinearGradient(colors: AppGradients.brand),
                         border: Border.all(color: AppColors.bg, width: 2),
                       ),
                       alignment: Alignment.center,
-                      child: const Icon(Icons.add_rounded, color: Colors.white, size: 13),
+                      child: const Icon(Icons.add_rounded,
+                          color: Colors.white, size: 13),
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 4),
-            const Text('Your story', textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppColors.textDim, fontSize: 11)),
+            const Text('Your story',
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: AppColors.textDim, fontSize: 11)),
           ],
         ),
       ),
@@ -204,11 +233,16 @@ class _FeedScreenState extends State<FeedScreen> {
   void _openStoryViewer(StoryEntry entry) {
     final index = _stories.indexWhere((s) => s.userId == entry.userId);
     if (index == -1) return;
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => StoryViewerScreen(groups: _stories, startGroupIndex: index)));
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) =>
+            StoryViewerScreen(groups: _stories, startGroupIndex: index)));
   }
 
   void _openPostDetail(Post post) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => PostDetailScreen(postId: post.id))).then((_) => _load());
+    Navigator.of(context)
+        .push(MaterialPageRoute(
+            builder: (_) => PostDetailScreen(postId: post.id)))
+        .then((_) => _load());
   }
 
   void _openComments(Post post) {
@@ -227,14 +261,21 @@ class _FeedScreenState extends State<FeedScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          StoryBar(stories: _stories, onOpen: _openStoryViewer, leading: _yourStoryTile()),
+          const InsyncSectionBanner(
+              title: 'In the loop',
+              subtitle: 'Little moments from your people.',
+              icon: Icons.auto_awesome_rounded),
+          StoryBar(
+              stories: _stories,
+              onOpen: _openStoryViewer,
+              leading: _yourStoryTile()),
           const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+                  decoration: insyncClay(radius: 22),
                   child: Row(
                     children: [
                       _tabButton('posts', 'Posts'),
@@ -247,12 +288,19 @@ class _FeedScreenState extends State<FeedScreen> {
               GestureDetector(
                 onTap: () => showPostComposerSheet(context, onPosted: _load),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(gradient: AppGradients.volaCtaDiagonal, borderRadius: BorderRadius.circular(999)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                      gradient: AppGradients.volaCtaDiagonal,
+                      borderRadius: BorderRadius.circular(999)),
                   child: const Row(mainAxisSize: MainAxisSize.min, children: [
                     Icon(Icons.add, color: Colors.white, size: 16),
                     SizedBox(width: 4),
-                    Text('Post', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                    Text('Post',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13)),
                   ]),
                 ),
               ),
@@ -260,25 +308,34 @@ class _FeedScreenState extends State<FeedScreen> {
           ),
           const SizedBox(height: 12),
           if (_loading)
-            const Center(child: Padding(padding: EdgeInsets.all(24), child: Spinner()))
+            const Center(
+                child: Padding(padding: EdgeInsets.all(24), child: Spinner()))
           else if (_tab == 'posts') ...[
             if (_regularPosts.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 32),
                 child: Center(
-                  child: Text('Your feed is empty.\nFollow people or add friends to see their posts here.', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textFaint)),
+                  child: Text(
+                      'Your feed is empty.\nFollow people or add friends to see their posts here.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppColors.textFaint)),
                 ),
               )
             else
               ..._regularPosts.map((post) => _postCard(post)),
           ] else
-            ReelsFeed(reels: _reels, onLike: _toggleLike, onOpenComments: _openComments, onSave: _toggleSave),
+            ReelsFeed(
+                reels: _reels,
+                onLike: _toggleLike,
+                onOpenComments: _openComments,
+                onSave: _toggleSave),
         ],
       ),
     );
   }
 
-  List<Post> get _regularPosts => _posts.where((p) => p.mediaType != 'reel').toList();
+  List<Post> get _regularPosts =>
+      _posts.where((p) => p.mediaType != 'reel').toList();
   List<Post> get _reels => _posts.where((p) => p.mediaType == 'reel').toList();
 
   Widget _tabButton(String key, String label) {
@@ -288,9 +345,15 @@ class _FeedScreenState extends State<FeedScreen> {
         onTap: () => setState(() => _tab = key),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(gradient: selected ? AppGradients.volaCtaDiagonal : null, borderRadius: BorderRadius.circular(9)),
+          decoration: BoxDecoration(
+              gradient: selected ? AppGradients.volaCtaDiagonal : null,
+              borderRadius: BorderRadius.circular(9)),
           alignment: Alignment.center,
-          child: Text(label, style: TextStyle(color: selected ? Colors.white : AppColors.textDim, fontWeight: FontWeight.w600, fontSize: 13)),
+          child: Text(label,
+              style: TextStyle(
+                  color: selected ? Colors.white : AppColors.textDim,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13)),
         ),
       ),
     );
@@ -302,8 +365,8 @@ class _FeedScreenState extends State<FeedScreen> {
   Widget _postCard(Post post) {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.border))),
-      padding: const EdgeInsets.only(bottom: 16),
+      decoration: insyncClay(),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -311,17 +374,33 @@ class _FeedScreenState extends State<FeedScreen> {
             onTap: () => openProfile(context, post.author.id),
             child: Row(
               children: [
-                Avatar(src: post.author.avatarUrl, name: post.author.name, size: AvatarSize.sm),
+                Avatar(
+                    src: post.author.avatarUrl,
+                    name: post.author.name,
+                    size: AvatarSize.sm),
                 const SizedBox(width: 10),
-                Expanded(child: Text(post.author.name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.5))),
-                Text(formatRelativeTime(post.createdAt), style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
+                Expanded(
+                    child: Text(post.author.name,
+                        style: const TextStyle(
+                            color: AppColors.text,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13.5))),
+                Text(formatRelativeTime(post.createdAt),
+                    style: const TextStyle(
+                        color: AppColors.textFaint, fontSize: 11)),
                 const SizedBox(width: 4),
-                const Icon(Icons.more_horiz_rounded, color: AppColors.textFaint, size: 19),
+                const Icon(Icons.more_horiz_rounded,
+                    color: AppColors.textFaint, size: 19),
               ],
             ),
           ),
-          if (post.text != null && post.text!.isNotEmpty && post.imageData == null)
-            Padding(padding: const EdgeInsets.only(top: 8), child: Text(post.text!, style: const TextStyle(color: AppColors.text))),
+          if (post.text != null &&
+              post.text!.isNotEmpty &&
+              post.imageData == null)
+            Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(post.text!,
+                    style: const TextStyle(color: AppColors.text))),
           if (post.imageData != null)
             Padding(
               padding: const EdgeInsets.only(top: 10),
@@ -329,7 +408,10 @@ class _FeedScreenState extends State<FeedScreen> {
                 onTap: () => _openPostDetail(post),
                 child: SizedBox(
                   width: double.infinity,
-                  child: AspectRatio(aspectRatio: 1, child: AppImage(source: post.imageData, fit: BoxFit.cover)),
+                  child: AspectRatio(
+                      aspectRatio: 1,
+                      child:
+                          AppImage(source: post.imageData, fit: BoxFit.cover)),
                 ),
               ),
             ),
@@ -338,31 +420,51 @@ class _FeedScreenState extends State<FeedScreen> {
               padding: const EdgeInsets.only(top: 8),
               child: Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(10)),
-                child: const Row(children: [Icon(Icons.graphic_eq, color: AppColors.primary, size: 18), SizedBox(width: 8), Text('Voice note', style: TextStyle(color: AppColors.textDim, fontSize: 12))]),
+                decoration: BoxDecoration(
+                    color: AppColors.surface2,
+                    borderRadius: BorderRadius.circular(10)),
+                child: const Row(children: [
+                  Icon(Icons.graphic_eq, color: AppColors.primary, size: 18),
+                  SizedBox(width: 8),
+                  Text('Voice note',
+                      style: TextStyle(color: AppColors.textDim, fontSize: 12))
+                ]),
               ),
             ),
-          if (post.mediaType == 'video_link' && post.videoUrl != null) _videoLinkTile(post.videoUrl!),
-          if (post.mediaType == 'poll' && post.pollOptions != null) _pollOptions(post),
+          if (post.mediaType == 'video_link' && post.videoUrl != null)
+            _videoLinkTile(post.videoUrl!),
+          if (post.mediaType == 'poll' && post.pollOptions != null)
+            _pollOptions(post),
           Padding(
             padding: const EdgeInsets.only(top: 10),
             child: Row(
               children: [
                 GestureDetector(
                   onTap: () => _toggleLike(post),
-                  child: Icon(post.likedByMe ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: post.likedByMe ? AppColors.danger : AppColors.text, size: 24),
+                  child: Icon(
+                      post.likedByMe
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      color: post.likedByMe ? AppColors.danger : AppColors.text,
+                      size: 24),
                 ),
                 const SizedBox(width: 16),
                 GestureDetector(
                   onTap: () => _openComments(post),
-                  child: const Icon(Icons.mode_comment_outlined, color: AppColors.text, size: 23),
+                  child: const Icon(Icons.mode_comment_outlined,
+                      color: AppColors.text, size: 23),
                 ),
                 const SizedBox(width: 16),
                 ShareRow(text: post.text),
                 const Spacer(),
                 GestureDetector(
                   onTap: () => _toggleSave(post),
-                  child: Icon(post.savedByMe ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, color: AppColors.text, size: 22),
+                  child: Icon(
+                      post.savedByMe
+                          ? Icons.bookmark_rounded
+                          : Icons.bookmark_border_rounded,
+                      color: AppColors.text,
+                      size: 22),
                 ),
               ],
             ),
@@ -372,17 +474,31 @@ class _FeedScreenState extends State<FeedScreen> {
               padding: const EdgeInsets.only(top: 6),
               child: GestureDetector(
                 onTap: () => showPostLikesSheet(context, postId: post.id),
-                child: Text('${post.likesCount} likes', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13)),
+                child: Text('${post.likesCount} likes',
+                    style: const TextStyle(
+                        color: AppColors.text,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13)),
               ),
             ),
-          if (post.text != null && post.text!.isNotEmpty && post.imageData != null)
+          if (post.text != null &&
+              post.text!.isNotEmpty &&
+              post.imageData != null)
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: RichText(
                 text: TextSpan(
                   children: [
-                    TextSpan(text: '${post.author.name}  ', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13)),
-                    TextSpan(text: post.text!, style: const TextStyle(color: AppColors.text, fontSize: 13)),
+                    TextSpan(
+                        text: '${post.author.name}  ',
+                        style: const TextStyle(
+                            color: AppColors.text,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13)),
+                    TextSpan(
+                        text: post.text!,
+                        style: const TextStyle(
+                            color: AppColors.text, fontSize: 13)),
                   ],
                 ),
               ),
@@ -392,7 +508,9 @@ class _FeedScreenState extends State<FeedScreen> {
               padding: const EdgeInsets.only(top: 4),
               child: GestureDetector(
                 onTap: () => _openPostDetail(post),
-                child: Text('View all ${post.commentsCount} comments', style: const TextStyle(color: AppColors.textFaint, fontSize: 12.5)),
+                child: Text('View all ${post.commentsCount} comments',
+                    style: const TextStyle(
+                        color: AppColors.textFaint, fontSize: 12.5)),
               ),
             ),
         ],
@@ -405,7 +523,8 @@ class _FeedScreenState extends State<FeedScreen> {
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: GestureDetector(
-        onTap: () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+        onTap: () =>
+            launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
         child: AspectRatio(
           aspectRatio: 16 / 9,
           child: Container(
@@ -413,7 +532,10 @@ class _FeedScreenState extends State<FeedScreen> {
               color: Colors.black,
               borderRadius: BorderRadius.circular(12),
               image: youtubeId != null
-                  ? DecorationImage(image: NetworkImage('https://img.youtube.com/vi/$youtubeId/hqdefault.jpg'), fit: BoxFit.cover)
+                  ? DecorationImage(
+                      image: NetworkImage(
+                          'https://img.youtube.com/vi/$youtubeId/hqdefault.jpg'),
+                      fit: BoxFit.cover)
                   : null,
             ),
             clipBehavior: Clip.antiAlias,
@@ -422,7 +544,8 @@ class _FeedScreenState extends State<FeedScreen> {
               size: 52,
               colors: const [AppColors.accent2, AppColors.primary],
               glowColor: AppColors.primary.withValues(alpha: 0.4),
-              child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 30),
+              child: const Icon(Icons.play_arrow_rounded,
+                  color: Colors.white, size: 30),
             ),
           ),
         ),
@@ -441,7 +564,9 @@ class _FeedScreenState extends State<FeedScreen> {
       padding: const EdgeInsets.only(top: 8),
       child: Column(
         children: List.generate(options.length, (i) {
-          final pct = (voted && total > 0 && counts != null) ? ((counts[i] as int) / total * 100).round() : 0;
+          final pct = (voted && total > 0 && counts != null)
+              ? ((counts[i] as int) / total * 100).round()
+              : 0;
           return Padding(
             padding: const EdgeInsets.only(bottom: 6),
             child: GestureDetector(
@@ -450,23 +575,41 @@ class _FeedScreenState extends State<FeedScreen> {
                 children: [
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                        color: AppColors.surface2,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.border)),
                   ),
                   if (voted)
                     Positioned.fill(
                       child: FractionallySizedBox(
                         widthFactor: pct / 100,
-                        child: Container(decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(10))),
+                        child: Container(
+                            decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(10))),
                       ),
                     ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(options[i], style: TextStyle(color: post.myVote == i ? AppColors.primary : AppColors.text, fontWeight: post.myVote == i ? FontWeight.w700 : FontWeight.normal)),
-                        if (voted) Text('$pct%', style: const TextStyle(color: AppColors.textFaint, fontSize: 12)),
+                        Text(options[i],
+                            style: TextStyle(
+                                color: post.myVote == i
+                                    ? AppColors.primary
+                                    : AppColors.text,
+                                fontWeight: post.myVote == i
+                                    ? FontWeight.w700
+                                    : FontWeight.normal)),
+                        if (voted)
+                          Text('$pct%',
+                              style: const TextStyle(
+                                  color: AppColors.textFaint, fontSize: 12)),
                       ],
                     ),
                   ),
@@ -523,7 +666,8 @@ class _CommentsSheetState extends State<_CommentsSheet> {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
     try {
-      await ApiClient.post('/feed/${widget.postId}/comments', body: {'text': text});
+      await ApiClient.post('/feed/${widget.postId}/comments',
+          body: {'text': text});
       _controller.clear();
       _load();
       widget.onCommented();
@@ -533,12 +677,17 @@ class _CommentsSheetState extends State<_CommentsSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: SizedBox(
         height: 420,
         child: Column(
           children: [
-            const Padding(padding: EdgeInsets.all(12), child: Text('Comments', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.bold))),
+            const Padding(
+                padding: EdgeInsets.all(12),
+                child: Text('Comments',
+                    style: TextStyle(
+                        color: AppColors.text, fontWeight: FontWeight.bold))),
             Expanded(
               child: _loading
                   ? const Center(child: Spinner())
@@ -553,8 +702,17 @@ class _CommentsSheetState extends State<_CommentsSheet> {
                           child: RichText(
                             text: TextSpan(
                               children: [
-                                TextSpan(text: '${author?['name'] ?? 'Unknown'}  ', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600, fontSize: 13)),
-                                TextSpan(text: c['text'] as String? ?? '', style: const TextStyle(color: AppColors.textDim, fontSize: 13)),
+                                TextSpan(
+                                    text: '${author?['name'] ?? 'Unknown'}  ',
+                                    style: const TextStyle(
+                                        color: AppColors.text,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13)),
+                                TextSpan(
+                                    text: c['text'] as String? ?? '',
+                                    style: const TextStyle(
+                                        color: AppColors.textDim,
+                                        fontSize: 13)),
                               ],
                             ),
                           ),
@@ -566,8 +724,13 @@ class _CommentsSheetState extends State<_CommentsSheet> {
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
-                  Expanded(child: MentionTextField(controller: _controller, hintText: 'Add a comment… (@ to mention someone)')),
-                  IconButton(onPressed: _send, icon: const Icon(Icons.send, color: AppColors.primary)),
+                  Expanded(
+                      child: MentionTextField(
+                          controller: _controller,
+                          hintText: 'Add a comment… (@ to mention someone)')),
+                  IconButton(
+                      onPressed: _send,
+                      icon: const Icon(Icons.send, color: AppColors.primary)),
                 ],
               ),
             ),

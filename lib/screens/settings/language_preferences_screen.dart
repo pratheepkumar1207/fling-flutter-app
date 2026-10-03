@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
@@ -70,7 +71,7 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('Language'),
+        title: const InsyncPageTitle('Language'),
         actions: [
           TextButton(
             onPressed: _saving ? null : _save,

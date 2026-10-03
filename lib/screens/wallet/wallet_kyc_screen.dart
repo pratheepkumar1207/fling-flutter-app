@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
@@ -125,7 +126,7 @@ class _WalletKycScreenState extends State<WalletKycScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Verify your identity')),
+      appBar: AppBar(title: const InsyncPageTitle('Verify your identity')),
       body: _loading
           ? const Center(child: Spinner())
           : ListView(
@@ -176,10 +177,7 @@ class _WalletKycScreenState extends State<WalletKycScreen> {
                 _stepLabel('3. Payout details'),
                 Container(
                   padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.border)),
+                  decoration: insyncClay(radius: 22),
                   child: Column(
                     children: [
                       _field('PAN number', _pan, canEdit),

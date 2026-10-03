@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
 import '../../core/profile_nav.dart';
@@ -29,7 +30,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
   List<ConversationSummary> get _filtered {
     if (_query.trim().isEmpty) return _conversations;
     final q = _query.trim().toLowerCase();
-    return _conversations.where((c) => c.name.toLowerCase().contains(q)).toList();
+    return _conversations
+        .where((c) => c.name.toLowerCase().contains(q))
+        .toList();
   }
 
   Future<void> _load() async {
@@ -37,7 +40,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
       final data = await ApiClient.get('/messages/conversations');
       if (!mounted) return;
       setState(() {
-        _conversations = (data as List).map((e) => ConversationSummary.fromJson(e as Map<String, dynamic>)).toList();
+        _conversations = (data as List)
+            .map((e) => ConversationSummary.fromJson(e as Map<String, dynamic>))
+            .toList();
         _loading = false;
       });
     } catch (_) {
@@ -50,25 +55,41 @@ class _MessagesScreenState extends State<MessagesScreen> {
     final results = _filtered;
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Messages')),
+      appBar: AppBar(title: const InsyncPageTitle('Messages')),
       body: Column(
         children: [
+          const Padding(
+              padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: InsyncSectionBanner(
+                  title: 'Your conversations',
+                  subtitle: 'Keep your favourite people close.',
+                  icon: Icons.forum_rounded,
+                  compact: true)),
           if (_conversations.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
               child: Container(
                 height: 40,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(
+                    color: AppColors.surface2,
+                    borderRadius: BorderRadius.circular(12)),
                 child: Row(
                   children: [
-                    const Icon(Icons.search_rounded, size: 16, color: AppColors.textFaint),
+                    const Icon(Icons.search_rounded,
+                        size: 16, color: AppColors.textFaint),
                     const SizedBox(width: 8),
                     Expanded(
                       child: TextField(
                         onChanged: (v) => setState(() => _query = v),
-                        style: const TextStyle(color: AppColors.text, fontSize: 13),
-                        decoration: const InputDecoration(border: InputBorder.none, isDense: true, hintText: 'Search', hintStyle: TextStyle(color: AppColors.textFaint, fontSize: 13)),
+                        style: const TextStyle(
+                            color: AppColors.text, fontSize: 13),
+                        decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            isDense: true,
+                            hintText: 'Search',
+                            hintStyle: TextStyle(
+                                color: AppColors.textFaint, fontSize: 13)),
                       ),
                     ),
                   ],
@@ -90,72 +111,119 @@ class _MessagesScreenState extends State<MessagesScreen> {
                         ),
                       )
                     : results.isEmpty
-                        ? const Center(child: Text('No matches.', style: TextStyle(color: AppColors.textFaint)))
+                        ? const Center(
+                            child: Text('No matches.',
+                                style: TextStyle(color: AppColors.textFaint)))
                         : ListView.builder(
-                  itemCount: results.length,
-                  itemBuilder: (context, i) {
-                    final c = results[i];
-                    final unread = c.unreadCount > 0;
-                    return GestureDetector(
-                      onTap: () => Navigator.of(context)
-                          .push(MaterialPageRoute(builder: (_) => MessageThreadScreen(userId: c.userId, name: c.name, avatarUrl: c.avatarUrl)))
-                          .then((_) => _load()),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            GestureDetector(
-                              onTap: () => openProfile(context, c.userId),
-                              child: Stack(
-                                children: [
-                                  Avatar(src: c.avatarUrl, name: c.name, size: AvatarSize.md),
-                                  if (c.online)
-                                    Positioned(
-                                      bottom: 0,
-                                      right: 0,
-                                      child: Container(
-                                        width: 12,
-                                        height: 12,
-                                        decoration: BoxDecoration(color: AppColors.success, shape: BoxShape.circle, border: Border.all(color: AppColors.bg, width: 2.5)),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
+                            itemCount: results.length,
+                            itemBuilder: (context, i) {
+                              final c = results[i];
+                              final unread = c.unreadCount > 0;
+                              return GestureDetector(
+                                onTap: () => Navigator.of(context)
+                                    .push(MaterialPageRoute(
+                                        builder: (_) => MessageThreadScreen(
+                                            userId: c.userId,
+                                            name: c.name,
+                                            avatarUrl: c.avatarUrl)))
+                                    .then((_) => _load()),
+                                child: Container(
+                                  margin: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 5),
+                                  decoration: insyncClay(radius: 20),
+                                  padding: const EdgeInsets.all(14),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
                                     children: [
-                                      Expanded(
-                                        child: Text(c.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppColors.text, fontWeight: unread ? FontWeight.w700 : FontWeight.w600, fontSize: 14)),
+                                      GestureDetector(
+                                        onTap: () =>
+                                            openProfile(context, c.userId),
+                                        child: Stack(
+                                          children: [
+                                            Avatar(
+                                                src: c.avatarUrl,
+                                                name: c.name,
+                                                size: AvatarSize.md),
+                                            if (c.online)
+                                              Positioned(
+                                                bottom: 0,
+                                                right: 0,
+                                                child: Container(
+                                                  width: 12,
+                                                  height: 12,
+                                                  decoration: BoxDecoration(
+                                                      color: AppColors.success,
+                                                      shape: BoxShape.circle,
+                                                      border: Border.all(
+                                                          color: AppColors.bg,
+                                                          width: 2.5)),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
                                       ),
-                                      Text(formatRelativeTime(c.lastMessageAt), style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(c.name,
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: TextStyle(
+                                                          color: AppColors.text,
+                                                          fontWeight: unread
+                                                              ? FontWeight.w700
+                                                              : FontWeight.w600,
+                                                          fontSize: 14)),
+                                                ),
+                                                Text(
+                                                    formatRelativeTime(
+                                                        c.lastMessageAt),
+                                                    style: const TextStyle(
+                                                        color:
+                                                            AppColors.textFaint,
+                                                        fontSize: 11)),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              '${c.lastMessageIsMine ? 'You: ' : ''}${c.lastMessage}',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                  color: unread
+                                                      ? AppColors.text
+                                                      : AppColors.textFaint,
+                                                  fontWeight: unread
+                                                      ? FontWeight.w600
+                                                      : FontWeight.normal,
+                                                  fontSize: 12.5),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      if (unread) ...[
+                                        const SizedBox(width: 8),
+                                        Container(
+                                            width: 9,
+                                            height: 9,
+                                            decoration: const BoxDecoration(
+                                                color: AppColors.accent,
+                                                shape: BoxShape.circle)),
+                                      ],
                                     ],
                                   ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    '${c.lastMessageIsMine ? 'You: ' : ''}${c.lastMessage}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(color: unread ? AppColors.text : AppColors.textFaint, fontWeight: unread ? FontWeight.w600 : FontWeight.normal, fontSize: 12.5),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (unread) ...[
-                              const SizedBox(width: 8),
-                              Container(width: 9, height: 9, decoration: const BoxDecoration(color: AppColors.accent, shape: BoxShape.circle)),
-                            ],
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
+                                ),
+                              );
+                            },
+                          ),
           ),
         ],
       ),

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../theme/app_colors.dart';
@@ -22,7 +23,8 @@ class DriveBrowseScreen extends StatefulWidget {
   /// SourcePickerBody in source_picker_screen.dart).
   final void Function(Map<String, dynamic> item)? onSelectOverride;
 
-  const DriveBrowseScreen({super.key, required this.visibility, this.topic, this.onSelectOverride});
+  const DriveBrowseScreen(
+      {super.key, required this.visibility, this.topic, this.onSelectOverride});
 
   @override
   State<DriveBrowseScreen> createState() => _DriveBrowseScreenState();
@@ -75,7 +77,8 @@ class _DriveBrowseScreenState extends State<DriveBrowseScreen> {
 
   void _openFolder(Map<String, dynamic> item) {
     setState(() {
-      _breadcrumbs.add({'id': item['id'] as String, 'name': item['name'] as String? ?? ''});
+      _breadcrumbs.add(
+          {'id': item['id'] as String, 'name': item['name'] as String? ?? ''});
       _searchController.clear();
       _searchQuery = '';
     });
@@ -116,7 +119,7 @@ class _DriveBrowseScreenState extends State<DriveBrowseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Google Drive')),
+      appBar: AppBar(title: const InsyncPageTitle('Google Drive')),
       body: GoogleConnectGate(
         child: Stack(
           children: [
@@ -128,25 +131,37 @@ class _DriveBrowseScreenState extends State<DriveBrowseScreen> {
                     controller: _searchController,
                     onChanged: _onSearchChanged,
                     style: const TextStyle(color: AppColors.text),
-                    decoration: const InputDecoration(hintText: 'Search your Drive…', prefixIcon: Icon(Icons.search, color: AppColors.textFaint)),
+                    decoration: const InputDecoration(
+                        hintText: 'Search your Drive…',
+                        prefixIcon:
+                            Icon(Icons.search, color: AppColors.textFaint)),
                   ),
                 ),
                 if (_searchQuery.isEmpty)
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     child: Wrap(
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         for (var i = 0; i < _breadcrumbs.length; i++) ...[
-                          if (i > 0) const Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: Icon(Icons.chevron_right, size: 14, color: AppColors.textFaint)),
+                          if (i > 0)
+                            const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 4),
+                                child: Icon(Icons.chevron_right,
+                                    size: 14, color: AppColors.textFaint)),
                           GestureDetector(
                             onTap: () => _goToBreadcrumb(i),
                             child: Text(
                               _breadcrumbs[i]['name']!,
                               style: TextStyle(
-                                color: i == _breadcrumbs.length - 1 ? AppColors.text : AppColors.primary,
+                                color: i == _breadcrumbs.length - 1
+                                    ? AppColors.text
+                                    : AppColors.primary,
                                 fontSize: 12,
-                                fontWeight: i == _breadcrumbs.length - 1 ? FontWeight.w600 : FontWeight.normal,
+                                fontWeight: i == _breadcrumbs.length - 1
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
                               ),
                             ),
                           ),
@@ -157,7 +172,11 @@ class _DriveBrowseScreenState extends State<DriveBrowseScreen> {
                 Expanded(child: _buildList()),
               ],
             ),
-            if (_creatingRoom) Container(color: Colors.black45, alignment: Alignment.center, child: const Spinner()),
+            if (_creatingRoom)
+              Container(
+                  color: Colors.black45,
+                  alignment: Alignment.center,
+                  child: const Spinner()),
           ],
         ),
       ),
@@ -166,8 +185,16 @@ class _DriveBrowseScreenState extends State<DriveBrowseScreen> {
 
   Widget _buildList() {
     if (_loading) return const Center(child: Spinner());
-    if (_error != null) return Center(child: Text(_error!, style: const TextStyle(color: AppColors.danger)));
-    if (_items.isEmpty) return const Center(child: Text('Nothing here.', style: TextStyle(color: AppColors.textFaint)));
+    if (_error != null) {
+      return Center(
+          child:
+              Text(_error!, style: const TextStyle(color: AppColors.danger)));
+    }
+    if (_items.isEmpty) {
+      return const Center(
+          child: Text('Nothing here.',
+              style: TextStyle(color: AppColors.textFaint)));
+    }
     return ListView(
       padding: const EdgeInsets.all(12),
       children: _items.map((item) {
@@ -177,13 +204,20 @@ class _DriveBrowseScreenState extends State<DriveBrowseScreen> {
           child: Container(
             margin: const EdgeInsets.only(bottom: 6),
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
+            decoration: insyncClay(radius: 22),
             child: Row(
               children: [
-                Text(isFolder ? '📁' : '🎬', style: const TextStyle(fontSize: 20)),
+                Text(isFolder ? '📁' : '🎬',
+                    style: const TextStyle(fontSize: 20)),
                 const SizedBox(width: 10),
-                Expanded(child: Text(item['name'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                if (isFolder) const Icon(Icons.chevron_right, color: AppColors.textFaint),
+                Expanded(
+                    child: Text(item['name'] as String? ?? '',
+                        style: const TextStyle(
+                            color: AppColors.text, fontSize: 13),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis)),
+                if (isFolder)
+                  const Icon(Icons.chevron_right, color: AppColors.textFaint),
               ],
             ),
           ),

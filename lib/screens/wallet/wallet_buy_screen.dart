@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import 'package:provider/provider.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../core/api_client.dart';
@@ -122,7 +123,7 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
         },
         // Matches AppColors.primary (dark theme) — Razorpay's checkout
         // theme only takes a static hex string, not a live Color value.
-        'theme': {'color': '#9B5CF6'},
+        'theme': {'color': '#2455F5'},
       });
     } on ApiException catch (e) {
       ScaffoldMessenger.of(context)
@@ -210,7 +211,7 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Buy coins')),
+      appBar: AppBar(title: const InsyncPageTitle('Buy coins')),
       body: _packages == null
           ? const Center(child: Spinner())
           : ListView(
@@ -358,10 +359,7 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
                 if (_customMode) ...[
                   const SizedBox(height: 14),
                   Container(
-                    decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.border)),
+                    decoration: insyncClay(radius: 22),
                     child: TextField(
                       controller: _customController,
                       keyboardType: TextInputType.number,

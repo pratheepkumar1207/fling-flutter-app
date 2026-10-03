@@ -41,17 +41,23 @@ class GlassSurface extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: tint ?? clay.surface2,
+        gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color.lerp(tint ?? clay.surface2, Colors.white, .05)!,
+              tint ?? clay.surface2
+            ]),
         borderRadius: borderRadius,
         border: Border.all(color: clay.border),
         boxShadow: [
           BoxShadow(
-            color: clay.shadowDark.withValues(alpha: isDark ? 0.16 : 0.16),
+            color: clay.shadowDark.withValues(alpha: isDark ? 0.28 : 0.16),
             blurRadius: 20,
             offset: const Offset(7, 7),
           ),
           BoxShadow(
-            color: clay.shadowLight.withValues(alpha: isDark ? 0.22 : 0.9),
+            color: clay.shadowLight.withValues(alpha: isDark ? 0.10 : 0.9),
             blurRadius: 16,
             offset: const Offset(-6, -6),
           ),
@@ -69,9 +75,14 @@ BoxDecoration glowRingDecoration({required Color color, double radius = 999}) {
     shape: radius >= 999 ? BoxShape.circle : BoxShape.rectangle,
     borderRadius: radius >= 999 ? null : BorderRadius.circular(radius),
     boxShadow: [
-      BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 0, spreadRadius: 1),
-      BoxShadow(color: color.withValues(alpha: 0.45), blurRadius: 24, spreadRadius: 2),
-      BoxShadow(color: color.withValues(alpha: 0.2), blurRadius: 48, spreadRadius: 6),
+      BoxShadow(
+          color: color.withValues(alpha: 0.5), blurRadius: 0, spreadRadius: 1),
+      BoxShadow(
+          color: color.withValues(alpha: 0.45),
+          blurRadius: 24,
+          spreadRadius: 2),
+      BoxShadow(
+          color: color.withValues(alpha: 0.2), blurRadius: 48, spreadRadius: 6),
     ],
   );
 }
@@ -128,7 +139,8 @@ class GlassIcon extends StatelessWidget {
         ),
         borderRadius: borderRadius,
         boxShadow: [
-          BoxShadow(color: glowColor, blurRadius: 14, offset: const Offset(0, 6)),
+          BoxShadow(
+              color: glowColor, blurRadius: 14, offset: const Offset(0, 6)),
         ],
       ),
       child: ClipRRect(
@@ -147,7 +159,10 @@ class GlassIcon extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
-                    colors: [Colors.white.withValues(alpha: 0.55), Colors.white.withValues(alpha: 0)],
+                    colors: [
+                      Colors.white.withValues(alpha: 0.55),
+                      Colors.white.withValues(alpha: 0)
+                    ],
                   ),
                 ),
               ),
@@ -176,7 +191,8 @@ class Blob extends StatelessWidget {
         child: Container(
           width: size,
           height: size,
-          decoration: BoxDecoration(shape: BoxShape.circle, color: color.withValues(alpha: 0.55)),
+          decoration: BoxDecoration(
+              shape: BoxShape.circle, color: color.withValues(alpha: 0.55)),
         ),
       ),
     );

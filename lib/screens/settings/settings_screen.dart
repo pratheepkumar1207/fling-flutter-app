@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
@@ -87,9 +88,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final locationEnabled = user?.locationSharingEnabled ?? false;
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: const InsyncPageTitle('Settings')),
       body: ListView(
         children: [
+          const Padding(
+              padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: InsyncSectionBanner(
+                  title: 'Make it yours',
+                  subtitle: 'Your account. Your comfort. Your control.',
+                  icon: Icons.tune_rounded)),
           _group('Account'),
           _tile(context,
               emoji: '👤',
@@ -97,7 +104,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               builder: (_) => const EditProfileSheet()),
           if (user?.phone != null && user!.phone!.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               child: Row(children: [
                 _iconBadge('📞'),
                 const SizedBox(width: 13),
@@ -114,7 +121,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onTap: () => Navigator.of(context)
                 .push(MaterialPageRoute(builder: (_) => const ProfileScreen())),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               child: Row(children: [
                 _iconBadge('✅'),
                 const SizedBox(width: 13),
@@ -234,7 +241,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         width: 32,
         height: 32,
         decoration: BoxDecoration(
-            color: AppColors.surface2, borderRadius: BorderRadius.circular(9)),
+            gradient: const LinearGradient(colors: AppGradients.brand),
+            borderRadius: BorderRadius.circular(12)),
         alignment: Alignment.center,
         child: Text(emoji, style: const TextStyle(fontSize: 15)),
       );
@@ -247,7 +255,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       onTap: () =>
           Navigator.of(context).push(MaterialPageRoute(builder: builder)),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         child: Row(children: [
           _iconBadge(emoji),
           const SizedBox(width: 13),
@@ -268,7 +276,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       required bool value,
       required ValueChanged<bool>? onChanged}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Row(children: [
         _iconBadge(emoji),
         const SizedBox(width: 13),

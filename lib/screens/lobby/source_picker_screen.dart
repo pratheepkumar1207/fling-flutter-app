@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_song_lists.dart';
@@ -40,7 +41,7 @@ class SourcePickerScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Choose a source')),
+      appBar: AppBar(title: const InsyncPageTitle('Choose a source')),
       body: SourcePickerBody(visibility: visibility, topic: topic),
     );
   }
@@ -218,7 +219,7 @@ class SourcePickerBody extends StatelessWidget {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => Scaffold(
         backgroundColor: AppColors.bg,
-        appBar: AppBar(title: const Text('Playlists')),
+        appBar: AppBar(title: const InsyncPageTitle('Playlists')),
         body: AppPlaylistsTab(
           onAdd: (
                   {required videoUrl,

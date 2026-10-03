@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../core/api_client.dart';
@@ -63,7 +64,7 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Map Explore')),
+      appBar: AppBar(title: const InsyncPageTitle('Map Explore')),
       body: _loading
           ? const Center(child: Spinner(size: 28))
           : _error != null
@@ -73,9 +74,12 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textFaint)),
+                        Text(_error!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: AppColors.textFaint)),
                         const SizedBox(height: 12),
-                        ElevatedButton(onPressed: _load, child: const Text('Retry')),
+                        ElevatedButton(
+                            onPressed: _load, child: const Text('Retry')),
                       ],
                     ),
                   ),
@@ -87,11 +91,14 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
   Widget _buildMap() {
     final nearby = _nearby ?? [];
     final center = nearby.isNotEmpty
-        ? LatLng((nearby.first['latitude'] as num).toDouble(), (nearby.first['longitude'] as num).toDouble())
-        : const LatLng(20.5937, 78.9629); // India, as a reasonable fallback center
+        ? LatLng((nearby.first['latitude'] as num).toDouble(),
+            (nearby.first['longitude'] as num).toDouble())
+        : const LatLng(
+            20.5937, 78.9629); // India, as a reasonable fallback center
 
     return FlutterMap(
-      options: MapOptions(initialCenter: center, initialZoom: nearby.isNotEmpty ? 11 : 4),
+      options: MapOptions(
+          initialCenter: center, initialZoom: nearby.isNotEmpty ? 11 : 4),
       children: [
         TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -115,8 +122,12 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: u['avatarUrl'] != null
-                      ? AppImage(source: u['avatarUrl'] as String?, fit: BoxFit.cover)
-                      : Center(child: Text(_initial(u['name'] as String?), style: const TextStyle(color: AppColors.textDim))),
+                      ? AppImage(
+                          source: u['avatarUrl'] as String?, fit: BoxFit.cover)
+                      : Center(
+                          child: Text(_initial(u['name'] as String?),
+                              style:
+                                  const TextStyle(color: AppColors.textDim))),
                 ),
               ),
             );
@@ -126,7 +137,9 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
     );
   }
 
-  String _initial(String? name) => (name != null && name.isNotEmpty) ? name.substring(0, 1).toUpperCase() : '?';
+  String _initial(String? name) => (name != null && name.isNotEmpty)
+      ? name.substring(0, 1).toUpperCase()
+      : '?';
 
   void _showProfileCard(Map<String, dynamic> u) {
     showModalBottomSheet(
@@ -142,7 +155,10 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                 child: SizedBox(
                   width: 56,
                   height: 56,
-                  child: u['avatarUrl'] != null ? AppImage(source: u['avatarUrl'] as String?, fit: BoxFit.cover) : Container(color: AppColors.surface3),
+                  child: u['avatarUrl'] != null
+                      ? AppImage(
+                          source: u['avatarUrl'] as String?, fit: BoxFit.cover)
+                      : Container(color: AppColors.surface3),
                 ),
               ),
               const SizedBox(width: 12),
@@ -150,15 +166,23 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(u['name'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.bold, fontSize: 16)),
-                    Text('${u['distanceKm']} km away', style: const TextStyle(color: AppColors.textFaint, fontSize: 12)),
+                    Text(u['name'] as String? ?? '',
+                        style: const TextStyle(
+                            color: AppColors.text,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16)),
+                    Text('${u['distanceKm']} km away',
+                        style: const TextStyle(
+                            color: AppColors.textFaint, fontSize: 12)),
                   ],
                 ),
               ),
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
-                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => CreatorProfileScreen(userId: u['id'] as String)));
+                  Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) =>
+                          CreatorProfileScreen(userId: u['id'] as String)));
                 },
                 child: const Text('View profile'),
               ),

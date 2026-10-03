@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
 import '../../models/notification_item.dart';
@@ -34,7 +35,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       final data = await ApiClient.get('/notifications');
       if (!mounted) return;
       setState(() {
-        _items = (data as List).map((e) => NotificationItem.fromJson(e as Map<String, dynamic>)).toList();
+        _items = (data as List)
+            .map((e) => NotificationItem.fromJson(e as Map<String, dynamic>))
+            .toList();
         _loading = false;
       });
     } catch (_) {
@@ -46,12 +49,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     try {
       await ApiClient.post('/notifications/read-all');
       if (!mounted) return;
-      setState(() => _items = _items.map((n) => n.isRead ? n : _withRead(n)).toList());
+      setState(() =>
+          _items = _items.map((n) => n.isRead ? n : _withRead(n)).toList());
     } catch (_) {}
   }
 
-  NotificationItem _withRead(NotificationItem n) =>
-      NotificationItem(id: n.id, type: n.type, title: n.title, body: n.body, data: n.data, isRead: true, createdAt: n.createdAt);
+  NotificationItem _withRead(NotificationItem n) => NotificationItem(
+      id: n.id,
+      type: n.type,
+      title: n.title,
+      body: n.body,
+      data: n.data,
+      isRead: true,
+      createdAt: n.createdAt);
 
   Future<void> _open(NotificationItem n) async {
     if (!n.isRead) {
@@ -66,10 +76,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (!mounted) return;
     if (n.type == 'room_invite') {
       final roomId = n.data?['roomId'] as String?;
-      if (roomId != null) Navigator.of(context).push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId)));
+      if (roomId != null) {
+        Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId)));
+      }
     } else if (n.type == 'mention') {
       final postId = n.data?['postId'] as String?;
-      if (postId != null) Navigator.of(context).push(MaterialPageRoute(builder: (_) => PostDetailScreen(postId: postId)));
+      if (postId != null) {
+        Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => PostDetailScreen(postId: postId)));
+      }
     }
   }
 
@@ -92,21 +108,32 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('Notifications'),
+        title: const InsyncPageTitle('Notifications'),
         actions: [
           if (unread.isNotEmpty)
-            TextButton(onPressed: _markAllRead, child: const Text('Mark all read', style: TextStyle(color: AppColors.primary, fontSize: 12))),
+            TextButton(
+                onPressed: _markAllRead,
+                child: const Text('Mark all read',
+                    style: TextStyle(color: AppColors.primary, fontSize: 12))),
         ],
       ),
       body: _loading
           ? const Center(child: Spinner())
           : _items.isEmpty
-              ? const Center(child: Text('No notifications yet.', style: TextStyle(color: AppColors.textFaint)))
+              ? const Center(
+                  child: Text('No notifications yet.',
+                      style: TextStyle(color: AppColors.textFaint)))
               : ListView(
                   padding: const EdgeInsets.only(top: 8, bottom: 24),
                   children: [
-                    if (unread.isNotEmpty) ...[_sectionLabel('New'), ...unread.map(_row)],
-                    if (read.isNotEmpty) ...[_sectionLabel('Earlier'), ...read.map(_row)],
+                    if (unread.isNotEmpty) ...[
+                      _sectionLabel('New'),
+                      ...unread.map(_row)
+                    ],
+                    if (read.isNotEmpty) ...[
+                      _sectionLabel('Earlier'),
+                      ...read.map(_row)
+                    ],
                   ],
                 ),
     );
@@ -114,21 +141,29 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Widget _sectionLabel(String text) => Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-        child: Text(text, style: const TextStyle(color: AppColors.textFaint, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
+        child: Text(text,
+            style: const TextStyle(
+                color: AppColors.textFaint,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6)),
       );
 
   Widget _row(NotificationItem n) {
     return GestureDetector(
       onTap: () => _open(n),
       child: Container(
-        color: n.isRead ? null : AppColors.accent.withValues(alpha: 0.08),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+        decoration: insyncClay(radius: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Row(
           children: [
             Container(
               width: 38,
               height: 38,
-              decoration: BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: _colorsFor(n.type))),
+              decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(colors: _colorsFor(n.type))),
               alignment: Alignment.center,
               child: Icon(_iconFor(n.type), color: Colors.white, size: 17),
             ),
@@ -137,15 +172,31 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(n.title, style: TextStyle(color: AppColors.text, fontSize: 13, fontWeight: n.isRead ? FontWeight.normal : FontWeight.w700)),
+                  Text(n.title,
+                      style: TextStyle(
+                          color: AppColors.text,
+                          fontSize: 13,
+                          fontWeight:
+                              n.isRead ? FontWeight.normal : FontWeight.w700)),
                   if (n.body.isNotEmpty)
-                    Text(n.body, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
+                    Text(n.body,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: AppColors.textDim, fontSize: 12)),
                   const SizedBox(height: 1),
-                  Text(formatRelativeTime(n.createdAt), style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
+                  Text(formatRelativeTime(n.createdAt),
+                      style: const TextStyle(
+                          color: AppColors.textFaint, fontSize: 11)),
                 ],
               ),
             ),
-            if (!n.isRead) Container(width: 8, height: 8, decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.accent)),
+            if (!n.isRead)
+              Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                      shape: BoxShape.circle, color: AppColors.accent)),
           ],
         ),
       ),

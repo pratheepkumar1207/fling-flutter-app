@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/spinner.dart';
@@ -26,7 +27,8 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final data = await ApiClient.get(_tab == 'browse' ? '/communities/browse' : '/communities/mine');
+      final data = await ApiClient.get(
+          _tab == 'browse' ? '/communities/browse' : '/communities/mine');
       if (!mounted) return;
       setState(() {
         _list = (data as List).cast<Map<String, dynamic>>();
@@ -42,7 +44,10 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
       await ApiClient.post('/communities/$id/join');
       _load();
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to join')));
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Failed to join')));
+      }
     }
   }
 
@@ -58,13 +63,28 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
       isScrollControlled: true,
       builder: (sheetContext) => StatefulBuilder(
         builder: (sheetContext, setSheetState) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(sheetContext).viewInsets.bottom, left: 16, right: 16, top: 16),
+          padding: EdgeInsets.only(
+              bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+              left: 16,
+              right: 16,
+              top: 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(child: Container(width: 36, height: 4, margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(999)))),
-              const Text('Create a community', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.bold, fontSize: 16)),
+              Center(
+                  child: Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                          color: AppColors.border,
+                          borderRadius: BorderRadius.circular(999)))),
+              const Text('Create a community',
+                  style: TextStyle(
+                      color: AppColors.text,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16)),
               const SizedBox(height: 14),
               _sheetField(nameController, 'Name'),
               const SizedBox(height: 10),
@@ -79,8 +99,14 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
                         if (nameController.text.trim().isEmpty) return;
                         setSheetState(() => saving = true);
                         try {
-                          await ApiClient.post('/communities', body: {'name': nameController.text.trim(), 'description': descController.text, 'rules': rulesController.text});
-                          if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+                          await ApiClient.post('/communities', body: {
+                            'name': nameController.text.trim(),
+                            'description': descController.text,
+                            'rules': rulesController.text
+                          });
+                          if (sheetContext.mounted) {
+                            Navigator.of(sheetContext).pop();
+                          }
                           _load();
                         } catch (_) {
                           setSheetState(() => saving = false);
@@ -91,11 +117,17 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
                   height: 48,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
-                    gradient: saving ? null : const LinearGradient(colors: AppGradients.brand),
+                    gradient: saving
+                        ? null
+                        : const LinearGradient(colors: AppGradients.brand),
                     color: saving ? AppColors.surface2 : null,
                   ),
                   alignment: Alignment.center,
-                  child: Text(saving ? 'Creating…' : 'Create', style: TextStyle(color: saving ? AppColors.textFaint : Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+                  child: Text(saving ? 'Creating…' : 'Create',
+                      style: TextStyle(
+                          color: saving ? AppColors.textFaint : Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -114,13 +146,17 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Communities'), actions: [
+      appBar: AppBar(title: const InsyncPageTitle('Communities'), actions: [
         IconButton(
           tooltip: 'Search',
-          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchScreen())),
+          onPressed: () => Navigator.of(context)
+              .push(MaterialPageRoute(builder: (_) => const SearchScreen())),
           icon: const Icon(Icons.search_rounded, color: AppColors.textDim),
         ),
-        Padding(padding: const EdgeInsets.only(right: 12), child: TextButton(onPressed: _openCreate, child: const Text('+ Create'))),
+        Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: TextButton(
+                onPressed: _openCreate, child: const Text('+ Create'))),
       ]),
       body: Column(
         children: [
@@ -138,11 +174,14 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
             child: _loading
                 ? const Center(child: Spinner())
                 : _list.isEmpty
-                    ? const Center(child: Text('No communities', style: TextStyle(color: AppColors.textFaint)))
+                    ? const Center(
+                        child: Text('No communities',
+                            style: TextStyle(color: AppColors.textFaint)))
                     : ListView.builder(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         itemCount: _list.length,
-                        itemBuilder: (context, i) => _communityCard(context, _list[i]),
+                        itemBuilder: (context, i) =>
+                            _communityCard(context, _list[i]),
                       ),
           ),
         ],
@@ -162,13 +201,16 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
 
   Widget _communityCard(BuildContext context, Map<String, dynamic> c) {
     final name = c['name'] as String? ?? '';
-    final gradient = _bannerGradients[name.hashCode.abs() % _bannerGradients.length];
+    final gradient =
+        _bannerGradients[name.hashCode.abs() % _bannerGradients.length];
     final joined = _tab == 'mine';
     return GestureDetector(
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => CommunityDetailScreen(communityId: c['id'] as String, name: name))),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => CommunityDetailScreen(
+              communityId: c['id'] as String, name: name))),
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.border)),
+        decoration: insyncClay(radius: 22),
         clipBehavior: Clip.antiAlias,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -176,7 +218,13 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
             Stack(
               clipBehavior: Clip.none,
               children: [
-                Container(height: 74, decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient))),
+                Container(
+                    height: 74,
+                    decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: gradient))),
                 Positioned(
                   left: 16,
                   bottom: -20,
@@ -184,9 +232,16 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
                     width: 52,
                     height: 52,
                     padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14)),
+                    decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(14)),
                     child: Container(
-                      decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient), borderRadius: BorderRadius.circular(11)),
+                      decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: gradient),
+                          borderRadius: BorderRadius.circular(11)),
                       alignment: Alignment.center,
                       child: const Text('🏘️', style: TextStyle(fontSize: 18)),
                     ),
@@ -201,26 +256,43 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
                 children: [
                   Row(
                     children: [
-                      Expanded(child: Text(name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 14.5))),
+                      Expanded(
+                          child: Text(name,
+                              style: const TextStyle(
+                                  color: AppColors.text,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14.5))),
                       GestureDetector(
                         onTap: joined ? null : () => _join(c['id'] as String),
                         child: Container(
                           height: 30,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
-                            gradient: joined ? null : const LinearGradient(colors: AppGradients.brand),
+                            gradient: joined
+                                ? null
+                                : const LinearGradient(
+                                    colors: AppGradients.brand),
                             color: joined ? AppColors.surface2 : null,
-                            border: joined ? Border.all(color: AppColors.border) : null,
+                            border: joined
+                                ? Border.all(color: AppColors.border)
+                                : null,
                             borderRadius: BorderRadius.circular(999),
                           ),
                           alignment: Alignment.center,
-                          child: Text(joined ? 'Joined' : 'Join', style: TextStyle(color: joined ? AppColors.textDim : Colors.white, fontWeight: FontWeight.w700, fontSize: 11.5)),
+                          child: Text(joined ? 'Joined' : 'Join',
+                              style: TextStyle(
+                                  color:
+                                      joined ? AppColors.textDim : Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 11.5)),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 3),
-                  Text('${c['memberCount'] ?? 0} members', style: const TextStyle(color: AppColors.textFaint, fontSize: 12)),
+                  Text('${c['memberCount'] ?? 0} members',
+                      style: const TextStyle(
+                          color: AppColors.textFaint, fontSize: 12)),
                 ],
               ),
             ),
@@ -230,13 +302,20 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
     );
   }
 
-  Widget _sheetField(TextEditingController controller, String hint, {int maxLines = 1}) => Container(
-        decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(12)),
+  Widget _sheetField(TextEditingController controller, String hint,
+          {int maxLines = 1}) =>
+      Container(
+        decoration: BoxDecoration(
+            color: AppColors.surface2, borderRadius: BorderRadius.circular(12)),
         child: TextField(
           controller: controller,
           maxLines: maxLines,
           style: const TextStyle(color: AppColors.text),
-          decoration: InputDecoration(hintText: hint, border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
+          decoration: InputDecoration(
+              hintText: hint,
+              border: InputBorder.none,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
         ),
       );
 
@@ -244,7 +323,9 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
         label: Text(label),
         selected: _tab == key,
         selectedColor: AppColors.primary.withValues(alpha: 0.2),
-        labelStyle: TextStyle(color: _tab == key ? AppColors.primary : AppColors.textDim, fontSize: 12),
+        labelStyle: TextStyle(
+            color: _tab == key ? AppColors.primary : AppColors.textDim,
+            fontSize: 12),
         backgroundColor: AppColors.surface,
         onSelected: (_) {
           setState(() => _tab = key);

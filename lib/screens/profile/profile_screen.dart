@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -225,7 +226,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: const InsyncPageTitle('Profile'),
         actions: [
           IconButton(
             onPressed: () => Navigator.of(context).push(
@@ -242,7 +243,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  _profileHeader(user),
+                  Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: insyncClay(),
+                      child: _profileHeader(user)),
                   const SizedBox(height: 16),
                   if (user != null)
                     ProfileCompletenessMeter(percent: user.completenessPercent),
@@ -399,10 +403,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(color: AppColors.border)),
+                      decoration: insyncClay(radius: 22),
                       child: Text('$percent%',
                           style: const TextStyle(
                               color: AppColors.accent,
@@ -582,10 +583,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       },
       child: Container(
-        decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border)),
+        decoration: insyncClay(radius: 22),
         alignment: Alignment.center,
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -627,10 +625,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.border)),
+          decoration: insyncClay(radius: 22),
           child: Row(
             children: [
               Icon(icon, color: AppColors.accent, size: 19),
@@ -654,10 +649,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final progress = ((100 - xpToNext).clamp(0, 100)) / 100;
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border)),
+      decoration: insyncClay(radius: 22),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -697,10 +689,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border)),
+      decoration: insyncClay(radius: 22),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -799,10 +788,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Container(
           margin: const EdgeInsets.only(bottom: 6),
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.border)),
+          decoration: insyncClay(radius: 22),
           child: Row(
             children: [
               Container(
@@ -1054,7 +1040,7 @@ class EditProfileSheetState extends State<EditProfileSheet> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Edit profile')),
+      appBar: AppBar(title: const InsyncPageTitle('Edit profile')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -1333,10 +1319,7 @@ class EditProfileSheetState extends State<EditProfileSheet> {
               style: const TextStyle(color: AppColors.textDim, fontSize: 13)),
           const SizedBox(height: 6),
           Container(
-            decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.border)),
+            decoration: insyncClay(radius: 22),
             child: TextField(
               controller: controller,
               maxLines: maxLines,

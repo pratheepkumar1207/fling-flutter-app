@@ -121,13 +121,13 @@ class _NotificationBellState extends State<NotificationBell> {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<void>(
+      tooltip: 'Notifications',
       icon: Badge(
         isLabelVisible: _unreadCount > 0,
         label: Text('$_unreadCount'),
         backgroundColor: AppColors.primary,
         textColor: Colors.white,
-        child: Image.asset('assets/icons/app/notification.png',
-            width: 48, height: 48),
+        child: const Icon(Icons.notifications_none_rounded, size: 24),
       ),
       color: AppColors.surface2,
       itemBuilder: (context) {

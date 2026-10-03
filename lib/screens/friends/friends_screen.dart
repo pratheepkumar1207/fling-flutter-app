@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/avatar.dart';
@@ -62,7 +63,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
       await ApiClient.post('/friends/request', body: {'toUserId': userId});
       if (mounted) setState(() => _suggestedSent.add(userId));
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to send request')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to send request')));
+      }
     }
   }
 
@@ -70,7 +74,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Friends')),
+      appBar: AppBar(title: const InsyncPageTitle('Friends')),
       body: Column(
         children: [
           Padding(
@@ -79,7 +83,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
               children: [
                 _tabChip('friends', 'Friends'),
                 const SizedBox(width: 8),
-                _tabChip('requests', 'Requests${_requests.isNotEmpty ? ' (${_requests.length})' : ''}'),
+                _tabChip('requests',
+                    'Requests${_requests.isNotEmpty ? ' (${_requests.length})' : ''}'),
                 const SizedBox(width: 8),
                 _tabChip('find', 'Find people'),
               ],
@@ -92,20 +97,39 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     ? const Center(child: Spinner())
                     : _tab == 'friends'
                         ? (_friends.isEmpty
-                            ? const Center(child: Text('No friends yet', style: TextStyle(color: AppColors.textFaint)))
+                            ? const Center(
+                                child: Text('No friends yet',
+                                    style:
+                                        TextStyle(color: AppColors.textFaint)))
                             : ListView.builder(
-                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 4),
                                 itemCount: _friends.length,
                                 itemBuilder: (context, i) {
                                   final f = _friends[i];
                                   return GestureDetector(
-                                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => CreatorProfileScreen(userId: f['id'] as String))),
+                                    onTap: () => Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                                CreatorProfileScreen(
+                                                    userId:
+                                                        f['id'] as String))),
                                     child: Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 20, vertical: 9),
                                       child: Row(children: [
-                                        Avatar(src: f['avatarUrl'] as String?, name: f['name'] as String?, size: AvatarSize.md),
+                                        Avatar(
+                                            src: f['avatarUrl'] as String?,
+                                            name: f['name'] as String?,
+                                            size: AvatarSize.md),
                                         const SizedBox(width: 12),
-                                        Expanded(child: Text(f['name'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.5))),
+                                        Expanded(
+                                            child: Text(
+                                                f['name'] as String? ?? '',
+                                                style: const TextStyle(
+                                                    color: AppColors.text,
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 13.5))),
                                       ]),
                                     ),
                                   );
@@ -117,33 +141,62 @@ class _FriendsScreenState extends State<FriendsScreen> {
                               if (_requests.isEmpty && _suggested.isEmpty)
                                 const Padding(
                                   padding: EdgeInsets.symmetric(vertical: 40),
-                                  child: Center(child: Text('No pending requests', style: TextStyle(color: AppColors.textFaint))),
+                                  child: Center(
+                                      child: Text('No pending requests',
+                                          style: TextStyle(
+                                              color: AppColors.textFaint))),
                                 ),
                               ..._requests.map((r) => Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20, vertical: 9),
                                     child: Row(
                                       children: [
-                                        Avatar(name: r['fromName'] as String?, size: AvatarSize.md),
+                                        Avatar(
+                                            name: r['fromName'] as String?,
+                                            size: AvatarSize.md),
                                         const SizedBox(width: 12),
-                                        Expanded(child: Text(r['fromName'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.5))),
+                                        Expanded(
+                                            child: Text(
+                                                r['fromName'] as String? ?? '',
+                                                style: const TextStyle(
+                                                    color: AppColors.text,
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 13.5))),
                                         GestureDetector(
-                                          onTap: () => _accept(r['id'] as String),
+                                          onTap: () =>
+                                              _accept(r['id'] as String),
                                           child: Container(
                                             height: 32,
-                                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                                            decoration: BoxDecoration(gradient: const LinearGradient(colors: AppGradients.brand), borderRadius: BorderRadius.circular(999)),
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 14),
+                                            decoration: BoxDecoration(
+                                                gradient: const LinearGradient(
+                                                    colors: AppGradients.brand),
+                                                borderRadius:
+                                                    BorderRadius.circular(999)),
                                             alignment: Alignment.center,
-                                            child: const Text('Accept', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
+                                            child: const Text('Accept',
+                                                style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 12)),
                                           ),
                                         ),
                                         const SizedBox(width: 6),
                                         GestureDetector(
-                                          onTap: () => _reject(r['id'] as String),
+                                          onTap: () =>
+                                              _reject(r['id'] as String),
                                           child: Container(
                                             width: 32,
                                             height: 32,
-                                            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.border)),
-                                            child: const Icon(Icons.close_rounded, color: AppColors.textDim, size: 15),
+                                            decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                    color: AppColors.border)),
+                                            child: const Icon(
+                                                Icons.close_rounded,
+                                                color: AppColors.textDim,
+                                                size: 15),
                                           ),
                                         ),
                                       ],
@@ -156,38 +209,78 @@ class _FriendsScreenState extends State<FriendsScreen> {
                               // to show.
                               if (_suggested.isNotEmpty) ...[
                                 Padding(
-                                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
-                                  child: Text('SUGGESTED', style: const TextStyle(color: AppColors.textFaint, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
+                                  padding:
+                                      const EdgeInsets.fromLTRB(20, 18, 20, 8),
+                                  child: Text('SUGGESTED',
+                                      style: const TextStyle(
+                                          color: AppColors.textFaint,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.6)),
                                 ),
                                 ..._suggested.map((s) {
                                   final id = s['id'] as String;
                                   final sent = _suggestedSent.contains(id);
-                                  final mutualCount = s['mutualCount'] as int? ?? 0;
+                                  final mutualCount =
+                                      s['mutualCount'] as int? ?? 0;
                                   return GestureDetector(
-                                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => CreatorProfileScreen(userId: id))),
+                                    onTap: () => Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                                CreatorProfileScreen(
+                                                    userId: id))),
                                     child: Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 20, vertical: 9),
                                       child: Row(
                                         children: [
-                                          Avatar(src: s['avatarUrl'] as String?, name: s['name'] as String?, size: AvatarSize.md),
+                                          Avatar(
+                                              src: s['avatarUrl'] as String?,
+                                              name: s['name'] as String?,
+                                              size: AvatarSize.md),
                                           const SizedBox(width: 12),
                                           Expanded(
                                             child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
-                                                Text(s['name'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.5)),
-                                                Text('$mutualCount mutual friend${mutualCount == 1 ? '' : 's'}', style: const TextStyle(color: AppColors.textFaint, fontSize: 11.5)),
+                                                Text(s['name'] as String? ?? '',
+                                                    style: const TextStyle(
+                                                        color: AppColors.text,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        fontSize: 13.5)),
+                                                Text(
+                                                    '$mutualCount mutual friend${mutualCount == 1 ? '' : 's'}',
+                                                    style: const TextStyle(
+                                                        color:
+                                                            AppColors.textFaint,
+                                                        fontSize: 11.5)),
                                               ],
                                             ),
                                           ),
                                           GestureDetector(
-                                            onTap: sent ? null : () => _addSuggested(id),
+                                            onTap: sent
+                                                ? null
+                                                : () => _addSuggested(id),
                                             child: Container(
                                               height: 32,
-                                              padding: const EdgeInsets.symmetric(horizontal: 14),
-                                              decoration: BoxDecoration(borderRadius: BorderRadius.circular(999), border: Border.all(color: AppColors.border)),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 14),
+                                              decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          999),
+                                                  border: Border.all(
+                                                      color: AppColors.border)),
                                               alignment: Alignment.center,
-                                              child: Text(sent ? 'Sent' : 'Add', style: const TextStyle(color: AppColors.textDim, fontWeight: FontWeight.w700, fontSize: 12)),
+                                              child: Text(sent ? 'Sent' : 'Add',
+                                                  style: const TextStyle(
+                                                      color: AppColors.textDim,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      fontSize: 12)),
                                             ),
                                           ),
                                         ],
@@ -208,7 +301,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
         label: Text(label),
         selected: _tab == key,
         selectedColor: AppColors.primary.withValues(alpha: 0.2),
-        labelStyle: TextStyle(color: _tab == key ? AppColors.primary : AppColors.textDim, fontSize: 12),
+        labelStyle: TextStyle(
+            color: _tab == key ? AppColors.primary : AppColors.textDim,
+            fontSize: 12),
         backgroundColor: AppColors.surface,
         onSelected: (_) => setState(() => _tab = key),
       );
@@ -235,8 +330,12 @@ class _FindPeopleTabState extends State<_FindPeopleTab> {
     }
     _debounce = Timer(const Duration(milliseconds: 300), () async {
       try {
-        final data = await ApiClient.get('/users/search?q=${Uri.encodeQueryComponent(q.trim())}');
-        if (mounted) setState(() => _results = (data as List).cast<Map<String, dynamic>>());
+        final data = await ApiClient.get(
+            '/users/search?q=${Uri.encodeQueryComponent(q.trim())}');
+        if (mounted) {
+          setState(
+              () => _results = (data as List).cast<Map<String, dynamic>>());
+        }
       } catch (_) {
         if (mounted) setState(() => _results = []);
       }
@@ -248,7 +347,10 @@ class _FindPeopleTabState extends State<_FindPeopleTab> {
       await ApiClient.post('/friends/request', body: {'toUserId': userId});
       if (mounted) setState(() => _sentIds.add(userId));
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to send request')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to send request')));
+      }
     }
   }
 
@@ -262,7 +364,8 @@ class _FindPeopleTabState extends State<_FindPeopleTab> {
             controller: _controller,
             onChanged: _onChanged,
             style: const TextStyle(color: AppColors.text),
-            decoration: const InputDecoration(hintText: 'Search by name or username…'),
+            decoration:
+                const InputDecoration(hintText: 'Search by name or username…'),
           ),
           const SizedBox(height: 12),
           Expanded(
@@ -275,21 +378,34 @@ class _FindPeopleTabState extends State<_FindPeopleTab> {
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+                  decoration: insyncClay(radius: 22),
                   child: Row(
                     children: [
-                      Avatar(src: u['avatarUrl'] as String?, name: u['name'] as String?, size: AvatarSize.sm),
+                      Avatar(
+                          src: u['avatarUrl'] as String?,
+                          name: u['name'] as String?,
+                          size: AvatarSize.sm),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(u['name'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w500)),
-                            if (u['username'] != null) Text('@${u['username']}', style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
+                            Text(u['name'] as String? ?? '',
+                                style: const TextStyle(
+                                    color: AppColors.text,
+                                    fontWeight: FontWeight.w500)),
+                            if (u['username'] != null)
+                              Text('@${u['username']}',
+                                  style: const TextStyle(
+                                      color: AppColors.textFaint,
+                                      fontSize: 11)),
                           ],
                         ),
                       ),
-                      ElevatedButton(onPressed: sent ? null : () => _send(id), child: Text(sent ? 'Sent' : 'Add', style: const TextStyle(fontSize: 11))),
+                      ElevatedButton(
+                          onPressed: sent ? null : () => _send(id),
+                          child: Text(sent ? 'Sent' : 'Add',
+                              style: const TextStyle(fontSize: 11))),
                     ],
                   ),
                 );

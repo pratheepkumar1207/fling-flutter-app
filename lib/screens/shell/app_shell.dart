@@ -202,7 +202,7 @@ class _AppShellState extends State<AppShell> {
       // Lets Home's own scroll content show (blurred) through the glass
       // bottom nav instead of the bar sitting over a dead solid-color gap —
       // see LiquidGlassBottomNav.
-      extendBody: true,
+      extendBody: false,
       body: IndexedStack(index: _index, children: _screens),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,

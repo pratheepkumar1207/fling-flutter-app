@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_provider.dart';
@@ -14,7 +15,8 @@ import '../party/party_screen.dart';
 class CommunityDetailScreen extends StatefulWidget {
   final String communityId;
   final String? name;
-  const CommunityDetailScreen({super.key, required this.communityId, this.name});
+  const CommunityDetailScreen(
+      {super.key, required this.communityId, this.name});
 
   @override
   State<CommunityDetailScreen> createState() => _CommunityDetailScreenState();
@@ -51,7 +53,8 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
 
   Future<void> _loadCommunity() async {
     try {
-      final data = await ApiClient.get('/communities/${widget.communityId}') as Map<String, dynamic>;
+      final data = await ApiClient.get('/communities/${widget.communityId}')
+          as Map<String, dynamic>;
       if (!mounted) return;
       setState(() {
         _community = data;
@@ -64,11 +67,14 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
 
   Future<void> _loadMembers() async {
     try {
-      final data = await ApiClient.get('/communities/${widget.communityId}/members');
+      final data =
+          await ApiClient.get('/communities/${widget.communityId}/members');
       final members = (data as List).cast<Map<String, dynamic>>();
       final pairs = await Future.wait(members.map((m) async {
         try {
-          final profile = await ApiClient.get('/creators/${m['userId']}/profile') as Map<String, dynamic>;
+          final profile =
+              await ApiClient.get('/creators/${m['userId']}/profile')
+                  as Map<String, dynamic>;
           return MapEntry(m['userId'] as String, profile);
         } catch (_) {
           return MapEntry(m['userId'] as String, <String, dynamic>{});
@@ -84,7 +90,8 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
 
   Future<void> _loadPinned() async {
     try {
-      final data = await ApiClient.get('/communities/${widget.communityId}/pinned');
+      final data =
+          await ApiClient.get('/communities/${widget.communityId}/pinned');
       if (!mounted) return;
       setState(() {
         _pinned = (data as List).cast<Map<String, dynamic>>();
@@ -97,11 +104,17 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
 
   Future<void> _enterRoom() async {
     try {
-      final room = await ApiClient.get('/communities/${widget.communityId}/room') as Map<String, dynamic>;
+      final room =
+          await ApiClient.get('/communities/${widget.communityId}/room')
+              as Map<String, dynamic>;
       if (!mounted) return;
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: room['id'] as String)));
+      Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => PartyScreen(roomId: room['id'] as String)));
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No active room for this community')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No active room for this community')));
+      }
     }
   }
 
@@ -109,7 +122,8 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
     final joined = _community?['isJoined'] == true;
     setState(() => _joining = true);
     try {
-      await ApiClient.post('/communities/${widget.communityId}/${joined ? 'leave' : 'join'}');
+      await ApiClient.post(
+          '/communities/${widget.communityId}/${joined ? 'leave' : 'join'}');
       if (joined && mounted) {
         Navigator.of(context).pop();
         return;
@@ -123,10 +137,18 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
 
   Future<void> _boost() async {
     try {
-      final res = await ApiClient.post('/communities/${widget.communityId}/boost', body: {'days': 7}) as Map<String, dynamic>;
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Boosted until ${res['boostedUntil']}')));
+      final res = await ApiClient.post(
+          '/communities/${widget.communityId}/boost',
+          body: {'days': 7}) as Map<String, dynamic>;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Boosted until ${res['boostedUntil']}')));
+      }
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to boost')));
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Failed to boost')));
+      }
     }
   }
 
@@ -135,11 +157,15 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
     if (text.isEmpty) return;
     setState(() => _pinning = true);
     try {
-      await ApiClient.post('/communities/${widget.communityId}/pinned', body: {'text': text});
+      await ApiClient.post('/communities/${widget.communityId}/pinned',
+          body: {'text': text});
       _pinController.clear();
       await _loadPinned();
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to pin message')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to pin message')));
+      }
     } finally {
       if (mounted) setState(() => _pinning = false);
     }
@@ -147,11 +173,18 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
 
   Future<void> _setModerator(String userId) async {
     try {
-      await ApiClient.post('/communities/${widget.communityId}/moderators/$userId');
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Promoted to moderator')));
+      await ApiClient.post(
+          '/communities/${widget.communityId}/moderators/$userId');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Promoted to moderator')));
+      }
       _loadMembers();
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to update role')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to update role')));
+      }
     }
   }
 
@@ -165,9 +198,11 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
         break;
       }
     }
-    final canModerate = myMembership != null && myMembership['role'] != 'member';
+    final canModerate =
+        myMembership != null && myMembership['role'] != 'member';
     final name = _community?['name'] as String? ?? widget.name ?? 'Community';
-    final gradient = _bannerGradients[name.hashCode.abs() % _bannerGradients.length];
+    final gradient =
+        _bannerGradients[name.hashCode.abs() % _bannerGradients.length];
     final joined = _community?['isJoined'] == true;
     final isOwner = myMembership?['role'] == 'owner';
 
@@ -183,24 +218,37 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                     children: [
                       Container(
                         height: 84,
-                        decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient)),
+                        decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: gradient)),
                       ),
                       Positioned(
                         top: 10,
                         left: 6,
-                        child: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.of(context).pop()),
+                        child: IconButton(
+                            icon: const Icon(Icons.arrow_back,
+                                color: Colors.white),
+                            onPressed: () => Navigator.of(context).pop()),
                       ),
                       if (isOwner)
                         Positioned(
                           top: 10,
                           right: 6,
                           child: PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+                            icon: const Icon(Icons.more_vert_rounded,
+                                color: Colors.white),
                             color: AppColors.surface2,
                             onSelected: (v) {
                               if (v == 'boost') _boost();
                             },
-                            itemBuilder: (_) => const [PopupMenuItem(value: 'boost', child: Text('Boost 7 days', style: TextStyle(color: AppColors.text)))],
+                            itemBuilder: (_) => const [
+                              PopupMenuItem(
+                                  value: 'boost',
+                                  child: Text('Boost 7 days',
+                                      style: TextStyle(color: AppColors.text)))
+                            ],
                           ),
                         ),
                       Positioned(
@@ -210,11 +258,19 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                           width: 56,
                           height: 56,
                           padding: const EdgeInsets.all(3),
-                          decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(16)),
+                          decoration: BoxDecoration(
+                              color: AppColors.bg,
+                              borderRadius: BorderRadius.circular(16)),
                           child: Container(
-                            decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient), borderRadius: BorderRadius.circular(13)),
+                            decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: gradient),
+                                borderRadius: BorderRadius.circular(13)),
                             alignment: Alignment.center,
-                            child: const Text('🏘️', style: TextStyle(fontSize: 20)),
+                            child: const Text('🏘️',
+                                style: TextStyle(fontSize: 20)),
                           ),
                         ),
                       ),
@@ -226,7 +282,13 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          child: Text(name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 17), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          child: Text(name,
+                              style: const TextStyle(
+                                  color: AppColors.text,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 17),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
                         ),
                         GestureDetector(
                           onTap: _joining ? null : _toggleMembership,
@@ -235,12 +297,23 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(999),
-                              gradient: joined ? null : const LinearGradient(colors: AppGradients.brand),
+                              gradient: joined
+                                  ? null
+                                  : const LinearGradient(
+                                      colors: AppGradients.brand),
                               color: joined ? AppColors.surface2 : null,
-                              border: joined ? Border.all(color: AppColors.border) : null,
+                              border: joined
+                                  ? Border.all(color: AppColors.border)
+                                  : null,
                             ),
                             alignment: Alignment.center,
-                            child: Text(joined ? 'Joined' : 'Join', style: TextStyle(color: joined ? AppColors.textDim : Colors.white, fontWeight: FontWeight.w700, fontSize: 11.5)),
+                            child: Text(joined ? 'Joined' : 'Join',
+                                style: TextStyle(
+                                    color: joined
+                                        ? AppColors.textDim
+                                        : Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11.5)),
                           ),
                         ),
                       ],
@@ -252,10 +325,13 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                       alignment: Alignment.centerLeft,
                       child: Text(
                         [
-                          if (_community?['description'] != null && (_community!['description'] as String).isNotEmpty) _community!['description'],
+                          if (_community?['description'] != null &&
+                              (_community!['description'] as String).isNotEmpty)
+                            _community!['description'],
                           '${_community?['memberCount'] ?? _members.length} members',
                         ].join(' · '),
-                        style: const TextStyle(color: AppColors.textFaint, fontSize: 12),
+                        style: const TextStyle(
+                            color: AppColors.textFaint, fontSize: 12),
                       ),
                     ),
                   ),
@@ -285,8 +361,16 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
         child: Container(
           height: 38,
           alignment: Alignment.center,
-          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: selected ? AppColors.text : Colors.transparent, width: 2))),
-          child: Text(label, style: TextStyle(color: selected ? AppColors.text : AppColors.textFaint, fontSize: 12.5, fontWeight: selected ? FontWeight.w700 : FontWeight.w600)),
+          decoration: BoxDecoration(
+              border: Border(
+                  bottom: BorderSide(
+                      color: selected ? AppColors.text : Colors.transparent,
+                      width: 2))),
+          child: Text(label,
+              style: TextStyle(
+                  color: selected ? AppColors.text : AppColors.textFaint,
+                  fontSize: 12.5,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600)),
         ),
       ),
     );
@@ -310,22 +394,34 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
         if (_pinnedLoading)
           const Center(child: Spinner(size: 22))
         else if (_pinned.isEmpty)
-          const Text('Nothing pinned yet.', style: TextStyle(color: AppColors.textFaint, fontSize: 13))
+          const Text('Nothing pinned yet.',
+              style: TextStyle(color: AppColors.textFaint, fontSize: 13))
         else
           ..._pinned.map((p) => Container(
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(13),
-                decoration: BoxDecoration(color: AppColors.gold.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.gold.withValues(alpha: 0.4))),
+                decoration: BoxDecoration(
+                    color: AppColors.gold.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: AppColors.gold.withValues(alpha: 0.4))),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
-                      const Icon(Icons.push_pin_rounded, size: 12, color: AppColors.gold),
+                      const Icon(Icons.push_pin_rounded,
+                          size: 12, color: AppColors.gold),
                       const SizedBox(width: 6),
-                      Text('Pinned', style: const TextStyle(color: AppColors.gold, fontSize: 11, fontWeight: FontWeight.w700)),
+                      Text('Pinned',
+                          style: const TextStyle(
+                              color: AppColors.gold,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700)),
                     ]),
                     const SizedBox(height: 5),
-                    Text(p['text'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontSize: 13, height: 1.4)),
+                    Text(p['text'] as String? ?? '',
+                        style: const TextStyle(
+                            color: AppColors.text, fontSize: 13, height: 1.4)),
                   ],
                 ),
               )),
@@ -336,11 +432,17 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
               children: [
                 Expanded(
                   child: Container(
-                    decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+                    decoration: insyncClay(radius: 22),
                     child: TextField(
                       controller: _pinController,
-                      style: const TextStyle(color: AppColors.text, fontSize: 13),
-                      decoration: const InputDecoration(hintText: 'Pin a message…', isDense: true, border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+                      style:
+                          const TextStyle(color: AppColors.text, fontSize: 13),
+                      decoration: const InputDecoration(
+                          hintText: 'Pin a message…',
+                          isDense: true,
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10)),
                     ),
                   ),
                 ),
@@ -350,9 +452,19 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                   child: Container(
                     height: 36,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(999), gradient: _pinning ? null : const LinearGradient(colors: AppGradients.brand), color: _pinning ? AppColors.surface2 : null),
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        gradient: _pinning
+                            ? null
+                            : const LinearGradient(colors: AppGradients.brand),
+                        color: _pinning ? AppColors.surface2 : null),
                     alignment: Alignment.center,
-                    child: Text('Pin', style: TextStyle(color: _pinning ? AppColors.textFaint : Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
+                    child: Text('Pin',
+                        style: TextStyle(
+                            color:
+                                _pinning ? AppColors.textFaint : Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12)),
                   ),
                 ),
               ],
@@ -362,26 +474,42 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
           onTap: _enterRoom,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(14)),
+            decoration: BoxDecoration(
+                color: AppColors.surface2,
+                borderRadius: BorderRadius.circular(14)),
             child: Row(
               children: [
-                const Icon(Icons.videocam_rounded, color: AppColors.textDim, size: 20),
+                const Icon(Icons.videocam_rounded,
+                    color: AppColors.textDim, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Community voice room', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 12.5)),
-                      Text('Tap to join', style: const TextStyle(color: AppColors.textFaint, fontSize: 10.5)),
+                      Text('Community voice room',
+                          style: const TextStyle(
+                              color: AppColors.text,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12.5)),
+                      Text('Tap to join',
+                          style: const TextStyle(
+                              color: AppColors.textFaint, fontSize: 10.5)),
                     ],
                   ),
                 ),
                 Container(
                   height: 30,
                   padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(999), gradient: const LinearGradient(colors: AppGradients.brand)),
+                  decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      gradient:
+                          const LinearGradient(colors: AppGradients.brand)),
                   alignment: Alignment.center,
-                  child: const Text('Join', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 11.5)),
+                  child: const Text('Join',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11.5)),
                 ),
               ],
             ),
@@ -402,18 +530,27 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.forum_outlined, color: AppColors.textFaint, size: 36),
+            const Icon(Icons.forum_outlined,
+                color: AppColors.textFaint, size: 36),
             const SizedBox(height: 12),
-            const Text('Chat happens in the voice room', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+            const Text('Chat happens in the voice room',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.textDim, fontSize: 13)),
             const SizedBox(height: 16),
             GestureDetector(
               onTap: _enterRoom,
               child: Container(
                 height: 40,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(999), gradient: const LinearGradient(colors: AppGradients.brand)),
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    gradient: const LinearGradient(colors: AppGradients.brand)),
                 alignment: Alignment.center,
-                child: const Text('Join voice room', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                child: const Text('Join voice room',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13)),
               ),
             ),
           ],
@@ -428,19 +565,28 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
       children: _members.map((m) {
         final userId = m['userId'] as String;
         final profile = _profiles[userId];
-        final isMe = userId == Provider.of<AuthProvider>(context, listen: false).user?.id;
+        final isMe = userId ==
+            Provider.of<AuthProvider>(context, listen: false).user?.id;
         final role = m['role'] as String? ?? 'member';
         return ListTile(
           onTap: () => openProfile(context, userId),
-          leading: Avatar(src: profile?['avatarUrl'] as String?, name: profile?['name'] as String?, size: AvatarSize.sm),
-          title: Text(isMe ? 'You' : (profile?['name'] as String? ?? 'Member'), style: const TextStyle(color: AppColors.text)),
+          leading: Avatar(
+              src: profile?['avatarUrl'] as String?,
+              name: profile?['name'] as String?,
+              size: AvatarSize.sm),
+          title: Text(isMe ? 'You' : (profile?['name'] as String? ?? 'Member'),
+              style: const TextStyle(color: AppColors.text)),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 role,
                 style: TextStyle(
-                  color: role == 'owner' ? AppColors.gold : role == 'moderator' ? AppColors.accent : AppColors.textFaint,
+                  color: role == 'owner'
+                      ? AppColors.gold
+                      : role == 'moderator'
+                          ? AppColors.accent
+                          : AppColors.textFaint,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                 ),
@@ -448,7 +594,8 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
               if (canModerate && role == 'member' && !isMe)
                 TextButton(
                   onPressed: () => _setModerator(userId),
-                  child: const Text('Make mod', style: TextStyle(color: AppColors.primary, fontSize: 12)),
+                  child: const Text('Make mod',
+                      style: TextStyle(color: AppColors.primary, fontSize: 12)),
                 ),
             ],
           ),

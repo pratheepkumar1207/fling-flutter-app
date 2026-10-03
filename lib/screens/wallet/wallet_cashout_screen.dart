@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_clay.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
@@ -109,7 +110,7 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Cash out')),
+      appBar: AppBar(title: const InsyncPageTitle('Cash out')),
       body: _loading
           ? const Center(child: Spinner())
           : _kycStatus != 'verified'
