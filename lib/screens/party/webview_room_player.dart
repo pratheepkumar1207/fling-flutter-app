@@ -223,26 +223,64 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
   // styling — doesn't read or control playback state, so it's a no-op on
   // DRM pages (Netflix/Prime) whose player isn't a plain <video> tag in
   // the same way; harmless to run there regardless.
-  Future<void> _injectFullBleedVideoCss() async {
-    await _controller?.evaluateJavascript(source: '''
+  //
+  // Picks the real content <video> (playing, or failing that the largest)
+  // rather than blindly matching every <video> tag — some pages carry extra
+  // empty/placeholder ones alongside the real element.
+  //
+  // Sets the sizing directly on the element's own inline style via
+  // style.setProperty(prop, value, 'important') rather than an injected
+  // <style> rule. Confirmed live on Aha: an injected `video { ... !important
+  // }` stylesheet rule correctly won width (100vw took effect — the video's
+  // own offsetWidth matched the viewport exactly), but height stayed at the
+  // video's native aspect ratio instead of 100vh. That's a genuine CSS
+  // specificity loss, not a wrong-element problem: the page's own
+  // `!important` rule on this exact video (matched by a class selector, more
+  // specific than this bare-tag one) still wins a tag-selector's
+  // `!important` per the cascade's specificity tie-break. An element's own
+  // inline style is higher-priority than any external stylesheet rule
+  // regardless of that rule's specificity, so setting it directly here is
+  // what actually guarantees the win. Retried a few times after load since
+  // the real player's <video> element is frequently attached
+  // asynchronously, after this page's load event.
+  void _injectFullBleedVideoCss() {
+    const script = '''
       (function() {
-        if (document.getElementById('__fling_fullbleed__')) return;
-        var style = document.createElement('style');
-        style.id = '__fling_fullbleed__';
-        style.innerHTML = `
-          video {
-            position: fixed !important;
-            top: 0 !important; left: 0 !important;
-            width: 100vw !important; height: 100vh !important;
-            object-fit: contain !important;
-            background: #000 !important;
-            z-index: 2147483647 !important;
-          }
-          html, body { overflow: hidden !important; margin: 0 !important; padding: 0 !important; }
-        `;
-        document.head.appendChild(style);
+        var videos = Array.from(document.querySelectorAll('video'));
+        if (videos.length === 0) return false;
+        var playing = videos.filter(function(v) {
+          return !v.paused && v.readyState >= 2;
+        });
+        var candidates = playing.length ? playing : videos;
+        candidates.sort(function(a, b) {
+          return (b.offsetWidth * b.offsetHeight) - (a.offsetWidth * a.offsetHeight);
+        });
+        var main = candidates[0];
+        if (!main || (!main.offsetWidth && !main.videoWidth)) return false;
+        var props = {
+          position: 'fixed', top: '0', left: '0',
+          width: '100vw', height: '100vh',
+          'object-fit': 'contain', background: '#000',
+          'z-index': '2147483647',
+        };
+        Object.keys(props).forEach(function(k) {
+          main.style.setProperty(k, props[k], 'important');
+        });
+        if (!document.getElementById('__fling_fullbleed_body__')) {
+          var style = document.createElement('style');
+          style.id = '__fling_fullbleed_body__';
+          style.innerHTML = `html, body { overflow: hidden !important; margin: 0 !important; padding: 0 !important; }`;
+          document.head.appendChild(style);
+        }
+        return true;
       })();
-    ''');
+    ''';
+    var attempt = 0;
+    Timer.periodic(const Duration(milliseconds: 600), (timer) async {
+      attempt++;
+      final found = await _controller?.evaluateJavascript(source: script);
+      if (found == true || attempt >= 8 || !mounted) timer.cancel();
+    });
   }
 
   @override

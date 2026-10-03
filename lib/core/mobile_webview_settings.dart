@@ -20,6 +20,16 @@ final mobileWebViewSettings = InAppWebViewSettings(
   javaScriptEnabled: true,
   domStorageEnabled: true,
   userAgent: 'Mozilla/5.0 (Linux; Android 13; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+  // Android's default WebView compositing (a virtual-display texture) can't
+  // present hardware-protected DRM (Widevine) video frames at all — the
+  // frame exists but the texture pipeline is exactly what DRM's hardware
+  // protection is designed to block, so it renders solid black even though
+  // playback, JS, and this app's own overlay controls all work normally.
+  // Hybrid composition renders the WebView as a real native Android view
+  // instead of a texture, which is what actually lets the protected surface
+  // reach the screen. Confirmed live: Aha's video area was solid black
+  // without this.
+  useHybridComposition: true,
 );
 
 /// Same WebView, presented as desktop Chrome instead of mobile Chrome.

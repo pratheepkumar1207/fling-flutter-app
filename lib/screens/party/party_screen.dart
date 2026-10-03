@@ -43,6 +43,25 @@ class PartyScreen extends StatefulWidget {
 class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   final _hostKey = GlobalKey();
   final _scaffoldKey = GlobalKey<ScaffoldState>();
+  // The player widget (WebviewRoomPlayer/DriveVideoPlayer/SyncVideoPlayer)
+  // gets built from three structurally different spots in _buildRoom's
+  // tree depending on PiP/landscape/normal state — see player() below.
+  // A GlobalKey is what actually lets Flutter carry the same Element (and
+  // therefore the same live WebView/native player, mid-playback) across
+  // that move instead of tearing it down and building a fresh one each
+  // time; a ValueKey only matches siblings within the same parent, which
+  // these three spots never are. Confirmed live: without this, every
+  // rotation and every PIP transition reloaded the player from scratch —
+  // a real ~2s stall each time (YouTube embed reload, IFrame API
+  // handshake, reseek), not a fleeting resize hiccup. Cached per video
+  // identity (not created fresh every build, which would defeat the
+  // point — a new GlobalKey() object matches nothing from the last frame)
+  // and left to grow for this screen's lifetime; a single room session
+  // realistically plays too few distinct videos for that to matter, and
+  // the whole map goes away when this State does.
+  final Map<String, GlobalKey> _playerKeys = {};
+  GlobalKey _playerKeyFor(String identity) =>
+      _playerKeys.putIfAbsent(identity, () => GlobalKey());
   Map<String, dynamic>? _room;
   bool _loading = true;
   String? _error;
@@ -53,10 +72,6 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   String? _loggedHistoryFor;
   bool _seededQueue = false;
   Map<String, dynamic>? _lastHandledTypeChange;
-  // Purely local — lets this viewer watch a "video" queue item as audio-only
-  // (or vice versa) without changing what anyone else in the room sees.
-  // null means "follow the queue item's own mediaMode".
-  String? _viewModeOverride;
   // True while the chat input has focus (keyboard up) — hides the AppBar
   // so the video/audio player slides up into its old spot and chat gets
   // the freed-up space below instead of fighting that chrome for room.
@@ -556,9 +571,12 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       // Keyed by the video itself (not by room type/layout), so switching
       // room types — which only changes mediaMode/compact — reads to
       // Flutter as "update this element's props", not "remove this
-      // element, mount a new one", even though it's now nested under a
-      // different parent than before.
-      final playerKey = ValueKey('player-$playerSourceType-$playerVideoUrl');
+      // element, mount a new one". A GlobalKey (see _playerKeyFor's own
+      // comment above) — not a ValueKey — is what actually makes that
+      // hold true across PiP/rotation, since those move the player to a
+      // genuinely different parent, not just different props at the same
+      // spot.
+      final playerKey = _playerKeyFor('player-$playerSourceType-$playerVideoUrl');
       if (webviewSourceTypes.contains(playerSourceType)) {
         return WebviewRoomPlayer(
           key: playerKey,
@@ -805,8 +823,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           return Scaffold(
             backgroundColor: Colors.black,
             body: player(
-                mediaMode: _viewModeOverride ??
-                    (currentItem?['mediaMode'] as String? ?? 'video')),
+                mediaMode: currentItem?['mediaMode'] as String? ?? 'video'),
           );
         }
         // Landscape (device rotated, or the player's own fullscreen button
@@ -821,8 +838,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
             backgroundColor: Colors.black,
             body: Center(
               child: player(
-                  mediaMode: _viewModeOverride ??
-                      (currentItem?['mediaMode'] as String? ?? 'video')),
+                  mediaMode: currentItem?['mediaMode'] as String? ?? 'video'),
             ),
           );
         }
@@ -898,27 +914,6 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                         )
                       : SizedBox(key: _hostKey),
                   actions: [
-                    if (isWatch)
-                      IconButton(
-                        tooltip: _viewModeOverride == 'audio'
-                            ? 'Switch to video (just for you)'
-                            : 'Switch to audio-only (just for you)',
-                        onPressed: () => setState(() {
-                          final effective = _viewModeOverride ??
-                              (currentItem?['mediaMode'] as String? ?? 'video');
-                          _viewModeOverride =
-                              effective == 'audio' ? 'video' : 'audio';
-                        }),
-                        icon: Icon(
-                          (_viewModeOverride ??
-                                      (currentItem?['mediaMode'] as String? ??
-                                          'video')) ==
-                                  'audio'
-                              ? Icons.movie_outlined
-                              : Icons.headphones,
-                          color: roomTextDim,
-                        ),
-                      ),
                     // The single search+queue entry point for every room type —
                     // used to be a separate search icon here plus its own queue
                     // icon in each room type's floating rail; merged into just
@@ -1183,9 +1178,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                           nowPlayingTitle: currentItem?['title'] as String? ??
                               room['title'] as String?,
                           miniPlayer: player(
-                            mediaMode: _viewModeOverride ??
-                                (currentItem?['mediaMode'] as String? ??
-                                    'video'),
+                            mediaMode:
+                                currentItem?['mediaMode'] as String? ?? 'video',
                             compact: true,
                           ),
                           onPin: (
@@ -1237,9 +1231,9 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                               left: 0,
                               right: 0,
                               child: player(
-                                mediaMode: _viewModeOverride ??
-                                    (currentItem?['mediaMode'] as String? ??
-                                        'video'),
+                                mediaMode: currentItem?['mediaMode']
+                                        as String? ??
+                                    'video',
                                 compact: false,
                               ),
                             ),
@@ -1348,10 +1342,9 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                         key: _playerAreaKey,
                                         padding: EdgeInsets.zero,
                                         child: player(
-                                          mediaMode: _viewModeOverride ??
-                                              (currentItem?['mediaMode']
-                                                      as String? ??
-                                                  'video'),
+                                          mediaMode: currentItem?['mediaMode']
+                                                  as String? ??
+                                              'video',
                                           compact: false,
                                         ),
                                       ),

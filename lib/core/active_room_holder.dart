@@ -6,6 +6,7 @@ import '../screens/party/voice_chat_controller.dart';
 import '../features/party/application/party_session_controller.dart';
 import 'background_audio_handler.dart';
 import 'room_presence_service.dart';
+import 'room_source_types.dart';
 
 /// Keeps a room's live connection (socket, roster, chat, playback state)
 /// alive across in-app navigation, so switching to Home/Feed/Discover/
@@ -47,6 +48,89 @@ class ActiveRoomHolder {
   /// showing, so the two never both produce audio at once.
   static final ValueNotifier<bool> isRoomScreenVisible = ValueNotifier(false);
 
+  // The controller currently wired to _syncBackgroundMirror, so a repeat
+  // set()/setSession()/refreshSessionReferences() call with the same
+  // instance (the common case — a room's RoomSocketController doesn't
+  // change until it's actually rejoined) doesn't detach and reattach the
+  // listener for no reason.
+  static RoomSocketController? _mirroredController;
+
+  static void _attachMirrorListener(RoomSocketController newController) {
+    if (identical(_mirroredController, newController)) return;
+    _mirroredController?.removeListener(_syncBackgroundMirror);
+    newController.addListener(_syncBackgroundMirror);
+    _mirroredController = newController;
+    // Reads `controller` fresh on every tap rather than closing over
+    // newController directly — these three stay set for as long as this
+    // class exists, so they must keep working correctly across whatever
+    // RoomSocketController is active *at tap time*, not just the one active
+    // when they were first assigned. isHost is already enforced inside
+    // play/pause/queueSkip themselves (same as every other caller of
+    // these), so a non-host's phone showing this notification is a safe,
+    // silent no-op here, not a special case to handle.
+    backgroundAudioHandler.onMirrorPlay =
+        () => controller?.play(_currentElapsedSeconds());
+    backgroundAudioHandler.onMirrorPause =
+        () => controller?.pause(_currentElapsedSeconds());
+    backgroundAudioHandler.onMirrorSkip = () => controller?.queueSkip();
+    _syncBackgroundMirror();
+  }
+
+  static double _currentElapsedSeconds() {
+    final playback = controller?.playback;
+    var position = ((playback?['position'] as num?) ?? 0).toDouble();
+    final updatedAt = playback?['updatedAt'] as num?;
+    if (playback?['isPlaying'] == true && updatedAt != null) {
+      final elapsed = (DateTime.now().millisecondsSinceEpoch - updatedAt) / 1000;
+      if (elapsed > 0) position += elapsed;
+    }
+    return position;
+  }
+
+  // Keeps BackgroundAudioHandler's YouTube-mirror (see its own doc comment)
+  // in step with the room's actual current source/playback state, from
+  // whichever RoomSocketController is currently active — regardless of
+  // whether PartyScreen or persistent_room_audio.dart's hidden instance
+  // happens to be the one on screen right now, since either way this is
+  // the one thing both ultimately share.
+  static void _syncBackgroundMirror() {
+    final rs = controller;
+    final currentRoom = room;
+    if (rs == null || currentRoom == null) {
+      backgroundAudioHandler.stopMirroring();
+      return;
+    }
+    final items = (rs.queue['items'] as List?) ?? const [];
+    final currentIndex = rs.queue['currentIndex'] as int? ?? 0;
+    final currentItem = (items.isNotEmpty && currentIndex < items.length)
+        ? Map<String, dynamic>.from(items[currentIndex] as Map)
+        : null;
+    final sourceType = currentItem?['sourceType'] as String? ??
+        currentRoom['sourceType'] as String?;
+    // Same "goes through SyncVideoPlayer" test persistent_room_audio.dart
+    // uses — Drive gets its own real background session (see
+    // drive_video_player.dart), OTT/DRM sources have no audio-only story at
+    // all, so YouTube is what's actually left once both are excluded.
+    final isYoutubePath =
+        sourceType != null && sourceType != 'drive' && !webviewSourceTypes.contains(sourceType);
+    final playback = rs.playback;
+    final isPlaying = playback?['isPlaying'] == true;
+    if (!isYoutubePath || !isPlaying) {
+      backgroundAudioHandler.stopMirroring();
+      return;
+    }
+    backgroundAudioHandler.mirrorExternalPlayback(
+      title: currentItem?['title'] as String? ??
+          currentRoom['title'] as String? ??
+          'Playing in Insync',
+      artUri: currentItem?['thumbnail'] as String? ??
+          currentRoom['videoThumbnail'] as String?,
+      isPlaying: true,
+      position:
+          Duration(milliseconds: (_currentElapsedSeconds() * 1000).round()),
+    );
+  }
+
   /// Called once a fresh join has actually succeeded — see
   /// party_screen.dart's _initSocket.
   static void set({
@@ -63,6 +147,7 @@ class ActiveRoomHolder {
     ActiveRoomHolder.voice = voice;
     ActiveRoomHolder.live = live;
     activeLabel.value = ActiveRoomHolder.roomTitle ?? roomId;
+    _attachMirrorListener(controller);
   }
 
   /// Installs a fully joined PartySession runtime. This is now the only
@@ -84,6 +169,7 @@ class ActiveRoomHolder {
     voice = runtime.voice;
     live = runtime.live;
     activeLabel.value = roomTitle ?? joinedRoomId;
+    _attachMirrorListener(joinedController);
   }
 
   /// Refreshes legacy compatibility references after the session creates an
@@ -95,11 +181,15 @@ class ActiveRoomHolder {
     room = runtime.room;
     voice = runtime.voice;
     live = runtime.live;
+    final rs = runtime.roomController;
+    if (rs != null) _attachMirrorListener(rs);
   }
 
   /// Real teardown — only call this from an explicit "Leave Room" action,
   /// never from a plain screen pop (that's a minimize, not a leave).
   static void leave() {
+    _mirroredController?.removeListener(_syncBackgroundMirror);
+    _mirroredController = null;
     final runtime = session;
     session = null;
     if (runtime != null) {
@@ -115,8 +205,11 @@ class ActiveRoomHolder {
     // A real leave, not a minimize — stop any Drive audio that a room
     // screen's own dispose() may have just handed off to the background
     // session (see drive_video_player.dart), or it'd keep playing forever
-    // with nothing left to reattach it to.
+    // with nothing left to reattach it to. Same for a YouTube mirror (see
+    // BackgroundAudioHandler.mirrorExternalPlayback) — either way, nothing
+    // should still claim to be "playing" once the room is genuinely gone.
     backgroundAudioHandler.stopSource();
+    backgroundAudioHandler.stopMirroring();
     roomId = null;
     roomTitle = null;
     controller = null;
