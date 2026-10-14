@@ -33,14 +33,27 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    try {
-      final data = await ApiClient.get('/auth/me');
-      _user = User.fromJson(data as Map<String, dynamic>);
-      _status = AuthStatus.authed;
-    } catch (_) {
-      await clearSession();
-      return;
+    // Only a 401 means the saved login is actually dead. A rate limit, a 5xx
+    // or a network blip at startup must not wipe a valid token, so retry
+    // briefly and, if it still fails, keep the token for the next launch.
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        final data = await ApiClient.get('/auth/me');
+        _user = User.fromJson(data as Map<String, dynamic>);
+        _status = AuthStatus.authed;
+        notifyListeners();
+        return;
+      } on ApiException catch (e) {
+        if (e.status == 401) {
+          await clearSession();
+          return;
+        }
+      } catch (_) {}
+      if (attempt < 2) {
+        await Future.delayed(Duration(seconds: 2 * (attempt + 1)));
+      }
     }
+    _status = AuthStatus.anon;
     notifyListeners();
   }
 

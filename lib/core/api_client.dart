@@ -11,8 +11,10 @@ class ApiClient {
   /// Same deployed backend the web app talks to. Railway account moved in
   /// 2026-08 — new project's public domain (fling-production.up.railway.app
   /// no longer resolves to anything under the old account).
-  static const String baseUrl =
-      'https://fling-backend-production-581f.up.railway.app';
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://fling-backend-production-581f.up.railway.app',
+  );
 
   static String? Function()? tokenGetter;
   static void Function()? onUnauthorized;
