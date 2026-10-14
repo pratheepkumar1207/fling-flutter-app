@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/profile_nav.dart';
+import '../../core/room_source_types.dart';
 import '../../models/room_models.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/chat_attachment_sheet.dart';
@@ -212,11 +213,21 @@ class _ChatOverlayState extends State<ChatOverlay> {
                   itemBuilder: (context, i) {
                     final m = visible[i];
                     if (m['type'] == 'nowPlaying') {
+                      final pinnerId = m['pinnedBy'] as String?;
+                      final onRoster = pinnerId == null
+                          ? null
+                          : widget.roster
+                              .where((r) => r.userId == pinnerId)
+                              .firstOrNull;
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 6),
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: _NowPlayingChatCard(
+                            pinnerName:
+                                m['pinnedByName'] as String? ?? onRoster?.name,
+                            pinnerAvatar: m['pinnedByAvatar'] as String? ??
+                                onRoster?.avatarUrl,
                             message: m,
                             liked: widget.likedUrls
                                 .contains(m['videoUrl'] as String?),
@@ -392,61 +403,78 @@ class _NowPlayingChatCard extends StatelessWidget {
   final Map<String, dynamic> message;
   final bool liked;
   final VoidCallback? onToggleLike;
+  // Who pinned/added this item — name + avatar are snapshotted by the server
+  // when it starts playing (see syncHandler.js), with the live roster as a
+  // fallback. Both null for older messages, which keep the thumbnail.
+  final String? pinnerName;
+  final String? pinnerAvatar;
 
   const _NowPlayingChatCard(
-      {required this.message, required this.liked, this.onToggleLike});
+      {required this.message,
+      required this.liked,
+      this.onToggleLike,
+      this.pinnerName,
+      this.pinnerAvatar});
+
+  static (IconData, Color) _sourceIcon(String? sourceType) {
+    if (sourceType == 'youtube') {
+      return (Icons.smart_display_rounded, const Color(0xFFFF3B30));
+    }
+    if (sourceType == 'drive') {
+      return (Icons.cloud_rounded, const Color(0xFF4285F4));
+    }
+    if (sourceType != null && webviewSourceTypes.contains(sourceType)) {
+      return (Icons.live_tv_rounded, Colors.white70);
+    }
+    return (Icons.play_circle_rounded, Colors.white70);
+  }
 
   @override
   Widget build(BuildContext context) {
     final thumbnail = message['thumbnail'] as String?;
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 260),
-      child: GlassPanel(
-        borderRadius: BorderRadius.circular(14),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Row(
-            children: [
-              if (thumbnail != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(thumbnail,
-                      width: 36, height: 36, fit: BoxFit.cover),
-                ),
-              if (thumbnail != null) const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('🎵 Now playing',
-                        style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600)),
-                    Text(
-                      message['title'] as String? ?? 'Untitled',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13),
-                    ),
-                  ],
+    final hasPinner = pinnerName != null || pinnerAvatar != null;
+    final (sourceIcon, sourceColor) =
+        _sourceIcon(message['sourceType'] as String?);
+    // Full chat width (no max-width cap, unlike normal bubbles) so the
+    // title can use the whole screen length before it ellipsizes.
+    return GlassPanel(
+      borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(
+          children: [
+            if (hasPinner)
+              Avatar(src: pinnerAvatar, name: pinnerName, size: AvatarSize.sm)
+            else if (thumbnail != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(thumbnail,
+                    width: 32, height: 32, fit: BoxFit.cover),
+              ),
+            if (hasPinner || thumbnail != null) const SizedBox(width: 8),
+            Icon(sourceIcon, size: 16, color: sourceColor),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                message['title'] as String? ?? 'Untitled',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13),
+              ),
+            ),
+            if (onToggleLike != null)
+              GestureDetector(
+                onTap: onToggleLike,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: Text(liked ? '❤️' : '🤍',
+                      style: const TextStyle(fontSize: 16)),
                 ),
               ),
-              if (onToggleLike != null)
-                GestureDetector(
-                  onTap: onToggleLike,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 6),
-                    child: Text(liked ? '❤️' : '🤍',
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                ),
-            ],
-          ),
+          ],
         ),
       ),
     );

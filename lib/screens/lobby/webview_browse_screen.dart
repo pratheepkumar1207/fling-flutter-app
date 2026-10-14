@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:http/http.dart' as http;
+import '../../core/api_client.dart';
 import '../../core/mobile_webview_settings.dart';
 import '../../core/youtube_util.dart';
 import '../../theme/app_colors.dart';
@@ -205,6 +206,16 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
     _startHere();
   }
 
+  Future<String?> _lookupYoutubeTitle(String videoId) async {
+    try {
+      final data = await ApiClient.get('/youtube/embed-size?v=$videoId');
+      final title = data is Map ? data['title'] as String? : null;
+      return (title == null || title.trim().isEmpty) ? null : title.trim();
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _startHere() async {
     final controller = _controller;
     // Not a _creatingRoom guard here — the bottom button already disables
@@ -234,6 +245,13 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
             ?.replaceAll(RegExp(r'\s*-\s*YouTube( Music)?$'), '')
             .trim();
         if (videoTitle?.isEmpty ?? true) videoTitle = null;
+        // Mobile YouTube often still reports a bare "YouTube" here (its page
+        // title lags the in-app navigation), which would otherwise become
+        // the room's title — ask oEmbed for the real one instead.
+        if (videoTitle == null ||
+            RegExp(r'^YouTube( Music)?$').hasMatch(videoTitle)) {
+          videoTitle = await _lookupYoutubeTitle(videoId);
+        }
         videoThumbnail = 'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
       }
     }
