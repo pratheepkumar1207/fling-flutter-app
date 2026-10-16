@@ -5,8 +5,7 @@ import '../../core/format.dart';
 import '../../core/socket_service.dart';
 import '../../models/notification_item.dart';
 import '../../theme/app_colors.dart';
-import '../feed/post_detail_screen.dart';
-import '../party/party_screen.dart';
+import 'notification_actions.dart';
 import 'notifications_screen.dart';
 
 /// Mirrors src/components/NotificationBell.jsx — fetches recent
@@ -83,19 +82,7 @@ class _NotificationBellState extends State<NotificationBell> {
       } catch (_) {}
     }
     if (!mounted) return;
-    if (n.type == 'room_invite') {
-      final roomId = n.data?['roomId'] as String?;
-      if (roomId != null) {
-        Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId)));
-      }
-    } else if (n.type == 'mention') {
-      final postId = n.data?['postId'] as String?;
-      if (postId != null) {
-        Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => PostDetailScreen(postId: postId)));
-      }
-    }
+    openNotificationTarget(context, n);
   }
 
   Future<void> _markAllRead() async {

@@ -5,8 +5,7 @@ import '../../core/format.dart';
 import '../../models/notification_item.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/spinner.dart';
-import '../feed/post_detail_screen.dart';
-import '../party/party_screen.dart';
+import 'notification_actions.dart';
 
 /// Full notifications list — the bell dropdown only ever shows the 10 most
 /// recent, this is the "see all" screen matching NotificationsDark.dc.html.
@@ -74,32 +73,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       } catch (_) {}
     }
     if (!mounted) return;
-    if (n.type == 'room_invite') {
-      final roomId = n.data?['roomId'] as String?;
-      if (roomId != null) {
-        Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId)));
-      }
-    } else if (n.type == 'mention') {
-      final postId = n.data?['postId'] as String?;
-      if (postId != null) {
-        Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => PostDetailScreen(postId: postId)));
-      }
-    }
+    openNotificationTarget(context, n);
   }
-
-  IconData _iconFor(String type) => switch (type) {
-        'room_invite' => Icons.meeting_room_rounded,
-        'mention' => Icons.alternate_email_rounded,
-        _ => Icons.notifications_rounded,
-      };
-
-  List<Color> _colorsFor(String type) => switch (type) {
-        'room_invite' => const [AppColors.accent2, AppColors.primary],
-        'mention' => const [AppColors.gold, Color(0xFFC98F3A)],
-        _ => const [AppColors.accent, AppColors.primaryDim],
-      };
 
   @override
   Widget build(BuildContext context) {
@@ -163,9 +138,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               height: 38,
               decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: LinearGradient(colors: _colorsFor(n.type))),
+                  gradient: LinearGradient(colors: notificationColors(n.type))),
               alignment: Alignment.center,
-              child: Icon(_iconFor(n.type), color: Colors.white, size: 17),
+              child: Icon(notificationIcon(n.type), color: Colors.white, size: 17),
             ),
             const SizedBox(width: 12),
             Expanded(
