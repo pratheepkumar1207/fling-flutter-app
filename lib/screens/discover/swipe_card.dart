@@ -237,12 +237,16 @@ class _SwipeCardState extends State<SwipeCard>
                   children: [
                     Row(
                       children: [
-                        Text(
-                          '${profile.name}${profile.age != null ? ', ${profile.age}' : ''}',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold),
+                        Flexible(
+                          child: Text(
+                            '${profile.name}${profile.age != null ? ', ${profile.age}' : ''}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold),
+                          ),
                         ),
                         if (profile.isVerified) ...[
                           const SizedBox(width: 6),
@@ -283,26 +287,34 @@ class _SwipeCardState extends State<SwipeCard>
                     if (profile.interests.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 10),
-                        child: Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: profile.interests
-                              .take(4)
-                              .map((i) => Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 5),
-                                    decoration: BoxDecoration(
-                                        color: AppColors.accent
-                                            .withValues(alpha: 0.3),
-                                        borderRadius:
-                                            BorderRadius.circular(999)),
-                                    child: Text(i,
-                                        style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600)),
-                                  ))
-                              .toList(),
+                        // One row of chips, clipped — wrapping onto a second
+                        // row pushed the bottom-anchored name block up into
+                        // the "Tap to Flip" chip on short cards. The back
+                        // face lists every interest.
+                        child: SizedBox(
+                          height: 26,
+                          child: Wrap(
+                            clipBehavior: Clip.hardEdge,
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: profile.interests
+                                .take(4)
+                                .map((i) => Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 5),
+                                      decoration: BoxDecoration(
+                                          color: AppColors.accent
+                                              .withValues(alpha: 0.3),
+                                          borderRadius:
+                                              BorderRadius.circular(999)),
+                                      child: Text(i,
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600)),
+                                    ))
+                                .toList(),
+                          ),
                         ),
                       ),
                     if (profile.sharedInterests > 0)
@@ -378,46 +390,51 @@ class _SwipeCardState extends State<SwipeCard>
             ),
             Column(
               children: [
-                const SizedBox(height: 36),
-                Container(
-                  width: 96,
-                  height: 96,
-                  decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.primary, width: 4)),
-                  clipBehavior: Clip.antiAlias,
-                  child: profile.avatarUrl != null
-                      ? AppImage(source: profile.avatarUrl, fit: BoxFit.cover)
-                      : Container(
-                          color: AppColors.surface3,
-                          alignment: Alignment.center,
-                          child: Text(initials(profile.name),
-                              style: const TextStyle(
-                                  color: AppColors.textFaint,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold))),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                    '${profile.name}${profile.age != null ? ', ${profile.age}' : ''}',
-                    style: const TextStyle(
-                        color: AppColors.text,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold)),
-                if (profile.username != null)
-                  Text('@${profile.username}',
-                      style: const TextStyle(
-                          color: AppColors.textFaint, fontSize: 13)),
-                if (profile.city != null)
-                  Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text('📍 ${profile.city}',
-                          style: const TextStyle(
-                              color: AppColors.textDim, fontSize: 13))),
+                // Header scrolls with the details — on a short card (small
+                // phone) the 96px avatar + name block alone was taller than
+                // the space available and overflowed.
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
+                        const SizedBox(height: 36),
+                        Container(
+                          width: 96,
+                          height: 96,
+                          decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                  color: AppColors.primary, width: 4)),
+                          clipBehavior: Clip.antiAlias,
+                          child: profile.avatarUrl != null
+                              ? AppImage(
+                                  source: profile.avatarUrl, fit: BoxFit.cover)
+                              : Container(
+                                  color: AppColors.surface3,
+                                  alignment: Alignment.center,
+                                  child: Text(initials(profile.name),
+                                      style: const TextStyle(
+                                          color: AppColors.textFaint,
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold))),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                            '${profile.name}${profile.age != null ? ', ${profile.age}' : ''}',
+                            style: const TextStyle(
+                                color: AppColors.text,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold)),
+                        if (profile.username != null)
+                          Text('@${profile.username}',
+                              style: const TextStyle(
+                                  color: AppColors.textFaint, fontSize: 13)),
+                        if (profile.city != null)
+                          Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text('📍 ${profile.city}',
+                                  style: const TextStyle(
+                                      color: AppColors.textDim, fontSize: 13))),
                         if (profile.bio != null && profile.bio!.isNotEmpty)
                           Padding(
                               padding: const EdgeInsets.only(top: 12),

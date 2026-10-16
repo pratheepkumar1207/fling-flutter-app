@@ -39,6 +39,10 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _typeFilter;
   Timer? _refreshTimer;
   Timer? _activityDebounce;
+  // Never let refreshes stack up — on a slow device a new tick used to fire
+  // while the previous request batch was still in flight.
+  bool _loadInFlight = false;
+  bool? _wasVisible;
   // "Join by ID/link" used to live on its own Rooms tab (now removed —
   // see app_shell.dart) — kept as a feature, just moved onto Home directly
   // instead of behind a tab nobody needed a whole screen for.
@@ -50,14 +54,14 @@ class _HomeScreenState extends State<HomeScreen> {
     _load();
     _loadStories();
     _loadLikedPlaylists();
-    // This poll is now mostly a fallback (missed socket event, screen was
-    // opened before anything changed) — rooms:activity below is what
-    // actually makes a room appearing/disappearing feel instant. Set to
-    // 1s per explicit request; worth knowing this means /rooms/browse gets
-    // hit every second while Home is open, on every connected device,
-    // regardless of whether anything actually changed.
+    // Fallback poll only (missed socket event) — rooms:activity below is what
+    // makes a room appearing/disappearing feel instant. This used to run
+    // every 1s, firing 3 requests per tick (~180/min per device, even on
+    // other tabs), which exhausted the backend's 300-per-15-min rate limit
+    // in under two minutes and made every other request in the app fail.
+    // Now 30s, and _load skips silent refreshes while Home isn't visible.
     _refreshTimer =
-        Timer.periodic(const Duration(seconds: 1), (_) => _load(silent: true));
+        Timer.periodic(const Duration(seconds: 30), (_) => _load(silent: true));
     context
         .read<SocketService>()
         .socket
@@ -92,13 +96,38 @@ class _HomeScreenState extends State<HomeScreen> {
         .push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: id)));
   }
 
+  // Home lives in the shell's IndexedStack, which disables TickerMode for
+  // hidden tabs — so this is false while another tab is showing.
+  bool get _isVisible =>
+      TickerMode.valuesOf(context).enabled &&
+      WidgetsBinding.instance.lifecycleState != AppLifecycleState.paused &&
+      WidgetsBinding.instance.lifecycleState != AppLifecycleState.hidden;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Coming back to the Home tab: refresh right away rather than waiting
+    // up to 30s for the next poll tick.
+    final visible = TickerMode.valuesOf(context).enabled;
+    if (visible && _wasVisible == false) _load(silent: true);
+    _wasVisible = visible;
+  }
+
   Future<void> _load({bool silent = false}) async {
+    if (_loadInFlight) return;
+    if (silent && !_isVisible) return;
+    _loadInFlight = true;
     if (!silent) setState(() => _loading = true);
-    final results = await Future.wait([
-      ApiClient.get('/rooms/browse').catchError((_) => null),
-      ApiClient.get('/rooms/invited').catchError((_) => []),
-      ApiClient.get('/rooms/events').catchError((_) => []),
-    ]);
+    final List<dynamic> results;
+    try {
+      results = await Future.wait([
+        ApiClient.get('/rooms/browse').catchError((_) => null),
+        ApiClient.get('/rooms/invited').catchError((_) => []),
+        ApiClient.get('/rooms/events').catchError((_) => []),
+      ]);
+    } finally {
+      _loadInFlight = false;
+    }
     if (!mounted) return;
     setState(() {
       _roomsLoadFailed = results[0] == null;

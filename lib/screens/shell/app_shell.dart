@@ -203,7 +203,13 @@ class _AppShellState extends State<AppShell> {
       // bottom nav instead of the bar sitting over a dead solid-color gap —
       // see LiquidGlassBottomNav.
       extendBody: false,
-      body: IndexedStack(index: _index, children: _screens),
+      // IndexedStack keeps hidden tabs' tickers running (maintainAnimation),
+      // so wrap each tab in TickerMode — hidden tabs stop animating, and
+      // screens like Home use TickerMode to pause their background polling.
+      body: IndexedStack(index: _index, children: [
+        for (var i = 0; i < _screens.length; i++)
+          TickerMode(enabled: i == _index, child: _screens[i]),
+      ]),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

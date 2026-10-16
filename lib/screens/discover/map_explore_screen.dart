@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/format.dart';
 import '../../widgets/insync_clay.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -91,8 +92,8 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
   Widget _buildMap() {
     final nearby = _nearby ?? [];
     final center = nearby.isNotEmpty
-        ? LatLng((nearby.first['latitude'] as num).toDouble(),
-            (nearby.first['longitude'] as num).toDouble())
+        ? LatLng(asNum(nearby.first['latitude']).toDouble(),
+            asNum(nearby.first['longitude']).toDouble())
         : const LatLng(
             20.5937, 78.9629); // India, as a reasonable fallback center
 
@@ -106,8 +107,8 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
         ),
         MarkerLayer(
           markers: nearby.map((u) {
-            final lat = (u['latitude'] as num).toDouble();
-            final lng = (u['longitude'] as num).toDouble();
+            final lat = asNum(u['latitude']).toDouble();
+            final lng = asNum(u['longitude']).toDouble();
             return Marker(
               point: LatLng(lat, lng),
               width: 46,

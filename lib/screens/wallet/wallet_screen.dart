@@ -312,7 +312,7 @@ class _WalletScreenState extends State<WalletScreen> {
                         TextStyle(color: AppColors.textFaint, fontSize: 12.5)))
           else
             ..._activity.map((t) {
-              final coins = (t['coins'] as num?)?.toDouble() ?? 0;
+              final coins = asNum(t['coins']).toDouble();
               final positive = coins >= 0;
               final createdAt =
                   DateTime.tryParse(t['createdAt']?.toString() ?? '');

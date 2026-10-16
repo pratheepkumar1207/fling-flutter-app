@@ -214,7 +214,7 @@ class _SpinWheelScreenState extends State<SpinWheelScreen> with SingleTickerProv
                 else
                   Row(
                     children: _history.take(3).map((h) {
-                      final coins = (h['coins'] as num?)?.toInt() ?? 0;
+                      final coins = asNum(h['coins']).toInt();
                       final date = DateTime.tryParse(h['createdAt']?.toString() ?? '');
                       return Expanded(
                         child: Container(
