@@ -285,7 +285,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                               child: GestureDetector(
                                 onTap: () => showPostLikesSheet(context,
                                     postId: post.id),
-                                child: Text('${post.likesCount} likes',
+                                child: Text('${post.likesCount} ${post.likesCount == 1 ? 'like' : 'likes'}',
                                     style: const TextStyle(
                                         color: AppColors.text,
                                         fontWeight: FontWeight.w700,

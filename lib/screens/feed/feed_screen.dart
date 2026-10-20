@@ -474,7 +474,7 @@ class _FeedScreenState extends State<FeedScreen> {
               padding: const EdgeInsets.only(top: 6),
               child: GestureDetector(
                 onTap: () => showPostLikesSheet(context, postId: post.id),
-                child: Text('${post.likesCount} likes',
+                child: Text('${post.likesCount} ${post.likesCount == 1 ? 'like' : 'likes'}',
                     style: const TextStyle(
                         color: AppColors.text,
                         fontWeight: FontWeight.w700,
@@ -508,7 +508,7 @@ class _FeedScreenState extends State<FeedScreen> {
               padding: const EdgeInsets.only(top: 4),
               child: GestureDetector(
                 onTap: () => _openPostDetail(post),
-                child: Text('View all ${post.commentsCount} comments',
+                child: Text(post.commentsCount == 1 ? 'View 1 comment' : 'View all ${post.commentsCount} comments',
                     style: const TextStyle(
                         color: AppColors.textFaint, fontSize: 12.5)),
               ),
