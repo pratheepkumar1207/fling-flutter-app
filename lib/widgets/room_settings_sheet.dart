@@ -1,24 +1,30 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import '../core/api_client.dart';
 import '../core/api_exception.dart';
 import '../theme/app_colors.dart';
-import 'app_image.dart';
 import 'glass.dart';
 
 const _kGameTypes = [
-  ['tictactoe', '⭕ Tic Tac Toe'],
-  ['truth_or_dare', '🎲 Truth or Dare'],
-  ['ludo', '🟢 Ludo'],
-  ['chess', '♞ Chess'],
-  ['uno', '🃏 UNO'],
+  ['tictactoe', 'Tic Tac Toe'],
+  ['truth_or_dare', 'Truth or Dare'],
+  ['ludo', 'Ludo'],
+  ['chess', 'Chess'],
+  ['uno', 'UNO'],
 ];
 
-/// Host-only: switch an already-created room between watch/voice/game
-/// without everyone having to leave and start a new one — see PATCH
-/// /rooms/:id/type on the backend. "Go live" isn't offered here since going
-/// live is an action (start broadcasting), not just a field flip.
+/// Host-only room settings — a short half-height sheet, one-line rows,
+/// every change saved the moment it's made (no Save button to forget):
+///
+///   Type       Voice · Game           (voice/game rooms only — PATCH /type)
+///   Join       Public · Friends · Subs · Private
+///   Mics       on/off
+///   Music      Everyone · Host        (who can add songs AND play one now)
+///   Next song  Auto · Vote · Off      (nextTrackMode + autoPlay)
+///
+/// "Music" and "Next song" each set two backend fields — see _musicValue /
+/// _nextValue for the mapping. Switching to Game needs one extra pick (which
+/// game), shown inline right under the Type row. Watch rooms have no Type row:
+/// what plays there is changed through the source picker (Search & queue).
 Future<void> showRoomSettingsSheet(BuildContext context,
     {required Map<String, dynamic> room, required VoidCallback onChanged}) {
   return showModalBottomSheet(
@@ -39,205 +45,228 @@ class _RoomSettingsSheet extends StatefulWidget {
 }
 
 class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
-  late String _roomType = widget.room['roomType'] == 'live'
-      ? 'watch'
-      : (widget.room['roomType'] as String? ?? 'watch');
+  late String _roomType = widget.room['roomType'] as String? ?? 'watch';
+  // The type the server actually has — differs from _roomType only while a
+  // switch to Game is waiting for its game pick.
+  late String _savedType = _roomType;
   late String _gameType = widget.room['gameType'] as String? ?? 'tictactoe';
-  late final _urlController =
-      TextEditingController(text: widget.room['videoUrl'] as String? ?? '');
-  List<Map<String, dynamic>> _results = [];
-  // Only shows the "Current video" placeholder when the room is actually
-  // already a watch room with a video — a room entering 'watch' fresh from
-  // voice/game has nothing to keep, so it goes straight to search instead
-  // of showing a misleading placeholder for content that doesn't exist.
-  late Map<String, dynamic>? _pinned =
-      (widget.room['roomType'] == 'watch' && widget.room['videoUrl'] != null)
-          ? {'title': 'Current video'}
-          : null;
-  // True only once the host actually picks a *new* video via search — see
-  // _save(): staying false means "don't touch sourceType/videoUrl at all",
-  // which is what lets saving unrelated settings (mic, visibility, ...) on
-  // a Drive/streaming-platform room stop silently overwriting it to
-  // sourceType 'youtube' with the old video's URL.
-  bool _videoChanged = false;
-  bool _searching = false;
-  bool _saving = false;
-
-  late String _visibility = widget.room['visibility'] == 'subscribers'
-      ? 'public'
-      : (widget.room['visibility'] as String? ?? 'public');
+  late String _visibility = widget.room['visibility'] as String? ?? 'public';
   late bool _micEnabled = widget.room['micEnabled'] != false;
   late String _songPermission =
       widget.room['songPermission'] as String? ?? 'anyone';
-  late bool _autoPlay = widget.room['autoPlay'] != false;
   late String _pinPermission =
       widget.room['pinPermission'] as String? ?? 'host';
-  // 'justPlay' = queue plays in pin order, same as always. 'autoFill' = a
-  // suggested video gets pinned automatically instead of the room going
-  // quiet when the queue runs dry. 'voting' = a 10s vote decides which
-  // upcoming queued item plays next instead of strict order. "Leader's
-  // choice" (host-only pinning) is the existing "WHO CAN ADD SONGS" control
-  // above, not part of this — the two are independent settings.
+  late bool _autoPlay = widget.room['autoPlay'] != false;
   late String _nextTrackMode =
       widget.room['nextTrackMode'] as String? ?? 'justPlay';
-  // Voice-room cover shown in the Lobby list — null keeps the client's
-  // default mic-icon tile. Only meaningful/host-editable for voice rooms;
-  // watch parties derive their thumbnail from the picked video instead.
-  late String? _thumbnail = widget.room['thumbnail'] as String?;
-  bool _thumbnailChanged = false;
 
-  Future<void> _pickThumbnail() async {
-    final picker = ImagePicker();
-    final file =
-        await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-    if (file == null) return;
-    final bytes = await file.readAsBytes();
-    final ext = file.name.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
-    setState(() {
-      _thumbnail = 'data:image/$ext;base64,${base64Encode(bytes)}';
-      _thumbnailChanged = true;
-    });
-  }
+  bool _saving = false;
+  bool _savedOnce = false;
 
-  void _clearThumbnail() {
-    setState(() {
-      _thumbnail = null;
-      _thumbnailChanged = true;
-    });
-  }
+  String get _musicValue => _songPermission == 'host' ? 'host' : 'everyone';
+  String get _nextValue =>
+      !_autoPlay ? 'off' : (_nextTrackMode == 'voting' ? 'vote' : 'auto');
 
-  Future<void> _search(String q) async {
-    if (q.trim().isEmpty) {
-      setState(() => _results = []);
-      return;
-    }
-    setState(() => _searching = true);
-    try {
-      final data = await ApiClient.get(
-          '/youtube/search?q=${Uri.encodeQueryComponent(q.trim())}');
-      if (mounted) {
-        setState(() => _results = (data as List).cast<Map<String, dynamic>>());
-      }
-    } catch (_) {
-      if (mounted) setState(() => _results = []);
-    } finally {
-      if (mounted) setState(() => _searching = false);
-    }
-  }
+  // ---- saving ---------------------------------------------------------
 
-  void _pin(Map<String, dynamic> item) {
-    setState(() {
-      _pinned = item;
-      _videoChanged = true;
-      _urlController.text =
-          'https://www.youtube.com/watch?v=${item['videoId']}';
-      _results = [];
-    });
-  }
-
-  // Entering 'watch' from a room type that had no video needs a fresh
-  // pick; staying in 'watch' with the existing video kept (_pinned still
-  // set, nothing re-picked) doesn't.
-  bool get _enteringWatchFresh =>
-      _roomType == 'watch' && widget.room['roomType'] != 'watch';
-
-  Future<void> _save() async {
-    if (_roomType == 'watch' && _pinned == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Search and pick a video first')));
-      return;
-    }
+  Future<bool> _patch(String path, Map<String, dynamic> body) async {
     setState(() => _saving = true);
     try {
-      final sendVideo =
-          _roomType == 'watch' && (_videoChanged || _enteringWatchFresh);
-      await ApiClient.patch('/rooms/${widget.room['id']}/type', body: {
-        'roomType': _roomType,
-        if (sendVideo) 'sourceType': 'youtube',
-        if (sendVideo) 'videoUrl': _urlController.text.trim(),
-        if (sendVideo) 'videoTitle': _pinned?['title'],
-        if (sendVideo) 'videoThumbnail': _pinned?['thumbnail'],
-        'gameType': _roomType == 'game' ? _gameType : null,
-      });
-      await ApiClient.patch('/rooms/${widget.room['id']}/settings', body: {
-        'visibility': _visibility,
-        'micEnabled': _micEnabled,
-        'songPermission': _songPermission,
-        'autoPlay': _autoPlay,
-        'pinPermission': _pinPermission,
-        'nextTrackMode': _nextTrackMode,
-        if (_roomType == 'voice' && _thumbnailChanged) 'thumbnail': _thumbnail,
-      });
+      await ApiClient.patch('/rooms/${widget.room['id']}$path', body: body);
       widget.onChanged();
-      if (mounted) Navigator.of(context).pop();
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Room updated')));
-      }
+      if (mounted) setState(() => _savedOnce = true);
+      return true;
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(e.message)));
       }
+      return false;
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Couldn't save — check your connection")));
+      }
+      return false;
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
 
-  @override
-  void dispose() {
-    _urlController.dispose();
-    super.dispose();
+  // Applies a setting immediately and rolls it back if the save fails.
+  Future<void> _saveSettings(Map<String, dynamic> body, VoidCallback apply,
+      VoidCallback revert) async {
+    setState(apply);
+    final ok = await _patch('/settings', body);
+    if (!ok && mounted) setState(revert);
   }
 
-  Widget _optionRow(
-      {required List<List<String>> options,
+  void _setVisibility(String v) {
+    final old = _visibility;
+    _saveSettings(
+        {'visibility': v}, () => _visibility = v, () => _visibility = old);
+  }
+
+  void _setMics(bool v) {
+    _saveSettings(
+        {'micEnabled': v}, () => _micEnabled = v, () => _micEnabled = !v);
+  }
+
+  void _setMusic(String v) {
+    final oldSong = _songPermission, oldPin = _pinPermission;
+    final perm = v == 'host' ? 'host' : 'anyone';
+    _saveSettings({'songPermission': perm, 'pinPermission': perm}, () {
+      _songPermission = perm;
+      _pinPermission = perm;
+    }, () {
+      _songPermission = oldSong;
+      _pinPermission = oldPin;
+    });
+  }
+
+  void _setNext(String v) {
+    final oldAuto = _autoPlay, oldMode = _nextTrackMode;
+    final body = <String, dynamic>{
+      'autoPlay': v != 'off',
+      if (v == 'auto') 'nextTrackMode': 'autoFill',
+      if (v == 'vote') 'nextTrackMode': 'voting',
+    };
+    _saveSettings(body, () {
+      _autoPlay = v != 'off';
+      if (v == 'auto') _nextTrackMode = 'autoFill';
+      if (v == 'vote') _nextTrackMode = 'voting';
+    }, () {
+      _autoPlay = oldAuto;
+      _nextTrackMode = oldMode;
+    });
+  }
+
+  // Voice switches straight away; Game waits for its pick below.
+  Future<void> _setType(String t) async {
+    if (t == _roomType) return;
+    setState(() => _roomType = t);
+    if (t == _savedType) return; // switched back before picking anything
+    if (t == 'voice') {
+      final ok = await _patch('/type', {'roomType': 'voice', 'gameType': null});
+      if (!mounted) return;
+      setState(() => ok ? _savedType = 'voice' : _roomType = _savedType);
+    }
+  }
+
+  Future<void> _pickGame(String g) async {
+    final old = _gameType;
+    setState(() => _gameType = g);
+    final ok = await _patch('/type', {'roomType': 'game', 'gameType': g});
+    if (!mounted) return;
+    setState(() => ok ? _savedType = 'game' : _gameType = old);
+  }
+
+  // ---- UI -------------------------------------------------------------
+
+  Widget _segments(
+      {required List<(String, Widget)> options,
       required String value,
       required ValueChanged<String> onChanged}) {
-    return Row(
-      children: [
-        for (final o in options)
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3),
-              child: GestureDetector(
-                onTap: () => onChanged(o[0]),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(
-                    color: value == o[0]
-                        ? AppColors.accent2.withValues(alpha: 0.15)
-                        : AppColors.surface2,
-                    borderRadius: BorderRadius.circular(9),
-                    border: value == o[0]
-                        ? Border.all(color: AppColors.accent2)
-                        : null,
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+          color: AppColors.surface2.withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(10)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final (key, label) in options)
+            GestureDetector(
+              onTap: _saving ? null : () => onChanged(key),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                decoration: BoxDecoration(
+                  color: value == key
+                      ? AppColors.accent.withValues(alpha: 0.2)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: DefaultTextStyle.merge(
+                  style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color:
+                          value == key ? AppColors.accent : AppColors.textDim),
+                  child: IconTheme.merge(
+                    data: IconThemeData(
+                        size: 14,
+                        color: value == key
+                            ? AppColors.accent
+                            : AppColors.textDim),
+                    child: label,
                   ),
-                  alignment: Alignment.center,
-                  child: Text(o[1],
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: value == o[0]
-                              ? AppColors.accent2
-                              : AppColors.textDim)),
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(IconData icon, String label, Widget control) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: AppColors.textDim),
+          const SizedBox(width: 8),
+          Text(label,
+              style: const TextStyle(
+                  color: AppColors.text,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(width: 8),
+          const Spacer(),
+          Flexible(
+            flex: 0,
+            child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: control),
           ),
-      ],
+        ],
+      ),
+    );
+  }
+
+  Widget _gamePicker() {
+    return Padding(
+      padding: const EdgeInsets.only(left: 26, bottom: 6),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: [
+          for (final g in _kGameTypes)
+            ChoiceChip(
+              label: Text(g[1], style: const TextStyle(fontSize: 12)),
+              selected: _savedType == 'game' && _gameType == g[0],
+              onSelected: _saving ? null : (_) => _pickGame(g[0]),
+            ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final pendingPick = _roomType != _savedType;
+    // Only voice and game rooms can switch between each other here.
+    final canSwitchType = _savedType == 'voice' || _savedType == 'game';
     return SafeArea(
-      child: GlassPanel(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
-          child: SingleChildScrollView(
+      child: Padding(
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+        child: GlassPanel(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          tintAlpha: 0.8,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -251,318 +280,97 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
                           color: AppColors.border,
                           borderRadius: BorderRadius.circular(999))),
                 ),
-                const Text('Room settings',
-                    style: TextStyle(
-                        color: AppColors.text,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold)),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                      color: AppColors.surface2,
-                      borderRadius: BorderRadius.circular(14)),
-                  child: Row(
-                    children: [
-                      for (final t in [
-                        ['watch', '📺 Watch'],
-                        ['voice', '🎙️ Voice'],
-                        ['game', '🎮 Game']
-                      ])
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () => setState(() => _roomType = t[0]),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 9),
-                              decoration: BoxDecoration(
-                                color: _roomType == t[0]
-                                    ? AppColors.accent2
-                                    : null,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(t[1],
-                                  style: TextStyle(
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: _roomType == t[0]
-                                          ? Colors.white
-                                          : AppColors.textFaint)),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                if (_roomType == 'voice') ...[
-                  const SizedBox(height: 14),
-                  const Text('ROOM COVER',
-                      style: TextStyle(
-                          color: AppColors.textFaint,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5)),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: SizedBox(
-                          width: 56,
-                          height: 56,
-                          child: (_thumbnail != null && _thumbnail!.isNotEmpty)
-                              ? AppImage(source: _thumbnail, fit: BoxFit.cover)
-                              : Container(
-                                  color: AppColors.surface,
-                                  alignment: Alignment.center,
-                                  child: const Text('🎙️',
-                                      style: TextStyle(fontSize: 22)),
-                                ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 6,
-                          children: [
-                            OutlinedButton(
-                                onPressed: _pickThumbnail,
-                                child: const Text('Change cover')),
-                            if (_thumbnail != null && _thumbnail!.isNotEmpty)
-                              TextButton(
-                                  onPressed: _clearThumbnail,
-                                  child: const Text('Use default')),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-                if (_roomType == 'game') ...[
-                  const SizedBox(height: 14),
-                  for (final g in _kGameTypes)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: GestureDetector(
-                        onTap: () => setState(() => _gameType = g[0]),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: _gameType == g[0]
-                                ? AppColors.accent2.withValues(alpha: 0.1)
-                                : AppColors.surface,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                                color: _gameType == g[0]
-                                    ? AppColors.accent2
-                                    : AppColors.border),
-                          ),
-                          child: Text(g[1],
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: _gameType == g[0]
-                                      ? AppColors.accent2
-                                      : AppColors.textDim)),
-                        ),
-                      ),
-                    ),
-                ],
-                if (_roomType == 'watch') ...[
-                  const SizedBox(height: 14),
-                  if (_pinned != null)
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.border)),
-                      child: Row(
+                Row(
+                  children: [
+                    const Text('Room settings',
+                        style: TextStyle(
+                            color: AppColors.text,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold)),
+                    const Spacer(),
+                    if (_saving)
+                      const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                    else if (_savedOnce)
+                      const Row(
                         children: [
-                          Expanded(
-                              child: Text(_pinned!['title'] as String? ?? '',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                      color: AppColors.text, fontSize: 13))),
-                          TextButton(
-                            onPressed: () => setState(() {
-                              _pinned = null;
-                              _urlController.clear();
-                            }),
-                            child: const Text('Change'),
-                          ),
+                          Icon(Icons.check_rounded,
+                              size: 14, color: AppColors.success),
+                          SizedBox(width: 3),
+                          Text('Saved',
+                              style: TextStyle(
+                                  color: AppColors.success, fontSize: 12)),
                         ],
                       ),
-                    )
-                  else ...[
-                    TextField(
-                      onChanged: _search,
-                      decoration: const InputDecoration(
-                          hintText: 'Search YouTube for a video…'),
-                      style:
-                          const TextStyle(color: AppColors.text, fontSize: 13),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                if (canSwitchType)
+                  _row(
+                    Icons.grid_view_rounded,
+                    'Type',
+                    _segments(
+                      options: const [
+                        ('voice', Text('Voice')),
+                        ('game', Text('Game')),
+                      ],
+                      value: _roomType,
+                      onChanged: _setType,
                     ),
-                    if (_searching)
-                      const Padding(
-                          padding: EdgeInsets.only(top: 8),
-                          child: LinearProgressIndicator()),
-                    if (_results.isNotEmpty)
-                      SizedBox(
-                        height: 200,
-                        child: ListView.builder(
-                          itemCount: _results.length,
-                          itemBuilder: (context, i) {
-                            final r = _results[i];
-                            return ListTile(
-                              dense: true,
-                              leading: ClipRRect(
-                                  borderRadius: BorderRadius.circular(6),
-                                  child: Image.network(
-                                      r['thumbnail'] as String? ?? '',
-                                      width: 56,
-                                      height: 40,
-                                      fit: BoxFit.cover)),
-                              title: Text(r['title'] as String? ?? '',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                      color: AppColors.text, fontSize: 12)),
-                              onTap: () => _pin(r),
-                            );
-                          },
-                        ),
+                  ),
+                if (pendingPick && _roomType == 'game') _gamePicker(),
+                _row(
+                  Icons.public_rounded,
+                  'Join',
+                  _segments(
+                    options: const [
+                      ('public', Text('Public')),
+                      ('friends', Text('Friends')),
+                      ('subscribers', Text('Subs')),
+                      (
+                        'private',
+                        Icon(Icons.lock_rounded,
+                            semanticLabel: 'Private (link only)')
                       ),
-                  ],
-                ],
-                const SizedBox(height: 16),
-                const Divider(color: AppColors.border),
-                const SizedBox(height: 8),
-                const Text('LOBBY VISIBILITY',
-                    style: TextStyle(
-                        color: AppColors.textFaint,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5)),
-                const SizedBox(height: 8),
-                _optionRow(
-                  options: const [
-                    ['public', 'Public'],
-                    ['friends', 'Friends only'],
-                    ['private', 'Private']
-                  ],
-                  value: _visibility,
-                  onChanged: (v) => setState(() => _visibility = v),
-                ),
-                const SizedBox(height: 14),
-                const Text('MIC',
-                    style: TextStyle(
-                        color: AppColors.textFaint,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5)),
-                const SizedBox(height: 8),
-                _optionRow(
-                  options: const [
-                    ['on', 'Enabled for all'],
-                    ['off', 'Disabled for all']
-                  ],
-                  value: _micEnabled ? 'on' : 'off',
-                  onChanged: (v) => setState(() => _micEnabled = v == 'on'),
-                ),
-                const SizedBox(height: 14),
-                const Text('WHO CAN ADD SONGS',
-                    style: TextStyle(
-                        color: AppColors.textFaint,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5)),
-                const SizedBox(height: 8),
-                _optionRow(
-                  options: const [
-                    ['anyone', 'Anyone'],
-                    ['host', "Leader's choice only"]
-                  ],
-                  value: _songPermission,
-                  onChanged: (v) => setState(() => _songPermission = v),
-                ),
-                const SizedBox(height: 14),
-                const Text('WHO CAN PIN A SONG TO PLAY NOW',
-                    style: TextStyle(
-                        color: AppColors.textFaint,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5)),
-                const SizedBox(height: 8),
-                _optionRow(
-                  options: const [
-                    ['host', 'Host only'],
-                    ['anyone', 'Anyone can pin']
-                  ],
-                  value: _pinPermission,
-                  onChanged: (v) => setState(() => _pinPermission = v),
-                ),
-                const SizedBox(height: 14),
-                const Text('WHEN A SONG ENDS',
-                    style: TextStyle(
-                        color: AppColors.textFaint,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5)),
-                const SizedBox(height: 8),
-                _optionRow(
-                  options: const [
-                    ['justPlay', 'Pin order'],
-                    ['autoFill', 'Auto-fill suggestions'],
-                    ['voting', 'Vote (10s)'],
-                  ],
-                  value: _nextTrackMode,
-                  onChanged: (v) => setState(() => _nextTrackMode = v),
-                ),
-                const SizedBox(height: 14),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.border)),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Auto-play next song',
-                          style: TextStyle(
-                              color: AppColors.text,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500)),
-                      Switch(
-                          value: _autoPlay,
-                          onChanged: (v) => setState(() => _autoPlay = v),
-                          activeThumbColor: AppColors.accent2),
                     ],
+                    value: _visibility,
+                    onChanged: _setVisibility,
                   ),
                 ),
-                const SizedBox(height: 20),
-                GestureDetector(
-                  onTap: _saving ? null : _save,
-                  child: Container(
-                    width: double.infinity,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      gradient: _saving
-                          ? null
-                          : const LinearGradient(colors: AppGradients.brand),
-                      color: _saving ? AppColors.surface2 : null,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(_saving ? 'Saving…' : 'Save changes',
-                        style: TextStyle(
-                            color: _saving ? AppColors.textFaint : Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14)),
+                _row(
+                  Icons.mic_rounded,
+                  'Mics',
+                  Switch(
+                    value: _micEnabled,
+                    onChanged: _saving ? null : _setMics,
+                    activeThumbColor: AppColors.accent,
+                  ),
+                ),
+                _row(
+                  Icons.music_note_rounded,
+                  'Music',
+                  _segments(
+                    options: const [
+                      ('everyone', Text('Everyone')),
+                      ('host', Text('Host')),
+                    ],
+                    value: _musicValue,
+                    onChanged: _setMusic,
+                  ),
+                ),
+                _row(
+                  Icons.skip_next_rounded,
+                  'Next song',
+                  _segments(
+                    options: const [
+                      ('auto', Text('Auto')),
+                      ('vote', Text('Vote')),
+                      ('off', Text('Off')),
+                    ],
+                    value: _nextValue,
+                    onChanged: _setNext,
                   ),
                 ),
               ],
