@@ -128,7 +128,10 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
     // fires for a first build — so without this, a joining viewer would
     // silently stay at 0:00 instead of landing on the host's position.
     _applyRemotePlaybackIfNeeded();
-    if (!widget.isHost) widget.onRequestState();
+    // Host too — see the matching comment in sync_video_player.dart: a host
+    // returning to the room otherwise resumed from stale local state (0:00,
+    // paused) instead of where the room actually is.
+    widget.onRequestState();
     _scheduleHideControls();
   }
 

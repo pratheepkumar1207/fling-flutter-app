@@ -119,6 +119,13 @@ class RoomSocketController extends ChangeNotifier {
   void _bind() {
     final s = socket;
     if (s == null) return;
+    // The shared app-wide socket is usually already connected by the time
+    // a room opens, so that "first" connect event never comes — and the
+    // first real reconnect (e.g. a server restart) was then mistaken for it
+    // and skipped, leaving the room silently un-joined: chat, queue and
+    // playback actions were all dropped by the server. If it's connected
+    // now, every future connect event is a genuine reconnect.
+    _joinedOnce = s.connected;
     s.emit('room:join', {'roomId': roomId});
     _syncServerTime();
 
@@ -380,7 +387,18 @@ class RoomSocketController extends ChangeNotifier {
     }
   }
 
-  void queueNext() => socket?.emit('queue:next', {'roomId': roomId});
+  // Says which video ended so the server can ignore duplicate/late reports
+  // from other viewers (every player fires "ended" for the same song).
+  void queueNext() {
+    final items = (queue['items'] as List?) ?? const [];
+    final index = (queue['currentIndex'] as num?)?.toInt() ?? 0;
+    final current = index >= 0 && index < items.length ? items[index] : null;
+    socket?.emit('queue:next', {
+      'roomId': roomId,
+      if (current is Map && current['videoUrl'] != null)
+        'endedVideoUrl': current['videoUrl'],
+    });
+  }
   void queueSkip() {
     if (isHost) socket?.emit('queue:skip', {'roomId': roomId});
   }

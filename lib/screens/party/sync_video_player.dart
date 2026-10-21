@@ -134,6 +134,14 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
   // resync round trip is in flight.
   bool _justResumed = false;
   Timer? _justResumedFallback;
+  // Host-only report guard for a freshly built player (e.g. the host coming
+  // back to the room screen): until the room's current state has been
+  // applied, the page's own initial "cued at 0:00" StateChange was being
+  // reported as a real pause, so every viewer's video paused and jumped to
+  // 0:00 for ~2s whenever the host returned. Cleared once that state lands,
+  // on any explicit host tap, or after a fallback for rooms with no state.
+  bool _awaitingInitialSync = true;
+  Timer? _initialSyncFallback;
 
   // Auto-hide overlay controls (play/pause, seek, skip, progress bar) 3s
   // after the last tap, same as any standard video player — shown again by
@@ -190,7 +198,19 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     PipService.isInPip.addListener(_onPipChanged);
     _currentVideoId = extractYouTubeId(widget.videoUrl);
     if (_currentVideoId != null) _loadAspectRatio(_currentVideoId!);
-    if (!widget.isHost) widget.onRequestState();
+    // Host too, not just viewers: this widget is rebuilt from scratch when
+    // the host leaves the room screen and comes back (minimize, Back), and
+    // the server never echoes the host's own play/pause/seek back to it —
+    // so the host's local copy of the state is stale. Without asking, the
+    // host's video came back paused at 0:00 (and in a brand-new room sat on
+    // the poster) while the server and every viewer had it playing.
+    // The server's playbackStates already tracks every host action, so its
+    // elapsed-time-corrected answer is the right place to resume from.
+    widget.onRequestState();
+    // A brand-new room has no state for the server to answer with, so
+    // don't stay silent forever waiting for one.
+    _initialSyncFallback =
+        Timer(const Duration(seconds: 3), () => _awaitingInitialSync = false);
     _scheduleHideControls();
   }
 
@@ -278,6 +298,12 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     // Don't trust state while backgrounded — didChangeAppLifecycleState
     // re-syncs for real once we're back.
     if (_backgrounded) return;
+    if (_awaitingInitialSync) return;
+    // Only definite playing (1) / paused (2) states are host decisions.
+    // Unstarted (-1), buffering (3) and cued (5) are load/network states —
+    // treating them as "not playing" broadcast a pause (often at 0:00) to
+    // every viewer on each page load or buffer hiccup.
+    if (_stateCode != 1 && _stateCode != 2) return;
     final isPlaying = _isPlaying;
     if (isPlaying == _lastReportedIsPlaying) return;
     _lastReportedIsPlaying = isPlaying;
@@ -301,6 +327,16 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     final updatedAt = p['updatedAt'] == null ? null : asNum(p['updatedAt']);
     if (updatedAt != null && updatedAt == _lastAppliedUpdatedAt) return;
     _lastAppliedUpdatedAt = updatedAt;
+
+    // The room's real state is landing now — reports after this reflect
+    // that state, not this page's initial blank one.
+    _awaitingInitialSync = false;
+    _initialSyncFallback?.cancel();
+    // This player is now mirroring the room's state, not making a decision
+    // of its own — so the StateChange it causes must not be echoed back.
+    // Otherwise a host whose player took a few seconds to load reported its
+    // slightly-behind position and pulled every viewer back with it.
+    _lastReportedIsPlaying = p['isPlaying'] == true;
 
     var position = asNum(p['position']).toDouble();
     // Correct for however long this event took to arrive (network latency,
@@ -408,6 +444,9 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
   // also emit directly (that would double-report the same transition).
   void _handleTap() {
     if (!widget.isHost || _controller == null) return;
+    // An explicit host action always counts, sync or not.
+    _awaitingInitialSync = false;
+    _initialSyncFallback?.cancel();
     _controller!
         .evaluateJavascript(source: _isPlaying ? 'ytPause();' : 'ytPlay();');
   }
@@ -959,6 +998,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     WidgetsBinding.instance.removeObserver(this);
     PipService.isInPip.removeListener(_onPipChanged);
     _justResumedFallback?.cancel();
+    _initialSyncFallback?.cancel();
     _hideControlsTimer?.cancel();
     _positionNotifier.dispose();
     _controller = null;
