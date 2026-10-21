@@ -11,6 +11,17 @@ import '../party/party_screen.dart';
 /// YoutubeBrowseScreen/DriveBrowseScreen) so the back button from the
 /// party screen returns to wherever the flow started, not back through
 /// the picker.
+/// What the lobby's create screen collected for a watch room — carried
+/// through the source picker so it isn't lost (previously a watch room
+/// silently ignored the name and both toggles; only voice rooms used them).
+class WatchRoomOptions {
+  final String? title;
+  final bool micEnabled;
+  final bool anyoneCanAddSongs;
+  const WatchRoomOptions(
+      {this.title, this.micEnabled = true, this.anyoneCanAddSongs = true});
+}
+
 Future<void> createWatchRoomAndEnter(
   BuildContext context, {
   required String sourceType,
@@ -23,7 +34,9 @@ Future<void> createWatchRoomAndEnter(
   String? topic,
   String? videoTitle,
   String? videoThumbnail,
+  WatchRoomOptions? options,
 }) async {
+  final title = options?.title?.trim();
   try {
     final room = await ApiClient.post('/rooms', body: {
       'roomType': 'watch',
@@ -31,15 +44,28 @@ Future<void> createWatchRoomAndEnter(
       if (videoUrl != null) 'videoUrl': videoUrl,
       'visibility': visibility,
       if (topic != null && topic.trim().isNotEmpty) 'topic': topic.trim(),
+      if (title != null && title.isNotEmpty) 'title': title,
       if (videoTitle != null) 'videoTitle': videoTitle,
       if (videoThumbnail != null) 'videoThumbnail': videoThumbnail,
     }) as Map<String, dynamic>;
+    // Same follow-up the voice-room path does — settings aren't part of
+    // POST /rooms. Best-effort: the room still opens if this fails.
+    if (options != null) {
+      await ApiClient.patch('/rooms/${room['id']}/settings', body: {
+        'micEnabled': options.micEnabled,
+        'songPermission': options.anyoneCanAddSongs ? 'anyone' : 'host',
+      }).catchError((_) => null);
+    }
     if (!context.mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => PartyScreen(roomId: room['id'] as String)),
+      MaterialPageRoute(
+          builder: (_) => PartyScreen(roomId: room['id'] as String)),
       (route) => route.isFirst,
     );
   } on ApiException catch (e) {
-    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    }
   }
 }

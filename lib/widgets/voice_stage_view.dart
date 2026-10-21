@@ -41,11 +41,8 @@ class VoiceStageView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final byId = {for (final r in roster) r.userId: r};
-    final activeSet = activeMics.toSet();
     final slots = List<String?>.generate(
         maxSlots, (i) => i < activeMics.length ? activeMics[i] : null);
-    final listeners =
-        roster.where((r) => !activeSet.contains(r.userId)).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -143,123 +140,116 @@ class VoiceStageView extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.5)),
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 16,
-          children: List.generate(maxSlots, (i) {
-            final uid = slots[i];
-            final p = uid != null ? byId[uid] : null;
-            final isMe = uid == myUserId;
-            final isHostSlot = p != null && uid == hostId;
-            return SizedBox(
-              width: 76,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      p != null
-                          ? GestureDetector(
-                              onTap: () => openProfile(context, uid),
-                              child: Container(
-                                padding: const EdgeInsets.all(3),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: isHostSlot
-                                      ? const LinearGradient(
-                                          colors: AppGradients.brand)
-                                      : null,
-                                  color: isHostSlot
-                                      ? null
-                                      : VolaPartyColors.border,
+        // Four seats to a row (8 seats = two even rows), each sized from
+        // the available width so all four always fit — the fixed 76px seats
+        // only fit three across on a typical phone.
+        LayoutBuilder(builder: (context, constraints) {
+          const gap = 8.0;
+          final seat = (constraints.maxWidth - gap * 3) / 4;
+          final circle = (seat - 10).clamp(40.0, 72.0);
+          return Wrap(
+            spacing: gap,
+            runSpacing: 16,
+            children: List.generate(maxSlots, (i) {
+              final uid = slots[i];
+              final p = uid != null ? byId[uid] : null;
+              final isMe = uid == myUserId;
+              final isHostSlot = p != null && uid == hostId;
+              return SizedBox(
+                width: seat,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        p != null
+                            ? GestureDetector(
+                                onTap: () => openProfile(context, uid),
+                                child: Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: isHostSlot
+                                        ? const LinearGradient(
+                                            colors: AppGradients.brand)
+                                        : null,
+                                    color: isHostSlot
+                                        ? null
+                                        : VolaPartyColors.border,
+                                  ),
+                                  child: SizedBox.square(
+                                    dimension: circle - 6,
+                                    child: FittedBox(
+                                      child: Avatar(
+                                          src: p.avatarUrl,
+                                          name: p.name,
+                                          size: AvatarSize.lg),
+                                    ),
+                                  ),
                                 ),
-                                child: Avatar(
-                                    src: p.avatarUrl,
-                                    name: p.name,
-                                    size: AvatarSize.lg),
+                              )
+                            : Container(
+                                width: circle,
+                                height: circle,
+                                decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                        color: VolaPartyColors.border,
+                                        width: 1.5,
+                                        style: BorderStyle.solid)),
+                                alignment: Alignment.center,
+                                child: const Icon(Icons.add_rounded,
+                                    color: VolaPartyColors.textFaint, size: 20),
                               ),
-                            )
-                          : Container(
-                              width: 66,
-                              height: 66,
-                              decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                      color: VolaPartyColors.border,
-                                      width: 1.5,
-                                      style: BorderStyle.solid)),
-                              alignment: Alignment.center,
-                              child: const Icon(Icons.add_rounded,
-                                  color: VolaPartyColors.textFaint, size: 20),
-                            ),
-                      if (isHost && p != null && uid != hostId)
-                        Positioned(
-                          bottom: -2,
-                          right: -2,
-                          child: GestureDetector(
-                            onTap: () => onRemove(uid!),
-                            child: Container(
-                              width: 18,
-                              height: 18,
-                              decoration: BoxDecoration(
-                                  color: VolaPartyColors.danger,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                      color: VolaPartyColors.surface,
-                                      width: 2)),
-                              alignment: Alignment.center,
-                              child: const Icon(Icons.close,
-                                  size: 10, color: Colors.white),
+                        if (isHost && p != null && uid != hostId)
+                          Positioned(
+                            bottom: -2,
+                            right: -2,
+                            child: GestureDetector(
+                              onTap: () => onRemove(uid!),
+                              child: Container(
+                                width: 18,
+                                height: 18,
+                                decoration: BoxDecoration(
+                                    color: VolaPartyColors.danger,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                        color: VolaPartyColors.surface,
+                                        width: 2)),
+                                alignment: Alignment.center,
+                                child: const Icon(Icons.close,
+                                    size: 10, color: Colors.white),
+                              ),
                             ),
                           ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    p != null ? (isMe ? 'You' : p.name) : 'Open seat',
-                    style: TextStyle(
-                        color: p != null
-                            ? VolaPartyColors.text
-                            : VolaPartyColors.textFaint,
-                        fontSize: 11,
-                        fontWeight:
-                            p != null ? FontWeight.w600 : FontWeight.normal),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (isHostSlot)
-                    const Text('HOST',
-                        style: TextStyle(
-                            color: VolaPartyColors.gold,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700)),
-                ],
-              ),
-            );
-          }),
-        ),
-        if (listeners.isNotEmpty) ...[
-          const SizedBox(height: 24),
-          Text('LISTENING · ${listeners.length}',
-              style: const TextStyle(
-                  color: VolaPartyColors.textFaint,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5)),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: listeners
-                .map((p) => GestureDetector(
-                    onTap: () => openProfile(context, p.userId),
-                    child: Avatar(
-                        src: p.avatarUrl, name: p.name, size: AvatarSize.md)))
-                .toList(),
-          ),
-        ],
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      p != null ? (isMe ? 'You' : p.name) : 'Open seat',
+                      style: TextStyle(
+                          color: p != null
+                              ? VolaPartyColors.text
+                              : VolaPartyColors.textFaint,
+                          fontSize: 11,
+                          fontWeight:
+                              p != null ? FontWeight.w600 : FontWeight.normal),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (isHostSlot)
+                      const Text('HOST',
+                          style: TextStyle(
+                              color: VolaPartyColors.gold,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              );
+            }),
+          );
+        }),
       ],
     );
   }

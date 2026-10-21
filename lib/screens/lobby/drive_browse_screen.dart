@@ -17,6 +17,8 @@ import 'watch_room_creator.dart';
 class DriveBrowseScreen extends StatefulWidget {
   final String visibility;
   final String? topic;
+  // Room name + mic/song settings chosen in the lobby — see WatchRoomOptions.
+  final WatchRoomOptions? options;
 
   /// When set, picking a file calls this instead of creating a room — used
   /// by the unified source picker's in-room "add to queue" path (see
@@ -24,7 +26,11 @@ class DriveBrowseScreen extends StatefulWidget {
   final void Function(Map<String, dynamic> item)? onSelectOverride;
 
   const DriveBrowseScreen(
-      {super.key, required this.visibility, this.topic, this.onSelectOverride});
+      {super.key,
+      required this.visibility,
+      this.topic,
+      this.options,
+      this.onSelectOverride});
 
   @override
   State<DriveBrowseScreen> createState() => _DriveBrowseScreenState();
@@ -108,6 +114,7 @@ class _DriveBrowseScreenState extends State<DriveBrowseScreen> {
       videoUrl: item['id'] as String,
       visibility: widget.visibility,
       topic: widget.topic,
+      options: widget.options,
       videoTitle: item['name'] as String?,
       videoThumbnail: item['thumbnail'] as String?,
     ).whenComplete(() {

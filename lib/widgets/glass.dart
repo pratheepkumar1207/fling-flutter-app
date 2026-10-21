@@ -13,6 +13,10 @@ class GlassPanel extends StatelessWidget {
   final double blur;
   final double opacity;
   final Border? border;
+  // How solid the tint is. The default keeps text crisp on busy screens; a
+  // lower value (e.g. the roster drawer's) lets more of the blurred room
+  // show through for a properly glassy look.
+  final double tintAlpha;
 
   const GlassPanel({
     super.key,
@@ -21,6 +25,7 @@ class GlassPanel extends StatelessWidget {
     this.blur = 20,
     this.opacity = 0.12,
     this.border,
+    this.tintAlpha = .94,
   });
 
   @override
@@ -35,8 +40,8 @@ class GlassPanel extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  AppColors.surface3.withValues(alpha: .94),
-                  AppColors.surface.withValues(alpha: .94)
+                  AppColors.surface3.withValues(alpha: tintAlpha),
+                  AppColors.surface.withValues(alpha: tintAlpha)
                 ]),
             borderRadius: borderRadius,
             border: border ??

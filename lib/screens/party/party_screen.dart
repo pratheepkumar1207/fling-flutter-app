@@ -93,6 +93,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   // opens the Queue sheet (see the body GestureDetector below), so a drag's
   // start position decides which one it means instead of both firing.
   bool _suggestionsMode = false;
+  // See the auto-return check next to promptPin in build().
+  bool _wasNothingPlaying = false;
   final _playerAreaKey = GlobalKey();
   Offset? _dragStartGlobal;
   // Last queue:promptPin token this screen has already reacted to — see
@@ -556,6 +558,13 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       _lastPromptPinToken = rs.promptPinToken;
       _suggestionsMode = true;
     }
+    // ...and once the room's pick starts playing (playback goes from
+    // nothing to something), go back to the full-size player.
+    final nothingPlaying = rs.playback == null;
+    if (_suggestionsMode && _wasNothingPlaying && !nothingPlaying) {
+      _suggestionsMode = false;
+    }
+    _wasNothingPlaying = nothingPlaying;
     // Picks the player widget by the current queue item's (or the room's,
     // for a plain single-video watch party) sourceType — 'drive' streams
     // through a native VideoPlayerController (see drive_video_player.dart),
@@ -576,7 +585,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       // hold true across PiP/rotation, since those move the player to a
       // genuinely different parent, not just different props at the same
       // spot.
-      final playerKey = _playerKeyFor('player-$playerSourceType-$playerVideoUrl');
+      final playerKey =
+          _playerKeyFor('player-$playerSourceType-$playerVideoUrl');
       if (webviewSourceTypes.contains(playerSourceType)) {
         return WebviewRoomPlayer(
           key: playerKey,
@@ -869,6 +879,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
             onInviteMic: rs.inviteMic,
             onForceMute: rs.forceMuteMic,
             onForceUnmute: rs.forceUnmuteMic,
+            onInvite: _openInvite,
           ),
           // Hidden while composing a chat message — see hideChromeForChat —
           // so chat gets the full screen instead of sharing it with chrome
@@ -1166,53 +1177,54 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                     // recognize it as the same widget across a type change instead
                     // of tearing it down.
                     if (isWatch && _suggestionsMode)
-                      // Swiped the player left — it shrinks into a "now
-                      // playing" box instead of pausing/disappearing, and
-                      // the rest of this space becomes a suggestion grid to
-                      // pin from. mediaMode/compact mirror what the normal
-                      // branch below would have used, just rendered small.
-                      Expanded(
-                        child: VideoSuggestionsPanel(
-                          sourceType: playerSourceType,
-                          videoUrl: playerVideoUrl,
-                          nowPlayingTitle: currentItem?['title'] as String? ??
-                              room['title'] as String?,
-                          miniPlayer: player(
-                            mediaMode:
-                                currentItem?['mediaMode'] as String? ?? 'video',
-                            compact: true,
-                          ),
-                          onPin: (
-                                  {required videoUrl,
-                                  required title,
-                                  thumbnail,
-                                  required sourceType}) =>
-                              rs.queueAdd({
-                            'videoUrl': videoUrl,
-                            'title': title,
-                            'thumbnail': thumbnail,
-                            'sourceType': sourceType,
-                            'mediaMode': 'video',
-                          }, position: 'top'),
-                          isHost: rs.isHost,
-                          onVoteAdd: (
-                                  {required videoUrl,
-                                  required title,
-                                  thumbnail,
-                                  required sourceType}) =>
-                              rs.voteAdd({
-                            'videoUrl': videoUrl,
-                            'title': title,
-                            'thumbnail': thumbnail,
-                            'sourceType': sourceType,
-                            'mediaMode': 'video',
-                          }),
-                          onUnvoteAdd: rs.unvoteAdd,
-                          myUserId: myId,
-                          addVotes: rs.addVotes,
-                          onRestore: () =>
-                              setState(() => _suggestionsMode = false),
+                      // Swiped the player left (or the queue ran dry) — a
+                      // two-row carousel of 16:9 tiles at its natural
+                      // height, the live player as its first tile while
+                      // something's playing; chat below takes the rest.
+                      // mediaMode/compact mirror what the normal branch
+                      // below would have used, just rendered small.
+                      VideoSuggestionsPanel(
+                        showNowPlaying: rs.playback != null,
+                        roster: rs.roster,
+                        sourceType: playerSourceType,
+                        videoUrl: playerVideoUrl,
+                        nowPlayingTitle: currentItem?['title'] as String? ??
+                            room['title'] as String?,
+                        miniPlayer: player(
+                          mediaMode:
+                              currentItem?['mediaMode'] as String? ?? 'video',
+                          compact: true,
                         ),
+                        onPin: (
+                                {required videoUrl,
+                                required title,
+                                thumbnail,
+                                required sourceType}) =>
+                            rs.queueAdd({
+                          'videoUrl': videoUrl,
+                          'title': title,
+                          'thumbnail': thumbnail,
+                          'sourceType': sourceType,
+                          'mediaMode': 'video',
+                        }, position: 'top'),
+                        isHost: rs.isHost,
+                        onVoteAdd: (
+                                {required videoUrl,
+                                required title,
+                                thumbnail,
+                                required sourceType}) =>
+                            rs.voteAdd({
+                          'videoUrl': videoUrl,
+                          'title': title,
+                          'thumbnail': thumbnail,
+                          'sourceType': sourceType,
+                          'mediaMode': 'video',
+                        }),
+                        onUnvoteAdd: rs.unvoteAdd,
+                        myUserId: myId,
+                        addVotes: rs.addVotes,
+                        onRestore: () =>
+                            setState(() => _suggestionsMode = false),
                       )
                     else if (isWatch && ottImmersive)
                       // Video stays a normal 16:9 box pinned to the top of
@@ -1231,9 +1243,9 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                               left: 0,
                               right: 0,
                               child: player(
-                                mediaMode: currentItem?['mediaMode']
-                                        as String? ??
-                                    'video',
+                                mediaMode:
+                                    currentItem?['mediaMode'] as String? ??
+                                        'video',
                                 compact: false,
                               ),
                             ),
@@ -1319,10 +1331,9 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                         ),
                       )
                     else if (isWatch)
-                      // Video sits right under the app bar; scrolling the
-                      // chat below it up scrolls this whole header
-                      // (player + boosted banner + participants + poll)
-                      // away too — NestedScrollView links the two
+                      // Video is pinned right under the app bar; scrolling
+                      // the chat below it up scrolls the header under it
+                      // (boosted banner + participants + poll) away — NestedScrollView links the two
                       // scrollables so the header only moves once chat's
                       // own message list is already at its own top/bottom
                       // edge, instead of fighting it for the drag. The
@@ -1330,91 +1341,108 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                       // starting (see _lastSeenPlayerVideoUrl above) both
                       // snap it back open.
                       Expanded(
-                        child: Stack(
+                        child: Column(
                           children: [
-                            NestedScrollView(
-                              controller: _watchScrollController,
-                              headerSliverBuilder: (context, _) => [
-                                SliverToBoxAdapter(
-                                  child: Column(
-                                    children: [
-                                      Padding(
-                                        key: _playerAreaKey,
-                                        padding: EdgeInsets.zero,
-                                        child: player(
-                                          mediaMode: currentItem?['mediaMode']
-                                                  as String? ??
-                                              'video',
-                                          compact: false,
-                                        ),
-                                      ),
-                                      if (isBoosted) boostedBanner(),
-                                      Padding(
-                                        padding: const EdgeInsets.fromLTRB(
-                                            12, 12, 12, 8),
-                                        child: ParticipantAvatarRow(
-                                            roster: rs.roster,
-                                            onOpenRoster: _openRoster),
-                                      ),
-                                      if (rs.poll['active'] == true)
-                                        pollBanner(),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                              body: Padding(
-                                padding:
-                                    const EdgeInsets.fromLTRB(12, 4, 12, 12),
-                                child: ChatOverlay(
-                                  messages: rs.messages,
-                                  onSend: (text, mentionedUserIds) =>
-                                      rs.sendMessage(text,
-                                          mentionedUserIds: mentionedUserIds),
-                                  myUserId: myId,
-                                  primaryColor: roomPrimary,
-                                  textColor: roomText,
-                                  roster: rs.roster,
-                                  myMicOn: myMicOn,
-                                  myMicRequested: myMicRequested,
-                                  onMicTap: handleMicTap,
-                                  onPoll: () {
-                                    if (rs.isHost) {
-                                      showPollCreatorBottomSheet(context,
-                                          onCreate: rs.createPoll);
-                                    } else if (rs.poll['active'] == true) {
-                                      showPollBottomSheet(context,
-                                          poll: rs.poll,
-                                          myUserId: myId ?? '',
-                                          isHost: rs.isHost,
-                                          roster: rs.roster,
-                                          onVote: rs.votePoll,
-                                          onReset: rs.resetPoll);
-                                    }
-                                  },
-                                  onGift: () => showGiftBottomSheet(context,
-                                      toUserId: room['hostId'] as String? ?? '',
-                                      roomId: widget.roomId,
-                                      targetKey: _hostKey),
-                                  onShare: _shareRoom,
-                                  onInvite: _openInvite,
-                                  onFocusChanged: _setChatFocused,
-                                  likedUrls: _likedUrls,
-                                  onToggleLike: _toggleLike,
-                                ),
+                            // Pinned above the scrolling area, NOT inside the
+                            // collapsing header: opening the keyboard (or new
+                            // messages arriving) scrolled the header to keep
+                            // the chat field visible, which pushed the video
+                            // up off-screen mid-chat. Only the banner,
+                            // participants and poll below still collapse.
+                            Padding(
+                              key: _playerAreaKey,
+                              padding: EdgeInsets.zero,
+                              child: player(
+                                mediaMode:
+                                    currentItem?['mediaMode'] as String? ??
+                                        'video',
+                                compact: false,
                               ),
                             ),
-                            if (_playerCollapsed)
-                              Positioned(
-                                top: 8,
-                                right: 12,
-                                child: GlassCircleButton(
-                                  onTap: _scrollWatchHeaderToTop,
-                                  child: const Icon(
-                                      Icons.keyboard_arrow_down_rounded,
-                                      color: Colors.white,
-                                      size: 20),
-                                ),
+                            Expanded(
+                              child: Stack(
+                                children: [
+                                  NestedScrollView(
+                                    controller: _watchScrollController,
+                                    headerSliverBuilder: (context, _) => [
+                                      SliverToBoxAdapter(
+                                        child: Column(
+                                          children: [
+                                            if (isBoosted) boostedBanner(),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.fromLTRB(
+                                                      12, 12, 12, 8),
+                                              child: ParticipantAvatarRow(
+                                                  roster: rs.roster,
+                                                  onOpenRoster: _openRoster),
+                                            ),
+                                            if (rs.poll['active'] == true)
+                                              pollBanner(),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                    body: Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                          12, 4, 12, 12),
+                                      child: ChatOverlay(
+                                        messages: rs.messages,
+                                        onSend: (text, mentionedUserIds) =>
+                                            rs.sendMessage(text,
+                                                mentionedUserIds:
+                                                    mentionedUserIds),
+                                        myUserId: myId,
+                                        primaryColor: roomPrimary,
+                                        textColor: roomText,
+                                        roster: rs.roster,
+                                        myMicOn: myMicOn,
+                                        myMicRequested: myMicRequested,
+                                        onMicTap: handleMicTap,
+                                        onPoll: () {
+                                          if (rs.isHost) {
+                                            showPollCreatorBottomSheet(context,
+                                                onCreate: rs.createPoll);
+                                          } else if (rs.poll['active'] ==
+                                              true) {
+                                            showPollBottomSheet(context,
+                                                poll: rs.poll,
+                                                myUserId: myId ?? '',
+                                                isHost: rs.isHost,
+                                                roster: rs.roster,
+                                                onVote: rs.votePoll,
+                                                onReset: rs.resetPoll);
+                                          }
+                                        },
+                                        onGift: () => showGiftBottomSheet(
+                                            context,
+                                            toUserId:
+                                                room['hostId'] as String? ?? '',
+                                            roomId: widget.roomId,
+                                            targetKey: _hostKey),
+                                        onShare: _shareRoom,
+                                        onInvite: _openInvite,
+                                        onFocusChanged: _setChatFocused,
+                                        likedUrls: _likedUrls,
+                                        onToggleLike: _toggleLike,
+                                      ),
+                                    ),
+                                  ),
+                                  if (_playerCollapsed)
+                                    Positioned(
+                                      top: 8,
+                                      right: 12,
+                                      child: GlassCircleButton(
+                                        onTap: _scrollWatchHeaderToTop,
+                                        child: const Icon(
+                                            Icons.keyboard_arrow_down_rounded,
+                                            color: Colors.white,
+                                            size: 20),
+                                      ),
+                                    ),
+                                ],
                               ),
+                            ),
                           ],
                         ),
                       )
@@ -1431,7 +1459,10 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                     // same widgets (via the shared boostedBanner/pollBanner
                     // closures above) inside the collapsing header instead.
                     if (isBoosted && !isWatch) boostedBanner(),
-                    if (!isWatch)
+                    // Not in voice rooms either: the voice stage already shows
+                    // every speaker and its LISTENING section everyone else, so
+                    // this strip just repeated the same faces under the chat.
+                    if (!isWatch && !isVoice)
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
                         child: ParticipantAvatarRow(

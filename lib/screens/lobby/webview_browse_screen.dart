@@ -39,6 +39,8 @@ class WebviewBrowseScreen extends StatefulWidget {
   final String homeUrl;
   final String visibility;
   final String? topic;
+  // Room name + mic/song settings chosen in the lobby — see WatchRoomOptions.
+  final WatchRoomOptions? options;
 
   /// Legacy in-room "switch source" path — replaces what the whole room is
   /// currently set to, with a confirmation prompt first. Superseded by
@@ -65,6 +67,7 @@ class WebviewBrowseScreen extends StatefulWidget {
     required this.homeUrl,
     required this.visibility,
     this.topic,
+    this.options,
     this.onConfirmOverride,
     this.onAddToQueue,
   });
@@ -318,6 +321,7 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
       videoUrl: videoUrl,
       visibility: widget.visibility,
       topic: widget.topic,
+      options: widget.options,
       videoTitle: videoTitle,
       videoThumbnail: videoThumbnail,
     ).whenComplete(() {

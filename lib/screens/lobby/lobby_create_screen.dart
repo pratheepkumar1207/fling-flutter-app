@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
+import '../../core/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../party/party_screen.dart';
 import 'source_picker_screen.dart';
+import 'watch_room_creator.dart';
 
 // Plain line-icon-on-gradient treatment, matching GamePickerDark.dc.html's
 // game cards — inlined here (was its own GamePickerScreen/second page)
@@ -75,10 +78,12 @@ const _roomTypes = [
   _RoomTypeSpec('game', Icons.sports_esports_rounded, 'Game'),
 ];
 
+// Short labels so all four fit on one line; Private shows as a lock icon
+// (its full label is still read out by screen readers — see _visibilityChip).
 const _visibilities = [
   _VisibilitySpec('public', 'Public'),
   _VisibilitySpec('friends', 'Friends'),
-  _VisibilitySpec('subscribers', 'Subscribers'),
+  _VisibilitySpec('subscribers', 'Subs'),
   _VisibilitySpec('private', 'Private (link only)'),
 ];
 
@@ -90,15 +95,13 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
   // second, redundant description column.
   final _topicController = TextEditingController();
   String _visibility = 'public';
-  // Matches RoomSetupDark.dc.html's two toggles — only applied for
-  // game/voice rooms, which create directly through _create() below. Watch
-  // rooms go through the separate source-picker flow (SourcePickerScreen /
-  // watch_room_creator.dart) instead, which doesn't thread these through;
-  // a watch host can still set them afterward via Room Settings, same as
-  // today.
+  // Applied to voice rooms by _create() below, and to watch rooms by
+  // watch_room_creator.dart via WatchRoomOptions (carried through the
+  // source picker), along with the room name.
   bool _micEnabled = true;
   bool _songPermission = true;
   bool _saving = false;
+  bool _moreOptions = false;
   String _selectedGame = _kGames.first.value;
 
   Future<void> _create() async {
@@ -158,104 +161,157 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
             visibility: _visibility,
             topic: _topicController.text.trim().isEmpty
                 ? null
-                : _topicController.text.trim()),
+                : _topicController.text.trim(),
+            options: WatchRoomOptions(
+              title: _nameController.text.trim().isEmpty
+                  ? null
+                  : _nameController.text.trim(),
+              micEnabled: _micEnabled,
+              anyoneCanAddSongs: _songPermission,
+            )),
       ),
     );
   }
 
+  // Mirrors the backend's fallbackTitle (routes/room.js), so the hint shows
+  // exactly the name the room gets if this is left empty.
+  String _defaultName(String? hostName) {
+    final name = (hostName == null || hostName.trim().isEmpty)
+        ? 'Someone'
+        : hostName.trim();
+    return _roomType == 'voice' ? "$name's Voice Room" : "$name's Watch Party";
+  }
+
   @override
   Widget build(BuildContext context) {
+    final hostName = context.watch<AuthProvider>().user?.name;
+    final isGame = _roomType == 'game';
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        child: Column(
           children: [
-            Row(
-              children: [
-                IconButton(
-                    icon: const Icon(Icons.arrow_back, color: AppColors.text),
-                    onPressed: () => Navigator.of(context).pop()),
-              ],
-            ),
-            const InsyncSectionBanner(
-                title: 'Bring your people',
-                subtitle: 'Pick a vibe. Start something together.',
-                icon: Icons.groups_rounded),
-            const SizedBox(height: 20),
-            _sectionLabel('1. Select Room Type'),
-            const SizedBox(height: 10),
-            // Exactly 3 room types — a single 1x3 row instead of a wrapping
-            // grid, matching the reference layout.
-            Row(
-              children: [
-                for (var i = 0; i < _roomTypes.length; i++) ...[
-                  if (i > 0) const SizedBox(width: 10),
-                  Expanded(child: _typeCard(_roomTypes[i])),
+            // Compact title bar instead of the old hero banner, so the whole
+            // form fits on one phone screen.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 4, 16, 4),
+              child: Row(
+                children: [
+                  IconButton(
+                      icon: const Icon(Icons.arrow_back, color: AppColors.text),
+                      onPressed: () => Navigator.of(context).pop()),
+                  const Text('New room',
+                      style: TextStyle(
+                          color: AppColors.text,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700)),
                 ],
-              ],
+              ),
             ),
-            // Game rooms pick their game right here (matches
-            // GamePickerDark.dc.html's cards) instead of hopping to a
-            // separate screen — quick-create flow: public visibility, no
-            // title/topic, same as before.
-            if (_roomType == 'game') ...[
-              const SizedBox(height: 20),
-              _sectionLabel('2. Choose a game'),
-              const SizedBox(height: 10),
-              for (final game in _kGames) _gameCard(game),
-            ] else ...[
-              const SizedBox(height: 20),
-              _sectionLabel('2. Who can join'),
-              const SizedBox(height: 10),
-              Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _visibilities.map(_visibilityPill).toList()),
-              const SizedBox(height: 20),
-              _toggleRow('Mics enabled', _micEnabled,
-                  (v) => setState(() => _micEnabled = v)),
-              _toggleRow('Anyone can add songs', _songPermission,
-                  (v) => setState(() => _songPermission = v)),
-              const SizedBox(height: 20),
-              _sectionLabel('3. Room Details'),
-              const SizedBox(height: 10),
-              _pillField(_nameController, 'Room Name (optional)'),
-              const SizedBox(height: 10),
-              _pillField(_topicController, 'Add a description (optional)'),
-            ],
-            const SizedBox(height: 20),
-            // Watch parties skip creating here entirely — picking a video in
-            // the Rave-style source picker creates the room automatically
-            // (see watch_room_creator.dart). Game rooms create straight off
-            // the chosen game card above (_createGame); Voice rooms use the
-            // full form above (_create).
-            SizedBox(
-              width: double.infinity,
-              child: Container(
-                decoration: BoxDecoration(
-                    gradient: AppGradients.volaCtaDiagonal,
-                    borderRadius: BorderRadius.circular(999)),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(999),
-                    onTap: _roomType == 'watch'
-                        ? _openSourcePicker
-                        : (_saving
-                            ? null
-                            : (_roomType == 'game' ? _createGame : _create)),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Center(
-                        child: Text(
-                          _roomType == 'watch'
-                              ? 'Choose what to watch'
-                              : (_saving ? 'Creating…' : 'Create Room'),
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 15),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                children: [
+                  _sectionLabel('Room type'),
+                  const SizedBox(height: 8),
+                  _typeSegments(),
+                  // Game rooms pick their game right here (matches
+                  // GamePickerDark.dc.html's cards) — quick-create flow:
+                  // public visibility, no title/topic, same as before.
+                  if (isGame) ...[
+                    const SizedBox(height: 18),
+                    _sectionLabel('Choose a game'),
+                    const SizedBox(height: 8),
+                    for (final game in _kGames) _gameCard(game),
+                  ] else ...[
+                    const SizedBox(height: 18),
+                    _sectionLabel('Who can join'),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        for (var i = 0; i < _visibilities.length; i++) ...[
+                          if (i > 0) const SizedBox(width: 6),
+                          Expanded(child: _visibilityChip(_visibilities[i])),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    _sectionLabel('Room name'),
+                    const SizedBox(height: 8),
+                    _pillField(_nameController, _defaultName(hostName)),
+                    const SizedBox(height: 10),
+                    // Less-used settings tucked away until asked for.
+                    InkWell(
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: () => setState(() => _moreOptions = !_moreOptions),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.tune_rounded,
+                                color: AppColors.textDim, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text('More options',
+                                  style: TextStyle(
+                                      color: _moreOptions
+                                          ? AppColors.text
+                                          : AppColors.textDim,
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w600)),
+                            ),
+                            Icon(
+                                _moreOptions
+                                    ? Icons.keyboard_arrow_up_rounded
+                                    : Icons.keyboard_arrow_down_rounded,
+                                color: AppColors.textDim),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (_moreOptions) ...[
+                      _toggleRow('Mics on', _micEnabled,
+                          (v) => setState(() => _micEnabled = v)),
+                      _toggleRow('Anyone can add songs', _songPermission,
+                          (v) => setState(() => _songPermission = v)),
+                      const SizedBox(height: 6),
+                      _pillField(_topicController, 'Description (optional)'),
+                    ],
+                  ],
+                ],
+              ),
+            ),
+            // Pinned, so the main action never needs scrolling to find.
+            // Watch parties create once a video is picked in the source
+            // picker (see watch_room_creator.dart); game rooms create off the
+            // chosen game card (_createGame); voice rooms via _create.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+              child: SizedBox(
+                width: double.infinity,
+                child: Container(
+                  decoration: BoxDecoration(
+                      gradient: AppGradients.volaCtaDiagonal,
+                      borderRadius: BorderRadius.circular(999)),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(999),
+                      onTap: _roomType == 'watch'
+                          ? _openSourcePicker
+                          : (_saving ? null : (isGame ? _createGame : _create)),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        child: Center(
+                          child: Text(
+                            _roomType == 'watch'
+                                ? 'Choose what to watch'
+                                : (_saving ? 'Creating…' : 'Create room'),
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 15),
+                          ),
                         ),
                       ),
                     ),
@@ -271,7 +327,9 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
 
   Widget _sectionLabel(String text) => Text(text,
       style: const TextStyle(
-          color: AppColors.text, fontSize: 15, fontWeight: FontWeight.w700));
+          color: AppColors.textDim,
+          fontSize: 12.5,
+          fontWeight: FontWeight.w600));
 
   Widget _gameCard(
       ({
@@ -349,81 +407,97 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
     );
   }
 
-  Widget _typeCard(_RoomTypeSpec spec) {
-    final selected = _roomType == spec.value;
-    return GestureDetector(
-      onTap: () => setState(() => _roomType = spec.value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          border: Border.all(
-              color: selected ? AppColors.accent : AppColors.border,
-              width: selected ? 2 : 1),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: selected
-                    ? const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: AppGradients.brand)
-                    : null,
-                color: selected ? null : AppColors.surface2,
+  // One compact segmented row (icon over label) instead of three tall cards
+  // — same three choices, about a third of the height.
+  Widget _typeSegments() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      padding: const EdgeInsets.all(4),
+      child: Row(
+        children: [
+          for (final spec in _roomTypes)
+            Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _roomType = spec.value),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color: _roomType == spec.value
+                        ? AppColors.accent.withValues(alpha: 0.16)
+                        : Colors.transparent,
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(spec.icon,
+                          size: 20,
+                          color: _roomType == spec.value
+                              ? AppColors.accent
+                              : AppColors.textDim),
+                      const SizedBox(height: 3),
+                      Text(spec.label,
+                          style: TextStyle(
+                              color: _roomType == spec.value
+                                  ? AppColors.accent
+                                  : AppColors.textDim,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                ),
               ),
-              alignment: Alignment.center,
-              child: Icon(spec.icon,
-                  color: selected ? Colors.white : AppColors.textDim, size: 20),
             ),
-            const SizedBox(height: 8),
-            Text(spec.label,
-                style: TextStyle(
-                    color: selected ? AppColors.accent : AppColors.textDim,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w700)),
-          ],
-        ),
+        ],
       ),
     );
   }
 
-  // Compact pill row — matches RoomSetupDark.dc.html's "Who can join"
-  // section exactly (the previous vertical description-cards were a
-  // pre-existing embellishment, not from the mockup).
-  Widget _visibilityPill(_VisibilitySpec spec) {
+  // Equal-width chips so all four fit on one line; Private (link only) is a
+  // lock icon, still labelled in full for screen readers.
+  Widget _visibilityChip(_VisibilitySpec spec) {
     final selected = _visibility == spec.value;
-    return GestureDetector(
-      onTap: () => setState(() => _visibility = spec.value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(999),
-          color: selected
-              ? AppColors.accent.withValues(alpha: 0.16)
-              : Colors.transparent,
-          border: Border.all(
-              color: selected ? AppColors.accent : AppColors.border,
-              width: selected ? 1.5 : 1),
+    final color = selected ? AppColors.accent : AppColors.textDim;
+    return Semantics(
+      label: spec.label,
+      selected: selected,
+      button: true,
+      child: GestureDetector(
+        onTap: () => setState(() => _visibility = spec.value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            color: selected
+                ? AppColors.accent.withValues(alpha: 0.16)
+                : Colors.transparent,
+            border: Border.all(
+                color: selected ? AppColors.accent : AppColors.border,
+                width: selected ? 1.5 : 1),
+          ),
+          child: ExcludeSemantics(
+            child: spec.value == 'private'
+                ? Icon(Icons.lock_rounded, size: 15, color: color)
+                : Text(spec.label,
+                    maxLines: 1,
+                    style: TextStyle(
+                        color: color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600)),
+          ),
         ),
-        child: Text(spec.label,
-            style: TextStyle(
-                color: selected ? AppColors.accent : AppColors.textDim,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600)),
       ),
     );
   }
 
   Widget _toggleRow(String label, bool value, ValueChanged<bool> onChanged) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: GestureDetector(
         onTap: () => onChanged(!value),
         child: Row(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
+import '../../core/youtube_util.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/google_connect_gate.dart';
@@ -18,6 +19,8 @@ import 'watch_room_creator.dart';
 class YoutubeBrowseScreen extends StatefulWidget {
   final String visibility;
   final String? topic;
+  // Room name + mic/song settings chosen in the lobby — see WatchRoomOptions.
+  final WatchRoomOptions? options;
 
   /// When set, picking a video calls this instead of creating a room — the
   /// in-room "add to queue" path from the unified source picker (see
@@ -26,7 +29,11 @@ class YoutubeBrowseScreen extends StatefulWidget {
   final void Function(Map<String, dynamic> item)? onSelectOverride;
 
   const YoutubeBrowseScreen(
-      {super.key, required this.visibility, this.topic, this.onSelectOverride});
+      {super.key,
+      required this.visibility,
+      this.topic,
+      this.options,
+      this.onSelectOverride});
 
   @override
   State<YoutubeBrowseScreen> createState() => _YoutubeBrowseScreenState();
@@ -51,6 +58,7 @@ class _YoutubeBrowseScreenState extends State<YoutubeBrowseScreen>
       videoUrl: 'https://www.youtube.com/watch?v=${item['videoId']}',
       visibility: widget.visibility,
       topic: widget.topic,
+      options: widget.options,
       videoTitle: item['title'] as String?,
       videoThumbnail: item['thumbnail'] as String?,
     ).whenComplete(() {
@@ -117,28 +125,92 @@ class _SearchTabState extends State<_SearchTab> {
   Timer? _debounce;
   bool _searching = false;
   List<Map<String, dynamic>> _results = [];
+  // Shown instead of a silently empty list — e.g. the backend's 503 when
+  // YOUTUBE_API_KEY isn't set used to look exactly like "no results".
+  String? _error;
+  bool _searched = false;
 
   void _onChanged(String q) {
     _debounce?.cancel();
-    if (q.trim().isEmpty) {
-      setState(() => _results = []);
+    final query = q.trim();
+    if (query.isEmpty) {
+      setState(() {
+        _results = [];
+        _error = null;
+        _searched = false;
+      });
       return;
     }
-    _debounce =
-        Timer(const Duration(milliseconds: 400), () => _search(q.trim()));
+    // A pasted YouTube link picks that video directly — no search API call,
+    // so watch rooms still work when search isn't configured. Requires
+    // "youtu" so a plain 11-character search word isn't mistaken for an id.
+    final pastedId = query.contains('youtu') ? extractYouTubeId(query) : null;
+    if (pastedId != null) {
+      setState(() {
+        _results = [
+          {
+            'videoId': pastedId,
+            'title': 'YouTube video',
+            'channelTitle': 'Pasted link',
+            'thumbnail': 'https://i.ytimg.com/vi/$pastedId/mqdefault.jpg',
+          }
+        ];
+        _error = null;
+        _searched = true;
+      });
+      _loadPastedTitle(pastedId);
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 400), () => _search(query));
+  }
+
+  // The real title for a pasted link, via /youtube/embed-size (YouTube
+  // oEmbed — works without YOUTUBE_API_KEY). Best-effort: the tile keeps its
+  // placeholder title if this fails, and ignores a stale answer if the
+  // field has changed since.
+  Future<void> _loadPastedTitle(String videoId) async {
+    try {
+      final data = await ApiClient.get('/youtube/embed-size?v=$videoId') as Map;
+      final title = data['title'] as String?;
+      if (!mounted || title == null || title.isEmpty) return;
+      if (_results.length != 1 || _results.first['videoId'] != videoId) return;
+      setState(() => _results = [
+            {..._results.first, 'title': title, 'channelTitle': 'YouTube'}
+          ]);
+    } catch (_) {}
   }
 
   Future<void> _search(String q) async {
-    setState(() => _searching = true);
+    setState(() {
+      _searching = true;
+      _error = null;
+    });
     try {
       final data = await ApiClient.get(
           '/youtube/search?q=${Uri.encodeQueryComponent(q)}');
       if (!mounted) return;
       setState(() => _results = (data as List).cast<Map<String, dynamic>>());
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() {
+          _results = [];
+          _error = e.message;
+        });
+      }
     } catch (_) {
-      if (mounted) setState(() => _results = []);
+      if (mounted) {
+        setState(() {
+          _results = [];
+          _error = 'Search failed — check your connection.';
+        });
+      }
     } finally {
-      if (mounted) setState(() => _searching = false);
+      if (mounted) {
+        setState(() {
+          _searching = false;
+          _searched = true;
+        });
+      }
     }
   }
 
@@ -159,6 +231,19 @@ class _SearchTabState extends State<_SearchTab> {
         ),
         if (_searching)
           const Padding(padding: EdgeInsets.all(8), child: Spinner(size: 18)),
+        if (!_searching && _searched && _results.isEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Text(
+              '${_error ?? 'No videos found.'}\n'
+              'Tip: you can also paste a YouTube link here.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color:
+                      _error != null ? AppColors.danger : AppColors.textFaint,
+                  fontSize: 13),
+            ),
+          ),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 12),

@@ -34,15 +34,19 @@ import 'watch_room_creator.dart';
 class SourcePickerScreen extends StatelessWidget {
   final String visibility;
   final String? topic;
+  // Room name + mic/song settings chosen in the lobby — see WatchRoomOptions.
+  final WatchRoomOptions? options;
 
-  const SourcePickerScreen({super.key, required this.visibility, this.topic});
+  const SourcePickerScreen(
+      {super.key, required this.visibility, this.topic, this.options});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(title: const InsyncPageTitle('Choose a source')),
-      body: SourcePickerBody(visibility: visibility, topic: topic),
+      body: SourcePickerBody(
+          visibility: visibility, topic: topic, options: options),
     );
   }
 }
@@ -52,6 +56,8 @@ class SourcePickerScreen extends StatelessWidget {
 class SourcePickerBody extends StatelessWidget {
   final String visibility;
   final String? topic;
+  // Room name + mic/song settings chosen in the lobby — see WatchRoomOptions.
+  final WatchRoomOptions? options;
 
   /// Non-null = in-room mode: picking a tile adds to/switches the room
   /// identified by [roomId] instead of creating a new one. [onAddToQueue]
@@ -80,6 +86,7 @@ class SourcePickerBody extends StatelessWidget {
     super.key,
     this.visibility = 'public',
     this.topic,
+    this.options,
     this.roomId,
     this.onAddToQueue,
     this.onSwitchSource,
@@ -94,6 +101,7 @@ class SourcePickerBody extends StatelessWidget {
       builder: (_) => YoutubeBrowseScreen(
         visibility: visibility,
         topic: topic,
+        options: options,
         onSelectOverride: _inRoom
             ? (item) {
                 onAddToQueue!(
@@ -115,6 +123,7 @@ class SourcePickerBody extends StatelessWidget {
       builder: (_) => DriveBrowseScreen(
         visibility: visibility,
         topic: topic,
+        options: options,
         onSelectOverride: _inRoom
             ? (item) {
                 onAddToQueue!(
@@ -142,6 +151,7 @@ class SourcePickerBody extends StatelessWidget {
         homeUrl: homeUrl,
         visibility: visibility,
         topic: topic,
+        options: options,
         // In-room, picking a video queues it (or plays immediately if
         // nothing's queued yet) — same as YouTube/Drive above — instead of
         // hard-replacing what the room's currently on.
@@ -184,6 +194,7 @@ class SourcePickerBody extends StatelessWidget {
         videoUrl: videoUrl,
         visibility: visibility,
         topic: topic,
+        options: options,
         videoTitle: title,
         videoThumbnail: thumbnail,
       );
