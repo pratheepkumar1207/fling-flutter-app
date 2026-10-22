@@ -128,6 +128,17 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
                   () => _roomVisibility = old);
             },
           ),
+          // VIPs see everyone's room unless the person is a VIP too — say
+          // which side of that this user is on.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
+            child: Text(
+                _user?.isVip == true
+                    ? 'As a VIP, this applies to everyone — other VIPs included.'
+                    : "VIP members can still see the room you're in.",
+                style:
+                    const TextStyle(color: AppColors.textFaint, fontSize: 12)),
+          ),
           _switch(
               'Show what I\'m watching or playing',
               'Off: people see you\'re in a room, but not what\'s on',
