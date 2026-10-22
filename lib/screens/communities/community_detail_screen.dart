@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/format.dart';
 import '../../widgets/insync_clay.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
@@ -328,7 +329,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                           if (_community?['description'] != null &&
                               (_community!['description'] as String).isNotEmpty)
                             _community!['description'],
-                          '${_community?['memberCount'] ?? _members.length} members',
+                          memberLabel(_community?['memberCount'] ?? _members.length),
                         ].join(' · '),
                         style: const TextStyle(
                             color: AppColors.textFaint, fontSize: 12),

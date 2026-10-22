@@ -45,3 +45,10 @@ String formatNumber(dynamic value) {
 String formatRupees(dynamic value) {
   return '₹${NumberFormat.decimalPattern().format(asNum(value))}';
 }
+
+
+/// "1 member" / "12 members".
+String memberLabel(dynamic count) {
+  final n = count is num ? count.toInt() : int.tryParse('$count') ?? 0;
+  return '$n ${n == 1 ? 'member' : 'members'}';
+}

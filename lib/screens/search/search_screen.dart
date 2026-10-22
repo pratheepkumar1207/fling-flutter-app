@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../core/format.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/api_client.dart';
 import '../../theme/app_colors.dart';
@@ -217,7 +218,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(c['name'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.5)),
-                  Text('${c['memberCount'] ?? 0} members', style: const TextStyle(color: AppColors.textFaint, fontSize: 11.5)),
+                  Text(memberLabel(c['memberCount']), style: const TextStyle(color: AppColors.textFaint, fontSize: 11.5)),
                 ],
               ),
             ),

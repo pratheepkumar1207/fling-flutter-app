@@ -550,6 +550,21 @@ class LudoBoard extends StatelessWidget {
                                 stackI < group.length;
                                 stackI++)
                               _token(group, stackI, size, movableSet, me),
+                          // The die, in the middle of the board.
+                          Positioned(
+                            left: _cellPct * 6 * size,
+                            top: _cellPct * 6 * size,
+                            width: _cellPct * 3 * size,
+                            height: _cellPct * 3 * size,
+                            child: Center(
+                              child: FittedBox(
+                                child: _LudoDice(
+                                    value: diceValue,
+                                    canRoll: isMyTurn && diceValue == null,
+                                    onRoll: () => onMove({'action': 'roll'})),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     );
@@ -562,63 +577,29 @@ class LudoBoard extends StatelessWidget {
         seatRow('blue', 'yellow'),
         const SizedBox(height: 6),
 
-        // Controls
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-              color: AppColors.surface2,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.border)),
-          child: Row(
-            children: [
-              _LudoDice(
-                  value: diceValue,
-                  canRoll: isMyTurn && diceValue == null,
-                  onRoll: () => onMove({'action': 'roll'})),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (isMyTurn)
-                      Text(
-                          diceValue == null
-                              ? 'Tap the die to roll'
-                              : 'Tap a glowing token',
-                          style: const TextStyle(
-                              color: AppColors.text,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600)),
-                    if (!isPlayer || isHost)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: GameJoinButton(
-                              seated: isPlayer,
-                              full: players.length >= 4,
-                              fallbackJoin: onJoin),
-                        ),
-                      ),
-                    if (isHost && status == 'won')
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6)),
-                          onPressed: onReset,
-                          child: const Text('Play again',
-                              style: TextStyle(fontSize: 12)),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
+        // Hint, join / invite and play again — the die itself sits in the
+        // middle of the board (above), so it's always in view.
+        if (isMyTurn)
+          GameStatusLine(diceValue == null
+              ? 'Tap the die to roll'
+              : 'Tap a glowing token'),
+        if (!isPlayer || isHost)
+          Center(
+            child: GameJoinButton(
+                seated: isPlayer,
+                full: players.length >= 4,
+                fallbackJoin: onJoin),
           ),
-        ),
+        if (isHost && status == 'won')
+          Center(
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6)),
+              onPressed: onReset,
+              child: const Text('Play again', style: TextStyle(fontSize: 12)),
+            ),
+          ),
       ],
     );
   }

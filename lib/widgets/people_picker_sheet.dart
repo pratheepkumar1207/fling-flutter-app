@@ -193,10 +193,15 @@ class _PeoplePickerState extends State<_PeoplePicker> {
                         padding: EdgeInsets.all(24),
                         child: CircularProgressIndicator())
                     : list.isEmpty
-                        ? const Padding(
-                            padding: EdgeInsets.all(24),
-                            child: Text('No one found',
-                                style: TextStyle(color: AppColors.textFaint)))
+                        ? Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Text(
+                                _results == null
+                                    ? 'Search for people by name or @username'
+                                    : 'No one found',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                    color: AppColors.textFaint)))
                         : ListView(
                             shrinkWrap: true,
                             children: [

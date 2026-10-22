@@ -38,12 +38,19 @@ class FlingTopBar extends StatelessWidget implements PreferredSizeWidget {
                     frameId: user?.equippedFrameId),
               ),
               const SizedBox(width: 8),
+              // Shrinks to fit rather than "Insy…" with large system text.
               Expanded(
-                  child: Text('Insync',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800, letterSpacing: -0.8))),
+                  child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text('Insync',
+                          maxLines: 1,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleLarge
+                              ?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.8)))),
               Tooltip(
                 message: 'Wallet',
                 child: TextButton.icon(

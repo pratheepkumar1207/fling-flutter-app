@@ -71,14 +71,18 @@ class LiquidGlassBottomNav extends StatelessWidget {
                                 : colors.textDim),
                   ),
                   const SizedBox(height: 5),
-                  Text(label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: selected ? colors.accent : colors.textDim,
-                          fontWeight: selected || create
-                              ? FontWeight.w700
-                              : FontWeight.w500)),
+                  // Shrinks to fit with large system text instead of
+                  // cutting off ("Disco…", "Messa…").
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(label,
+                        maxLines: 1,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: selected ? colors.accent : colors.textDim,
+                            fontWeight: selected || create
+                                ? FontWeight.w700
+                                : FontWeight.w500)),
+                  ),
                 ]),
               ),
             ),

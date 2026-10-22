@@ -32,7 +32,9 @@ bool _isLegalPlay(Map card, Map? topCard, String? currentColor) {
   if (card['color'] == currentColor) return true;
   if (card['type'] == 'number' &&
       topCard['type'] == 'number' &&
-      card['value'] == topCard['value']) return true;
+      card['value'] == topCard['value']) {
+    return true;
+  }
   if (card['type'] != 'number' && card['type'] == topCard['type']) return true;
   return false;
 }

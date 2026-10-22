@@ -1,0 +1,726 @@
+{
+ "chess": {
+  "gameType": "chess",
+  "players": [
+   {
+    "userId": "me",
+    "name": "Me",
+    "color": "white"
+   },
+   {
+    "userId": "p1",
+    "name": "Venkatalakshmi Ramasubramanian",
+    "color": "black"
+   }
+  ],
+  "board": [
+   [
+    {
+     "type": "r",
+     "color": "white"
+    },
+    {
+     "type": "n",
+     "color": "white"
+    },
+    {
+     "type": "b",
+     "color": "white"
+    },
+    {
+     "type": "q",
+     "color": "white"
+    },
+    {
+     "type": "k",
+     "color": "white"
+    },
+    {
+     "type": "b",
+     "color": "white"
+    },
+    {
+     "type": "n",
+     "color": "white"
+    },
+    {
+     "type": "r",
+     "color": "white"
+    }
+   ],
+   [
+    {
+     "type": "p",
+     "color": "white"
+    },
+    {
+     "type": "p",
+     "color": "white"
+    },
+    {
+     "type": "p",
+     "color": "white"
+    },
+    {
+     "type": "p",
+     "color": "white"
+    },
+    {
+     "type": "p",
+     "color": "white"
+    },
+    {
+     "type": "p",
+     "color": "white"
+    },
+    {
+     "type": "p",
+     "color": "white"
+    },
+    {
+     "type": "p",
+     "color": "white"
+    }
+   ],
+   [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   [
+    {
+     "type": "p",
+     "color": "black"
+    },
+    {
+     "type": "p",
+     "color": "black"
+    },
+    {
+     "type": "p",
+     "color": "black"
+    },
+    {
+     "type": "p",
+     "color": "black"
+    },
+    {
+     "type": "p",
+     "color": "black"
+    },
+    {
+     "type": "p",
+     "color": "black"
+    },
+    {
+     "type": "p",
+     "color": "black"
+    },
+    {
+     "type": "p",
+     "color": "black"
+    }
+   ],
+   [
+    {
+     "type": "r",
+     "color": "black"
+    },
+    {
+     "type": "n",
+     "color": "black"
+    },
+    {
+     "type": "b",
+     "color": "black"
+    },
+    {
+     "type": "q",
+     "color": "black"
+    },
+    {
+     "type": "k",
+     "color": "black"
+    },
+    {
+     "type": "b",
+     "color": "black"
+    },
+    {
+     "type": "n",
+     "color": "black"
+    },
+    {
+     "type": "r",
+     "color": "black"
+    }
+   ]
+  ],
+  "turnColor": "white",
+  "turn": "me",
+  "status": "playing",
+  "winner": null,
+  "drawReason": null,
+  "check": false,
+  "lastMove": null,
+  "castlingRights": {
+   "white": {
+    "k": true,
+    "q": true
+   },
+   "black": {
+    "k": true,
+    "q": true
+   }
+  },
+  "enPassantTarget": null,
+  "halfMoveClock": 0
+ },
+ "uno": {
+  "gameType": "uno",
+  "players": [
+   {
+    "userId": "me",
+    "name": "Me",
+    "handCount": 7
+   },
+   {
+    "userId": "p1",
+    "name": "Venkatalakshmi Ramasubramanian",
+    "handCount": 7
+   },
+   {
+    "userId": "p2",
+    "name": "Kiran Kumar Reddy",
+    "handCount": 1
+   },
+   {
+    "userId": "p3",
+    "name": "Meera",
+    "handCount": 12
+   },
+   {
+    "userId": "p4",
+    "name": "Arun",
+    "handCount": 3
+   }
+  ],
+  "direction": 1,
+  "currentPlayerIndex": 0,
+  "currentColor": "yellow",
+  "discardTop": {
+   "id": "c43",
+   "color": "yellow",
+   "type": "number",
+   "value": 9
+  },
+  "pendingDraw": 0,
+  "unoFlags": {},
+  "status": "playing",
+  "winner": null,
+  "hand": [
+   {
+    "id": "h0",
+    "color": "yellow",
+    "type": "number",
+    "value": 3
+   },
+   {
+    "id": "h1",
+    "color": "yellow",
+    "type": "number",
+    "value": 7
+   },
+   {
+    "id": "h2",
+    "color": "yellow",
+    "type": "number",
+    "value": 7
+   },
+   {
+    "id": "h3",
+    "color": "red",
+    "type": "number",
+    "value": 9
+   },
+   {
+    "id": "h4",
+    "color": "green",
+    "type": "number",
+    "value": 6
+   },
+   {
+    "id": "h5",
+    "color": "red",
+    "type": "number",
+    "value": 6
+   },
+   {
+    "id": "h6",
+    "color": "green",
+    "type": "number",
+    "value": 8
+   },
+   {
+    "id": "h7",
+    "color": "yellow",
+    "type": "number",
+    "value": 3
+   },
+   {
+    "id": "h8",
+    "color": "yellow",
+    "type": "number",
+    "value": 7
+   },
+   {
+    "id": "h9",
+    "color": "yellow",
+    "type": "number",
+    "value": 7
+   },
+   {
+    "id": "h10",
+    "color": "red",
+    "type": "number",
+    "value": 9
+   },
+   {
+    "id": "h11",
+    "color": "green",
+    "type": "number",
+    "value": 6
+   },
+   {
+    "id": "h12",
+    "color": "red",
+    "type": "number",
+    "value": 6
+   },
+   {
+    "id": "h13",
+    "color": "green",
+    "type": "number",
+    "value": 8
+   },
+   {
+    "id": "h14",
+    "color": "yellow",
+    "type": "number",
+    "value": 3
+   },
+   {
+    "id": "h15",
+    "color": "yellow",
+    "type": "number",
+    "value": 7
+   },
+   {
+    "id": "h16",
+    "color": "yellow",
+    "type": "number",
+    "value": 7
+   },
+   {
+    "id": "h17",
+    "color": "red",
+    "type": "number",
+    "value": 9
+   },
+   {
+    "id": "h18",
+    "color": "green",
+    "type": "number",
+    "value": 6
+   },
+   {
+    "id": "h19",
+    "color": "red",
+    "type": "number",
+    "value": 6
+   },
+   {
+    "id": "h20",
+    "color": "green",
+    "type": "number",
+    "value": 8
+   }
+  ],
+  "drawPileCount": 93
+ },
+ "ludo": {
+  "gameType": "ludo",
+  "players": [
+   {
+    "userId": "me",
+    "name": "me",
+    "color": "red"
+   },
+   {
+    "userId": "p1",
+    "name": "Venkatalakshmi Ramasubramanian",
+    "color": "green"
+   },
+   {
+    "userId": "p2",
+    "name": "Bala",
+    "color": "yellow"
+   },
+   {
+    "userId": "p3",
+    "name": "Kiran Kumar Reddy",
+    "color": "blue"
+   }
+  ],
+  "tokens": {
+   "red": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "green": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "yellow": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "blue": [
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  "turn": "me",
+  "status": "playing",
+  "winner": null,
+  "diceValue": null,
+  "consecutiveSixes": 0,
+  "movableTokenIndices": []
+ },
+ "tictactoe": {
+  "gameType": "tictactoe",
+  "players": [
+   {
+    "userId": "me",
+    "name": "Me",
+    "symbol": "X"
+   },
+   {
+    "userId": "p1",
+    "name": "Venkatalakshmi Ramasubramanian",
+    "symbol": "O"
+   }
+  ],
+  "board": [
+   "X",
+   "O",
+   null,
+   null,
+   "X",
+   null,
+   "O",
+   null,
+   null
+  ],
+  "turn": "me",
+  "status": "playing",
+  "winner": null
+ },
+ "truth_or_dare": {
+  "gameType": "truth_or_dare",
+  "players": [
+   {
+    "userId": "me",
+    "name": "me"
+   },
+   {
+    "userId": "p1",
+    "name": "Venkatalakshmi Ramasubramanian"
+   },
+   {
+    "userId": "p2",
+    "name": "Bala"
+   },
+   {
+    "userId": "p3",
+    "name": "Kiran Kumar Reddy"
+   },
+   {
+    "userId": "p4",
+    "name": "Meera"
+   },
+   {
+    "userId": "p5",
+    "name": "Arun"
+   }
+  ],
+  "status": "playing",
+  "turn": "me",
+  "currentPrompt": {
+   "type": "dare",
+   "text": "Do your best impression of another player for at least thirty seconds without laughing."
+  }
+ },
+ "truth_or_dare_waiting": {
+  "gameType": "truth_or_dare",
+  "players": [
+   {
+    "userId": "p1",
+    "name": "Venkatalakshmi Ramasubramanian"
+   }
+  ],
+  "status": "waiting",
+  "turn": null,
+  "currentPrompt": null
+ },
+ "chess_waiting": {
+  "gameType": "chess",
+  "players": [
+   {
+    "userId": "p1",
+    "name": "Venkatalakshmi Ramasubramanian",
+    "color": "white"
+   }
+  ],
+  "board": [
+   [
+    {
+     "type": "r",
+     "color": "white"
+    },
+    {
+     "type": "n",
+     "color": "white"
+    },
+    {
+     "type": "b",
+     "color": "white"
+    },
+    {
+     "type": "q",
+     "color": "white"
+    },
+    {
+     "type": "k",
+     "color": "white"
+    },
+    {
+     "type": "b",
+     "color": "white"
+    },
+    {
+     "type": "n",
+     "color": "white"
+    },
+    {
+     "type": "r",
+     "color": "white"
+    }
+   ],
+   [
+    {
+     "type": "p",
+     "color": "white"
+    },
+    {
+     "type": "p",
+     "color": "white"
+    },
+    {
+     "type": "p",
+     "color": "white"
+    },
+    {
+     "type": "p",
+     "color": "white"
+    },
+    {
+     "type": "p",
+     "color": "white"
+    },
+    {
+     "type": "p",
+     "color": "white"
+    },
+    {
+     "type": "p",
+     "color": "white"
+    },
+    {
+     "type": "p",
+     "color": "white"
+    }
+   ],
+   [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   [
+    {
+     "type": "p",
+     "color": "black"
+    },
+    {
+     "type": "p",
+     "color": "black"
+    },
+    {
+     "type": "p",
+     "color": "black"
+    },
+    {
+     "type": "p",
+     "color": "black"
+    },
+    {
+     "type": "p",
+     "color": "black"
+    },
+    {
+     "type": "p",
+     "color": "black"
+    },
+    {
+     "type": "p",
+     "color": "black"
+    },
+    {
+     "type": "p",
+     "color": "black"
+    }
+   ],
+   [
+    {
+     "type": "r",
+     "color": "black"
+    },
+    {
+     "type": "n",
+     "color": "black"
+    },
+    {
+     "type": "b",
+     "color": "black"
+    },
+    {
+     "type": "q",
+     "color": "black"
+    },
+    {
+     "type": "k",
+     "color": "black"
+    },
+    {
+     "type": "b",
+     "color": "black"
+    },
+    {
+     "type": "n",
+     "color": "black"
+    },
+    {
+     "type": "r",
+     "color": "black"
+    }
+   ]
+  ],
+  "turnColor": "white",
+  "turn": null,
+  "status": "waiting",
+  "winner": null,
+  "drawReason": null,
+  "check": false,
+  "lastMove": null,
+  "castlingRights": {
+   "white": {
+    "k": true,
+    "q": true
+   },
+   "black": {
+    "k": true,
+    "q": true
+   }
+  },
+  "enPassantTarget": null,
+  "halfMoveClock": 0
+ }
+}

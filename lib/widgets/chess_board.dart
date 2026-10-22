@@ -330,6 +330,16 @@ class _ChessBoardState extends State<ChessBoard> {
                   ? 'Waiting for players'
                   : 'Waiting for a second player',
               highlight: false),
+        // Not seated yet: Play / Ask to play / Invite go above the board so
+        // they're in view without scrolling past it.
+        if (!isPlayer)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: GameJoinButton(
+                seated: isPlayer,
+                full: players.length >= 2,
+                fallbackJoin: widget.onJoin),
+          ),
         seatFor(topColor),
         const SizedBox(height: 8),
         Container(
@@ -408,11 +418,14 @@ class _ChessBoardState extends State<ChessBoard> {
         ),
         const SizedBox(height: 8),
         seatFor(bottomColor),
-        const SizedBox(height: 10),
-        GameJoinButton(
-            seated: isPlayer,
-            full: players.length >= 2,
-            fallbackJoin: widget.onJoin),
+        // Seated players (the host's Invite) keep it below the board.
+        if (isPlayer) ...[
+          const SizedBox(height: 10),
+          GameJoinButton(
+              seated: isPlayer,
+              full: players.length >= 2,
+              fallbackJoin: widget.onJoin),
+        ],
         if (statusText != null)
           Padding(
             padding: const EdgeInsets.only(top: 8),

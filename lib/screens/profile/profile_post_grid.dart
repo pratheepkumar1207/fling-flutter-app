@@ -43,8 +43,11 @@ class ProfilePostGrid extends StatelessWidget {
           children: [
             if (icon != null)
               Icon(icon, color: AppColors.textDim, size: reels ? 34 : 24),
+            // Flexible so a big system text size shortens the preview
+            // instead of overflowing the square tile.
             if (label != null && label.isNotEmpty)
-              Padding(
+              Flexible(
+                  child: Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(label,
                     maxLines: 3,
@@ -52,7 +55,7 @@ class ProfilePostGrid extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                         color: AppColors.text, fontSize: 11.5, height: 1.3)),
-              ),
+              )),
           ],
         ),
       );

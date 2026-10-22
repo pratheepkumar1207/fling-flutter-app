@@ -390,7 +390,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     await showShareBottomSheet(
       context,
       text: 'Join "${room?['title'] ?? 'my room'}" on Insync',
-      url: '${ApiClient.baseUrl}/rooms/${widget.roomId}',
+      url: '${ApiClient.baseUrl}/r/${widget.roomId}',
     );
   }
 

@@ -782,12 +782,18 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                 ? Border.all(color: borderColor ?? AppColors.border)
                 : null,
           ),
-          alignment: Alignment.center,
-          child: Text(label,
-              style: TextStyle(
-                  color: textColor,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700)),
+          // Sized to its label (a bare `alignment` made the pill stretch
+          // to the full width of the header).
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label,
+                  style: TextStyle(
+                      color: textColor,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700)),
+            ],
+          ),
         ),
       );
 

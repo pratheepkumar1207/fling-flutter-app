@@ -584,6 +584,10 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
         // Keep the page's renderer at full priority even while the WebView
         // isn't visible (screen off, app in the background, PiP) — Android
         // otherwise drops it and the audio starves within seconds.
+        // The plugin's own switch for this: the WebView keeps telling the
+        // page it's on screen when the window is hidden (screen off, app in
+        // the background), so the audio carries on.
+        allowBackgroundAudioPlaying: true,
         rendererPriorityPolicy: RendererPriorityPolicy(
           rendererRequestedPriority:
               RendererPriority.RENDERER_PRIORITY_IMPORTANT,

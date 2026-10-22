@@ -86,9 +86,13 @@ class _GameRoomBodyState extends State<GameRoomBody> {
                         Icon(Icons.music_note_rounded,
                             size: 18, color: AppColors.textFaint),
                         SizedBox(width: 8),
-                        Text('Add music while you play',
-                            style: TextStyle(
-                                color: AppColors.textDim, fontSize: 12.5)),
+                        Flexible(
+                          child: Text('Add music while you play',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: AppColors.textDim, fontSize: 12.5)),
+                        ),
                       ],
                     ),
                   ),

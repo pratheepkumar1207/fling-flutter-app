@@ -36,47 +36,61 @@ class GameSeatBanner extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: AppColors.accent.withValues(alpha: 0.45)),
         ),
-        child: Row(
+        // Name on top, actions underneath — one line can't hold a long
+        // name and both buttons on a small phone or with large text.
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Avatar(
-                src: person?.avatarUrl,
-                name: person?.name,
-                size: AvatarSize.sm),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                more > 0 ? '$text  ·  +$more more' : text,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    color: AppColors.text,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600),
-              ),
+            Row(
+              children: [
+                Avatar(
+                    src: person?.avatarUrl,
+                    name: person?.name,
+                    size: AvatarSize.sm),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    more > 0 ? '$text  ·  +$more more' : text,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: AppColors.text,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 6),
-            FilledButton(
-              onPressed: onAccept,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.accent,
-                foregroundColor: AppColors.ink,
-                visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                textStyle: const TextStyle(
-                    fontSize: 12.5, fontWeight: FontWeight.w700),
-              ),
-              child: Text(acceptLabel),
-            ),
-            const SizedBox(width: 4),
-            TextButton(
-              onPressed: onDecline,
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.textDim,
-                visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                textStyle: const TextStyle(fontSize: 12.5),
-              ),
-              child: const Text('Not now'),
+            const SizedBox(height: 6),
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 4,
+              runSpacing: 4,
+              children: [
+                TextButton(
+                  onPressed: onDecline,
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.textDim,
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    textStyle: const TextStyle(fontSize: 12.5),
+                  ),
+                  child: const Text('Not now'),
+                ),
+                FilledButton(
+                  onPressed: onAccept,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.accent,
+                    foregroundColor: AppColors.ink,
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    textStyle: const TextStyle(
+                        fontSize: 12.5, fontWeight: FontWeight.w700),
+                  ),
+                  child: Text(acceptLabel),
+                ),
+              ],
             ),
           ],
         ),

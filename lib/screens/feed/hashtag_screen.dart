@@ -121,7 +121,8 @@ class _HashtagScreenState extends State<HashtagScreen> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
+            child: Wrap(
+              runSpacing: 6,
               children: [
                 for (final (key, label) in _tabs)
                   Padding(

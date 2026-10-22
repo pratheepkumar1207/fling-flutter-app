@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/format.dart';
 import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
 import '../../theme/app_colors.dart';
@@ -290,7 +291,7 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
                     ],
                   ),
                   const SizedBox(height: 3),
-                  Text('${c['memberCount'] ?? 0} members',
+                  Text(memberLabel(c['memberCount']),
                       style: const TextStyle(
                           color: AppColors.textFaint, fontSize: 12)),
                 ],

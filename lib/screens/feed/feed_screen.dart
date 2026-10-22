@@ -274,11 +274,11 @@ class _FeedScreenState extends State<FeedScreen> {
               ),
             ),
             const SizedBox(height: 4),
-            const Text('Your story',
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: AppColors.textDim, fontSize: 11)),
+            FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text('Your story',
+                    maxLines: 1,
+                    style: TextStyle(color: AppColors.textDim, fontSize: 11))),
           ],
         ),
       ),
@@ -311,7 +311,9 @@ class _FeedScreenState extends State<FeedScreen> {
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
-      onRefresh: _load,
+      // Pull to refresh reloads stories too — they used to load only once,
+      // so new ones never appeared until the app restarted.
+      onRefresh: () => Future.wait([_load(), _loadStories()]),
       child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 16),
         children: [
@@ -517,7 +519,7 @@ class _FeedScreenState extends State<FeedScreen> {
                         'Link',
                         () {
                           Clipboard.setData(ClipboardData(
-                              text: '${ApiClient.baseUrl}/feed/${post.id}'));
+                              text: '${ApiClient.baseUrl}/p/${post.id}'));
                           _snack('Link copied');
                         }
                       ),
@@ -810,7 +812,8 @@ class _FeedScreenState extends State<FeedScreen> {
                   ),
                 ],
                 const SizedBox(width: 16),
-                ShareRow(text: post.text),
+                ShareRow(
+                    text: post.text, url: '${ApiClient.baseUrl}/p/${post.id}'),
                 const Spacer(),
                 GestureDetector(
                   onTap: () => _toggleSave(post),

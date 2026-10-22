@@ -159,11 +159,11 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
   Widget build(BuildContext context) {
     final items = (widget.queue['items'] as List?) ?? [];
     final currentIndex = widget.queue['currentIndex'] as int? ?? 0;
-    // First row (in existing array order) that isn't the current track —
-    // that's where the "UP NEXT" label goes, right before it.
-    final firstUpNextIndex = items.isEmpty
-        ? -1
-        : (currentIndex == 0 ? (items.length > 1 ? 1 : -1) : 0);
+    // Songs before the current one have already played; "UP NEXT" goes on
+    // the row right after the current one. (It used to sit on row 0 whenever
+    // something had played, labelling a finished song as up next.)
+    final firstUpNextIndex =
+        currentIndex + 1 < items.length ? currentIndex + 1 : -1;
 
     return GestureDetector(
       // Swipe left-to-right closes this screen and lands back on the room,
@@ -276,6 +276,15 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                                       child: Text('NOW PLAYING',
                                           style: TextStyle(
                                               color: AppColors.accent2,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                              letterSpacing: 0.6))),
+                                if (i == 0 && currentIndex > 0)
+                                  const Padding(
+                                      padding: EdgeInsets.only(bottom: 4),
+                                      child: Text('PLAYED',
+                                          style: TextStyle(
+                                              color: AppColors.textFaint,
                                               fontSize: 11,
                                               fontWeight: FontWeight.w700,
                                               letterSpacing: 0.6))),

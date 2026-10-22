@@ -286,7 +286,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 crossAxisSpacing: 10,
                 childAspectRatio: 0.9,
                 children: _kMoreNav
-                    .map((item) => _moreNavTile(item['label']!, item['icon']!))
+                    .map((item) =>
+                        _moreNavTile(item['label']!, item['icon']!, sheet))
                     .toList(),
               ),
               const SizedBox(height: 16),
@@ -303,37 +304,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _navRow(
                   icon: Icons.bookmark_rounded,
                   label: 'Saved posts',
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => const SavedPostsScreen()))),
+                  onTap: () => _openFromMenu(
+                      sheet,
+                      MaterialPageRoute(
+                          builder: (_) => const SavedPostsScreen()))),
               const SizedBox(height: 8),
               _navRow(
                   icon: Icons.archive_outlined,
                   label: 'Archive',
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => const ArchiveScreen()))),
+                  onTap: () => _openFromMenu(
+                      sheet,
+                      MaterialPageRoute(
+                          builder: (_) => const ArchiveScreen()))),
               const SizedBox(height: 8),
               _navRow(
                   icon: Icons.stars_rounded,
                   label: 'Close friends',
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => const CloseFriendsScreen()))),
+                  onTap: () => _openFromMenu(
+                      sheet,
+                      MaterialPageRoute(
+                          builder: (_) => const CloseFriendsScreen()))),
               const SizedBox(height: 8),
               _navRow(
                   icon: Icons.view_agenda_outlined,
                   label: 'Arrange profile',
-                  onTap: _openArrange),
+                  onTap: () {
+                    Navigator.of(sheet).pop();
+                    _openArrange();
+                  }),
               const SizedBox(height: 8),
               _navRow(
                   icon: Icons.lock_outline_rounded,
                   label: 'Privacy',
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => const PrivacyScreen()))),
+                  onTap: () => _openFromMenu(
+                      sheet,
+                      MaterialPageRoute(
+                          builder: (_) => const PrivacyScreen()))),
               const SizedBox(height: 8),
               _navRow(
                   icon: Icons.person_add_alt_1_rounded,
                   label: 'Invite friends',
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => const ReferralScreen()))),
+                  onTap: () => _openFromMenu(
+                      sheet,
+                      MaterialPageRoute(
+                          builder: (_) => const ReferralScreen()))),
               const SizedBox(height: 16),
               OutlinedButton(
                 onPressed: _logout,
@@ -347,6 +361,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
+  }
+
+  // Opening a screen from the ☰ menu closes the menu first, so coming back
+  // lands on the profile rather than the menu.
+  void _openFromMenu(BuildContext sheet, Route<void> route) {
+    Navigator.of(sheet).pop();
+    Navigator.of(context).push(route);
   }
 
   Future<void> _openArrange() async {
@@ -901,8 +922,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: AppColors.text,
                   fontWeight: FontWeight.w700,
                   fontSize: 18)),
-          Text(label,
-              style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
+          // Labels shrink rather than run into each other at large text
+          // (three stats share ~60px each beside the avatar).
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 58),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(label,
+                  maxLines: 1,
+                  style: const TextStyle(
+                      color: AppColors.textFaint, fontSize: 11)),
+            ),
+          ),
         ],
       );
 
@@ -916,7 +947,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 color: color, fontSize: 11, fontWeight: FontWeight.w600)),
       );
 
-  Widget _moreNavTile(String label, String icon) {
+  Widget _moreNavTile(String label, String icon, BuildContext sheet) {
     return GestureDetector(
       onTap: () {
         final screen = switch (label) {
@@ -934,7 +965,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _ => null,
         };
         if (screen != null) {
-          Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+          _openFromMenu(sheet, MaterialPageRoute(builder: (_) => screen));
         }
       },
       child: Container(
@@ -945,12 +976,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Text(icon, style: const TextStyle(fontSize: 22)),
             const SizedBox(height: 4),
-            Text(label,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    color: AppColors.textDim,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500)),
+            // One line, shrunk to fit — long names used to break mid-word
+            // ("Communitie / s").
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(label,
+                    maxLines: 1,
+                    style: const TextStyle(
+                        color: AppColors.textDim,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500)),
+              ),
+            ),
           ],
         ),
       ),

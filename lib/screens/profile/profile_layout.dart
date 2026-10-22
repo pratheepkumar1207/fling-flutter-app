@@ -214,7 +214,7 @@ class _ArrangeProfileScreenState extends State<ArrangeProfileScreen> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const InsyncPageTitle('Arrange profile'),
+        title: const InsyncPageTitle('Arrange'),
         actions: [
           TextButton(
             onPressed: _saving ? null : _done,

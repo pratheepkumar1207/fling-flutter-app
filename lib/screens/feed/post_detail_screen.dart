@@ -268,7 +268,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                 const Icon(Icons.mode_comment_outlined,
                                     color: AppColors.text, size: 23),
                                 const SizedBox(width: 16),
-                                ShareRow(text: post.text),
+                                ShareRow(
+                                    text: post.text,
+                                    url: '${ApiClient.baseUrl}/p/${post.id}'),
                                 const Spacer(),
                                 GestureDetector(
                                   onTap: _toggleSave,

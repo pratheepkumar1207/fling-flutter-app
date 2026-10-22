@@ -121,13 +121,17 @@ class InsyncPageTitle extends StatelessWidget {
       Row(mainAxisSize: MainAxisSize.min, children: [
         InsyncClayIcon(icon, size: 32),
         const SizedBox(width: 10),
+        // Shrinks a little to fit next to app-bar actions instead of being
+        // cut off ("Co…" for Communities).
         Flexible(
-            child: Text(title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -.4))),
+            child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(title,
+                    maxLines: 1,
+                    style: const TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -.4)))),
       ]);
 }

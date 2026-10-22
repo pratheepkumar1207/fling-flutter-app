@@ -85,7 +85,7 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
   String _metric(Map<String, dynamic> e) {
     switch (_tab) {
       case 'communities':
-        return '${formatNumber(e['memberCount'])} members';
+        return '${formatNumber(e['memberCount'])} ${asNum(e['memberCount']) == 1 ? 'member' : 'members'}';
       case 'users':
         return 'Lv.${e['level'] ?? 1}';
       default:

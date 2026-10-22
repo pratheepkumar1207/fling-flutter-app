@@ -6,6 +6,27 @@ plugins {
 }
 
 android {
+    // Agora ships every optional add-on for all CPU types. The app only uses
+    // voice, video calls and live (the core SDK plus its audio/video codec
+    // add-ons), so the unused ones are left out — about 22 MB per CPU type.
+    // Agora documents these as removable; add one back here if a feature
+    // that needs it (e.g. virtual background = segmentation) is built.
+    packaging {
+        jniLibs {
+            excludes += listOf(
+                "**/libagora_lip_sync_extension.so",
+                "**/libagora_face_capture_extension.so",
+                "**/libagora_face_detection_extension.so",
+                "**/libagora_segmentation_extension.so",
+                "**/libagora_spatial_audio_extension.so",
+                "**/libagora_content_inspect_extension.so",
+                "**/libagora_clear_vision_extension.so",
+                "**/libagora_screen_capture_extension.so",
+                "**/libagora_audio_beauty_extension.so",
+                "**/libagora_video_quality_analyzer_extension.so",
+            )
+        }
+    }
     namespace = "com.fling.app"
     // Flutter's own default (flutter.compileSdkVersion, 31 in this SDK) is
     // too old for agora_rtc_engine's transitive androidx dependencies,

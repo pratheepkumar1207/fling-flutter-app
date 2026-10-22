@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../core/api_client.dart';
+import 'package:provider/provider.dart';
 import '../core/api_exception.dart';
+import '../core/auth_provider.dart';
 import '../theme/app_colors.dart';
 import 'glass.dart';
 
@@ -196,6 +198,8 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
       setState(() => _boostedUntil =
           DateTime.tryParse(res['boostedUntil'] as String? ?? '')?.toLocal());
       widget.onChanged();
+      // The coins were spent — update the balance shown in the app bar.
+      context.read<AuthProvider>().refreshUser();
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)

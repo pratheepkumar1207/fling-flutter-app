@@ -1,5 +1,6 @@
 import 'package:video_player/video_player.dart';
 import 'package:flutter/material.dart';
+import '../core/api_client.dart';
 import '../core/profile_nav.dart';
 import '../models/post.dart';
 import '../theme/app_colors.dart';
@@ -220,7 +221,8 @@ class _ReelCardState extends State<_ReelCard>
                   label: '${post.commentsCount}',
                   semantics: 'Comments',
                 ),
-                ShareRow(text: post.text),
+                ShareRow(
+                    text: post.text, url: '${ApiClient.baseUrl}/p/${post.id}'),
                 _ReelIconButton(
                   icon: post.savedByMe
                       ? Icons.bookmark_rounded
@@ -311,9 +313,14 @@ class _ReelCardState extends State<_ReelCard>
                             const Icon(Icons.music_note_rounded,
                                 color: Colors.white, size: 13),
                             const SizedBox(width: 4),
-                            Text('${post.author.name} · Original audio',
-                                style: const TextStyle(
-                                    color: Colors.white, fontSize: 11.5)),
+                            Flexible(
+                              child: Text(
+                                  '${post.author.name} · Original audio',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 11.5)),
+                            ),
                           ],
                         ),
                       ),

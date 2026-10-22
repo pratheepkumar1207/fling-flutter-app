@@ -88,7 +88,11 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
           SegmentedButton<String>(
             segments: [
               for (final (v, l) in options)
-                ButtonSegment(value: v, label: Text(l)),
+                ButtonSegment(
+                    value: v,
+                    label: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(l, maxLines: 1, softWrap: false))),
             ],
             selected: {value},
             showSelectedIcon: false,
