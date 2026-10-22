@@ -74,6 +74,11 @@ class _ReelCard extends StatefulWidget {
   final ValueChanged<Post> onLike;
   final ValueChanged<Post> onOpenComments;
   final ValueChanged<Post> onSave;
+  // Reels Blend: a tag over the reel, a pause from outside, and the
+  // player once it's ready so the Blend can keep everyone in step.
+  final Widget? badge;
+  final bool paused;
+  final ValueChanged<VideoPlayerController>? onPlayer;
 
   const _ReelCard(
       {super.key,
@@ -81,7 +86,10 @@ class _ReelCard extends StatefulWidget {
       required this.active,
       required this.onLike,
       required this.onOpenComments,
-      required this.onSave});
+      required this.onSave,
+      this.badge,
+      this.paused = false,
+      this.onPlayer});
 
   @override
   State<_ReelCard> createState() => _ReelCardState();
@@ -110,7 +118,10 @@ class _ReelCardState extends State<_ReelCard>
         ..initialize().then((_) {
           if (!mounted) return;
           setState(() {});
-          if (widget.active) _controller!.play();
+          if (widget.active) {
+            if (!widget.paused) _controller!.play();
+            widget.onPlayer?.call(_controller!);
+          }
         });
     }
   }
@@ -121,8 +132,9 @@ class _ReelCardState extends State<_ReelCard>
     super.didUpdateWidget(old);
     final c = _controller;
     if (c == null || !c.value.isInitialized) return;
-    if (widget.active && !old.active) c.play();
-    if (!widget.active && old.active) c.pause();
+    final play = widget.active && !widget.paused;
+    if (play != (old.active && !old.paused)) play ? c.play() : c.pause();
+    if (widget.active && !old.active) widget.onPlayer?.call(c);
   }
 
   void _toggleMute() {
@@ -161,7 +173,7 @@ class _ReelCardState extends State<_ReelCard>
             },
             onLongPressEnd: (_) {
               setState(() => _held = false);
-              if (widget.active) c?.play();
+              if (widget.active && !widget.paused) c?.play();
             },
             child: c != null && c.value.isInitialized
                 ? FittedBox(
@@ -192,6 +204,8 @@ class _ReelCardState extends State<_ReelCard>
               },
             ),
           ),
+          if (widget.badge != null)
+            Positioned(top: 66, left: 12, child: widget.badge!),
           if (_muted)
             const Positioned(
               top: 70,
@@ -363,13 +377,28 @@ class ReelsFeed extends StatefulWidget {
   final ValueChanged<Post> onLike;
   final ValueChanged<Post> onOpenComments;
   final ValueChanged<Post> onSave;
+  // Used by Reels Blend to move, lock, tag and pause the feed.
+  final PageController? controller;
+  final ValueChanged<int>? onPageChanged;
+  final ScrollPhysics? physics;
+  final Widget? Function(Post post)? badgeFor;
+  final bool paused;
+  final void Function(Post post, VideoPlayerController player)? onPlayer;
+  final String emptyText;
 
   const ReelsFeed(
       {super.key,
       required this.reels,
       required this.onLike,
       required this.onOpenComments,
-      required this.onSave});
+      required this.onSave,
+      this.controller,
+      this.onPageChanged,
+      this.physics,
+      this.badgeFor,
+      this.paused = false,
+      this.onPlayer,
+      this.emptyText = 'No reels yet — be the first to post one.'});
 
   @override
   State<ReelsFeed> createState() => _ReelsFeedState();
@@ -381,21 +410,38 @@ class _ReelsFeedState extends State<ReelsFeed> {
   @override
   Widget build(BuildContext context) {
     if (widget.reels.isEmpty) {
-      return const Center(
-          child: Text('No reels yet — be the first to post one.',
-              style: TextStyle(color: AppColors.textFaint)));
+      return Center(
+          child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(widget.emptyText,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.textFaint)),
+      ));
     }
     return PageView.builder(
+      controller: widget.controller,
+      physics: widget.physics,
       scrollDirection: Axis.vertical,
       itemCount: widget.reels.length,
-      onPageChanged: (i) => setState(() => _page = i),
-      itemBuilder: (context, i) => _ReelCard(
-          key: ValueKey(widget.reels[i].id),
-          post: widget.reels[i],
-          active: i == _page,
-          onLike: widget.onLike,
-          onOpenComments: widget.onOpenComments,
-          onSave: widget.onSave),
+      onPageChanged: (i) {
+        setState(() => _page = i);
+        widget.onPageChanged?.call(i);
+      },
+      itemBuilder: (context, i) {
+        final post = widget.reels[i];
+        return _ReelCard(
+            key: ValueKey(post.id),
+            post: post,
+            active: i == _page,
+            onLike: widget.onLike,
+            onOpenComments: widget.onOpenComments,
+            onSave: widget.onSave,
+            badge: widget.badgeFor?.call(post),
+            paused: widget.paused,
+            onPlayer: widget.onPlayer == null
+                ? null
+                : (c) => widget.onPlayer!(post, c));
+      },
     );
   }
 }

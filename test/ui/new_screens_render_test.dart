@@ -2,7 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:fling/core/auth_provider.dart';
+import 'package:fling/models/blend.dart';
 import 'package:fling/models/post.dart';
+import 'package:fling/screens/blend/blend_entry.dart';
+import 'package:fling/screens/blend/blend_settings_screen.dart';
 import 'package:fling/models/user.dart';
 import 'package:fling/screens/feed/hashtag_screen.dart';
 import 'package:fling/screens/profile/close_friends_screen.dart';
@@ -126,6 +129,27 @@ Post _post(String id, String type, {String? text}) => Post.fromJson({
     });
 
 void _noop() {}
+
+Blend _blend({bool group = false}) => Blend.fromJson({
+      'id': 'b1',
+      'name': group ? 'The very long weekend movie gang' : null,
+      'isGroup': group,
+      'createdBy': 'p1',
+      'isCreator': false,
+      'swipeSync': true,
+      'whoCanSwipe': 'creator',
+      'micEnabled': true,
+      'showOwnerTag': true,
+      'members': [
+        {'id': 'me', 'name': _long},
+        {'id': 'p1', 'name': _long},
+        if (group) ...[
+          {'id': 'p2', 'name': 'Bala'},
+          {'id': 'p3', 'name': 'Chitra'},
+        ],
+      ],
+      'watching': ['p1'],
+    });
 
 void main() {
   setUpAll(() async {
@@ -270,6 +294,41 @@ void main() {
         expect(tester.takeException(), isNull);
       });
     }
+
+    for (final group in [false, true]) {
+      final kind = group ? 'group' : 'one-to-one';
+      testWidgets('$kind Blend settings render at $label', (tester) async {
+        await _render(
+            tester,
+            BlendSettingsScreen(
+              blend: _blend(group: group),
+              mix: {'me': 3, 'p1': 2, if (group) 'p2': 1},
+              shared: [_post('r1', 'reel'), _post('r2', 'reel')],
+            ),
+            size: size,
+            text: text,
+            page: true);
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('$kind Blend card renders at $label', (tester) async {
+        await _render(
+            tester,
+            ListView(padding: const EdgeInsets.all(12), children: [
+              BlendCard(blend: _blend(group: group)),
+              const SizedBox(height: 12),
+              BlendCard(blend: _blend(group: group), compact: true),
+            ]),
+            size: size,
+            text: text);
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets('Blends row renders at $label', (tester) async {
+      await _render(tester, const BlendsRow(), size: size, text: text);
+      expect(tester.takeException(), isNull);
+    });
 
     testWidgets('comments sheet renders at $label', (tester) async {
       await _render(

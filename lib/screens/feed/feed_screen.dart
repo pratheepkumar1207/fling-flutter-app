@@ -24,6 +24,7 @@ import '../../widgets/story_bar.dart';
 import '../../widgets/story_viewer_screen.dart';
 import '../../widgets/comments_sheet.dart';
 import '../../widgets/report_user_sheet.dart';
+import '../lobby/watch_room_creator.dart';
 import 'hashtag_screen.dart';
 import 'post_detail_screen.dart';
 
@@ -470,6 +471,17 @@ class _FeedScreenState extends State<FeedScreen> {
     });
   }
 
+  // "Watch in a room" for a shared YouTube link: opens a synced watch room
+  // playing it. Uploaded reels can't do this yet — they're stored as
+  // in-post data the room player can't stream.
+  void _watchInRoom(String videoId) => createWatchRoomAndEnter(
+        context,
+        sourceType: 'youtube',
+        videoUrl: 'https://www.youtube.com/watch?v=$videoId',
+        visibility: 'public',
+        videoThumbnail: 'https://i.ytimg.com/vi/$videoId/hqdefault.jpg',
+      );
+
   void _postMenu(Post post) {
     Widget tile(IconData icon, String label, VoidCallback onTap,
             {bool danger = false}) =>
@@ -514,6 +526,12 @@ class _FeedScreenState extends State<FeedScreen> {
                         'Add to story',
                         () => _repost(post, toStory: true)
                       ),
+                      if (extractYouTubeId(post.videoUrl) case final videoId?)
+                        (
+                          Icons.smart_display_rounded,
+                          'Watch',
+                          () => _watchInRoom(videoId)
+                        ),
                       (
                         Icons.link_rounded,
                         'Link',

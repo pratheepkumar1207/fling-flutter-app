@@ -10,6 +10,7 @@ import '../../models/message.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/spinner.dart';
+import '../blend/blend_entry.dart';
 import 'message_thread_screen.dart';
 
 class MessagesScreen extends StatefulWidget {
@@ -74,6 +75,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
             return NotesRow(
                 myUserId: me?.id, myName: me?.name, myAvatar: me?.avatarUrl);
           }),
+          // Reels Blends: New Blend, then yours.
+          const BlendsRow(),
           if (_conversations.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),

@@ -29,6 +29,9 @@ enum VoiceChatStatus { idle, connecting, connected, permissionDenied, failed }
 
 class VoiceChatController extends ChangeNotifier {
   final String roomId;
+  // Where the Agora token comes from — a room's /calls/token by default,
+  // or /blends/token for voice while watching a Reels Blend.
+  final String tokenPath;
   RtcEngine? _engine;
   bool _joined = false;
   bool _micEnabled = false;
@@ -67,7 +70,7 @@ class VoiceChatController extends ChangeNotifier {
     onLocalSpeakingChanged?.call(value);
   }
 
-  VoiceChatController({required this.roomId});
+  VoiceChatController({required this.roomId, this.tokenPath = '/calls/token'});
 
   // Deliberately NOT called from the constructor. Agora's native SDK does
   // real work (dlopen, JNI init) the instant engine.initialize() runs —
@@ -129,7 +132,7 @@ class VoiceChatController extends ChangeNotifier {
       _engine = engine;
 
       final uid = Random().nextInt(1000000);
-      final data = await ApiClient.post('/calls/token',
+      final data = await ApiClient.post(tokenPath,
           body: {'roomId': roomId, 'uid': uid}) as Map<String, dynamic>;
       await engine.joinChannel(
         token: data['token'] as String,

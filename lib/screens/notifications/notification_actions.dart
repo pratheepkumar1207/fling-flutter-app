@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/notification_item.dart';
 import '../../theme/app_colors.dart';
 import '../feed/post_detail_screen.dart';
+import '../blend/blend_screen.dart';
 import '../friends/friends_screen.dart';
 import '../messages/message_thread_screen.dart';
 import '../party/party_screen.dart';
@@ -25,6 +26,9 @@ void openNotificationTarget(BuildContext context, NotificationItem n) {
       if (userId != null) target = CreatorProfileScreen(userId: userId);
     case 'friend_request' || 'friend_accept':
       target = const FriendsScreen();
+    case 'blend_invite' || 'blend_watch':
+      final blendId = data['blendId'] as String?;
+      if (blendId != null) target = BlendScreen(blendId: blendId);
     case 'match':
       final userId = data['userId'] as String?;
       if (userId != null) {
@@ -45,6 +49,7 @@ IconData notificationIcon(String type) => switch (type) {
       'follow' => Icons.person_add_alt_1_rounded,
       'friend_request' || 'friend_accept' => Icons.people_alt_rounded,
       'match' => Icons.local_fire_department_rounded,
+      'blend_invite' || 'blend_watch' => Icons.movie_filter_rounded,
       'broadcast' => Icons.campaign_rounded,
       _ => Icons.notifications_rounded,
     };

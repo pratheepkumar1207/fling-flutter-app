@@ -6,10 +6,12 @@ import '../../core/auth_provider.dart';
 import '../../core/chat_stickers.dart';
 import '../../core/profile_nav.dart';
 import '../../core/socket_service.dart';
+import '../../models/blend.dart';
 import '../../models/message.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/spinner.dart';
+import '../blend/blend_entry.dart';
 import '../calls/call_screen.dart';
 
 class MessageThreadScreen extends StatefulWidget {
@@ -32,12 +34,16 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   bool _sending = false;
   String? _error;
   bool _online = false;
+  // The Reels Blend with this person, once one exists — shown as a card
+  // above the message box.
+  Blend? _blend;
 
   @override
   void initState() {
     super.initState();
     _load();
     _loadOnlineStatus();
+    _loadBlend();
     WidgetsBinding.instance.addPostFrameCallback((_) => _bindSocket());
   }
 
@@ -47,6 +53,20 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
           as Map<String, dynamic>;
       if (mounted) setState(() => _online = data['online'] == true);
     } catch (_) {}
+  }
+
+  Future<void> _loadBlend() async {
+    try {
+      final data = await ApiClient.get('/blends/with/${widget.userId}');
+      if (mounted && data is Map) {
+        setState(() => _blend = Blend.fromJson(Map<String, dynamic>.from(data)));
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _openBlend() async {
+    final blend = await showDmBlendSheet(context, widget.userId);
+    if (mounted && blend != null) setState(() => _blend = blend);
   }
 
   Future<void> _load() async {
@@ -284,6 +304,11 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         ),
         actions: [
           IconButton(
+              onPressed: _openBlend,
+              icon: const Icon(Icons.movie_filter_outlined,
+                  color: AppColors.primary),
+              tooltip: 'Reels Blend'),
+          IconButton(
               onPressed: () => _startCall(false),
               icon: const Icon(Icons.call_rounded, color: AppColors.primary),
               tooltip: 'Audio call'),
@@ -359,6 +384,11 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                         },
                       ),
           ),
+          if (_blend != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+              child: BlendCard(blend: _blend!, compact: true),
+            ),
           if (_error != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
