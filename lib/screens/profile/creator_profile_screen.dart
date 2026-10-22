@@ -805,8 +805,9 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
         ],
       );
 
-  // "Right now" card — only ever populated by the backend when the viewer
-  // is VIP, since seeing someone's live room activity is a VIP perk. Icon/
+  // "Right now" card — only populated by the backend when this person's
+  // room-activity privacy (Public / Friends only / Private) lets the
+  // viewer see it. Icon/
   // color/label/copy are room-type-aware, matching CreatorProfileDark (voice),
   // CreatorProfileWatchPartyDark, and CreatorProfileGameRoomDark exactly —
   // this used to always show a mic icon and "IN A ROOM" regardless of type.

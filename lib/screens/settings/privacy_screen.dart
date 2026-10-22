@@ -118,9 +118,9 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
             'Show the room I\'m in',
             _roomVisibility,
             const [
-              ('everyone', 'Everyone'),
-              ('friends', 'Friends'),
-              ('nobody', 'No one')
+              ('everyone', 'Public'),
+              ('friends', 'Friends only'),
+              ('nobody', 'Private')
             ],
             (v) {
               final old = _roomVisibility;
