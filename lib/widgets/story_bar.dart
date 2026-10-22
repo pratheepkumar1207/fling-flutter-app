@@ -11,6 +11,8 @@ class StoryItem {
   final String? videoUrl;
   final String? videoData;
   final DateTime createdAt;
+  // Shared to "Close friends" only — shown with a green ring and badge.
+  final bool closeFriends;
 
   const StoryItem({
     required this.id,
@@ -21,6 +23,7 @@ class StoryItem {
     this.videoUrl,
     this.videoData,
     required this.createdAt,
+    this.closeFriends = false,
   });
 
   factory StoryItem.fromJson(Map<String, dynamic> json) => StoryItem(
@@ -31,7 +34,9 @@ class StoryItem {
         voiceData: json['voiceData'] as String?,
         videoUrl: json['videoUrl'] as String?,
         videoData: json['videoData'] as String?,
-        createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
+        createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+            DateTime.now(),
+        closeFriends: json['closeFriends'] == true,
       );
 }
 
@@ -40,13 +45,16 @@ class StoryEntry {
   final String? name;
   final String? avatarUrl;
   final List<StoryItem> items;
-  const StoryEntry({required this.userId, this.name, this.avatarUrl, this.items = const []});
+  const StoryEntry(
+      {required this.userId, this.name, this.avatarUrl, this.items = const []});
 
   factory StoryEntry.fromJson(Map<String, dynamic> json) => StoryEntry(
         userId: json['userId'] as String,
         name: json['name'] as String?,
         avatarUrl: json['avatarUrl'] as String?,
-        items: ((json['items'] as List?) ?? []).map((e) => StoryItem.fromJson(e as Map<String, dynamic>)).toList(),
+        items: ((json['items'] as List?) ?? [])
+            .map((e) => StoryItem.fromJson(e as Map<String, dynamic>))
+            .toList(),
       );
 }
 
@@ -94,18 +102,35 @@ class StoryBar extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(2.5),
-              decoration: const BoxDecoration(
+              // Green ring when any of their stories is close-friends only.
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppGradients.brand),
+                color: s.items.any((i) => i.closeFriends)
+                    ? AppColors.success
+                    : null,
+                gradient: s.items.any((i) => i.closeFriends)
+                    ? null
+                    : const SweepGradient(colors: [
+                        AppColors.accent,
+                        AppColors.primary,
+                        Color(0xFFFF5C8A),
+                        AppColors.accent
+                      ]),
               ),
               child: Container(
                 padding: const EdgeInsets.all(2),
-                decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.surface),
-                child: Avatar(src: s.avatarUrl, name: s.name, size: AvatarSize.lg),
+                decoration: const BoxDecoration(
+                    shape: BoxShape.circle, color: AppColors.surface),
+                child:
+                    Avatar(src: s.avatarUrl, name: s.name, size: AvatarSize.lg),
               ),
             ),
             const SizedBox(height: 4),
-            Text(s.name ?? '', textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.textDim, fontSize: 11)),
+            Text(s.name ?? '',
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: AppColors.textDim, fontSize: 11)),
           ],
         ),
       ),

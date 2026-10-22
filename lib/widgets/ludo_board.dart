@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import 'game_seat.dart';
 
 /// Presentational only — every rule (yard-exit-on-6, capture, safe squares,
 /// exact-roll-to-finish, bonus turn on 6) is enforced server-side in
@@ -18,35 +19,142 @@ const Map<String, Color> _colorHex = {
   'yellow': AppColors.gold,
   'blue': Color(0xFF4F9DFF), // one-off, matches LudoBoard.jsx's blue
 };
-const Map<String, String> _colorName = {'red': 'Red', 'green': 'Green', 'yellow': 'Yellow', 'blue': 'Blue'};
+const Map<String, String> _colorName = {
+  'red': 'Red',
+  'green': 'Green',
+  'yellow': 'Yellow',
+  'blue': 'Blue'
+};
 
 const int _grid = 15;
 const double _cellPct = 1 / _grid; // fraction of the square board's side
 
 const List<List<int>> _ring = [
-  [6, 1], [6, 2], [6, 3], [6, 4], [6, 5], [6, 6], [5, 6], [4, 6], [3, 6], [2, 6], [1, 6], [0, 6], [0, 7], [0, 8],
-  [1, 8], [2, 8], [3, 8], [4, 8], [5, 8], [6, 8], [6, 9], [6, 10], [6, 11], [6, 12], [6, 13], [6, 14], [7, 14], [8, 14],
-  [8, 13], [8, 12], [8, 11], [8, 10], [8, 9], [8, 8], [9, 8], [10, 8], [11, 8], [12, 8], [13, 8], [14, 8], [14, 7], [14, 6],
-  [13, 6], [12, 6], [11, 6], [10, 6], [9, 6], [8, 6], [8, 5], [8, 4], [8, 3], [8, 2], [8, 1], [8, 0], [7, 0], [6, 0],
+  [6, 1],
+  [6, 2],
+  [6, 3],
+  [6, 4],
+  [6, 5],
+  [6, 6],
+  [5, 6],
+  [4, 6],
+  [3, 6],
+  [2, 6],
+  [1, 6],
+  [0, 6],
+  [0, 7],
+  [0, 8],
+  [1, 8],
+  [2, 8],
+  [3, 8],
+  [4, 8],
+  [5, 8],
+  [6, 8],
+  [6, 9],
+  [6, 10],
+  [6, 11],
+  [6, 12],
+  [6, 13],
+  [6, 14],
+  [7, 14],
+  [8, 14],
+  [8, 13],
+  [8, 12],
+  [8, 11],
+  [8, 10],
+  [8, 9],
+  [8, 8],
+  [9, 8],
+  [10, 8],
+  [11, 8],
+  [12, 8],
+  [13, 8],
+  [14, 8],
+  [14, 7],
+  [14, 6],
+  [13, 6],
+  [12, 6],
+  [11, 6],
+  [10, 6],
+  [9, 6],
+  [8, 6],
+  [8, 5],
+  [8, 4],
+  [8, 3],
+  [8, 2],
+  [8, 1],
+  [8, 0],
+  [7, 0],
+  [6, 0],
 ];
 const int _ringLen = 56;
-const Map<String, int> _startIndex = {'red': 0, 'green': 14, 'yellow': 28, 'blue': 42};
+const Map<String, int> _startIndex = {
+  'red': 0,
+  'green': 14,
+  'yellow': 28,
+  'blue': 42
+};
 const Set<int> _safeIndices = {0, 8, 14, 22, 28, 36, 42, 50};
 
 const Map<String, List<List<int>>> _homeColumn = {
-  'red': [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5]],
-  'green': [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7]],
-  'yellow': [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9]],
-  'blue': [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7]],
+  'red': [
+    [7, 1],
+    [7, 2],
+    [7, 3],
+    [7, 4],
+    [7, 5]
+  ],
+  'green': [
+    [1, 7],
+    [2, 7],
+    [3, 7],
+    [4, 7],
+    [5, 7]
+  ],
+  'yellow': [
+    [7, 13],
+    [7, 12],
+    [7, 11],
+    [7, 10],
+    [7, 9]
+  ],
+  'blue': [
+    [13, 7],
+    [12, 7],
+    [11, 7],
+    [10, 7],
+    [9, 7]
+  ],
 };
 const Map<String, List<List<int>>> _baseSlots = {
-  'red': [[1, 1], [1, 4], [4, 1], [4, 4]],
-  'green': [[1, 10], [1, 13], [4, 10], [4, 13]],
-  'yellow': [[10, 10], [10, 13], [13, 10], [13, 13]],
-  'blue': [[10, 1], [10, 4], [13, 1], [13, 4]],
+  'red': [
+    [1, 1],
+    [1, 4],
+    [4, 1],
+    [4, 4]
+  ],
+  'green': [
+    [1, 10],
+    [1, 13],
+    [4, 10],
+    [4, 13]
+  ],
+  'yellow': [
+    [10, 10],
+    [10, 13],
+    [13, 10],
+    [13, 13]
+  ],
+  'blue': [
+    [10, 1],
+    [10, 4],
+    [13, 1],
+    [13, 4]
+  ],
 };
 
-int _absRingIndex(String color, int pos) => (_startIndex[color]! + pos - 1) % _ringLen;
+int _absRingIndex(String color, int pos) =>
+    (_startIndex[color]! + pos - 1) % _ringLen;
 
 List<int>? _cellForPos(String color, int pos) {
   if (pos >= 1 && pos <= 56) return _ring[_absRingIndex(color, pos)];
@@ -101,20 +209,29 @@ const Map<int, List<double>> _faceRotation = {
   6: [0, math.pi],
 };
 const List<String> _faces = ['front', 'back', 'right', 'left', 'top', 'bottom'];
-const Map<String, int> _faceValue = {'front': 1, 'back': 6, 'right': 2, 'left': 5, 'top': 3, 'bottom': 4};
+const Map<String, int> _faceValue = {
+  'front': 1,
+  'back': 6,
+  'right': 2,
+  'left': 5,
+  'top': 3,
+  'bottom': 4
+};
 
 class _LudoDice extends StatefulWidget {
   final int? value;
   final bool canRoll;
   final VoidCallback onRoll;
 
-  const _LudoDice({required this.value, required this.canRoll, required this.onRoll});
+  const _LudoDice(
+      {required this.value, required this.canRoll, required this.onRoll});
 
   @override
   State<_LudoDice> createState() => _LudoDiceState();
 }
 
-class _LudoDiceState extends State<_LudoDice> with SingleTickerProviderStateMixin {
+class _LudoDiceState extends State<_LudoDice>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   double _fromX = 0, _fromY = 0, _toX = 0, _toY = 0;
   int? _seenValue;
@@ -122,7 +239,8 @@ class _LudoDiceState extends State<_LudoDice> with SingleTickerProviderStateMixi
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
+    _controller = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 900));
   }
 
   @override
@@ -252,8 +370,14 @@ class _DieFace extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: Colors.black.withValues(alpha: 0.18)),
-          gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFF6F4E9), Color(0xFFD8D5C5)]),
-          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
+          gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFF6F4E9), Color(0xFFD8D5C5)]),
+          boxShadow: const [
+            BoxShadow(
+                color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))
+          ],
         ),
         child: GridView.count(
           crossAxisCount: 3,
@@ -299,24 +423,36 @@ class LudoBoard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final players = (game['players'] as List? ?? []).cast<Map>();
-    final tokensByColor = Map<String, dynamic>.from(game['tokens'] as Map? ?? {});
+    final tokensByColor =
+        Map<String, dynamic>.from(game['tokens'] as Map? ?? {});
     final status = game['status'] as String? ?? 'waiting';
     final turn = game['turn'] as String?;
     final winner = game['winner'] as String?;
     final diceValue = game['diceValue'] as int?;
-    final movableTokenIndices = (game['movableTokenIndices'] as List? ?? []).cast<int>();
-    final me = players.cast<Map?>().firstWhere((p) => p?['userId'] == myUserId, orElse: () => null);
+    final movableTokenIndices =
+        (game['movableTokenIndices'] as List? ?? []).cast<int>();
+    final me = players
+        .cast<Map?>()
+        .firstWhere((p) => p?['userId'] == myUserId, orElse: () => null);
     final isPlayer = me != null;
     final isMyTurn = isPlayer && status == 'playing' && turn == myUserId;
-    final currentPlayer = players.cast<Map?>().firstWhere((p) => p?['userId'] == turn, orElse: () => null);
-    final winnerPlayer = winner != null ? players.cast<Map?>().firstWhere((p) => p?['userId'] == winner, orElse: () => null) : null;
+    final currentPlayer = players
+        .cast<Map?>()
+        .firstWhere((p) => p?['userId'] == turn, orElse: () => null);
+    final winnerPlayer = winner != null
+        ? players
+            .cast<Map?>()
+            .firstWhere((p) => p?['userId'] == winner, orElse: () => null)
+        : null;
     final movableSet = isMyTurn ? movableTokenIndices.toSet() : <int>{};
 
     String statusText() {
-      if (status == 'won') return "${winnerPlayer?['name'] ?? 'Someone'} won! 🎉";
-      if (players.length < 2) return 'Waiting for more players… (up to 4)';
+      if (status == 'won') return "${winnerPlayer?['name'] ?? 'Someone'} won!";
+      if (players.length < 2) return 'Waiting for players (2 to 4)';
       if (currentPlayer == null) return '';
-      if (isMyTurn) return diceValue == null ? 'Tap the die to roll.' : 'Tap a highlighted token to move it.';
+      if (isMyTurn) {
+        return diceValue == null ? 'Your turn' : 'You rolled $diceValue';
+      }
       return "${currentPlayer['name']}'s turn";
     }
 
@@ -325,55 +461,62 @@ class LudoBoard extends StatelessWidget {
     final Map<String, List<Map<String, dynamic>>> grouped = {};
     for (final p in players) {
       final color = p['color'] as String;
-      final tokens = ((tokensByColor[color] as List?) ?? [0, 0, 0, 0]).cast<int>();
+      final tokens =
+          ((tokensByColor[color] as List?) ?? [0, 0, 0, 0]).cast<int>();
       for (var tokenIdx = 0; tokenIdx < tokens.length; tokenIdx++) {
         final pos = tokens[tokenIdx];
-        final groupKey = (pos == 0 || pos == 62) ? '$color-$tokenIdx' : '$pos:$color';
-        grouped.putIfAbsent(groupKey, () => []).add({'color': color, 'tokenIdx': tokenIdx, 'pos': pos});
+        final groupKey =
+            (pos == 0 || pos == 62) ? '$color-$tokenIdx' : '$pos:$color';
+        grouped
+            .putIfAbsent(groupKey, () => [])
+            .add({'color': color, 'tokenIdx': tokenIdx, 'pos': pos});
       }
     }
+
+    // Each player sits at their own colour's corner of the board —
+    // red/green above it, blue/yellow below (matches _yardBlock's layout).
+    Widget seatFor(String color) {
+      final p = players
+          .cast<Map?>()
+          .firstWhere((p) => p?['color'] == color, orElse: () => null);
+      if (p == null) {
+        return players.length < 4 && status != 'won'
+            ? const GameOpenSeat(size: 26, direction: Axis.horizontal)
+            : const SizedBox(height: 30);
+      }
+      final finished =
+          ((tokensByColor[color] as List?) ?? []).where((t) => t == 62).length;
+      return GameSeat(
+        userId: p['userId'] as String?,
+        name: p['name'] as String?,
+        isMe: p['userId'] == myUserId,
+        isTurn: status == 'playing' && turn == p['userId'],
+        color: _colorHex[color],
+        size: 26,
+        direction: Axis.horizontal,
+        detail: Text('$finished/4 home'),
+      );
+    }
+
+    Widget seatRow(String left, String right) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              Expanded(
+                  child: Align(
+                      alignment: Alignment.centerLeft, child: seatFor(left))),
+              Expanded(
+                  child: Align(
+                      alignment: Alignment.centerRight, child: seatFor(right))),
+            ],
+          ),
+        );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Status strip
-        SizedBox(
-          height: 34,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              for (final p in players)
-                Builder(builder: (context) {
-                  final color = p['color'] as String;
-                  final hex = _colorHex[color]!;
-                  final finished = ((tokensByColor[color] as List?) ?? []).where((t) => t == 62).length;
-                  final isTurn = status == 'playing' && turn == p['userId'];
-                  return Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface2,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: isTurn ? hex : AppColors.border, width: isTurn ? 1.5 : 1),
-                      boxShadow: isTurn ? [BoxShadow(color: hex.withValues(alpha: 0.4), blurRadius: 10)] : null,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(width: 8, height: 8, decoration: BoxDecoration(color: hex, shape: BoxShape.circle)),
-                        const SizedBox(width: 6),
-                        Text('${p['name']}', style: const TextStyle(color: AppColors.text, fontSize: 12, fontWeight: FontWeight.w600)),
-                        const SizedBox(width: 4),
-                        Text('· $finished/4 home', style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
-                      ],
-                    ),
-                  );
-                }),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-
+        GameStatusLine(statusText(), highlight: status != 'waiting'),
+        seatRow('red', 'green'),
         // Board
         Center(
           child: ConstrainedBox(
@@ -396,12 +539,16 @@ class LudoBoard extends StatelessWidget {
                       child: Stack(
                         children: [
                           for (final c in _colors) _yardBlock(c, size),
-                          for (var i = 0; i < _ring.length; i++) _ringCell(i, size),
+                          for (var i = 0; i < _ring.length; i++)
+                            _ringCell(i, size),
                           for (final c in _colors)
-                            for (var i = 0; i < _homeColumn[c]!.length; i++) _homeCell(c, i, size),
+                            for (var i = 0; i < _homeColumn[c]!.length; i++)
+                              _homeCell(c, i, size),
                           _centerPinwheel(size),
                           for (final group in grouped.values)
-                            for (var stackI = 0; stackI < group.length; stackI++)
+                            for (var stackI = 0;
+                                stackI < group.length;
+                                stackI++)
                               _token(group, stackI, size, movableSet, me),
                         ],
                       ),
@@ -412,38 +559,58 @@ class LudoBoard extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 10),
+        seatRow('blue', 'yellow'),
+        const SizedBox(height: 6),
 
         // Controls
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+          decoration: BoxDecoration(
+              color: AppColors.surface2,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.border)),
           child: Row(
             children: [
-              _LudoDice(value: diceValue, canRoll: isMyTurn && diceValue == null, onRoll: () => onMove({'action': 'roll'})),
+              _LudoDice(
+                  value: diceValue,
+                  canRoll: isMyTurn && diceValue == null,
+                  onRoll: () => onMove({'action': 'roll'})),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(statusText(), style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
-                    if (!isPlayer && players.length < 4)
+                    if (isMyTurn)
+                      Text(
+                          diceValue == null
+                              ? 'Tap the die to roll'
+                              : 'Tap a glowing token',
+                          style: const TextStyle(
+                              color: AppColors.text,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600)),
+                    if (!isPlayer || isHost)
                       Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6)),
-                          onPressed: onJoin,
-                          child: const Text('Join game', style: TextStyle(fontSize: 12)),
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: GameJoinButton(
+                              seated: isPlayer,
+                              full: players.length >= 4,
+                              fallbackJoin: onJoin),
                         ),
                       ),
                     if (isHost && status == 'won')
                       Padding(
                         padding: const EdgeInsets.only(top: 6),
                         child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6)),
+                          style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6)),
                           onPressed: onReset,
-                          child: const Text('Play again', style: TextStyle(fontSize: 12)),
+                          child: const Text('Play again',
+                              style: TextStyle(fontSize: 12)),
                         ),
                       ),
                   ],
@@ -490,7 +657,12 @@ class LudoBoard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: hex.withValues(alpha: 0.13),
                 shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: hex.withValues(alpha: 0.33), blurRadius: 0, spreadRadius: 2)],
+                boxShadow: [
+                  BoxShadow(
+                      color: hex.withValues(alpha: 0.33),
+                      blurRadius: 0,
+                      spreadRadius: 2)
+                ],
               ),
             );
           }),
@@ -504,7 +676,9 @@ class LudoBoard extends StatelessWidget {
     final p = _cellTopLeft(rc[0], rc[1]);
     final cell = _cellPct * size;
     final isStart = _startIndex.values.contains(i);
-    final startColor = isStart ? _startIndex.entries.firstWhere((e) => e.value == i).key : null;
+    final startColor = isStart
+        ? _startIndex.entries.firstWhere((e) => e.value == i).key
+        : null;
     final isSafe = _safeIndices.contains(i);
     return Positioned(
       left: p.dx * size,
@@ -513,12 +687,24 @@ class LudoBoard extends StatelessWidget {
       height: cell,
       child: Container(
         decoration: BoxDecoration(
-          color: isStart ? _colorHex[startColor]!.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.04),
+          color: isStart
+              ? _colorHex[startColor]!.withValues(alpha: 0.4)
+              : Colors.white.withValues(alpha: 0.04),
           border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-          boxShadow: isStart ? [BoxShadow(color: _colorHex[startColor]!.withValues(alpha: 0.33), blurRadius: 6)] : null,
+          boxShadow: isStart
+              ? [
+                  BoxShadow(
+                      color: _colorHex[startColor]!.withValues(alpha: 0.33),
+                      blurRadius: 6)
+                ]
+              : null,
         ),
         alignment: Alignment.center,
-        child: isSafe ? Text('★', style: TextStyle(fontSize: cell * 0.4, color: AppColors.textFaint)) : null,
+        child: isSafe
+            ? Text('★',
+                style:
+                    TextStyle(fontSize: cell * 0.4, color: AppColors.textFaint))
+            : null,
       ),
     );
   }
@@ -534,7 +720,9 @@ class LudoBoard extends StatelessWidget {
       width: cell,
       height: cell,
       child: Container(
-        decoration: BoxDecoration(color: hex.withValues(alpha: 0.27), border: Border.all(color: Colors.white.withValues(alpha: 0.06))),
+        decoration: BoxDecoration(
+            color: hex.withValues(alpha: 0.27),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.06))),
       ),
     );
   }
@@ -550,14 +738,22 @@ class LudoBoard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
-          boxShadow: [BoxShadow(color: Colors.white.withValues(alpha: 0.15), blurRadius: 20)],
+          boxShadow: [
+            BoxShadow(
+                color: Colors.white.withValues(alpha: 0.15), blurRadius: 20)
+          ],
           gradient: SweepGradient(
-            transform: const GradientRotation(-math.pi / 4 + math.pi / 2), // from 45deg, clockwise
+            transform: const GradientRotation(
+                -math.pi / 4 + math.pi / 2), // from 45deg, clockwise
             colors: [
-              _colorHex['red']!, _colorHex['red']!,
-              _colorHex['yellow']!, _colorHex['yellow']!,
-              _colorHex['blue']!, _colorHex['blue']!,
-              _colorHex['green']!, _colorHex['green']!,
+              _colorHex['red']!,
+              _colorHex['red']!,
+              _colorHex['yellow']!,
+              _colorHex['yellow']!,
+              _colorHex['blue']!,
+              _colorHex['blue']!,
+              _colorHex['green']!,
+              _colorHex['green']!,
               _colorHex['red']!,
             ],
             stops: const [0, 0.25, 0.25, 0.5, 0.5, 0.75, 0.75, 1, 1],
@@ -567,14 +763,18 @@ class LudoBoard extends StatelessWidget {
     );
   }
 
-  Widget _token(List<Map<String, dynamic>> group, int stackI, double size, Set<int> movableSet, Map? me) {
+  Widget _token(List<Map<String, dynamic>> group, int stackI, double size,
+      Set<int> movableSet, Map? me) {
     final entry = group[stackI];
     final color = entry['color'] as String;
     final tokenIdx = entry['tokenIdx'] as int;
     final pos = entry['pos'] as int;
     final base = _tokenPos(color, pos, tokenIdx);
-    final jitter = (pos != 0 && pos != 62 && group.length > 1) ? (stackI - (group.length - 1) / 2) * (_cellPct * 0.32) : 0.0;
-    final isMovable = me != null && color == me['color'] && movableSet.contains(tokenIdx);
+    final jitter = (pos != 0 && pos != 62 && group.length > 1)
+        ? (stackI - (group.length - 1) / 2) * (_cellPct * 0.32)
+        : 0.0;
+    final isMovable =
+        me != null && color == me['color'] && movableSet.contains(tokenIdx);
     final hex = _colorHex[color]!;
     final cell = _cellPct * size;
     final dSize = cell * 0.62;
@@ -585,8 +785,13 @@ class LudoBoard extends StatelessWidget {
       width: dSize,
       height: dSize,
       child: GestureDetector(
-        onTap: isMovable ? () => onMove({'action': 'move', 'tokenIndex': tokenIdx}) : null,
-        child: _TokenDot(hex: hex, isMovable: isMovable, label: "Move ${_colorName[color]} token ${tokenIdx + 1}"),
+        onTap: isMovable
+            ? () => onMove({'action': 'move', 'tokenIndex': tokenIdx})
+            : null,
+        child: _TokenDot(
+            hex: hex,
+            isMovable: isMovable,
+            label: "Move ${_colorName[color]} token ${tokenIdx + 1}"),
       ),
     );
   }
@@ -596,19 +801,22 @@ class _TokenDot extends StatefulWidget {
   final Color hex;
   final bool isMovable;
   final String label;
-  const _TokenDot({required this.hex, required this.isMovable, required this.label});
+  const _TokenDot(
+      {required this.hex, required this.isMovable, required this.label});
 
   @override
   State<_TokenDot> createState() => _TokenDotState();
 }
 
-class _TokenDotState extends State<_TokenDot> with SingleTickerProviderStateMixin {
+class _TokenDotState extends State<_TokenDot>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _controller = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 600));
     if (widget.isMovable) _controller.repeat(reverse: true);
   }
 
@@ -643,10 +851,21 @@ class _TokenDotState extends State<_TokenDot> with SingleTickerProviderStateMixi
               decoration: BoxDecoration(
                 color: widget.hex,
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.75), width: 2),
+                border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.75), width: 2),
                 boxShadow: widget.isMovable
-                    ? [const BoxShadow(color: Colors.white, blurRadius: 0, spreadRadius: 3), BoxShadow(color: widget.hex, blurRadius: 10)]
-                    : [BoxShadow(color: widget.hex.withValues(alpha: 0.67), blurRadius: 8)],
+                    ? [
+                        const BoxShadow(
+                            color: Colors.white,
+                            blurRadius: 0,
+                            spreadRadius: 3),
+                        BoxShadow(color: widget.hex, blurRadius: 10)
+                      ]
+                    : [
+                        BoxShadow(
+                            color: widget.hex.withValues(alpha: 0.67),
+                            blurRadius: 8)
+                      ],
               ),
             ),
           ),

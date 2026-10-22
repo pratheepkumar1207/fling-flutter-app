@@ -13,7 +13,9 @@ import '../../core/interest_options.dart';
 import '../../core/language_options.dart';
 import '../../core/location_service.dart';
 import '../../core/smart_play_song.dart';
+import '../../core/active_room_holder.dart';
 import '../../models/photo.dart';
+import '../../models/post.dart';
 import '../../models/playlist.dart';
 import '../../models/song.dart';
 import '../../models/user.dart';
@@ -25,6 +27,7 @@ import '../../widgets/interest_picker.dart';
 import '../../widgets/photo_verification.dart';
 import '../../widgets/profile_completeness_meter.dart';
 import '../../widgets/prompt_editor.dart';
+import '../../widgets/share_bottom_sheet.dart';
 import '../../widgets/spinner.dart';
 import '../achievements/achievements_screen.dart';
 import '../auth/login_screen.dart';
@@ -39,6 +42,12 @@ import '../lobby/youtube_browse_screen.dart';
 import '../messages/messages_screen.dart';
 import '../search/search_screen.dart';
 import '../settings/settings_screen.dart';
+import '../settings/privacy_screen.dart';
+import '../../widgets/notes.dart';
+import 'close_friends_screen.dart';
+import 'highlights.dart';
+import 'profile_layout.dart';
+import 'profile_post_grid.dart';
 import 'user_list_screen.dart';
 import '../wallet/livestream_dashboard_screen.dart';
 import '../wallet/referral_screen.dart';
@@ -73,6 +82,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Playlist> _playlists = [];
   List<Song> _history = [];
   List<Song> _liked = [];
+  List<Post> _posts = [];
+  List<Post> _reels = [];
+  List<Post> _tagged = [];
+  Map<String, dynamic>? _note;
   bool _loading = true;
 
   @override
@@ -91,6 +104,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ApiClient.get('/song-history').catchError((_) => []),
       ApiClient.get('/liked-songs').catchError((_) => []),
       ApiClient.get('/swipe/matches').catchError((_) => []),
+      _myId == null
+          ? Future.value(<dynamic>[])
+          : ApiClient.get('/feed/user/$_myId?kind=posts').catchError((_) => []),
+      _myId == null
+          ? Future.value(<dynamic>[])
+          : ApiClient.get('/feed/user/$_myId?kind=reels').catchError((_) => []),
+      _myId == null
+          ? Future.value(<dynamic>[])
+          : ApiClient.get('/feed/user/$_myId?kind=tagged')
+              .catchError((_) => []),
+      _myId == null
+          ? Future.value(null)
+          : ApiClient.get('/notes/user/$_myId').catchError((_) => null),
     ]);
     if (!mounted) return;
     setState(() {
@@ -109,9 +135,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
           .map((e) => Song.fromJson(e as Map<String, dynamic>))
           .toList();
       _matchesCount = (results[6] as List?)?.length ?? 0;
+      _posts = ((results[7] as List?) ?? [])
+          .map((e) => Post.fromJson(e as Map<String, dynamic>))
+          .toList();
+      _reels = ((results[8] as List?) ?? [])
+          .map((e) => Post.fromJson(e as Map<String, dynamic>))
+          .toList();
+      _tagged = ((results[9] as List?) ?? [])
+          .map((e) => Post.fromJson(e as Map<String, dynamic>))
+          .toList();
+      _note = results[10] is Map
+          ? Map<String, dynamic>.from(results[10] as Map)
+          : null;
       _loading = false;
     });
   }
+
+  String? get _myId => context.read<AuthProvider>().user?.id;
 
   Future<void> _addPhoto() async {
     final picker = ImagePicker();
@@ -220,13 +260,373 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // Everything that isn't the profile itself — the old "More" grid, daily
+  // bonus, saved posts, privacy, arrange, invite, log out — lives behind ☰.
+  void _openMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (sheet) => SafeArea(
+        child: ConstrainedBox(
+          constraints:
+              BoxConstraints(maxHeight: MediaQuery.sizeOf(sheet).height * 0.85),
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+            children: [
+              _sectionHeader('More'),
+              GridView.count(
+                crossAxisCount: 4,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                childAspectRatio: 0.9,
+                children: _kMoreNav
+                    .map((item) => _moreNavTile(item['label']!, item['icon']!))
+                    .toList(),
+              ),
+              const SizedBox(height: 16),
+              if (_gam != null) ...[
+                _navRow(
+                    icon: Icons.redeem_rounded,
+                    label: 'Claim daily bonus',
+                    onTap: () {
+                      Navigator.of(sheet).pop();
+                      _claimDailyBonus();
+                    }),
+                const SizedBox(height: 8),
+              ],
+              _navRow(
+                  icon: Icons.bookmark_rounded,
+                  label: 'Saved posts',
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const SavedPostsScreen()))),
+              const SizedBox(height: 8),
+              _navRow(
+                  icon: Icons.archive_outlined,
+                  label: 'Archive',
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const ArchiveScreen()))),
+              const SizedBox(height: 8),
+              _navRow(
+                  icon: Icons.stars_rounded,
+                  label: 'Close friends',
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const CloseFriendsScreen()))),
+              const SizedBox(height: 8),
+              _navRow(
+                  icon: Icons.view_agenda_outlined,
+                  label: 'Arrange profile',
+                  onTap: _openArrange),
+              const SizedBox(height: 8),
+              _navRow(
+                  icon: Icons.lock_outline_rounded,
+                  label: 'Privacy',
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const PrivacyScreen()))),
+              const SizedBox(height: 8),
+              _navRow(
+                  icon: Icons.person_add_alt_1_rounded,
+                  label: 'Invite friends',
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const ReferralScreen()))),
+              const SizedBox(height: 16),
+              OutlinedButton(
+                onPressed: _logout,
+                style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.danger,
+                    side: const BorderSide(color: AppColors.danger)),
+                child: const Text('Log out'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openArrange() async {
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const ArrangeProfileScreen()));
+    if (mounted) setState(() {});
+  }
+
+  void _shareProfile(User? user) {
+    final handle = user?.username;
+    showShareBottomSheet(
+      context,
+      text: handle != null && handle.isNotEmpty
+          ? 'Find me on Insync: @$handle'
+          : 'Find me on Insync',
+      url: '${ApiClient.baseUrl}/u/${user?.id ?? ''}',
+    );
+  }
+
+  // Compact summary cards (completeness, verification, level) — each opens
+  // the full card it summarises, so nothing that was on the profile is lost.
+  Widget _progressRow(User? user) {
+    Widget card(String title, Widget body, Widget full) => GestureDetector(
+          onTap: () => showModalBottomSheet(
+            context: context,
+            backgroundColor: AppColors.bg,
+            isScrollControlled: true,
+            builder: (_) => SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: full,
+              ),
+            ),
+          ),
+          child: Container(
+            width: 150,
+            margin: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.all(10),
+            decoration: insyncClay(radius: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(title,
+                    style: const TextStyle(
+                        color: AppColors.textFaint, fontSize: 11.5)),
+                const SizedBox(height: 6),
+                body,
+              ],
+            ),
+          ),
+        );
+    final percent = user?.completenessPercent ?? 0;
+    final verification = user?.photoVerificationStatus ?? 'none';
+    return SizedBox(
+      height: 74,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          if (user != null)
+            card(
+              'Profile',
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                        value: (percent / 100).clamp(0, 1).toDouble(),
+                        minHeight: 5,
+                        backgroundColor: AppColors.surface3,
+                        color: AppColors.accent),
+                  ),
+                  const SizedBox(height: 4),
+                  Text('$percent% complete',
+                      style:
+                          const TextStyle(color: AppColors.text, fontSize: 12)),
+                ],
+              ),
+              ProfileCompletenessMeter(percent: percent),
+            ),
+          card(
+            'Photo check',
+            Text(
+              switch (verification) {
+                'verified' => 'Verified',
+                'pending' => 'In review',
+                'rejected' => 'Try again',
+                _ => 'Get verified',
+              },
+              style: TextStyle(
+                  color: verification == 'verified'
+                      ? AppColors.success
+                      : AppColors.text,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600),
+            ),
+            PhotoVerificationEntry(
+              status: verification,
+              selfieUrl: user?.verificationSelfieUrl,
+              onSubmitted: () => context.read<AuthProvider>().refreshUser(),
+            ),
+          ),
+          if (_gam != null)
+            card(
+              'Level ${_gam!['level']}',
+              Text('🔥 ${_gam!['loginStreak']} day streak',
+                  style: const TextStyle(color: AppColors.text, fontSize: 12)),
+              _gamificationCard(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // "Right now" on your own profile — the room you're in, if any.
+  Widget? _rightNow() {
+    final room = ActiveRoomHolder.room;
+    if (room == null) return null;
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1F2A12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.success.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.sensors_rounded, color: AppColors.success, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text('You\'re in ${room['title'] ?? 'a room'}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: AppColors.text, fontSize: 13)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _photosTab() => ListView(
+        padding: const EdgeInsets.all(12),
+        children: [
+          _sectionHeader('Gallery',
+              trailing: TextButton(
+                  onPressed: _addPhoto,
+                  child: const Text('+ Add photo',
+                      style: TextStyle(color: AppColors.primary)))),
+          _gallery.isEmpty
+              ? const Text('No photos yet.',
+                  style: TextStyle(color: AppColors.textFaint))
+              : GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 6,
+                      mainAxisSpacing: 6),
+                  itemCount: _gallery.length,
+                  itemBuilder: (context, i) {
+                    final p = _gallery[i];
+                    return Stack(
+                      children: [
+                        Positioned.fill(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: AppImage(
+                                source: p.imageData, fit: BoxFit.cover),
+                          ),
+                        ),
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: () => _deletePhoto(p.id),
+                            child: GlassIcon.circle(
+                              size: 22,
+                              colors: const [
+                                AppColors.danger,
+                                AppColors.accent
+                              ],
+                              glowColor:
+                                  AppColors.danger.withValues(alpha: 0.4),
+                              child: const Icon(Icons.close,
+                                  size: 14, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+        ],
+      );
+
+  Widget _musicTab() => ListView(
+        padding: const EdgeInsets.all(12),
+        children: [
+          _sectionHeader('My playlists'),
+          ..._playlists.map((p) => _playlistCard(p)),
+          const SizedBox(height: 8),
+          _CreatePlaylistRow(onCreate: _createPlaylist),
+          if (_history.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            _sectionHeader('History'),
+            ..._history.map(_songTile),
+          ],
+          if (_liked.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _sectionHeader('Liked songs'),
+            ..._liked.map(_songTile),
+          ],
+        ],
+      );
+
+  Widget _tabContent(String id) => switch (id) {
+        'posts' => ProfilePostGrid(
+            posts: _posts, emptyText: 'Share your first post from the feed'),
+        'reels' => ProfilePostGrid(
+            posts: _reels, reels: true, emptyText: 'No reels yet'),
+        'photos' => _photosTab(),
+        'music' => _musicTab(),
+        _ => ProfilePostGrid(
+            posts: _tagged,
+            emptyText: 'Posts you\'re tagged in will show here'),
+      };
+
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
+    final layout = ProfileLayout.fromJson(user?.profileLayout);
+    final tabs = layout
+        .visibleTabs(const {'posts', 'reels', 'photos', 'music', 'tagged'});
+    final sections = <Widget>[];
+    for (final id in layout.visibleSections()) {
+      final Widget? w = switch (id) {
+        'rightNow' => _rightNow(),
+        'interests' => user != null && user.interests.isNotEmpty
+            ? Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: user.interests
+                    .map((i) => Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 13, vertical: 6),
+                          decoration: BoxDecoration(
+                              color: AppColors.surface2,
+                              borderRadius: BorderRadius.circular(999)),
+                          child: Text(i,
+                              style: const TextStyle(
+                                  color: AppColors.textDim,
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600)),
+                        ))
+                    .toList(),
+              )
+            : null,
+        'progress' => _progressRow(user),
+        'highlights' => user == null
+            ? null
+            : HighlightsRow(
+                userId: user.id,
+                isMine: true,
+                ownerName: user.name,
+                ownerAvatar: user.avatarUrl),
+        _ => null,
+      };
+      if (w != null) {
+        sections
+            .add(Padding(padding: const EdgeInsets.only(top: 12), child: w));
+      }
+    }
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const InsyncPageTitle('Profile'),
+        title: InsyncPageTitle(
+            user?.username != null && user!.username!.isNotEmpty
+                ? user.username!
+                : 'Profile'),
         actions: [
           IconButton(
             onPressed: () => Navigator.of(context).push(
@@ -234,139 +634,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Image.asset('assets/icons/app/setting.png',
                 width: 44, height: 44),
           ),
+          IconButton(
+            tooltip: 'Menu',
+            onPressed: _openMenu,
+            icon: const Icon(Icons.menu_rounded, color: AppColors.text),
+          ),
         ],
       ),
       body: _loading
           ? const Center(child: Spinner(size: 28))
-          : RefreshIndicator(
-              onRefresh: _loadAll,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: insyncClay(),
-                      child: _profileHeader(user)),
-                  const SizedBox(height: 16),
-                  if (user != null)
-                    ProfileCompletenessMeter(percent: user.completenessPercent),
-                  const SizedBox(height: 12),
-                  PhotoVerificationEntry(
-                    status: user?.photoVerificationStatus ?? 'none',
-                    selfieUrl: user?.verificationSelfieUrl,
-                    onSubmitted: () =>
-                        context.read<AuthProvider>().refreshUser(),
+          : DefaultTabController(
+              key: ValueKey(tabs.join(',')),
+              length: tabs.length,
+              child: NestedScrollView(
+                headerSliverBuilder: (context, _) => [
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _profileHeader(user),
+                          ...sections,
+                          const SizedBox(height: 8),
+                        ],
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  if (_gam != null) _gamificationCard(),
-                  const SizedBox(height: 20),
-                  _sectionHeader('More'),
-                  GridView.count(
-                    crossAxisCount: 4,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    childAspectRatio: 0.9,
-                    children: _kMoreNav
-                        .map((item) =>
-                            _moreNavTile(item['label']!, item['icon']!))
-                        .toList(),
-                  ),
-                  const SizedBox(height: 20),
-                  _sectionHeader('Gallery',
-                      trailing: TextButton(
-                          onPressed: _addPhoto,
-                          child: const Text('+ Add photo',
-                              style: TextStyle(color: AppColors.primary)))),
-                  _gallery.isEmpty
-                      ? const Text('No photos yet.',
-                          style: TextStyle(color: AppColors.textFaint))
-                      : GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 3,
-                                  crossAxisSpacing: 6,
-                                  mainAxisSpacing: 6),
-                          itemCount: _gallery.length,
-                          itemBuilder: (context, i) {
-                            final p = _gallery[i];
-                            return Stack(
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: AppImage(
-                                      source: p.imageData, fit: BoxFit.cover),
-                                ),
-                                Positioned(
-                                  top: 4,
-                                  right: 4,
-                                  child: GestureDetector(
-                                    onTap: () => _deletePhoto(p.id),
-                                    child: GlassIcon.circle(
-                                      size: 22,
-                                      colors: const [
-                                        AppColors.danger,
-                                        AppColors.accent
-                                      ],
-                                      glowColor: AppColors.danger
-                                          .withValues(alpha: 0.4),
-                                      child: const Icon(Icons.close,
-                                          size: 14, color: Colors.white),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                  const SizedBox(height: 20),
-                  _sectionHeader('My playlists'),
-                  ..._playlists.map((p) => _playlistCard(p)),
-                  const SizedBox(height: 8),
-                  _CreatePlaylistRow(onCreate: _createPlaylist),
-                  const SizedBox(height: 20),
-                  if (_history.isNotEmpty) ...[
-                    _sectionHeader('History'),
-                    ..._history.map(_songTile)
-                  ],
-                  if (_liked.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    _sectionHeader('Liked songs'),
-                    ..._liked.map(_songTile)
-                  ],
-                  const SizedBox(height: 20),
-                  _navRow(
-                      icon: Icons.bookmark_rounded,
-                      label: 'Saved posts',
-                      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                          builder: (_) => const SavedPostsScreen()))),
-                  const SizedBox(height: 8),
-                  _navRow(
-                      icon: Icons.person_add_alt_1_rounded,
-                      label: 'Invite friends',
-                      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                          builder: (_) => const ReferralScreen()))),
-                  const SizedBox(height: 24),
-                  OutlinedButton(
-                    onPressed: _logout,
-                    style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.danger,
-                        side: const BorderSide(color: AppColors.danger)),
-                    child: const Text('Log out'),
-                  ),
-                  const SizedBox(height: 24),
+                  if (tabs.isNotEmpty)
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: _TabBarHeader(TabBar(
+                        indicatorColor: AppColors.accent,
+                        labelColor: AppColors.accent,
+                        unselectedLabelColor: AppColors.textDim,
+                        tabs: [
+                          for (final t in tabs)
+                            Tab(
+                                icon: Icon(ProfileLayout.icon(t),
+                                    semanticLabel: ProfileLayout.label(t))),
+                        ],
+                      )),
+                    ),
                 ],
+                body: tabs.isEmpty
+                    ? const SizedBox.shrink()
+                    : TabBarView(
+                        children: [for (final t in tabs) _tabContent(t)]),
               ),
             ),
     );
   }
 
-  // Own-profile header matching ProfileDark.dc.html — ring-avatar with a
-  // completeness-percent badge, stats beside it, name/bio/city below, then
-  // interest chips and the edit+settings button row.
+  // Own-profile header — ring-avatar with a completeness-percent badge,
+  // stats beside it (Posts/Followers/Following, then Matches/Photos/Level),
+  // name/bio/city and badges below, then Edit / Share / Arrange. Interests
+  // are their own arrangeable section now.
   Widget _profileHeader(User? user) {
     final percent = user?.completenessPercent ?? 0;
     return Column(
@@ -379,6 +702,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               height: 88,
               child: Stack(
                 alignment: Alignment.center,
+                clipBehavior: Clip.none,
                 children: [
                   SizedBox(
                     width: 88,
@@ -397,6 +721,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           src: user?.avatarUrl,
                           name: user?.name,
                           size: AvatarSize.lg)),
+                  if (_note != null)
+                    Positioned(
+                      top: -6,
+                      child: NoteBubble(
+                          text: _note!['text'] as String?,
+                          songTitle: _note!['songTitle'] as String?,
+                          maxWidth: 96),
+                    ),
                   Positioned(
                     bottom: 0,
                     right: 0,
@@ -416,22 +748,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(width: 18),
             Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+              child: Column(
                 children: [
-                  _profileStat('${_gallery.length}', 'Photos'),
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => const DiscoverMatchesScreen())),
-                    child: _profileStat('$_matchesCount', 'Matches'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _profileStat('${_posts.length}', 'Posts'),
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => const UserListScreen())),
+                        child: _profileStat(
+                            formatNumber(_stats?['followers'] ?? 0),
+                            'Followers'),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => const UserListScreen(
+                                    startOnFollowing: true))),
+                        child: _profileStat(
+                            formatNumber(_stats?['following'] ?? 0),
+                            'Following'),
+                      ),
+                    ],
                   ),
-                  if (_stats != null)
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                          builder: (_) => const UserListScreen())),
-                      child: _profileStat(
-                          formatNumber(_stats!['followers']), 'Followers'),
-                    ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => const DiscoverMatchesScreen())),
+                        child: _profileStat('$_matchesCount', 'Matches'),
+                      ),
+                      _profileStat('${_gallery.length}', 'Photos'),
+                      _profileStat(
+                          _gam != null ? 'Lv ${_gam!['level']}' : '–', 'Level'),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -496,45 +852,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              GestureDetector(
-                onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const SettingsScreen())),
-                child: Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                      color: AppColors.surface2,
-                      borderRadius: BorderRadius.circular(12)),
-                  child: const Icon(Icons.settings_outlined,
-                      color: AppColors.textDim, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _shareProfile(user),
+                  child: Container(
+                    height: 38,
+                    decoration: BoxDecoration(
+                        color: AppColors.surface2,
+                        borderRadius: BorderRadius.circular(12)),
+                    alignment: Alignment.center,
+                    child: const Text('Share profile',
+                        style: TextStyle(
+                            color: AppColors.text,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Semantics(
+                button: true,
+                label: 'Arrange profile',
+                child: GestureDetector(
+                  onTap: _openArrange,
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                        color: AppColors.surface2,
+                        borderRadius: BorderRadius.circular(12)),
+                    child: const Icon(Icons.view_agenda_outlined,
+                        color: AppColors.textDim, size: 18),
+                  ),
                 ),
               ),
             ],
           ),
         ),
-        if (user != null && user.interests.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 14),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: user.interests
-                  .map((i) => Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 13, vertical: 6),
-                        decoration: BoxDecoration(
-                            color: AppColors.surface2,
-                            borderRadius: BorderRadius.circular(999)),
-                        child: Text(i,
-                            style: const TextStyle(
-                                color: AppColors.textDim,
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w600)),
-                      ))
-                  .toList(),
-            ),
-          ),
       ],
     );
   }
@@ -1347,4 +1702,23 @@ class EditProfileSheetState extends State<EditProfileSheet> {
     _religion.dispose();
     super.dispose();
   }
+}
+
+class _TabBarHeader extends SliverPersistentHeaderDelegate {
+  final TabBar tabBar;
+  _TabBarHeader(this.tabBar);
+
+  @override
+  double get minExtent => tabBar.preferredSize.height;
+  @override
+  double get maxExtent => tabBar.preferredSize.height;
+
+  @override
+  Widget build(context, shrinkOffset, overlapsContent) => Container(
+        color: AppColors.bg,
+        child: tabBar,
+      );
+
+  @override
+  bool shouldRebuild(covariant _TabBarHeader old) => old.tabBar != tabBar;
 }

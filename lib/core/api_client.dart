@@ -30,6 +30,10 @@ class ApiClient {
           {dynamic body, bool skipAuth = false}) =>
       _request(path, method: 'PATCH', body: body, skipAuth: skipAuth);
 
+  static Future<dynamic> put(String path,
+          {dynamic body, bool skipAuth = false}) =>
+      _request(path, method: 'PUT', body: body, skipAuth: skipAuth);
+
   static Future<dynamic> delete(String path,
           {dynamic body, bool skipAuth = false}) =>
       _request(path, method: 'DELETE', body: body, skipAuth: skipAuth);

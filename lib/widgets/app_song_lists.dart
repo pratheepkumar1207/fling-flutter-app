@@ -23,11 +23,15 @@ class AppSongListTab extends StatefulWidget {
   final String endpoint;
   final SongAddCallback onAdd;
   final bool canAddSongs;
+  // In a room: a 2-row sideways carousel of 16:9 thumbnails (tap to add)
+  // instead of the plain list.
+  final bool carousel;
   const AppSongListTab(
       {super.key,
       required this.endpoint,
       required this.onAdd,
-      this.canAddSongs = true});
+      this.canAddSongs = true,
+      this.carousel = false});
 
   @override
   State<AppSongListTab> createState() => _AppSongListTabState();
@@ -36,6 +40,107 @@ class AppSongListTab extends StatefulWidget {
 class _AppSongListTabState extends State<AppSongListTab> {
   List<Song> _songs = [];
   bool _loading = true;
+  // Added during this visit — shown as "Added" on the carousel tile.
+  final Set<String> _added = {};
+
+  void _add(Song s) {
+    widget.onAdd(
+        videoUrl: s.videoUrl ?? '',
+        title: s.title ?? '',
+        thumbnail: s.thumbnail,
+        mediaMode: 'video',
+        sourceType: s.sourceType);
+    if (s.videoUrl != null) setState(() => _added.add(s.videoUrl!));
+  }
+
+  Widget _carousel() {
+    return LayoutBuilder(builder: (context, constraints) {
+      final tileWidth = constraints.maxWidth * 0.46;
+      final tileHeight = tileWidth * 9 / 16;
+      const gap = 4.0;
+      return SizedBox(
+        height: tileHeight * 2 + gap,
+        child: GridView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: _songs.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisExtent: tileWidth,
+            mainAxisSpacing: gap,
+            crossAxisSpacing: gap,
+          ),
+          itemBuilder: (context, i) {
+            final s = _songs[i];
+            final added = s.videoUrl != null && _added.contains(s.videoUrl);
+            return Semantics(
+              button: true,
+              label:
+                  '${s.title ?? 'Untitled'}${added ? ', added' : ', add to queue'}',
+              child: GestureDetector(
+                onTap: widget.canAddSongs && !added ? () => _add(s) : null,
+                child: Container(
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface3,
+                    borderRadius: BorderRadius.circular(8),
+                    border: added
+                        ? Border.all(color: AppColors.accent, width: 2)
+                        : null,
+                  ),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (s.thumbnail != null)
+                        AppImage(source: s.thumbnail, fit: BoxFit.cover)
+                      else
+                        const Center(child: Text('🎵')),
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(6, 10, 6, 4),
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Colors.transparent, Colors.black87],
+                            ),
+                          ),
+                          child: Text(s.title ?? 'Untitled',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 11)),
+                        ),
+                      ),
+                      if (added)
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 1),
+                            decoration: BoxDecoration(
+                                color: AppColors.accent,
+                                borderRadius: BorderRadius.circular(999)),
+                            child: const Text('Added',
+                                style: TextStyle(
+                                    color: AppColors.ink,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700)),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    });
+  }
 
   @override
   void initState() {
@@ -66,6 +171,7 @@ class _AppSongListTabState extends State<AppSongListTab> {
           child: Text('Nothing here yet.',
               style: TextStyle(color: AppColors.textFaint)));
     }
+    if (widget.carousel) return _carousel();
     return ListView.builder(
       padding: const EdgeInsets.all(12),
       itemCount: _songs.length,
@@ -185,13 +291,10 @@ class _AppPlaylistsTabState extends State<AppPlaylistsTab> {
                 ? Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      TextButton(
-                        onPressed: () => widget.onAddAll!(p.songs),
-                        child: const Text('Add all',
-                            style: TextStyle(
-                                color: AppColors.primary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700)),
+                      _PlayAllButtons(
+                        onPlay: () => widget.onAddAll!(p.songs),
+                        onShuffle: () =>
+                            widget.onAddAll!([...p.songs]..shuffle()),
                       ),
                       const Icon(Icons.expand_more, color: AppColors.textDim),
                     ],
@@ -365,13 +468,15 @@ class _YoutubePlaylistTileState extends State<_YoutubePlaylistTile> {
   // Items are normally only fetched once the tile expands — this fetches
   // them first (if not already loaded) so "Add all" works as one tap even
   // from a collapsed tile, instead of requiring an expand first.
-  Future<void> _addAll() async {
+  Future<void> _addAll({bool shuffle = false}) async {
     setState(() => _addingAll = true);
     await _loadItems();
     if (!mounted) return;
     setState(() => _addingAll = false);
     final items = _items;
-    if (items != null && items.isNotEmpty) widget.onAddAll!(items);
+    if (items != null && items.isNotEmpty) {
+      widget.onAddAll!(shuffle ? ([...items]..shuffle()) : items);
+    }
   }
 
   @override
@@ -393,13 +498,9 @@ class _YoutubePlaylistTileState extends State<_YoutubePlaylistTile> {
                         padding: EdgeInsets.symmetric(horizontal: 8),
                         child: Spinner(size: 14),
                       )
-                    : TextButton(
-                        onPressed: _addAll,
-                        child: const Text('Add all',
-                            style: TextStyle(
-                                color: AppColors.primary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700)),
+                    : _PlayAllButtons(
+                        onPlay: () => _addAll(),
+                        onShuffle: () => _addAll(shuffle: true),
                       ),
                 const Icon(Icons.expand_more, color: AppColors.textDim),
               ],
@@ -432,6 +533,37 @@ class _YoutubePlaylistTileState extends State<_YoutubePlaylistTile> {
                     )
                   : null,
             )),
+      ],
+    );
+  }
+}
+
+/// "Play all" + "Shuffle" for a whole playlist — the room queues every song
+/// and plays them one after another.
+class _PlayAllButtons extends StatelessWidget {
+  final VoidCallback onPlay;
+  final VoidCallback onShuffle;
+  const _PlayAllButtons({required this.onPlay, required this.onShuffle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          tooltip: 'Play all',
+          visualDensity: VisualDensity.compact,
+          onPressed: onPlay,
+          icon: const Icon(Icons.play_circle_fill_rounded,
+              color: AppColors.accent, size: 26),
+        ),
+        IconButton(
+          tooltip: 'Shuffle',
+          visualDensity: VisualDensity.compact,
+          onPressed: onShuffle,
+          icon: const Icon(Icons.shuffle_rounded,
+              color: AppColors.textDim, size: 22),
+        ),
       ],
     );
   }

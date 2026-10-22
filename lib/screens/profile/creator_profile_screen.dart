@@ -5,6 +5,7 @@ import '../../core/api_exception.dart';
 import '../../core/format.dart';
 import '../../core/smart_play_song.dart';
 import '../../models/photo.dart';
+import '../../models/post.dart';
 import '../../models/playlist.dart';
 import '../../models/song.dart';
 import '../../theme/app_colors.dart';
@@ -16,6 +17,10 @@ import '../../widgets/report_user_sheet.dart';
 import '../../widgets/spinner.dart';
 import '../messages/message_thread_screen.dart';
 import '../party/party_screen.dart';
+import '../../widgets/notes.dart';
+import 'highlights.dart';
+import 'profile_layout.dart';
+import 'profile_post_grid.dart';
 
 class CreatorProfileScreen extends StatefulWidget {
   final String userId;
@@ -33,6 +38,11 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
   List<Song> _history = [];
   List<Song> _liked = [];
   List<Map<String, dynamic>> _topSupporters = [];
+  List<Post> _posts = [];
+  List<Post> _reels = [];
+  List<Post> _tagged = [];
+  Map<String, dynamic>? _note;
+  Map<String, dynamic> _relationship = const {};
   bool _loading = true;
   String? _error;
 
@@ -55,6 +65,15 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
             .catchError((_) => []),
         ApiClient.get('/creators/${widget.userId}/top-supporters')
             .catchError((_) => []),
+        ApiClient.get('/feed/user/${widget.userId}?kind=posts')
+            .catchError((_) => []),
+        ApiClient.get('/feed/user/${widget.userId}?kind=reels')
+            .catchError((_) => []),
+        ApiClient.get('/feed/user/${widget.userId}?kind=tagged')
+            .catchError((_) => []),
+        ApiClient.get('/notes/user/${widget.userId}').catchError((_) => null),
+        ApiClient.get('/relationship/${widget.userId}')
+            .catchError((_) => <String, dynamic>{}),
       ]);
       if (!mounted) return;
       setState(() {
@@ -73,6 +92,21 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
             .toList();
         _topSupporters =
             ((results[5] as List?) ?? []).cast<Map<String, dynamic>>();
+        _posts = ((results[6] as List?) ?? [])
+            .map((e) => Post.fromJson(e as Map<String, dynamic>))
+            .toList();
+        _reels = ((results[7] as List?) ?? [])
+            .map((e) => Post.fromJson(e as Map<String, dynamic>))
+            .toList();
+        _tagged = ((results[8] as List?) ?? [])
+            .map((e) => Post.fromJson(e as Map<String, dynamic>))
+            .toList();
+        _note = results[9] is Map
+            ? Map<String, dynamic>.from(results[9] as Map)
+            : null;
+        _relationship = results[10] is Map
+            ? Map<String, dynamic>.from(results[10] as Map)
+            : const {};
         _loading = false;
       });
     } on ApiException catch (e) {
@@ -110,6 +144,99 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
       });
       _snack('Action failed');
     }
+  }
+
+  Future<void> _toggleRelationship(
+      String path, String key, String on, String off) async {
+    try {
+      final res = await ApiClient.post('/$path/${widget.userId}')
+          as Map<String, dynamic>;
+      if (!mounted) return;
+      setState(() => _relationship = {..._relationship, key: res[key] == true});
+      _snack(res[key] == true ? on : off);
+    } catch (_) {
+      _snack('Action failed');
+    }
+  }
+
+  void _moreSheet(String name) {
+    Widget tile(IconData icon, String label, VoidCallback onTap,
+            {bool danger = false}) =>
+        ListTile(
+          leading:
+              Icon(icon, color: danger ? AppColors.danger : AppColors.text),
+          title: Text(label,
+              style:
+                  TextStyle(color: danger ? AppColors.danger : AppColors.text)),
+          onTap: () {
+            Navigator.of(context).pop();
+            onTap();
+          },
+        );
+    final closeFriend = _relationship['closeFriend'] == true;
+    final muted = _relationship['muted'] == true;
+    final restricted = _relationship['restricted'] == true;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            tile(
+                closeFriend ? Icons.star_rounded : Icons.star_border_rounded,
+                closeFriend
+                    ? 'Remove from close friends'
+                    : 'Add to close friends',
+                () => _toggleRelationship(
+                    'close-friends',
+                    'closeFriend',
+                    'Added $name to close friends',
+                    'Removed from close friends')),
+            tile(
+                muted ? Icons.volume_up_outlined : Icons.volume_off_outlined,
+                muted ? 'Unmute' : 'Mute',
+                () => _toggleRelationship(
+                    'mute',
+                    'muted',
+                    'Muted — their posts and stories won\'t show in your feed',
+                    'Unmuted')),
+            tile(
+                Icons.person_remove_alt_1_outlined,
+                restricted ? 'Unrestrict' : 'Restrict',
+                () => _toggleRelationship(
+                    'restrict',
+                    'restricted',
+                    'Restricted — their comments on your posts are only visible to them',
+                    'Unrestricted')),
+            tile(Icons.flag_outlined, 'Report or block', () {
+              final p = _profile!;
+              showReportUserSheet(
+                context,
+                userName: p['name'] as String? ?? '',
+                onReport: () => showReportReasonSheet(
+                  context,
+                  userName: p['name'] as String? ?? '',
+                  onSubmit: _report,
+                ),
+                onBlock: () => _confirmDialog(
+                  title: 'Block ${p['name']}?',
+                  description:
+                      'They will no longer be able to interact with you.',
+                  confirmLabel: 'Block',
+                  danger: true,
+                  onConfirm: _block,
+                ),
+              );
+            }, danger: true),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _toggleFollow() async {
@@ -195,7 +322,11 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const InsyncPageTitle('Profile')),
+      appBar: AppBar(
+          title: InsyncPageTitle(
+              (_profile?['username'] as String?)?.isNotEmpty == true
+                  ? _profile!['username'] as String
+                  : 'Profile')),
       body: _loading
           ? const Center(child: Spinner(size: 28))
           : (_error != null || _profile == null)
@@ -206,301 +337,428 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
     );
   }
 
-  Widget _buildBody() {
+  Widget _tabContent(String id) {
     final p = _profile!;
-    final isFollowed = p['isFollowedByMe'] == true;
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Literal match to CreatorProfileDark.dc.html: plain circular
-          // avatar + stats row beside it, name/verified-badge/creator-pill
-          // and bio below — not the old app's ColaProfileCard treatment.
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                key: _avatarKey,
-                width: 78,
-                height: 78,
-                decoration: const BoxDecoration(shape: BoxShape.circle),
-                child: Avatar(
-                    src: p['avatarUrl'] as String?,
-                    name: p['name'] as String?,
-                    size: AvatarSize.lg),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _profileStatColumn(
-                        formatNumber(p['followerCount']), 'Followers'),
-                    _profileStatColumn(
-                        formatNumber(p['followingCount']), 'Following'),
-                    _profileStatColumn(
-                        formatNumber(p['totalGiftsReceived']), 'Gifts',
-                        color: AppColors.gold),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Flexible(
-                  child: Text(p['name'] as String? ?? '',
-                      style: const TextStyle(
-                          color: AppColors.text,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis)),
-              if (p['isVerified'] == true) ...[
-                const SizedBox(width: 6),
-                const Icon(Icons.verified_rounded,
-                    color: AppColors.accent2, size: 14)
-              ],
-              if (p['isCreator'] == true) ...[
-                const SizedBox(width: 6),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                      color: AppColors.accent.withValues(alpha: 0.16),
-                      borderRadius: BorderRadius.circular(999)),
-                  child: const Text('Creator',
-                      style: TextStyle(
-                          color: AppColors.accent,
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w700)),
-                ),
-              ],
-              if (p['isVip'] == true) ...[
-                const SizedBox(width: 6),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                      color: AppColors.gold.withValues(alpha: 0.16),
-                      borderRadius: BorderRadius.circular(999)),
-                  child: const Text('VIP',
-                      style: TextStyle(
-                          color: AppColors.gold,
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w700)),
-                ),
-              ],
-            ],
-          ),
-          if (p['bio'] != null && (p['bio'] as String).isNotEmpty) ...[
-            const SizedBox(height: 5),
-            Text(p['bio'] as String,
-                style: const TextStyle(
-                    color: AppColors.textDim, fontSize: 12.5, height: 1.5)),
-          ],
-          if ((p['activeRoom'] as Map?) != null) ...[
-            const SizedBox(height: 14),
-            const Text('RIGHT NOW',
-                style: TextStyle(
-                    color: AppColors.textFaint,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.6)),
-            const SizedBox(height: 8),
-            _activeRoomBadge(p['activeRoom'] as Map),
-          ],
-          const SizedBox(height: 16),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _pillButton(
-                isFollowed ? 'Unfollow' : 'Follow',
-                onTap: _toggleFollow,
-                gradient: isFollowed
-                    ? null
-                    : const LinearGradient(colors: AppGradients.brand),
-                fill: isFollowed ? AppColors.surface2 : null,
-                textColor: isFollowed ? AppColors.textDim : Colors.white,
-              ),
-              _pillButton('Add friend',
-                  onTap: _addFriend,
-                  borderColor: AppColors.border,
-                  textColor: AppColors.textDim),
-              _pillButton(
-                '🎁 Gift',
-                onTap: () => showGiftBottomSheet(context,
-                    toUserId: widget.userId, targetKey: _avatarKey),
-                borderColor: AppColors.gold.withValues(alpha: 0.5),
-                textColor: AppColors.gold,
-              ),
-              _pillButton(
-                '💬 Message',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                      builder: (_) => MessageThreadScreen(
-                          userId: widget.userId,
-                          name: p['name'] as String? ?? '',
-                          avatarUrl: p['avatarUrl'] as String?)),
-                ),
-                borderColor: AppColors.border,
-                textColor: AppColors.textDim,
-              ),
-              _pillButton(
-                '⋯ Report / Block',
-                onTap: () => showReportUserSheet(
-                  context,
-                  userName: p['name'] as String? ?? '',
-                  onReport: () => showReportReasonSheet(
-                    context,
-                    userName: p['name'] as String? ?? '',
-                    onSubmit: _report,
-                  ),
-                  onBlock: () => _confirmDialog(
-                    title: 'Block ${p['name']}?',
-                    description:
-                        'They will no longer be able to interact with you.',
-                    confirmLabel: 'Block',
-                    danger: true,
-                    onConfirm: _block,
-                  ),
-                ),
-                borderColor: AppColors.danger.withValues(alpha: 0.5),
-                textColor: AppColors.danger,
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          if (_topSupporters.isNotEmpty) ...[
-            _sectionTitle('Top supporters'),
-            ..._topSupporters
-                .asMap()
-                .entries
-                .map((entry) => _supporterTile(entry.key, entry.value)),
-            const SizedBox(height: 20),
-          ],
-          if (_gallery.isNotEmpty) ...[
-            _sectionTitle('Gallery'),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3, crossAxisSpacing: 6, mainAxisSpacing: 6),
-              itemCount: _gallery.length,
-              itemBuilder: (context, i) => ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child:
-                    AppImage(source: _gallery[i].imageData, fit: BoxFit.cover),
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-          if (_playlists.isNotEmpty) ...[
-            _sectionTitle('Playlists'),
-            ..._playlists.map(
-              (pl) => Container(
-                margin: const EdgeInsets.only(bottom: 8),
+    switch (id) {
+      case 'posts':
+        return ProfilePostGrid(posts: _posts, emptyText: 'No posts yet');
+      case 'reels':
+        return ProfilePostGrid(
+            posts: _reels, reels: true, emptyText: 'No reels yet');
+      case 'photos':
+        return _gallery.isEmpty
+            ? const Center(
+                child: Text('No photos yet.',
+                    style: TextStyle(color: AppColors.textFaint)))
+            : GridView.builder(
                 padding: const EdgeInsets.all(12),
-                decoration: insyncClay(radius: 22),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(pl.name,
-                                  style: const TextStyle(
-                                      color: AppColors.text,
-                                      fontWeight: FontWeight.w600)),
-                              Text(
-                                  '${pl.songs.length} song${pl.songs.length == 1 ? '' : 's'}',
-                                  style: const TextStyle(
-                                      color: AppColors.textFaint,
-                                      fontSize: 11)),
-                            ],
-                          ),
-                        ),
-                        // Members can like each other's playlists — shows
-                        // up on the liker's own Home/Lobby afterward (see
-                        // home_screen.dart's "Playlists you've liked").
-                        GestureDetector(
-                          onTap: () => _toggleLikePlaylist(pl),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                  pl.isLiked
-                                      ? Icons.favorite_rounded
-                                      : Icons.favorite_border_rounded,
-                                  color: pl.isLiked
-                                      ? AppColors.danger
-                                      : AppColors.textFaint,
-                                  size: 18),
-                              if (pl.likeCount > 0) ...[
-                                const SizedBox(width: 4),
-                                Text('${pl.likeCount}',
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3, crossAxisSpacing: 6, mainAxisSpacing: 6),
+                itemCount: _gallery.length,
+                itemBuilder: (context, i) => ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: AppImage(
+                      source: _gallery[i].imageData, fit: BoxFit.cover),
+                ),
+              );
+      case 'music':
+        final showLiked = p['hideLikedSongs'] != true;
+        return ListView(
+          padding: const EdgeInsets.all(12),
+          children: [
+            if (_playlists.isNotEmpty) ...[
+              _sectionTitle('Playlists'),
+              ..._playlists.map(
+                (pl) => Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: insyncClay(radius: 22),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(pl.name,
+                                    style: const TextStyle(
+                                        color: AppColors.text,
+                                        fontWeight: FontWeight.w600)),
+                                Text(
+                                    '${pl.songs.length} song${pl.songs.length == 1 ? '' : 's'}',
                                     style: const TextStyle(
                                         color: AppColors.textFaint,
-                                        fontSize: 11.5)),
+                                        fontSize: 11)),
                               ],
-                            ],
+                            ),
+                          ),
+                          // Members can like each other's playlists — shows
+                          // up on the liker's own Home/Lobby afterward (see
+                          // home_screen.dart's "Playlists you've liked").
+                          GestureDetector(
+                            onTap: () => _toggleLikePlaylist(pl),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                    pl.isLiked
+                                        ? Icons.favorite_rounded
+                                        : Icons.favorite_border_rounded,
+                                    color: pl.isLiked
+                                        ? AppColors.danger
+                                        : AppColors.textFaint,
+                                    size: 18),
+                                if (pl.likeCount > 0) ...[
+                                  const SizedBox(width: 4),
+                                  Text('${pl.likeCount}',
+                                      style: const TextStyle(
+                                          color: AppColors.textFaint,
+                                          fontSize: 11.5)),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (pl.songs.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 48,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: pl.songs.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(width: 8),
+                            itemBuilder: (context, i) {
+                              final s = pl.songs[i];
+                              return GestureDetector(
+                                onTap: () => playSongSmart(context, s),
+                                child: Container(
+                                  width: 64,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                      color: AppColors.surface3,
+                                      borderRadius: BorderRadius.circular(8)),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: s.thumbnail != null
+                                      ? AppImage(
+                                          source: s.thumbnail,
+                                          fit: BoxFit.cover)
+                                      : const Center(child: Text('🎵')),
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ],
-                    ),
-                    if (pl.songs.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        height: 48,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: pl.songs.length,
-                          separatorBuilder: (_, __) => const SizedBox(width: 8),
-                          itemBuilder: (context, i) {
-                            final s = pl.songs[i];
-                            return GestureDetector(
-                              onTap: () => playSongSmart(context, s),
-                              child: Container(
-                                width: 64,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                    color: AppColors.surface3,
-                                    borderRadius: BorderRadius.circular(8)),
-                                clipBehavior: Clip.antiAlias,
-                                child: s.thumbnail != null
-                                    ? AppImage(
-                                        source: s.thumbnail, fit: BoxFit.cover)
-                                    : const Center(child: Text('🎵')),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
                     ],
-                  ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+            if (_history.isNotEmpty) ...[
+              _sectionTitle('History'),
+              ..._history.map(_songTile),
+              const SizedBox(height: 16)
+            ],
+            if (showLiked && _liked.isNotEmpty) ...[
+              _sectionTitle('Liked songs'),
+              ..._liked.map(_songTile)
+            ],
+            if (_playlists.isEmpty &&
+                _history.isEmpty &&
+                (!showLiked || _liked.isEmpty))
+              const Padding(
+                padding: EdgeInsets.all(30),
+                child: Text('No music yet.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textFaint)),
+              ),
+          ],
+        );
+      case 'supporters':
+        return ListView(
+          padding: const EdgeInsets.all(12),
+          children: [
+            if (_topSupporters.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(30),
+                child: Text('No supporters yet — send the first gift.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textFaint)),
+              )
+            else ...[
+              _sectionTitle('Top supporters'),
+              ..._topSupporters
+                  .asMap()
+                  .entries
+                  .map((entry) => _supporterTile(entry.key, entry.value)),
+            ],
+          ],
+        );
+      default:
+        return ProfilePostGrid(
+            posts: _tagged, emptyText: 'No tagged posts yet');
+    }
+  }
+
+  Widget _buildBody() {
+    final p = _profile!;
+    final isFollowed = p['isFollowedByMe'] == true;
+    final activeRoom = p['activeRoom'] as Map?;
+    final layout = ProfileLayout.fromJson(p['profileLayout'] is Map
+        ? Map<String, dynamic>.from(p['profileLayout'] as Map)
+        : null);
+    final tabs = layout.visibleTabs(
+        const {'posts', 'reels', 'photos', 'music', 'supporters', 'tagged'});
+    final inRoom = activeRoom != null;
+    final header = <Widget>[
+      // Avatar gets a green ring + "IN ROOM" tag while they're in a room
+      // (Rave-style), stats beside it.
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 86,
+            height: 92,
+            child: Stack(
+              alignment: Alignment.topCenter,
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  key: _avatarKey,
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: inRoom
+                        ? Border.all(color: AppColors.success, width: 2.5)
+                        : null,
+                  ),
+                  child: SizedBox(
+                    width: 78,
+                    height: 78,
+                    child: FittedBox(
+                      child: Avatar(
+                          src: p['avatarUrl'] as String?,
+                          name: p['name'] as String?,
+                          size: AvatarSize.lg),
+                    ),
+                  ),
+                ),
+                if (_note != null)
+                  Positioned(
+                    top: -10,
+                    child: NoteBubble(
+                        text: _note!['text'] as String?,
+                        songTitle: _note!['songTitle'] as String?,
+                        maxWidth: 96),
+                  ),
+                if (inRoom)
+                  Positioned(
+                    bottom: 0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: AppColors.success,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: AppColors.bg, width: 2),
+                      ),
+                      child: const Text('IN ROOM',
+                          style: TextStyle(
+                              color: Color(0xFF06210F),
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _profileStatColumn('${_posts.length}', 'Posts'),
+                _profileStatColumn(
+                    formatNumber(p['followerCount']), 'Followers'),
+                _profileStatColumn(
+                    formatNumber(p['followingCount']), 'Following'),
+                _profileStatColumn(
+                    formatNumber(p['totalGiftsReceived']), 'Gifts',
+                    color: AppColors.gold),
+              ],
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 12),
+      Row(
+        children: [
+          Flexible(
+              child: Text(p['name'] as String? ?? '',
+                  style: const TextStyle(
+                      color: AppColors.text,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis)),
+          if (p['isVerified'] == true) ...[
+            const SizedBox(width: 6),
+            const Icon(Icons.verified_rounded,
+                color: AppColors.accent2, size: 14)
+          ],
+          if (p['isCreator'] == true) ...[
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                  color: AppColors.accent.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(999)),
+              child: const Text('Creator',
+                  style: TextStyle(
+                      color: AppColors.accent,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700)),
+            ),
+          ],
+          if (p['isVip'] == true) ...[
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                  color: AppColors.gold.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(999)),
+              child: const Text('VIP',
+                  style: TextStyle(
+                      color: AppColors.gold,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ],
+      ),
+      if (p['bio'] != null && (p['bio'] as String).isNotEmpty) ...[
+        const SizedBox(height: 5),
+        Text(p['bio'] as String,
+            style: const TextStyle(
+                color: AppColors.textDim, fontSize: 12.5, height: 1.5)),
+      ],
+    ];
+    for (final id in layout.visibleSections()) {
+      if (id == 'highlights') {
+        header.addAll([
+          const SizedBox(height: 12),
+          HighlightsRow(
+              userId: widget.userId,
+              isMine: false,
+              ownerName: p['name'] as String?,
+              ownerAvatar: p['avatarUrl'] as String?),
+        ]);
+      }
+      if (id == 'rightNow' && activeRoom != null) {
+        header.addAll([
+          const SizedBox(height: 14),
+          const Text('RIGHT NOW',
+              style: TextStyle(
+                  color: AppColors.textFaint,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.6)),
+          const SizedBox(height: 8),
+          _activeRoomBadge(activeRoom),
+        ]);
+      }
+    }
+    header.addAll([
+      const SizedBox(height: 16),
+      Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          _pillButton(
+            isFollowed ? 'Unfollow' : 'Follow',
+            onTap: _toggleFollow,
+            gradient: isFollowed
+                ? null
+                : const LinearGradient(colors: AppGradients.brand),
+            fill: isFollowed ? AppColors.surface2 : null,
+            textColor: isFollowed ? AppColors.textDim : Colors.white,
+          ),
+          _pillButton('Add friend',
+              onTap: _addFriend,
+              borderColor: AppColors.border,
+              textColor: AppColors.textDim),
+          _pillButton(
+            '🎁 Gift',
+            onTap: () => showGiftBottomSheet(context,
+                toUserId: widget.userId, targetKey: _avatarKey),
+            borderColor: AppColors.gold.withValues(alpha: 0.5),
+            textColor: AppColors.gold,
+          ),
+          _pillButton(
+            '💬 Message',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                  builder: (_) => MessageThreadScreen(
+                      userId: widget.userId,
+                      name: p['name'] as String? ?? '',
+                      avatarUrl: p['avatarUrl'] as String?)),
+            ),
+            borderColor: AppColors.border,
+            textColor: AppColors.textDim,
+          ),
+          _pillButton(
+            '⋯ More',
+            onTap: () => _moreSheet(p['name'] as String? ?? ''),
+            borderColor: AppColors.danger.withValues(alpha: 0.5),
+            textColor: AppColors.danger,
+          ),
+        ],
+      ),
+      const SizedBox(height: 8),
+    ]);
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: DefaultTabController(
+        key: ValueKey(tabs.join(',')),
+        length: tabs.length,
+        child: NestedScrollView(
+          headerSliverBuilder: (context, _) => [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: header,
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            if (tabs.isNotEmpty)
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _TabBarHeader(TabBar(
+                  indicatorColor: AppColors.accent,
+                  labelColor: AppColors.accent,
+                  unselectedLabelColor: AppColors.textDim,
+                  tabs: [
+                    for (final t in tabs)
+                      Tab(
+                          icon: Icon(ProfileLayout.icon(t),
+                              semanticLabel: ProfileLayout.label(t))),
+                  ],
+                )),
+              ),
           ],
-          if (_history.isNotEmpty) ...[
-            _sectionTitle('History'),
-            ..._history.map(_songTile),
-            const SizedBox(height: 16)
-          ],
-          if (_liked.isNotEmpty) ...[
-            _sectionTitle('Liked songs'),
-            ..._liked.map(_songTile)
-          ],
-        ],
+          body: tabs.isEmpty
+              ? const SizedBox.shrink()
+              : TabBarView(children: [for (final t in tabs) _tabContent(t)]),
+        ),
       ),
     );
   }
@@ -582,93 +840,142 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
         ),
     };
 
+    final isPrivate = activeRoom['isPrivate'] == true;
+    final canJoin = activeRoom['canJoin'] != false && !isPrivate;
+    final nowTitle = activeRoom['nowPlayingTitle'] as String?;
+    final nowThumb = activeRoom['nowPlayingThumbnail'] as String?;
+    final gameType = activeRoom['gameType'] as String?;
+    final members = ((activeRoom['members'] as List?) ?? const [])
+        .whereType<Map>()
+        .toList();
+    final headline = isPrivate
+        ? 'In a private room'
+        : nowTitle != null
+            ? '${roomType == 'watch' ? 'Watching' : 'Listening to'} $nowTitle'
+            : roomType == 'game' && gameType != null
+                ? 'Playing ${gameType.replaceAll('_', ' ')}'
+                : title;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              GlassIcon(
-                size: 40,
-                radius: 12,
-                colors: gradientColors,
-                glowColor: color.withValues(alpha: 0.4),
-                child: Icon(icon, color: Colors.white, size: 18),
+          if (nowThumb != null && !isPrivate)
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  AppImage(source: nowThumb, fit: BoxFit.cover),
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                          color: AppColors.success,
+                          borderRadius: BorderRadius.circular(6)),
+                      child: const Text('● LIVE',
+                          style: TextStyle(
+                              color: Color(0xFF06210F),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+                ],
               ),
-              Positioned(
-                top: -2,
-                right: -2,
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: color,
-                    border: Border.all(color: AppColors.surface, width: 1.5),
+            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                if (nowThumb == null || isPrivate) ...[
+                  GlassIcon(
+                    size: 40,
+                    radius: 12,
+                    colors: gradientColors,
+                    glowColor: color.withValues(alpha: 0.4),
+                    child: Icon(isPrivate ? Icons.lock_rounded : icon,
+                        color: Colors.white, size: 18),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(label,
+                          style: TextStyle(
+                              color: color,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5)),
+                      const SizedBox(height: 2),
+                      Text(headline,
+                          style: const TextStyle(
+                              color: AppColors.text,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis),
+                      if (memberCount != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Row(
+                            children: [
+                              for (var i = 0; i < members.length; i++)
+                                Transform.translate(
+                                  offset: Offset(-6.0 * i, 0),
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: FittedBox(
+                                      child: Avatar(
+                                          src: members[i]['avatarUrl']
+                                              as String?,
+                                          name: members[i]['name'] as String?,
+                                          size: AvatarSize.sm),
+                                    ),
+                                  ),
+                                ),
+                              Text('$memberCount $verb',
+                                  style: const TextStyle(
+                                      color: AppColors.textFaint,
+                                      fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                            shape: BoxShape.circle, color: color)),
-                    const SizedBox(width: 5),
-                    Text(label,
-                        style: TextStyle(
-                            color: color,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.5)),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(title,
-                    style: const TextStyle(
-                        color: AppColors.text,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-                if (memberCount != null)
-                  Text('$memberCount $verb',
-                      style: const TextStyle(
-                          color: AppColors.textFaint, fontSize: 11)),
+                if (canJoin) ...[
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => PartyScreen(roomId: roomId))),
+                    child: Container(
+                      height: 32,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(999),
+                          color: AppColors.accent),
+                      alignment: Alignment.center,
+                      child: const Text('Join',
+                          style: TextStyle(
+                              color: AppColors.ink,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12)),
+                    ),
+                  ),
+                ],
               ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId))),
-            child: Container(
-              height: 32,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  gradient: const LinearGradient(colors: AppGradients.brand)),
-              alignment: Alignment.center,
-              child: const Text('Join',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12)),
             ),
           ),
         ],
@@ -779,4 +1086,21 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
           ),
         ),
       );
+}
+
+class _TabBarHeader extends SliverPersistentHeaderDelegate {
+  final TabBar tabBar;
+  _TabBarHeader(this.tabBar);
+
+  @override
+  double get minExtent => tabBar.preferredSize.height;
+  @override
+  double get maxExtent => tabBar.preferredSize.height;
+
+  @override
+  Widget build(context, shrinkOffset, overlapsContent) =>
+      Container(color: AppColors.bg, child: tabBar);
+
+  @override
+  bool shouldRebuild(covariant _TabBarHeader old) => old.tabBar != tabBar;
 }

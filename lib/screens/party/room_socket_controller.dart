@@ -38,6 +38,16 @@ class RoomSocketController extends ChangeNotifier {
   };
   String? micDenied;
   Map<String, dynamic>? game;
+  // Who has asked the host for a game seat, and who the host has offered
+  // one to — see syncHandler.js's game:request / game:invite.
+  List<String> gameRequests = [];
+  List<String> gameInvites = [];
+  // One-shot, cleared by clearGameSeatDenied() once shown.
+  String? gameSeatDenied;
+  // On-mic people whose voice is coming through right now — each speaker's
+  // own client reports itself (see setSpeaking), so this needs no mapping
+  // from Agora's random uids to app users.
+  Set<String> speaking = {};
   Map<String, dynamic>? typeChange;
   Map<String, dynamic> settings = {
     'micEnabled': true,
@@ -253,6 +263,28 @@ class RoomSocketController extends ChangeNotifier {
       game = data == null ? null : Map<String, dynamic>.from(data);
       notifyListeners();
     });
+    s.on('game:seats', (data) {
+      final d = Map<String, dynamic>.from(data);
+      gameRequests = (d['requests'] as List? ?? []).cast<String>();
+      gameInvites = (d['invites'] as List? ?? []).cast<String>();
+      notifyListeners();
+    });
+    s.on('game:seatDenied', (data) {
+      gameSeatDenied = data['reason'] as String?;
+      notifyListeners();
+    });
+    s.on('call:speaking', (data) {
+      final userId = data['userId'] as String?;
+      if (userId == null) return;
+      final next = {...speaking};
+      if (data['speaking'] == true) {
+        next.add(userId);
+      } else {
+        next.remove(userId);
+      }
+      speaking = next;
+      notifyListeners();
+    });
     // The host changed the room's type (see PATCH /rooms/:id/type) —
     // re-join so the server's lazy game-state seeding (in room:join) runs
     // again for whatever the new gameType is, same as a fresh page load.
@@ -312,6 +344,9 @@ class RoomSocketController extends ChangeNotifier {
     socket?.off('call:state');
     socket?.off('call:denied');
     socket?.off('game:state');
+    socket?.off('game:seats');
+    socket?.off('game:seatDenied');
+    socket?.off('call:speaking');
     socket?.off('room:typeChanged');
     socket?.off('room:settingsChanged');
     socket?.off('queue:denied');
@@ -325,6 +360,11 @@ class RoomSocketController extends ChangeNotifier {
 
   void clearQueueDenied() {
     queueDenied = null;
+    notifyListeners();
+  }
+
+  void clearGameSeatDenied() {
+    gameSeatDenied = null;
     notifyListeners();
   }
 
@@ -367,6 +407,17 @@ class RoomSocketController extends ChangeNotifier {
   void queueAdd(Map<String, dynamic> item, {String position = 'bottom'}) =>
       socket?.emit(
           'queue:add', {'roomId': roomId, 'item': item, 'position': position});
+  // A whole playlist in one go — playNow puts it right after the current
+  // song and starts it (host, or anyone when pinPermission is 'anyone');
+  // otherwise it's appended. See syncHandler.js's queue:addMany.
+  void queueAddMany(List<Map<String, dynamic>> items,
+          {bool playNow = true, String? label}) =>
+      socket?.emit('queue:addMany', {
+        'roomId': roomId,
+        'items': items,
+        'playNow': playNow,
+        if (label != null) 'label': label,
+      });
   void queueInit(Map<String, dynamic> item) =>
       socket?.emit('queue:init', {'roomId': roomId, 'item': item});
   // expectedVersion: whatever queue:state.version this client's own copy of
@@ -377,13 +428,21 @@ class RoomSocketController extends ChangeNotifier {
   // authoritative. Reject stale client mutations."
   void queueJump(int index) {
     if (canPin) {
-      socket?.emit('queue:jump', {'roomId': roomId, 'index': index, 'expectedVersion': queue['version']});
+      socket?.emit('queue:jump', {
+        'roomId': roomId,
+        'index': index,
+        'expectedVersion': queue['version']
+      });
     }
   }
 
   void queueRemove(int index) {
     if (isHost) {
-      socket?.emit('queue:remove', {'roomId': roomId, 'index': index, 'expectedVersion': queue['version']});
+      socket?.emit('queue:remove', {
+        'roomId': roomId,
+        'index': index,
+        'expectedVersion': queue['version']
+      });
     }
   }
 
@@ -399,6 +458,7 @@ class RoomSocketController extends ChangeNotifier {
         'endedVideoUrl': current['videoUrl'],
     });
   }
+
   void queueSkip() {
     if (isHost) socket?.emit('queue:skip', {'roomId': roomId});
   }
@@ -509,6 +569,46 @@ class RoomSocketController extends ChangeNotifier {
   }
 
   void gameJoin() => socket?.emit('game:join', {'roomId': roomId});
+  void gameRequest() => socket?.emit('game:request', {'roomId': roomId});
+  void gameCancelRequest() =>
+      socket?.emit('game:cancelRequest', {'roomId': roomId});
+  void gameDeclineInvite() =>
+      socket?.emit('game:declineInvite', {'roomId': roomId});
+  void gameApprove(String targetUserId) {
+    if (isHost) {
+      socket?.emit(
+          'game:approve', {'roomId': roomId, 'targetUserId': targetUserId});
+    }
+  }
+
+  void gameDeny(String targetUserId) {
+    if (isHost) {
+      socket
+          ?.emit('game:deny', {'roomId': roomId, 'targetUserId': targetUserId});
+    }
+  }
+
+  void gameInvite(String targetUserId) {
+    if (isHost) {
+      socket?.emit(
+          'game:invite', {'roomId': roomId, 'targetUserId': targetUserId});
+    }
+  }
+
+  // My own voice started/stopped coming through — VoiceChatController
+  // reports level changes, party_screen.dart forwards them here.
+  bool _speakingReported = false;
+  void setSpeaking(bool value) {
+    if (value == _speakingReported) return;
+    _speakingReported = value;
+    final me = myUserId;
+    if (me != null) {
+      speaking = value ? ({...speaking, me}) : ({...speaking}..remove(me));
+      notifyListeners();
+    }
+    socket?.emit('call:speaking', {'roomId': roomId, 'speaking': value});
+  }
+
   void gameMove(Map<String, dynamic> move) =>
       socket?.emit('game:move', {'roomId': roomId, 'move': move});
   void gameReset() {

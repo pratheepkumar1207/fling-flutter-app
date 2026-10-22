@@ -1,8 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import '../core/profile_nav.dart';
 import '../theme/app_colors.dart';
-import 'avatar.dart';
+import 'game_seat.dart';
 
 const _kSeatColors = [
   Color(0xFFFF3D78),
@@ -13,7 +12,6 @@ const _kSeatColors = [
   Color(0xFF4DC4FF)
 ];
 const _kSpinDuration = Duration(milliseconds: 3200);
-const _kTableRadius = 78.0;
 
 /// Presentational only — turn selection (the "spin the bottle" random pick)
 /// and prompt selection both happen server-side in src/games/truthOrDare.js;
@@ -111,311 +109,246 @@ class _TruthOrDarePanelState extends State<TruthOrDarePanel>
     final eased = Curves.easeOutCubic.transform(_controller.value);
     final currentAngle = _fromAngle + (_toAngle - _fromAngle) * eased;
 
-    return AspectRatio(
-      aspectRatio: 16 / 9,
-      child: Container(
-        decoration: BoxDecoration(
-            color: AppColors.surface2,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.border)),
-        padding: const EdgeInsets.all(12),
-        child: status == 'waiting'
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 12,
+    // Seats around a round table, the bottle in the middle — it spins
+    // toward whoever the server picked (see didUpdateWidget).
+    final table = LayoutBuilder(builder: (context, constraints) {
+      final side = min(constraints.maxWidth, 320.0);
+      final radius = side / 2 - 38;
+      final seatCount = status == 'waiting' ? max(n + 1, 2) : n;
+      return SizedBox(
+        width: side,
+        height: side,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: radius * 2 - 30,
+              height: radius * 2 - 30,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.border),
+                color: AppColors.surface.withValues(alpha: 0.55),
+              ),
+            ),
+            for (var i = 0; i < seatCount; i++)
+              Builder(builder: (context) {
+                final rad = ((360 / seatCount) * i - 90) * pi / 180;
+                final offset = Offset(cos(rad) * radius, sin(rad) * radius);
+                if (i >= n) {
+                  return Transform.translate(
+                      offset: offset, child: const GameOpenSeat(size: 28));
+                }
+                final p = players[i];
+                return Transform.translate(
+                  offset: offset,
+                  child: GameSeat(
+                    userId: p['userId'] as String?,
+                    name: p['name'] as String?,
+                    isMe: p['userId'] == widget.myUserId,
+                    isTurn: !_spinning &&
+                        status == 'playing' &&
+                        p['userId'] == _displayTurn,
+                    color: _kSeatColors[i % _kSeatColors.length]
+                        .withValues(alpha: 0.6),
+                    size: 28,
+                  ),
+                );
+              }),
+            Transform.rotate(
+              angle: currentAngle * pi / 180,
+              child: const _Bottle(),
+            ),
+          ],
+        ),
+      );
+    });
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GameStatusLine(
+          status == 'waiting'
+              ? (n < 2 ? 'Waiting for players' : '')
+              : _spinning
+                  ? 'Spinning…'
+                  : isMyTurn
+                      ? 'Your turn'
+                      : "${currentPlayer?['name'] ?? 'Their'}'s turn",
+          highlight: status != 'waiting',
+        ),
+        Center(child: table),
+        if (status != 'waiting' && !_spinning)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: prompt == null
+                ? (isMyTurn
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ElevatedButton(
+                            onPressed: () => widget.onMove(
+                                {'action': 'choose', 'choice': 'truth'}),
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary),
+                            child: const Text('🤔 Truth'),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                            onPressed: () => widget
+                                .onMove({'action': 'choose', 'choice': 'dare'}),
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.accent),
+                            child: const Text('🔥 Dare'),
+                          ),
+                        ],
+                      )
+                    : Text(
+                        'Waiting for ${currentPlayer?['name'] ?? 'them'} to choose…',
+                        style: const TextStyle(
+                            color: AppColors.textDim, fontSize: 13)))
+                // Matches TruthOrDareDark.dc.html's big gradient reveal
+                // card — the mockup's "Round N", "🔥 streak", and
+                // Skip(−10)/Done(+20) coin-stakes aren't shown here:
+                // src/games/truthOrDare.js has no round counter, streak,
+                // or scoring/penalty system at all, so there's nothing
+                // real to back them with.
+                : Column(
                     children: [
-                      for (final p in players)
-                        GestureDetector(
-                          onTap: () =>
-                              openProfile(context, p['userId'] as String?),
-                          child: Column(
-                            children: [
-                              Avatar(
-                                  name: p['name'] as String?,
-                                  size: AvatarSize.sm),
-                              Text(p['name'] as String? ?? '',
-                                  style: const TextStyle(
-                                      color: AppColors.textDim, fontSize: 11)),
-                            ],
+                      Container(
+                        constraints: const BoxConstraints(maxWidth: 260),
+                        padding: const EdgeInsets.all(22),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: AppGradients.brand),
+                          boxShadow: [
+                            BoxShadow(
+                                color:
+                                    AppColors.accent2.withValues(alpha: 0.45),
+                                blurRadius: 30,
+                                offset: const Offset(0, 14))
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: Colors.white.withValues(alpha: 0.18)),
+                              alignment: Alignment.center,
+                              child: Icon(
+                                  prompt['type'] == 'truth'
+                                      ? Icons.help_outline_rounded
+                                      : Icons.local_fire_department_rounded,
+                                  color: Colors.white,
+                                  size: 19),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                                (prompt['type'] as String? ?? '').toUpperCase(),
+                                style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.2)),
+                            const SizedBox(height: 8),
+                            Text(prompt['text'] as String? ?? '',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                    height: 1.4)),
+                          ],
+                        ),
+                      ),
+                      if (isMyTurn)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 14),
+                          child: GestureDetector(
+                            onTap: () => widget.onMove({'action': 'next'}),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 22, vertical: 11),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(999),
+                                gradient: const LinearGradient(
+                                    colors: AppGradients.brand),
+                                boxShadow: [
+                                  BoxShadow(
+                                      color: AppColors.accent2
+                                          .withValues(alpha: 0.5),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 8))
+                                ],
+                              ),
+                              child: const Text('Done — spin for next',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13)),
+                            ),
                           ),
                         ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  const Text('Waiting for a second player…',
-                      style:
-                          TextStyle(color: AppColors.textFaint, fontSize: 12)),
-                  if (!isPlayer)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: ElevatedButton(
-                          onPressed: widget.onJoin,
-                          child: const Text('Join game')),
-                    ),
-                ],
-              )
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: _kTableRadius * 2 + 60,
-                    height: _kTableRadius * 2 + 60,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          width: _kTableRadius * 2,
-                          height: _kTableRadius * 2,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.border),
-                            gradient: RadialGradient(
-                                colors: [AppColors.surface3, AppColors.surface],
-                                center: const Alignment(-0.3, -0.4)),
-                          ),
-                        ),
-                        for (var i = 0; i < n; i++)
-                          Builder(builder: (context) {
-                            final p = players[i];
-                            final angle = (360 / n) * i - 90;
-                            final rad = angle * pi / 180;
-                            final x = cos(rad) * _kTableRadius;
-                            final y = sin(rad) * _kTableRadius;
-                            final chosen =
-                                !_spinning && p['userId'] == _displayTurn;
-                            return Transform.translate(
-                              offset: Offset(x, y),
-                              child: SizedBox(
-                                width: 64,
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    GestureDetector(
-                                      onTap: () => openProfile(
-                                          context, p['userId'] as String?),
-                                      child: Avatar(
-                                          name: p['name'] as String?,
-                                          size: AvatarSize.sm),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: chosen
-                                            ? AppColors.primary
-                                            : AppColors.surface2,
-                                        borderRadius:
-                                            BorderRadius.circular(999),
-                                        border: Border.all(
-                                            color: _kSeatColors[
-                                                i % _kSeatColors.length]),
-                                        boxShadow: chosen
-                                            ? [
-                                                BoxShadow(
-                                                    color: AppColors.primary
-                                                        .withValues(alpha: 0.5),
-                                                    blurRadius: 12)
-                                              ]
-                                            : null,
-                                      ),
-                                      child: Text(
-                                        p['name'] as String? ?? '',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w600,
-                                            color: chosen
-                                                ? Colors.white
-                                                : AppColors.textDim),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }),
-                        Transform.rotate(
-                          angle: currentAngle * pi / 180,
-                          alignment: const Alignment(0, 0.85),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                  width: 10,
-                                  height: 14,
-                                  decoration: const BoxDecoration(
-                                      color: AppColors.accent,
-                                      borderRadius: BorderRadius.vertical(
-                                          top: Radius.circular(3)))),
-                              Container(
-                                width: 22,
-                                height: 56,
-                                decoration: BoxDecoration(
-                                    color: AppColors.surface3,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border:
-                                        Border.all(color: AppColors.accent)),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_spinning)
-                    const Padding(
-                        padding: EdgeInsets.only(top: 4),
-                        child: Text('Spinning…',
-                            style: TextStyle(
-                                color: AppColors.textFaint, fontSize: 11))),
-                  if (!_spinning)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: prompt == null
-                          ? (isMyTurn
-                              ? Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    ElevatedButton(
-                                      onPressed: () => widget.onMove({
-                                        'action': 'choose',
-                                        'choice': 'truth'
-                                      }),
-                                      style: ElevatedButton.styleFrom(
-                                          backgroundColor: AppColors.primary),
-                                      child: const Text('🤔 Truth'),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    ElevatedButton(
-                                      onPressed: () => widget.onMove({
-                                        'action': 'choose',
-                                        'choice': 'dare'
-                                      }),
-                                      style: ElevatedButton.styleFrom(
-                                          backgroundColor: AppColors.accent),
-                                      child: const Text('🔥 Dare'),
-                                    ),
-                                  ],
-                                )
-                              : Text(
-                                  'Waiting for ${currentPlayer?['name'] ?? 'them'} to choose…',
-                                  style: const TextStyle(
-                                      color: AppColors.textDim, fontSize: 13)))
-                          // Matches TruthOrDareDark.dc.html's big gradient reveal
-                          // card — the mockup's "Round N", "🔥 streak", and
-                          // Skip(−10)/Done(+20) coin-stakes aren't shown here:
-                          // src/games/truthOrDare.js has no round counter, streak,
-                          // or scoring/penalty system at all, so there's nothing
-                          // real to back them with.
-                          : Column(
-                              children: [
-                                Container(
-                                  constraints:
-                                      const BoxConstraints(maxWidth: 260),
-                                  padding: const EdgeInsets.all(22),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(20),
-                                    gradient: const LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: AppGradients.brand),
-                                    boxShadow: [
-                                      BoxShadow(
-                                          color: AppColors.accent2
-                                              .withValues(alpha: 0.45),
-                                          blurRadius: 30,
-                                          offset: const Offset(0, 14))
-                                    ],
-                                  ),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        width: 38,
-                                        height: 38,
-                                        decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            color: Colors.white
-                                                .withValues(alpha: 0.18)),
-                                        alignment: Alignment.center,
-                                        child: Icon(
-                                            prompt['type'] == 'truth'
-                                                ? Icons.help_outline_rounded
-                                                : Icons
-                                                    .local_fire_department_rounded,
-                                            color: Colors.white,
-                                            size: 19),
-                                      ),
-                                      const SizedBox(height: 12),
-                                      Text(
-                                          (prompt['type'] as String? ?? '')
-                                              .toUpperCase(),
-                                          style: const TextStyle(
-                                              color: Colors.white70,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w800,
-                                              letterSpacing: 1.2)),
-                                      const SizedBox(height: 8),
-                                      Text(prompt['text'] as String? ?? '',
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 15,
-                                              height: 1.4)),
-                                    ],
-                                  ),
-                                ),
-                                if (isMyTurn)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 14),
-                                    child: GestureDetector(
-                                      onTap: () =>
-                                          widget.onMove({'action': 'next'}),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 22, vertical: 11),
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(999),
-                                          gradient: const LinearGradient(
-                                              colors: AppGradients.brand),
-                                          boxShadow: [
-                                            BoxShadow(
-                                                color: AppColors.accent2
-                                                    .withValues(alpha: 0.5),
-                                                blurRadius: 20,
-                                                offset: const Offset(0, 8))
-                                          ],
-                                        ),
-                                        child: const Text(
-                                            'Done — spin for next',
-                                            style: TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 13)),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                    ),
-                  if (!isPlayer)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: ElevatedButton(
-                          onPressed: widget.onJoin,
-                          child: const Text('Join game')),
-                    ),
-                ],
-              ),
-      ),
+          ),
+        const SizedBox(height: 10),
+        GameJoinButton(
+            seated: isPlayer, full: false, fallbackJoin: widget.onJoin),
+      ],
     );
   }
+}
+
+/// A glass bottle seen from above, neck pointing up — rotated about its
+/// middle so the neck lands on the chosen player.
+class _Bottle extends StatelessWidget {
+  const _Bottle();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 34,
+      height: 96,
+      child: CustomPaint(painter: _BottlePainter()),
+    );
+  }
+}
+
+class _BottlePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    final body = RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, h * 0.42, w, h * 0.58), Radius.circular(w * 0.45));
+    final neck = Path()
+      ..moveTo(w * 0.12, h * 0.48)
+      ..quadraticBezierTo(w * 0.32, h * 0.36, w * 0.36, h * 0.14)
+      ..lineTo(w * 0.64, h * 0.14)
+      ..quadraticBezierTo(w * 0.68, h * 0.36, w * 0.88, h * 0.48)
+      ..close();
+    final glass = Paint()..color = const Color(0xFF2F8A5C);
+    canvas.drawRRect(body, glass);
+    canvas.drawPath(neck, glass);
+    // Cap — the end that points at the chosen player.
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(Rect.fromLTWH(w * 0.33, 0, w * 0.34, h * 0.15),
+            const Radius.circular(3)),
+        Paint()..color = AppColors.accent);
+    // Highlight down the side so it reads as glass.
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromLTWH(w * 0.2, h * 0.52, w * 0.14, h * 0.38),
+            Radius.circular(w * 0.07)),
+        Paint()..color = Colors.white.withValues(alpha: 0.28));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

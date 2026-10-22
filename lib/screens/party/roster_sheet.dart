@@ -26,6 +26,7 @@ enum _Action {
   profile,
   message,
   inviteMic,
+  inviteGame,
   mute,
   unmute,
   makeHost,
@@ -39,7 +40,7 @@ enum _Action {
 /// in their own section, everyone else below with their name and a status
 /// line (on mic / muted / following). Everything you can do with a person —
 /// follow, profile, message, and the host's controls (invite to mic, mute,
-/// make host, remove) — lives behind that row's ⋮ menu, so nothing crowds
+/// invite to play, make host, remove) — lives behind that row's ⋮ menu, so nothing crowds
 /// the row and a mis-tap can't remove anyone (Remove asks first). Search
 /// filters by name; Invite sits at the bottom.
 class RosterSheet extends StatefulWidget {
@@ -56,6 +57,10 @@ class RosterSheet extends StatefulWidget {
   final void Function(String userId)? onForceMute;
   final void Function(String userId)? onForceUnmute;
   final VoidCallback? onInvite;
+  // Game rooms: host offers someone a seat (null = not offered here, e.g.
+  // they're already playing).
+  final void Function(String userId)? onInviteGame;
+  final Set<String> gamePlayerIds;
 
   const RosterSheet({
     super.key,
@@ -72,6 +77,8 @@ class RosterSheet extends StatefulWidget {
     this.onForceMute,
     this.onForceUnmute,
     this.onInvite,
+    this.onInviteGame,
+    this.gamePlayerIds = const {},
   });
 
   @override
@@ -388,6 +395,11 @@ class _RosterSheetState extends State<RosterSheet> {
         _item(_Action.message, Icons.chat_bubble_rounded, 'Message'),
         if (hostTools) ...[
           const PopupMenuDivider(),
+          if (widget.roomType == 'game' &&
+              widget.onInviteGame != null &&
+              !widget.gamePlayerIds.contains(r.userId))
+            _item(_Action.inviteGame, Icons.sports_esports_rounded,
+                'Invite to play'),
           if (voice && !onMic && widget.onInviteMic != null)
             _item(_Action.inviteMic, Icons.mic_rounded, 'Invite to mic'),
           if (voice && onMic && muted && widget.onForceUnmute != null)
@@ -429,6 +441,12 @@ class _RosterSheetState extends State<RosterSheet> {
                 userId: r.userId, name: r.name, avatarUrl: r.avatarUrl)));
       case _Action.inviteMic:
         widget.onInviteMic!(r.userId);
+      case _Action.inviteGame:
+        widget.onInviteGame!(r.userId);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Invited ${r.name} to play')));
+        }
       case _Action.mute:
         widget.onForceMute!(r.userId);
       case _Action.unmute:

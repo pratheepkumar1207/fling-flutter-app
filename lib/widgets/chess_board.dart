@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import '../core/profile_nav.dart';
+import 'game_seat.dart';
 import '../theme/app_colors.dart';
-import 'avatar.dart';
 
 /// Presentational only — every rule (legal moves, check, checkmate,
 /// castling preconditions, en passant, promotion) is enforced server-side
@@ -261,7 +260,7 @@ class _ChessBoardState extends State<ChessBoard> {
 
     String? statusText;
     if (status == 'won') {
-      statusText = '${winnerPlayer?['name'] ?? 'Someone'} won by checkmate! ♛';
+      statusText = '${winnerPlayer?['name'] ?? 'Someone'} won by checkmate';
     } else if (status == 'draw') {
       final reason = {
             'stalemate': 'stalemate',
@@ -271,45 +270,68 @@ class _ChessBoardState extends State<ChessBoard> {
           'a draw';
       statusText = 'Draw — $reason';
     } else if (check) {
-      statusText = 'Check!';
+      statusText = 'Check';
     }
 
     // No wrapping card — the board sits directly on the room background,
     // matching GameRoomDark.dc.html (only the board itself carries a shadow,
     // via the outer ClipRRect+AspectRatio below).
+    // Opponent above the board, you below it — so the board always faces
+    // you. Spectators see black on top, white at the bottom.
+    final bottomColor = myColor ?? 'white';
+    final topColor = bottomColor == 'white' ? 'black' : 'white';
+    Widget seatFor(String color) {
+      final p = players
+          .cast<Map?>()
+          .firstWhere((p) => p?['color'] == color, orElse: () => null);
+      if (p == null) {
+        return const Align(
+            alignment: Alignment.centerLeft,
+            child: GameOpenSeat(size: 26, direction: Axis.horizontal));
+      }
+      final isTurn = status == 'playing' && turnColor == color;
+      return Row(
+        children: [
+          Flexible(
+            child: GameSeat(
+              userId: p['userId'] as String?,
+              name: p['name'] as String?,
+              isMe: p['userId'] == widget.myUserId,
+              isTurn: isTurn,
+              size: 26,
+              direction: Axis.horizontal,
+              detail: Text(color),
+            ),
+          ),
+          const Spacer(),
+          if (isTurn)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                  color: AppColors.accent,
+                  borderRadius: BorderRadius.circular(999)),
+              child: Text(
+                  p['userId'] == widget.myUserId ? 'Your move' : 'Thinking',
+                  style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700)),
+            ),
+        ],
+      );
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            for (final p in players)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Column(
-                  children: [
-                    GestureDetector(
-                      onTap: () => openProfile(context, p['userId'] as String?),
-                      child: Avatar(
-                          name: p['name'] as String?, size: AvatarSize.sm),
-                    ),
-                    const SizedBox(height: 2),
-                    Text('${p['name']} ${p['color'] == 'white' ? '♔' : '♚'}',
-                        style: const TextStyle(
-                            color: AppColors.textDim, fontSize: 11)),
-                    if (status == 'playing' && turnColor == p['color'])
-                      const Text('Their turn',
-                          style:
-                              TextStyle(color: AppColors.accent, fontSize: 9)),
-                  ],
-                ),
-              ),
-            if (players.length < 2)
-              const Text('Waiting for a second player…',
-                  style: TextStyle(color: AppColors.textFaint, fontSize: 12)),
-          ],
-        ),
-        const SizedBox(height: 10),
+        if (status == 'waiting')
+          GameStatusLine(
+              players.isEmpty
+                  ? 'Waiting for players'
+                  : 'Waiting for a second player',
+              highlight: false),
+        seatFor(topColor),
+        const SizedBox(height: 8),
         Container(
           decoration:
               BoxDecoration(borderRadius: BorderRadius.circular(8), boxShadow: [
@@ -384,10 +406,13 @@ class _ChessBoardState extends State<ChessBoard> {
             ),
           ),
         ),
+        const SizedBox(height: 8),
+        seatFor(bottomColor),
         const SizedBox(height: 10),
-        if (!isPlayer && status == 'waiting')
-          ElevatedButton(
-              onPressed: widget.onJoin, child: const Text('Join game')),
+        GameJoinButton(
+            seated: isPlayer,
+            full: players.length >= 2,
+            fallbackJoin: widget.onJoin),
         if (statusText != null)
           Padding(
             padding: const EdgeInsets.only(top: 8),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/api_client.dart';
+import '../core/api_exception.dart';
 import '../core/auth_provider.dart';
 import '../core/format.dart';
 import '../theme/app_colors.dart';
@@ -110,21 +111,25 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
     _controller.forward();
   }
 
+  // Replies and emoji reactions land in the author's Messages as "Replied
+  // to your story: …" (POST /feed/:id/story-reply — same DM rules apply).
   Future<void> _sendReply(String text) async {
     if (text.trim().isEmpty || _sending) return;
     setState(() => _sending = true);
     try {
-      await ApiClient.post('/messages/${_group.userId}',
+      await ApiClient.post('/feed/${_item.id}/story-reply',
           body: {'text': text.trim()});
       if (!mounted) return;
       _replyController.clear();
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Reply sent')));
-      _stopReplying();
-    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              text.trim().runes.length <= 2 ? 'Reaction sent' : 'Reply sent')));
+      if (_replying) _stopReplying();
+    } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to send reply')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content:
+                Text(e is ApiException ? e.message : 'Failed to send reply')));
       }
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -191,10 +196,19 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
                 right: 12,
                 child: Row(
                   children: [
-                    Avatar(
-                        src: group.avatarUrl,
-                        name: group.name,
-                        size: AvatarSize.sm),
+                    Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: item.closeFriends
+                            ? Border.all(color: AppColors.success, width: 2)
+                            : null,
+                      ),
+                      child: Avatar(
+                          src: group.avatarUrl,
+                          name: group.name,
+                          size: AvatarSize.sm),
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(
@@ -207,9 +221,26 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
                                   color: Colors.white,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 13)),
-                          Text(formatRelativeTime(item.createdAt),
-                              style: const TextStyle(
-                                  color: Colors.white70, fontSize: 11)),
+                          Row(children: [
+                            Text(formatRelativeTime(item.createdAt),
+                                style: const TextStyle(
+                                    color: Colors.white70, fontSize: 11)),
+                            if (item.closeFriends) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 1),
+                                decoration: BoxDecoration(
+                                    color: AppColors.success,
+                                    borderRadius: BorderRadius.circular(999)),
+                                child: const Text('Close friends',
+                                    style: TextStyle(
+                                        color: Color(0xFF06210F),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700)),
+                              ),
+                            ],
+                          ]),
                         ],
                       ),
                     ),
@@ -233,8 +264,10 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
     );
   }
 
+  static const _reactions = ['😂', '😮', '😍', '🔥', '👏', '😢'];
+
   Widget _replyBar() {
-    return Row(
+    final bar = Row(
       children: [
         Expanded(
           child: Container(
@@ -254,11 +287,12 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
               onSubmitted: _sendReply,
               textInputAction: TextInputAction.send,
               style: const TextStyle(color: Colors.white, fontSize: 12.5),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 border: InputBorder.none,
                 isDense: true,
-                hintText: 'Send a message',
-                hintStyle: TextStyle(color: Colors.white70, fontSize: 12.5),
+                hintText: 'Reply to ${_group.name ?? 'them'}…',
+                hintStyle:
+                    const TextStyle(color: Colors.white70, fontSize: 12.5),
               ),
             ),
           ),
@@ -280,6 +314,30 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
                       strokeWidth: 2, color: Colors.white))
               : const Icon(Icons.send_rounded, color: Colors.white, size: 22),
         ),
+      ],
+    );
+    // Quick emoji reactions above the reply box — one tap sends.
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              for (final e in _reactions)
+                Semantics(
+                  button: true,
+                  label: 'React $e',
+                  child: GestureDetector(
+                    onTap: () => _sendReply(e),
+                    child: Text(e, style: const TextStyle(fontSize: 26)),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        bar,
       ],
     );
   }

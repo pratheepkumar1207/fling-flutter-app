@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../core/auth_provider.dart';
+import '../../widgets/notes.dart';
 import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
@@ -65,6 +68,12 @@ class _MessagesScreenState extends State<MessagesScreen> {
                   subtitle: 'Keep your favourite people close.',
                   icon: Icons.forum_rounded,
                   compact: true)),
+          // Notes: your own first (tap to write one), then people you follow.
+          Builder(builder: (context) {
+            final me = context.watch<AuthProvider>().user;
+            return NotesRow(
+                myUserId: me?.id, myName: me?.name, myAvatar: me?.avatarUrl);
+          }),
           if (_conversations.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),

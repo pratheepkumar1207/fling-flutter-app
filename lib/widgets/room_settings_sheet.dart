@@ -15,6 +15,7 @@ const _kGameTypes = [
 /// Host-only room settings — a short half-height sheet, one-line rows,
 /// every change saved the moment it's made (no Save button to forget):
 ///
+///   Boost      100 coins for a day of top placement (POST /boost)
 ///   Type       Voice · Game           (voice/game rooms only — PATCH /type)
 ///   Join       Public · Friends · Subs · Private
 ///   Mics       on/off
@@ -31,6 +32,7 @@ Future<void> showRoomSettingsSheet(BuildContext context,
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
+    showDragHandle: false,
     builder: (_) => _RoomSettingsSheet(room: room, onChanged: onChanged),
   );
 }
@@ -62,6 +64,13 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
 
   bool _saving = false;
   bool _savedOnce = false;
+  late DateTime? _boostedUntil =
+      DateTime.tryParse(widget.room['boostedUntil'] as String? ?? '')
+          ?.toLocal();
+  bool _boosting = false;
+
+  // Same price as the backend's BOOST_COST_PER_DAY (routes/room.js).
+  static const _boostCost = 100;
 
   String get _musicValue => _songPermission == 'host' ? 'host' : 'everyone';
   String get _nextValue =>
@@ -159,6 +168,101 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
     final ok = await _patch('/type', {'roomType': 'game', 'gameType': g});
     if (!mounted) return;
     setState(() => ok ? _savedType = 'game' : _gameType = old);
+  }
+
+  Future<void> _boost() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: Text(_isBoosted ? 'Add another day?' : 'Boost this room?'),
+        content: const Text(
+            'Boosted rooms show at the top of the room list for a day. It costs $_boostCost coins.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(d).pop(false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.of(d).pop(true),
+              child: const Text('Boost · $_boostCost coins')),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _boosting = true);
+    try {
+      final res = await ApiClient.post('/rooms/${widget.room['id']}/boost',
+          body: {'days': 1}) as Map<String, dynamic>;
+      if (!mounted) return;
+      setState(() => _boostedUntil =
+          DateTime.tryParse(res['boostedUntil'] as String? ?? '')?.toLocal());
+      widget.onChanged();
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Couldn't boost — check your connection")));
+      }
+    } finally {
+      if (mounted) setState(() => _boosting = false);
+    }
+  }
+
+  bool get _isBoosted =>
+      _boostedUntil != null && _boostedUntil!.isAfter(DateTime.now());
+
+  Widget _boostRow() {
+    final left = _isBoosted ? _boostedUntil!.difference(DateTime.now()) : null;
+    final leftText = left == null
+        ? null
+        : left.inHours >= 1
+            ? '${left.inHours}h left'
+            : '${left.inMinutes.clamp(1, 59)}m left';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.fromLTRB(10, 4, 6, 4),
+      decoration: BoxDecoration(
+        color: AppColors.gold.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.rocket_launch_rounded,
+              size: 18, color: AppColors.gold),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              leftText == null ? 'Boost' : 'Boosted · $leftText',
+              style: const TextStyle(
+                  color: AppColors.text,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600),
+            ),
+          ),
+          TextButton(
+            onPressed: _boosting ? null : _boost,
+            style: TextButton.styleFrom(
+              backgroundColor: AppColors.gold,
+              foregroundColor: AppColors.ink,
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              textStyle:
+                  const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+            ),
+            child: _boosting
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: AppColors.ink))
+                : Text(_isBoosted ? 'Add a day' : '$_boostCost coins'),
+          ),
+        ],
+      ),
+    );
   }
 
   // ---- UI -------------------------------------------------------------
@@ -307,6 +411,7 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
                   ],
                 ),
                 const SizedBox(height: 10),
+                _boostRow(),
                 if (canSwitchType)
                   _row(
                     Icons.grid_view_rounded,

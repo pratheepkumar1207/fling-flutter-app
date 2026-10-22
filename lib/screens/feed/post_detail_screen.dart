@@ -96,6 +96,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         likedByMe: !post.likedByMe,
         savedByMe: post.savedByMe,
         isOwn: post.isOwn,
+        likesHidden: post.likesHidden,
         createdAt: post.createdAt,
       );
     });
@@ -126,6 +127,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         likedByMe: post.likedByMe,
         savedByMe: !post.savedByMe,
         isOwn: post.isOwn,
+        likesHidden: post.likesHidden,
         createdAt: post.createdAt,
       );
     });
@@ -164,6 +166,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             likedByMe: post.likedByMe,
             savedByMe: post.savedByMe,
             isOwn: post.isOwn,
+            likesHidden: post.likesHidden,
             createdAt: post.createdAt,
           );
         });
@@ -285,7 +288,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                               child: GestureDetector(
                                 onTap: () => showPostLikesSheet(context,
                                     postId: post.id),
-                                child: Text('${post.likesCount} ${post.likesCount == 1 ? 'like' : 'likes'}',
+                                child: Text(
+                                    '${post.likesCount} ${post.likesCount == 1 ? 'like' : 'likes'}',
                                     style: const TextStyle(
                                         color: AppColors.text,
                                         fontWeight: FontWeight.w700,

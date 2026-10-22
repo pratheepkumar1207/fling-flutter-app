@@ -25,6 +25,16 @@ class User {
   final String? verificationSelfieUrl;
   final String livestreamStatus;
   final bool hideOnlineStatus;
+  // Who sees the room I'm in: 'everyone' | 'friends' | 'nobody'.
+  final String roomActivityVisibility;
+  final bool showNowPlaying;
+  final bool allowJoinFromProfile;
+  // Who sees the posts I liked: 'everyone' | 'friends' | 'me'.
+  final String likesVisibility;
+  final bool hideLikeCounts;
+  final bool hideLikedSongs;
+  // {sections: [{id, visible}], tabs: [{id, visible}]} — see ProfileLayout.
+  final Map<String, dynamic>? profileLayout;
   final bool safeModeEnabled;
   final bool pushNotificationsEnabled;
   final bool locationSharingEnabled;
@@ -70,6 +80,13 @@ class User {
     this.verificationSelfieUrl,
     this.livestreamStatus = 'none',
     this.hideOnlineStatus = false,
+    this.roomActivityVisibility = 'everyone',
+    this.showNowPlaying = true,
+    this.allowJoinFromProfile = true,
+    this.likesVisibility = 'everyone',
+    this.hideLikeCounts = false,
+    this.hideLikedSongs = false,
+    this.profileLayout,
     this.safeModeEnabled = false,
     this.pushNotificationsEnabled = true,
     this.locationSharingEnabled = false,
@@ -127,6 +144,16 @@ class User {
       verificationSelfieUrl: json['verificationSelfieUrl'] as String?,
       livestreamStatus: json['livestreamStatus'] as String? ?? 'none',
       hideOnlineStatus: json['hideOnlineStatus'] as bool? ?? false,
+      roomActivityVisibility:
+          json['roomActivityVisibility'] as String? ?? 'everyone',
+      showNowPlaying: json['showNowPlaying'] as bool? ?? true,
+      allowJoinFromProfile: json['allowJoinFromProfile'] as bool? ?? true,
+      likesVisibility: json['likesVisibility'] as String? ?? 'everyone',
+      hideLikeCounts: json['hideLikeCounts'] as bool? ?? false,
+      hideLikedSongs: json['hideLikedSongs'] as bool? ?? false,
+      profileLayout: json['profileLayout'] is Map
+          ? Map<String, dynamic>.from(json['profileLayout'] as Map)
+          : null,
       safeModeEnabled: json['safeModeEnabled'] as bool? ?? false,
       pushNotificationsEnabled:
           json['pushNotificationsEnabled'] as bool? ?? true,

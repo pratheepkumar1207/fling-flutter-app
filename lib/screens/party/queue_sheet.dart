@@ -34,6 +34,8 @@ class QueueSheetScreen extends StatefulWidget {
   final bool audioOnly;
   final bool canPin;
   final bool canAddSongs;
+  // Whole playlist at once, starting now — see SourcePickerBody.onPlayAll.
+  final void Function(List<Map<String, dynamic>> items)? onAddMany;
 
   const QueueSheetScreen({
     super.key,
@@ -50,6 +52,7 @@ class QueueSheetScreen extends StatefulWidget {
     this.audioOnly = false,
     bool? canPin,
     this.canAddSongs = true,
+    this.onAddMany,
   }) : canPin = canPin ?? isHost;
 
   @override
@@ -223,7 +226,18 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                 // song — see party_screen.dart's AppBar comment) instead
                 // of behind a "+Add" toggle. 5 icons per row, sized for
                 // ~3 rows before it scrolls.
-                if (widget.canAddSongs)
+                // Music rooms: one row of source icons, sized to its content
+                // (History/Liked open as a carousel right under it).
+                if (widget.canAddSongs && widget.audioOnly)
+                  SourcePickerBody(
+                    compact: true,
+                    roomId: widget.roomId,
+                    onAddToQueue: _addToQueue,
+                    onSwitchSource: widget.onSwitchSource,
+                    audioOnly: true,
+                    onPlayAll: widget.onAddMany,
+                  )
+                else if (widget.canAddSongs)
                   SizedBox(
                     height: 270,
                     child: SourcePickerBody(
@@ -231,7 +245,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                       roomId: widget.roomId,
                       onAddToQueue: _addToQueue,
                       onSwitchSource: widget.onSwitchSource,
-                      audioOnly: widget.audioOnly,
+                      onPlayAll: widget.onAddMany,
                     ),
                   ),
                 Expanded(

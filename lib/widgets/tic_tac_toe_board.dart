@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import '../core/profile_nav.dart';
 import '../theme/app_colors.dart';
-import 'avatar.dart';
+import 'game_seat.dart';
+
+const _kX = Color(0xFFFF7AA8);
+const _kO = Color(0xFF7AD7FF);
 
 /// Presentational only — all rules (whose turn, win/draw detection, illegal
 /// moves) are enforced server-side in src/games/tictactoe.js on the
@@ -34,75 +36,108 @@ class TicTacToeBoard extends StatelessWidget {
     final winner = game['winner'] as String?;
     final isPlayer = players.any((p) => p['userId'] == myUserId);
     final isMyTurn = isPlayer && status == 'playing' && turn == myUserId;
-    final winnerPlayer = winner != null ? players.cast<Map?>().firstWhere((p) => p?['userId'] == winner, orElse: () => null) : null;
+    final winnerPlayer = winner != null
+        ? players
+            .cast<Map?>()
+            .firstWhere((p) => p?['userId'] == winner, orElse: () => null)
+        : null;
 
-    return AspectRatio(
-      aspectRatio: 16 / 9,
-      child: Container(
-        decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+    final full = players.length >= 2;
+    String statusText() {
+      if (status == 'won') return '${winnerPlayer?['name'] ?? 'Someone'} won!';
+      if (status == 'draw') return "It's a draw";
+      if (status == 'waiting') {
+        return players.isEmpty
+            ? 'Waiting for players'
+            : 'Waiting for a second player';
+      }
+      if (isMyTurn) return 'Your turn';
+      final current = players
+          .cast<Map?>()
+          .firstWhere((p) => p?['userId'] == turn, orElse: () => null);
+      return "${current?['name'] ?? 'Their'}'s turn";
+    }
+
+    Widget seat(int i) {
+      if (i >= players.length) return const GameOpenSeat();
+      final p = players[i];
+      final symbol = p['symbol'] as String? ?? '';
+      return GameSeat(
+        userId: p['userId'] as String?,
+        name: p['name'] as String?,
+        isMe: p['userId'] == myUserId,
+        isTurn: status == 'playing' && turn == p['userId'],
+        detail: Text(symbol,
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: symbol == 'X' ? _kX : _kO)),
+      );
+    }
+
+    // Seats left and right of the grid — X on the left, O on the right.
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GameStatusLine(statusText(), highlight: status != 'waiting'),
+        const SizedBox(height: 6),
+        Row(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (final p in players)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Column(
-                      children: [
-                        GestureDetector(
-                          onTap: () => openProfile(context, p['userId'] as String?),
-                          child: Avatar(name: p['name'] as String?, size: AvatarSize.sm),
+            seat(0),
+            const SizedBox(width: 6),
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                      color: AppColors.surface.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(14)),
+                  child: GridView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 6,
+                            mainAxisSpacing: 6),
+                    itemCount: 9,
+                    itemBuilder: (context, i) {
+                      final cell = board[i] as String?;
+                      return GestureDetector(
+                        onTap:
+                            (isMyTurn && cell == null) ? () => onMove(i) : null,
+                        child: Container(
+                          decoration: BoxDecoration(
+                              color: AppColors.surface2,
+                              borderRadius: BorderRadius.circular(9)),
+                          alignment: Alignment.center,
+                          child: Text(
+                            cell ?? '',
+                            style: TextStyle(
+                                fontSize: 34,
+                                fontWeight: FontWeight.w800,
+                                color: cell == 'X' ? _kX : _kO),
+                          ),
                         ),
-                        const SizedBox(height: 2),
-                        Text('${p['name']} ${p['symbol']}', style: const TextStyle(color: AppColors.textDim, fontSize: 11)),
-                        if (status == 'playing' && turn == p['userId'])
-                          const Text('Their turn', style: TextStyle(color: AppColors.accent, fontSize: 9)),
-                      ],
-                    ),
+                      );
+                    },
                   ),
-                if (players.length < 2) const Text('Waiting for a second player…', style: TextStyle(color: AppColors.textFaint, fontSize: 12)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: 200,
-              height: 200,
-              child: GridView.builder(
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 6, mainAxisSpacing: 6),
-                itemCount: 9,
-                itemBuilder: (context, i) {
-                  final cell = board[i] as String?;
-                  return GestureDetector(
-                    onTap: (isMyTurn && cell == null) ? () => onMove(i) : null,
-                    child: Container(
-                      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(8)),
-                      alignment: Alignment.center,
-                      child: Text(
-                        cell ?? '',
-                        style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: cell == 'X' ? AppColors.primary : AppColors.accent),
-                      ),
-                    ),
-                  );
-                },
+                ),
               ),
             ),
-            const SizedBox(height: 12),
-            if (!isPlayer && status == 'waiting')
-              ElevatedButton(onPressed: onJoin, child: const Text('Join game')),
-            if (status == 'won') Text('${winnerPlayer?['name'] ?? 'Someone'} won! 🎉', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600)),
-            if (status == 'draw') const Text("It's a draw!", style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w600)),
-            if (isHost && (status == 'won' || status == 'draw'))
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: OutlinedButton(onPressed: onReset, child: const Text('Play again')),
-              ),
+            const SizedBox(width: 6),
+            seat(1),
           ],
         ),
-      ),
+        const SizedBox(height: 14),
+        GameJoinButton(seated: isPlayer, full: full, fallbackJoin: onJoin),
+        if (isHost && (status == 'won' || status == 'draw'))
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: OutlinedButton(
+                onPressed: onReset, child: const Text('Play again')),
+          ),
+      ],
     );
   }
 }

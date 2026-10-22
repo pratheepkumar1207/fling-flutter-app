@@ -9,6 +9,7 @@ import '../../theme/app_colors.dart';
 import '../auth/login_screen.dart';
 import '../profile/profile_screen.dart';
 import 'blocked_accounts_screen.dart';
+import 'privacy_screen.dart';
 import 'help_center_screen.dart';
 import 'language_preferences_screen.dart';
 import 'legal_screen.dart';
@@ -142,6 +143,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           _group('Privacy & Safety'),
+          _tile(context,
+              emoji: '🔒',
+              label: 'Room activity and likes',
+              builder: (_) => const PrivacyScreen()),
           _tile(context,
               emoji: '🚫',
               label: 'Blocked accounts',

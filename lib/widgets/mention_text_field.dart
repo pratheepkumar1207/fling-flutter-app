@@ -17,8 +17,15 @@ class MentionTextField extends StatefulWidget {
   final String? hintText;
   final int maxLines;
   final int? maxLength;
+  final FocusNode? focusNode;
 
-  const MentionTextField({super.key, required this.controller, this.hintText, this.maxLines = 1, this.maxLength});
+  const MentionTextField(
+      {super.key,
+      required this.controller,
+      this.hintText,
+      this.maxLines = 1,
+      this.maxLength,
+      this.focusNode});
 
   @override
   State<MentionTextField> createState() => _MentionTextFieldState();
@@ -42,7 +49,12 @@ class _MentionTextFieldState extends State<MentionTextField> {
     final uptoCursor = value.substring(0, cursor);
     final match = RegExp(r'(?:^|\s)@(\w{0,32})$').firstMatch(uptoCursor);
     if (match == null) {
-      if (_suggestions.isNotEmpty || _queryStart != null) setState(() { _suggestions = []; _queryStart = null; });
+      if (_suggestions.isNotEmpty || _queryStart != null) {
+        setState(() {
+          _suggestions = [];
+          _queryStart = null;
+        });
+      }
       return;
     }
     final handle = match.group(1) ?? '';
@@ -57,9 +69,12 @@ class _MentionTextFieldState extends State<MentionTextField> {
 
   Future<void> _search(String handle) async {
     try {
-      final data = await ApiClient.get('/search?q=${Uri.encodeQueryComponent(handle)}&type=users');
+      final data = await ApiClient.get(
+          '/search?q=${Uri.encodeQueryComponent(handle)}&type=users');
       final users = (data as Map)['users'] as List? ?? [];
-      if (mounted) setState(() => _suggestions = users.cast<Map<String, dynamic>>());
+      if (mounted) {
+        setState(() => _suggestions = users.cast<Map<String, dynamic>>());
+      }
     } catch (_) {
       if (mounted) setState(() => _suggestions = []);
     }
@@ -68,14 +83,20 @@ class _MentionTextFieldState extends State<MentionTextField> {
   void _selectUser(Map<String, dynamic> user) {
     if (_queryStart == null) return;
     final value = widget.controller.text;
-    final cursor = widget.controller.selection.baseOffset < 0 ? value.length : widget.controller.selection.baseOffset;
+    final cursor = widget.controller.selection.baseOffset < 0
+        ? value.length
+        : widget.controller.selection.baseOffset;
     final before = value.substring(0, _queryStart!);
     final after = value.substring(cursor);
     final inserted = '@${user['username'] ?? user['name']} ';
     final nextValue = '$before$inserted$after';
     final pos = before.length + inserted.length;
-    widget.controller.value = TextEditingValue(text: nextValue, selection: TextSelection.collapsed(offset: pos));
-    setState(() { _suggestions = []; _queryStart = null; });
+    widget.controller.value = TextEditingValue(
+        text: nextValue, selection: TextSelection.collapsed(offset: pos));
+    setState(() {
+      _suggestions = [];
+      _queryStart = null;
+    });
   }
 
   @override
@@ -92,6 +113,7 @@ class _MentionTextFieldState extends State<MentionTextField> {
       children: [
         TextField(
           controller: widget.controller,
+          focusNode: widget.focusNode,
           maxLines: widget.maxLines,
           maxLength: widget.maxLength,
           style: const TextStyle(color: AppColors.text),
@@ -101,15 +123,27 @@ class _MentionTextFieldState extends State<MentionTextField> {
           Container(
             constraints: const BoxConstraints(maxHeight: 180),
             margin: const EdgeInsets.only(bottom: 8),
-            decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
+            decoration: BoxDecoration(
+                color: AppColors.surface2,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border)),
             child: ListView(
               shrinkWrap: true,
               children: _suggestions.map((u) {
                 return ListTile(
                   dense: true,
-                  leading: Avatar(src: u['avatarUrl'] as String?, name: u['name'] as String?, size: AvatarSize.sm),
-                  title: Text(u['name'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontSize: 13)),
-                  trailing: u['username'] != null ? Text('@${u['username']}', style: const TextStyle(color: AppColors.textFaint, fontSize: 12)) : null,
+                  leading: Avatar(
+                      src: u['avatarUrl'] as String?,
+                      name: u['name'] as String?,
+                      size: AvatarSize.sm),
+                  title: Text(u['name'] as String? ?? '',
+                      style:
+                          const TextStyle(color: AppColors.text, fontSize: 13)),
+                  trailing: u['username'] != null
+                      ? Text('@${u['username']}',
+                          style: const TextStyle(
+                              color: AppColors.textFaint, fontSize: 12))
+                      : null,
                   onTap: () => _selectUser(u),
                 );
               }).toList(),

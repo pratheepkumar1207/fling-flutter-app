@@ -82,6 +82,11 @@ class SourcePickerBody extends StatelessWidget {
   /// extractYouTubeId pattern, so no separate platform value is needed).
   final bool audioOnly;
 
+  /// In-room: queues a whole playlist in one go and starts it now ("Play
+  /// all" / "Shuffle") — see RoomSocketController.queueAddMany. Falls back
+  /// to adding the songs one by one when not given.
+  final void Function(List<Map<String, dynamic>> items)? onPlayAll;
+
   const SourcePickerBody({
     super.key,
     this.visibility = 'public',
@@ -92,6 +97,7 @@ class SourcePickerBody extends StatelessWidget {
     this.onSwitchSource,
     this.compact = false,
     this.audioOnly = false,
+    this.onPlayAll,
   });
 
   bool get _inRoom => roomId != null;
@@ -209,6 +215,8 @@ class SourcePickerBody extends StatelessWidget {
         appBar: AppBar(title: Text(title)),
         body: AppSongListTab(
           endpoint: endpoint,
+          // In a room the list is a 2-row carousel of thumbnails.
+          carousel: _inRoom,
           onAdd: (
                   {required videoUrl,
                   required title,
@@ -250,6 +258,21 @@ class SourcePickerBody extends StatelessWidget {
           // room per song).
           onAddAll: _inRoom
               ? (songs) {
+                  if (onPlayAll != null) {
+                    onPlayAll!([
+                      for (final s in songs)
+                        if ((s.videoUrl ?? '').isNotEmpty)
+                          {
+                            'videoUrl': s.videoUrl,
+                            'title': s.title ?? '',
+                            'thumbnail': s.thumbnail,
+                            'sourceType': s.sourceType,
+                            'mediaMode': audioOnly ? 'audio' : 'video',
+                          }
+                    ]);
+                    Navigator.of(context).pop();
+                    return;
+                  }
                   for (final s in songs) {
                     onAddToQueue!(
                         videoUrl: s.videoUrl ?? '',
@@ -269,39 +292,13 @@ class SourcePickerBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = compact;
-    if (audioOnly) {
-      // Just a search entry point, not a source grid — Voice/Game rooms
-      // only ever have the one music source, so a whole tile naming it
-      // (and requiring an extra tap to open) added nothing a plain search
-      // icon doesn't already say. Tapping it goes straight into browsing.
-      return Center(
-        child: GestureDetector(
-          onTap: () => _openWebviewSource(context,
-              platform: 'youtube_surf',
-              label: 'Search songs',
-              homeUrl: 'https://music.youtube.com'),
-          child: Container(
-            padding: EdgeInsets.symmetric(
-                horizontal: c ? 12 : 16, vertical: c ? 8 : 10),
-            decoration: BoxDecoration(
-                color: AppColors.surface,
-                border: Border.all(color: AppColors.border),
-                borderRadius: BorderRadius.circular(999)),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.search_rounded,
-                    color: AppColors.textDim, size: c ? 16 : 18),
-                const SizedBox(width: 6),
-                Text('Search songs',
-                    style: TextStyle(
-                        color: AppColors.textDim,
-                        fontSize: c ? 11 : 13,
-                        fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ),
-        ),
+    if (audioOnly && _inRoom) {
+      return _MusicSourceRow(
+        compact: c,
+        onYoutube: () => _openYoutube(context),
+        onPlaylists: () => _openPlaylists(context),
+        onDrive: () => _openDrive(context),
+        onAdd: onAddToQueue!,
       );
     }
     return GridView.count(
@@ -536,6 +533,120 @@ class _SourceTile extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Voice/Game rooms: one row of the music sources only (no OTT apps — they
+/// can't play as background music; pasting a link works in the YouTube
+/// search). History and Liked open right here as a 2-row carousel under
+/// the icons, so the queue below stays in view while you pick.
+class _MusicSourceRow extends StatefulWidget {
+  final bool compact;
+  final VoidCallback onYoutube;
+  final VoidCallback onPlaylists;
+  final VoidCallback onDrive;
+  final SongAddCallback onAdd;
+  const _MusicSourceRow({
+    required this.compact,
+    required this.onYoutube,
+    required this.onPlaylists,
+    required this.onDrive,
+    required this.onAdd,
+  });
+
+  @override
+  State<_MusicSourceRow> createState() => _MusicSourceRowState();
+}
+
+class _MusicSourceRowState extends State<_MusicSourceRow> {
+  // '/song-history' or '/liked-songs' while its carousel is open.
+  String? _open;
+
+  void _toggle(String endpoint) =>
+      setState(() => _open = _open == endpoint ? null : endpoint);
+
+  Widget _tile(Widget tile, {bool selected = false}) => Expanded(
+        child: AspectRatio(
+          aspectRatio: 0.9,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: selected
+                  ? Border.all(color: AppColors.accent, width: 1.5)
+                  : null,
+            ),
+            child: tile,
+          ),
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+          horizontal: widget.compact ? 8 : 12, vertical: 8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              _tile(_SourceTile(
+                  compact: true,
+                  iconAsset: 'assets/icons/app/youtube.png',
+                  label: 'YouTube',
+                  available: true,
+                  onTap: widget.onYoutube)),
+              _tile(
+                  _SourceTile(
+                      compact: true,
+                      emoji: '❤️',
+                      label: 'Liked',
+                      available: true,
+                      onTap: () => _toggle('/liked-songs')),
+                  selected: _open == '/liked-songs'),
+              _tile(
+                  _SourceTile(
+                      compact: true,
+                      emoji: '🕘',
+                      label: 'History',
+                      available: true,
+                      onTap: () => _toggle('/song-history')),
+                  selected: _open == '/song-history'),
+              _tile(_SourceTile(
+                  compact: true,
+                  emoji: '📃',
+                  label: 'Playlists',
+                  available: true,
+                  onTap: widget.onPlaylists)),
+              _tile(_SourceTile(
+                  compact: true,
+                  icon: FontAwesomeIcons.googleDrive,
+                  iconColor: const Color(0xFF0F9D58),
+                  label: 'Drive',
+                  available: true,
+                  onTap: widget.onDrive)),
+            ],
+          ),
+          if (_open != null) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(2, 10, 2, 6),
+              child: Text(_open == '/liked-songs' ? 'Liked songs' : 'History',
+                  style: const TextStyle(
+                      color: AppColors.text,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600)),
+            ),
+            AppSongListTab(
+              key: ValueKey(_open),
+              endpoint: _open!,
+              carousel: true,
+              onAdd: widget.onAdd,
+            ),
+          ],
+        ],
       ),
     );
   }

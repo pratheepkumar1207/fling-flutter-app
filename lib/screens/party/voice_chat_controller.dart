@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/foundation.dart';
@@ -36,6 +37,36 @@ class VoiceChatController extends ChangeNotifier {
 
   VoiceChatStatus get status => _status;
 
+  // Fires when my own voice starts/stops coming through (mic on and
+  // actually loud enough) — party_screen.dart forwards it to the room so
+  // the app bar can show who's talking.
+  ValueChanged<bool>? onLocalSpeakingChanged;
+  bool _localSpeaking = false;
+  Timer? _quietTimer;
+
+  // Agora reports the local mic as uid 0, ~every 300ms. Turning "speaking"
+  // off waits for a short quiet stretch so the ring doesn't flicker
+  // between words.
+  void _onLocalVolume(int volume, int vad) {
+    final loud = _micEnabled && (vad == 1 || volume > 35);
+    if (loud) {
+      _quietTimer?.cancel();
+      _quietTimer = null;
+      _setLocalSpeaking(true);
+    } else if (_localSpeaking && _quietTimer == null) {
+      _quietTimer = Timer(const Duration(milliseconds: 900), () {
+        _quietTimer = null;
+        _setLocalSpeaking(false);
+      });
+    }
+  }
+
+  void _setLocalSpeaking(bool value) {
+    if (_localSpeaking == value) return;
+    _localSpeaking = value;
+    onLocalSpeakingChanged?.call(value);
+  }
+
   VoiceChatController({required this.roomId});
 
   // Deliberately NOT called from the constructor. Agora's native SDK does
@@ -72,7 +103,8 @@ class VoiceChatController extends ChangeNotifier {
     try {
       final engine = createAgoraRtcEngine();
       await engine.initialize(RtcEngineContext(appId: kAgoraAppId));
-      await engine.setChannelProfile(ChannelProfileType.channelProfileCommunication);
+      await engine
+          .setChannelProfile(ChannelProfileType.channelProfileCommunication);
       await engine.disableVideo();
       await engine.enableAudio();
       await engine.muteLocalAudioStream(true);
@@ -85,11 +117,20 @@ class VoiceChatController extends ChangeNotifier {
           _joined = false;
           _setStatus(VoiceChatStatus.failed);
         },
+        onAudioVolumeIndication:
+            (connection, speakers, speakerNumber, totalVolume) {
+          for (final sp in speakers) {
+            if (sp.uid == 0) _onLocalVolume(sp.volume ?? 0, sp.vad ?? 0);
+          }
+        },
       ));
+      await engine.enableAudioVolumeIndication(
+          interval: 300, smooth: 3, reportVad: true);
       _engine = engine;
 
       final uid = Random().nextInt(1000000);
-      final data = await ApiClient.post('/calls/token', body: {'roomId': roomId, 'uid': uid}) as Map<String, dynamic>;
+      final data = await ApiClient.post('/calls/token',
+          body: {'roomId': roomId, 'uid': uid}) as Map<String, dynamic>;
       await engine.joinChannel(
         token: data['token'] as String,
         channelId: data['channelName'] as String,
@@ -120,11 +161,17 @@ class VoiceChatController extends ChangeNotifier {
   Future<void> setMicEnabled(bool enabled) async {
     if (!_joined || enabled == _micEnabled) return;
     _micEnabled = enabled;
+    if (!enabled) {
+      _quietTimer?.cancel();
+      _quietTimer = null;
+      _setLocalSpeaking(false);
+    }
     await _engine?.muteLocalAudioStream(!enabled);
   }
 
   @override
   void dispose() {
+    _quietTimer?.cancel();
     _engine?.leaveChannel();
     _engine?.release();
     super.dispose();

@@ -10,6 +10,8 @@ import '../../theme/app_colors.dart';
 import '../../theme/vola_party_colors.dart';
 import '../../widgets/gift_bottom_sheet.dart';
 import '../../widgets/game_board_view.dart';
+import '../../widgets/game_seat.dart';
+import '../../widgets/avatar.dart';
 import '../../widgets/glass.dart';
 import '../../widgets/live_video_view.dart';
 import '../../widgets/participant_avatar_row.dart';
@@ -23,6 +25,8 @@ import '../lobby/invite_screen.dart';
 import '../../features/party/data/party_engine_impl.dart';
 import 'chat_overlay.dart';
 import 'drive_video_player.dart';
+import 'game_room_body.dart';
+import 'game_seat_prompts.dart';
 import 'live_broadcast_controller.dart';
 import 'queue_sheet.dart';
 import 'roster_sheet.dart';
@@ -279,6 +283,11 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           .showSnackBar(SnackBar(content: Text(rs.queueDenied!)));
       rs.clearQueueDenied();
     }
+    if (rs.gameSeatDenied != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(rs.gameSeatDenied!)));
+      rs.clearGameSeatDenied();
+    }
     // @mention pop-up/sound is handled globally now (see
     // mention_notifier.dart, mounted in AppShell) — that fires no matter
     // which screen is showing, not just while this one is mounted.
@@ -369,24 +378,6 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           _likedUrls.remove(videoUrl);
         }
       });
-    }
-  }
-
-  Future<void> _boost() async {
-    try {
-      await ApiClient.post('/rooms/${widget.roomId}/boost', body: {'days': 1})
-          as Map<String, dynamic>;
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text(
-              'Boosted — more visibility to help you get more participants'),
-        ));
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Failed to boost')));
-      }
     }
   }
 
@@ -481,6 +472,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           audioOnly: audioOnly,
           canPin: rs.canPin,
           canAddSongs: rs.settings['songPermission'] != 'host' || rs.isHost,
+          onAddMany: (items) => rs.queueAddMany(items),
         ),
       ),
     ));
@@ -700,6 +692,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     // myMicOn already folds in myMicForceMuted, so a host force-mute is
     // enforced here the same way losing a stage slot already is — the
     // client can't just re-enable its own mic against server state.
+    _voice?.onLocalSpeakingChanged = rs.setSpeaking;
     if (myMicOn) {
       _voice?.ensureInitialized().then((_) => _voice?.setMicEnabled(true));
     } else {
@@ -824,6 +817,127 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       });
     }
 
+    final rosterById = {for (final r in rs.roster) r.userId: r};
+
+    // App bar centre: who's on mic, each lit with a green ring while their
+    // voice is actually coming through.
+    Widget micSpeakers() {
+      final onMic = [
+        for (final id in activeMics)
+          if (rosterById[id] != null) rosterById[id]!
+      ];
+      if (onMic.isEmpty) return const SizedBox.shrink();
+      const maxShown = 4;
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final r in onMic.take(maxShown))
+            Builder(builder: (context) {
+              final talking = rs.speaking.contains(r.userId) &&
+                  !mutedMics.contains(r.userId);
+              return Semantics(
+                label: '${r.name}${talking ? ' speaking' : ' on mic'}',
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                        color: talking ? AppColors.success : Colors.transparent,
+                        width: 2),
+                  ),
+                  child: SizedBox(
+                    width: 26,
+                    height: 26,
+                    child: FittedBox(
+                        child: Avatar(src: r.avatarUrl, name: r.name)),
+                  ),
+                ),
+              );
+            }),
+          if (onMic.length > maxShown)
+            Text(' +${onMic.length - maxShown}',
+                style: TextStyle(color: roomTextDim, fontSize: 11.5)),
+        ],
+      );
+    }
+
+    // Game rooms — who's seated, and the request/invite prompts above
+    // the board.
+    final gamePlayers = ((rs.game?['players'] as List?) ?? []).cast<Map>();
+    final gamePlayerIds = {
+      for (final p in gamePlayers)
+        if (p['userId'] is String) p['userId'] as String
+    };
+    void openGameInvite() => showGameInvitePicker(
+          context,
+          roster: rs.roster,
+          playerIds: gamePlayerIds,
+          invitedIds: rs.gameInvites.toSet(),
+          myUserId: myId,
+          onInvite: rs.gameInvite,
+        );
+    List<Widget> gameBanners() {
+      if (rs.isHost) {
+        final waiting = [
+          for (final id in rs.gameRequests)
+            if (!gamePlayerIds.contains(id)) id
+        ];
+        if (waiting.isEmpty) return const [];
+        final person = rosterById[waiting.first];
+        return [
+          GameSeatBanner(
+            person: person,
+            text: '${person?.name ?? 'Someone'} wants to play',
+            acceptLabel: 'Let in',
+            onAccept: () => rs.gameApprove(waiting.first),
+            onDecline: () => rs.gameDeny(waiting.first),
+            more: waiting.length - 1,
+          ),
+        ];
+      }
+      if (myId != null &&
+          rs.gameInvites.contains(myId) &&
+          !gamePlayerIds.contains(myId)) {
+        final host = rs.hostId == null ? null : rosterById[rs.hostId];
+        return [
+          GameSeatBanner(
+            person: host,
+            text: '${host?.name ?? 'The host'} invited you to play',
+            acceptLabel: 'Join game',
+            onAccept: rs.gameJoin,
+            onDecline: rs.gameDeclineInvite,
+          ),
+        ];
+      }
+      return const [];
+    }
+
+    Widget gameBoard() => GameSeatScope(
+          isHost: rs.isHost,
+          requested: myId != null && rs.gameRequests.contains(myId),
+          invited: myId != null && rs.gameInvites.contains(myId),
+          onSit: rs.gameJoin,
+          onRequest: () {
+            rs.gameRequest();
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Text('Asked the host to let you play')));
+          },
+          onCancelRequest: rs.gameCancelRequest,
+          onInvite: rs.isHost ? openGameInvite : null,
+          avatarFor: (id) => id == null ? null : rosterById[id]?.avatarUrl,
+          child: GameBoardView(
+            gameType: room['gameType'] as String?,
+            game: rs.game,
+            myUserId: myId,
+            isHost: rs.isHost,
+            onJoin: rs.gameJoin,
+            onMove: rs.gameMove,
+            onReset: rs.gameReset,
+          ),
+        );
+
     return ValueListenableBuilder<bool>(
       valueListenable: PipService.isInPip,
       builder: (context, inPip, _) {
@@ -880,6 +994,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
             onForceMute: rs.forceMuteMic,
             onForceUnmute: rs.forceUnmuteMic,
             onInvite: _openInvite,
+            onInviteGame: isGame && rs.isHost ? rs.gameInvite : null,
+            gamePlayerIds: gamePlayerIds,
           ),
           // Hidden while composing a chat message — see hideChromeForChat —
           // so chat gets the full screen instead of sharing it with chrome
@@ -895,35 +1011,33 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                   // system back gesture (ActiveRoomHolder keeps the room running
                   // either way), but this top-left slot is now the explicit,
                   // always-visible way to actually leave.
-                  leading: IconButton(
-                    tooltip: 'Leave room',
-                    onPressed: _leaveRoom,
-                    icon: Icon(Icons.logout_rounded, color: roomTextDim),
+                  // Leave first, settings (host) right beside it — the
+                  // two "room" controls together on the left.
+                  leadingWidth:
+                      rs.isHost && room['roomType'] != 'live' ? 96 : 56,
+                  leading: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: 'Leave room',
+                        onPressed: _leaveRoom,
+                        icon: Icon(Icons.logout_rounded, color: roomTextDim),
+                      ),
+                      if (rs.isHost && room['roomType'] != 'live')
+                        IconButton(
+                          tooltip: 'Room settings',
+                          onPressed: () => showRoomSettingsSheet(context,
+                              room: room, onChanged: _refreshRoom),
+                          icon:
+                              Icon(Icons.settings_outlined, color: roomTextDim),
+                        ),
+                    ],
                   ),
-                  // Room title/"Hosted by" removed — the boost action lives here
-                  // instead now. _hostKey stays attached (moved from the old
-                  // title Column) since showGiftBottomSheet's targetKey still
-                  // needs some real widget in the AppBar to fly gift animations
-                  // toward.
-                  title: rs.isHost
-                      ? GestureDetector(
-                          key: _hostKey,
-                          onTap: _boost,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.rocket_launch_rounded,
-                                  color: roomGold, size: 18),
-                              const SizedBox(width: 6),
-                              Text('Boost',
-                                  style: TextStyle(
-                                      color: roomGold,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700)),
-                            ],
-                          ),
-                        )
-                      : SizedBox(key: _hostKey),
+                  // Who's on mic, lit while talking. _hostKey stays on this
+                  // slot — showGiftBottomSheet flies gift animations toward
+                  // it, so it needs a real widget in the AppBar.
+                  centerTitle: true,
+                  title: KeyedSubtree(key: _hostKey, child: micSpeakers()),
                   actions: [
                     // The single search+queue entry point for every room type —
                     // used to be a separate search icon here plus its own queue
@@ -966,17 +1080,6 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                             ],
                           ),
                         ),
-                      ),
-                    // Settings 2nd from right, participants at the very top
-                    // right — the control-bar share icon below (_shareRoom) now
-                    // covers sharing, so there's no separate share action up here
-                    // anymore.
-                    if (rs.isHost && room['roomType'] != 'live')
-                      IconButton(
-                        tooltip: 'Room settings',
-                        onPressed: () => showRoomSettingsSheet(context,
-                            room: room, onChanged: _refreshRoom),
-                        icon: Icon(Icons.settings_outlined, color: roomTextDim),
                       ),
                     // Pill-styled participant count, matching the redesign's .pill
                     // component (WatchPartyDark.dc.html) instead of a plain TextButton.
@@ -1049,7 +1152,53 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                     // longer eats the remaining space below for these types — same
                     // exact position in the Column either way, so this doesn't touch
                     // the player-identity invariant described below.
-                    if (!isWatch)
+                    if (isGame)
+                      Expanded(
+                        child: GameRoomBody(
+                          songPlayer: currentItem != null
+                              ? player(mediaMode: 'audio', compact: true)
+                              : null,
+                          onAddSong: _openQueue,
+                          banners: gameBanners(),
+                          board: gameBoard(),
+                          messages: rs.messages,
+                          chat: ChatOverlay(
+                            messages: rs.messages,
+                            onSend: (text, mentionedUserIds) => rs.sendMessage(
+                                text,
+                                mentionedUserIds: mentionedUserIds),
+                            myUserId: myId,
+                            primaryColor: roomPrimary,
+                            textColor: roomText,
+                            roster: rs.roster,
+                            myMicOn: myMicOn,
+                            myMicRequested: myMicRequested,
+                            onMicTap: handleMicTap,
+                            onPoll: () {
+                              if (rs.isHost) {
+                                showPollCreatorBottomSheet(context,
+                                    onCreate: rs.createPoll);
+                              } else if (rs.poll['active'] == true) {
+                                showPollBottomSheet(context,
+                                    poll: rs.poll,
+                                    myUserId: myId ?? '',
+                                    isHost: rs.isHost,
+                                    roster: rs.roster,
+                                    onVote: rs.votePoll,
+                                    onReset: rs.resetPoll);
+                              }
+                            },
+                            onGift: () => showGiftBottomSheet(context,
+                                toUserId: room['hostId'] as String? ?? '',
+                                roomId: widget.roomId,
+                                targetKey: _hostKey),
+                            onShare: _shareRoom,
+                            onInvite: _openInvite,
+                            onFocusChanged: _setChatFocused,
+                          ),
+                        ),
+                      )
+                    else if (!isWatch)
                       // Chat now gets its own dedicated, un-obscured space
                       // below the stage — same "chat owns the rest of the
                       // screen" treatment Watch Party's ChatOverlay already
@@ -1073,48 +1222,33 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                           child: LiveVideoView(
                                               controller: _live!,
                                               isHost: rs.isHost))
-                                      : isGame
-                                          ? Center(
-                                              child: GameBoardView(
-                                                gameType:
-                                                    room['gameType'] as String?,
-                                                game: rs.game,
-                                                myUserId: myId,
-                                                isHost: rs.isHost,
-                                                onJoin: rs.gameJoin,
-                                                onMove: rs.gameMove,
-                                                onReset: rs.gameReset,
-                                              ),
+                                      : isVoice
+                                          ? VoiceStageView(
+                                              roster: rs.roster,
+                                              activeMics: activeMics,
+                                              pendingRequests: pendingRequests,
+                                              maxSlots: maxSlots,
+                                              hostId: rs.hostId,
+                                              myUserId: myId,
+                                              isHost: rs.isHost,
+                                              onApprove: rs.approveMic,
+                                              onDeny: rs.denyMic,
+                                              onRemove: rs.removeMic,
                                             )
-                                          : isVoice
-                                              ? VoiceStageView(
-                                                  roster: rs.roster,
-                                                  activeMics: activeMics,
-                                                  pendingRequests:
-                                                      pendingRequests,
-                                                  maxSlots: maxSlots,
-                                                  hostId: rs.hostId,
-                                                  myUserId: myId,
-                                                  isHost: rs.isHost,
-                                                  onApprove: rs.approveMic,
-                                                  onDeny: rs.denyMic,
-                                                  onRemove: rs.removeMic,
-                                                )
-                                              : Center(
-                                                  child: AspectRatio(
-                                                    aspectRatio: 16 / 9,
-                                                    child: GlassPanel(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              16),
-                                                      child: const Center(
-                                                        child: Text('🎙️',
-                                                            style: TextStyle(
-                                                                fontSize: 48)),
-                                                      ),
-                                                    ),
+                                          : Center(
+                                              child: AspectRatio(
+                                                aspectRatio: 16 / 9,
+                                                child: GlassPanel(
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
+                                                  child: const Center(
+                                                    child: Text('🎙️',
+                                                        style: TextStyle(
+                                                            fontSize: 48)),
                                                   ),
                                                 ),
+                                              ),
+                                            ),
                                 ),
                               ),
                             ),
@@ -1369,14 +1503,6 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                         child: Column(
                                           children: [
                                             if (isBoosted) boostedBanner(),
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.fromLTRB(
-                                                      12, 12, 12, 8),
-                                              child: ParticipantAvatarRow(
-                                                  roster: rs.roster,
-                                                  onOpenRoster: _openRoster),
-                                            ),
                                             if (rs.poll['active'] == true)
                                               pollBanner(),
                                           ],
@@ -1446,7 +1572,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                           ],
                         ),
                       )
-                    else if (currentItem != null)
+                    else if (currentItem != null && !isGame)
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
                         // Compact bar for every non-watch type (voice, game, live) —
@@ -1458,11 +1584,11 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                     // Skipped for isWatch — that case already renders these
                     // same widgets (via the shared boostedBanner/pollBanner
                     // closures above) inside the collapsing header instead.
-                    if (isBoosted && !isWatch) boostedBanner(),
+                    if (isBoosted && !isWatch && !isGame) boostedBanner(),
                     // Not in voice rooms either: the voice stage already shows
                     // every speaker and its LISTENING section everyone else, so
                     // this strip just repeated the same faces under the chat.
-                    if (!isWatch && !isVoice)
+                    if (!isWatch && !isVoice && !isGame)
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
                         child: ParticipantAvatarRow(

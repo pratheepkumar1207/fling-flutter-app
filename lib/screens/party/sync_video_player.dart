@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:async';
 import 'dart:convert';
 
@@ -523,10 +524,45 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     return '$m:$s';
   }
 
+  // Keeps the page — and YouTube's own player iframe inside it — believing
+  // it's always on screen, so the player doesn't pause itself when the
+  // phone screen turns off, the app goes to the background, or the PiP
+  // window opens/closes. Injected into every frame (forMainFrameOnly:
+  // false) at document start, before the player's own listeners exist.
+  // Deliberate: the user chose screen-off playback for YouTube knowing it
+  // goes against YouTube's embedded-player terms (see background_audio_
+  // handler.dart's mirrorExternalPlayback for the same decision).
+  static const _kKeepVisibleScript = '''
+(function () {
+  try {
+    var def = function (obj, key, value) {
+      try { Object.defineProperty(obj, key, { get: function () { return value; }, configurable: true }); } catch (e) {}
+    };
+    def(document, 'hidden', false);
+    def(document, 'webkitHidden', false);
+    def(document, 'visibilityState', 'visible');
+    def(document, 'webkitVisibilityState', 'visible');
+    document.hasFocus = function () { return true; };
+    var swallow = function (e) { e.stopImmediatePropagation(); };
+    ['visibilitychange', 'webkitvisibilitychange', 'pagehide', 'freeze', 'blur'].forEach(function (type) {
+      window.addEventListener(type, swallow, true);
+      document.addEventListener(type, swallow, true);
+    });
+  } catch (e) {}
+})();
+''';
+
   InAppWebView _buildWebView() {
     final videoId = _currentVideoId!;
     return InAppWebView(
       initialUrlRequest: URLRequest(url: WebUri(_embedUrl(videoId))),
+      initialUserScripts: UnmodifiableListView([
+        UserScript(
+          source: _kKeepVisibleScript,
+          injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+          forMainFrameOnly: false,
+        ),
+      ]),
       initialSettings: InAppWebViewSettings(
         javaScriptEnabled: true,
         domStorageEnabled: true,
@@ -545,6 +581,14 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
         // embedPlayer.js, control is all through evaluateJavascript), so
         // none of hybrid composition's usual advantages apply here anyway.
         useHybridComposition: false,
+        // Keep the page's renderer at full priority even while the WebView
+        // isn't visible (screen off, app in the background, PiP) — Android
+        // otherwise drops it and the audio starves within seconds.
+        rendererPriorityPolicy: RendererPriorityPolicy(
+          rendererRequestedPriority:
+              RendererPriority.RENDERER_PRIORITY_IMPORTANT,
+          waivedWhenNotVisible: false,
+        ),
       ),
       onWebViewCreated: _onWebViewCreated,
       // Same "don't error out on a custom app-deeplink scheme" guard as

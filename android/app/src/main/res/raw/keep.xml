@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- audio_service looks its notification button icons up by name at
+     runtime, so release resource shrinking used to strip them and the
+     media notification crashed ("You must specify an icon resource id to
+     build a CustomAction") — no lock-screen controls, no media foreground
+     service. Keep them. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/audio_service_*,@mipmap/ic_launcher" />
