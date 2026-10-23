@@ -1370,7 +1370,13 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                       // floating button here.
                       Expanded(
                         key: _playerAreaKey,
-                        child: Stack(
+                        child: LayoutBuilder(builder: (context, area) {
+                          // An explicit height: a Positioned with only a
+                          // bottom edge gives its child no height limit,
+                          // which left a FractionallySizedBox panel at zero
+                          // size (chat never appeared).
+                          final panelHeight = area.maxHeight * 0.55;
+                          return Stack(
                           children: [
                             Positioned(
                               top: 0,
@@ -1383,28 +1389,13 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                 compact: false,
                               ),
                             ),
-                            Positioned(
-                              right: 12,
-                              bottom: 12,
-                              child: GlassCircleButton(
-                                onTap: () => setState(
-                                    () => _ottChatOpen = !_ottChatOpen),
-                                child: Icon(
-                                  _ottChatOpen
-                                      ? Icons.keyboard_arrow_down_rounded
-                                      : Icons.chat_bubble_outline_rounded,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
                             if (_ottChatOpen)
                               Positioned(
                                 left: 0,
                                 right: 0,
                                 bottom: 0,
-                                child: FractionallySizedBox(
-                                  heightFactor: 0.55,
+                                height: panelHeight,
+                                child: SizedBox.expand(
                                   child: ClipRRect(
                                     borderRadius: const BorderRadius.vertical(
                                         top: Radius.circular(16)),
@@ -1461,8 +1452,26 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                   ),
                                 ),
                               ),
+                            // After the panel, and lifted above it while
+                            // open, so it can always close the chat.
+                            Positioned(
+                              right: 12,
+                              bottom: _ottChatOpen ? panelHeight + 12 : 12,
+                              child: GlassCircleButton(
+                                onTap: () => setState(
+                                    () => _ottChatOpen = !_ottChatOpen),
+                                child: Icon(
+                                  _ottChatOpen
+                                      ? Icons.keyboard_arrow_down_rounded
+                                      : Icons.chat_bubble_outline_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
                           ],
-                        ),
+                        );
+                        }),
                       )
                     else if (isWatch)
                       // Video is pinned right under the app bar; scrolling

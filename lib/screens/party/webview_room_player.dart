@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/mobile_webview_settings.dart';
 import '../../theme/app_colors.dart';
 
@@ -88,6 +89,12 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
   // shows the drag position immediately instead of visibly snapping back
   // to the old value until the emit round-trips. See _buildProgressBar.
   double? _dragPosition;
+  // Set when this phone has no Widevine (emulators, some cheap/rooted
+  // phones): Netflix/Prime/Hotstar can't play in any WebView there, so the
+  // player says so and offers the platform's own app instead of sitting
+  // on a blank or error page.
+  bool _noWidevine = false;
+  bool _drmChecked = false;
 
   @override
   void initState() {
@@ -283,6 +290,61 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     });
   }
 
+  // Hosts whose video needs Widevine — the only ones worth checking.
+  static const _drmHosts = {
+    'netflix.com': 'Netflix',
+    'primevideo.com': 'Prime Video',
+    'amazon.': 'Prime Video',
+    'hotstar.com': 'Hotstar',
+    'sonyliv.com': 'SonyLIV',
+    'sunnxt.com': 'SunNXT',
+    'aha.video': 'Aha',
+    'airtelxstream.in': 'Airtel Xstream',
+  };
+
+  String? get _drmPlatform {
+    final host = Uri.tryParse(widget.videoUrl ?? '')?.host.toLowerCase() ?? '';
+    for (final e in _drmHosts.entries) {
+      if (host.contains(e.key)) return e.value;
+    }
+    return null;
+  }
+
+  // Asks the page's own browser engine (EME) whether Widevine exists here.
+  Future<void> _checkWidevine(InAppWebViewController controller) async {
+    if (_drmChecked || _drmPlatform == null) return;
+    _drmChecked = true;
+    try {
+      final result = await controller.callAsyncJavaScript(functionBody: '''
+        if (!navigator.requestMediaKeySystemAccess) return false;
+        try {
+          await navigator.requestMediaKeySystemAccess('com.widevine.alpha', [{
+            initDataTypes: ['cenc'],
+            videoCapabilities: [{contentType: 'video/mp4; codecs="avc1.42E01E"'}]
+          }]);
+          return true;
+        } catch (e) { return false; }
+      ''');
+      if (mounted && result?.value == false) setState(() => _noWidevine = true);
+    } catch (_) {
+      // Couldn't tell — leave the page as it is.
+    }
+  }
+
+  Future<void> _openPlatformApp() async {
+    final url = widget.videoUrl;
+    if (url == null) return;
+    // The platform's own app if it's installed, otherwise its website.
+    var ok = false;
+    try {
+      ok = await launchUrl(Uri.parse(url),
+          mode: LaunchMode.externalNonBrowserApplication);
+    } catch (_) {}
+    if (!ok) {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    }
+  }
+
   @override
   void dispose() {
     _tickTimer?.cancel();
@@ -323,6 +385,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
           onLoadStop: (controller, url) {
             _checkLoginUrl(url);
             _injectFullBleedVideoCss();
+            _checkWidevine(controller);
           },
           // Same "don't error out on a custom app-deeplink scheme" guard
           // as webview_browse_screen.dart — see its comment for why.
@@ -359,6 +422,46 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
             ),
           ),
         ),
+        if (_noWidevine)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 56),
+              alignment: Alignment.center,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.lock_outline_rounded,
+                        color: Colors.white70, size: 26),
+                    const SizedBox(height: 8),
+                    Text(
+                      'This phone can’t play ${_drmPlatform ?? 'this'} inside Insync',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Its copy protection isn’t available here. Watch in the app and keep this room open for chat and the room timer.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white70, fontSize: 11.5),
+                    ),
+                    const SizedBox(height: 10),
+                    FilledButton(
+                      onPressed: _openPlatformApp,
+                      style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.accent,
+                          foregroundColor: AppColors.ink),
+                      child: Text('Open ${_drmPlatform ?? 'the'} app'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         if (_onLoginPage)
           Positioned(
             top: 8,
