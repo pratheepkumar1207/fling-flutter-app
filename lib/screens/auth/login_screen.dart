@@ -77,12 +77,10 @@ class _LoginScreenState extends State<LoginScreen> {
       _loading = true;
     });
     try {
-      final accessToken = await GoogleAuthService.signInAndGetAccessToken();
-      if (accessToken == null) return; // user cancelled the picker
+      final idToken = await GoogleAuthService.signInAndGetFirebaseIdToken();
+      if (idToken == null) return; // user cancelled the picker
       if (!mounted) return;
-      await context
-          .read<AuthProvider>()
-          .loginWithSupabaseAccessToken(accessToken);
+      await context.read<AuthProvider>().loginWithFirebaseIdToken(idToken);
     } catch (e) {
       if (mounted) {
         setState(() => _error = e.toString().replaceFirst('Exception: ', ''));

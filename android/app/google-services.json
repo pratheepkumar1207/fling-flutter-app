@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "409464876557-obl781eocuje848jh9n8p6qpske883tt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fling.app",
+            "certificate_hash": "95081a7e66e35bbc9e7b6407117ec59b2a3f4d0c"
+          }
+        },
+        {
           "client_id": "409464876557-jiuv41mqj3e2mg4rqb0kovk5nj1ttt1j.apps.googleusercontent.com",
           "client_type": 3
         }

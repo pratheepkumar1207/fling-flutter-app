@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 import 'api_client.dart';
 import 'api_exception.dart';
+import 'google_auth_service.dart';
 
 enum AuthStatus { loading, authed, anon }
 
@@ -99,21 +100,6 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// "Sign in with Google" — accessToken is a Supabase session token (see
-  /// google_auth_service.dart), verified server-side against Supabase's
-  /// own Auth API before we issue our own JWT. Mirrors
-  /// loginWithFirebaseIdToken's shape exactly.
-  Future<void> loginWithSupabaseAccessToken(String accessToken) async {
-    final data = await ApiClient.post('/auth/supabase',
-        body: {'accessToken': accessToken}, skipAuth: true);
-    final map = data as Map<String, dynamic>;
-    _token = map['token'] as String;
-    _user = User.fromJson(map['user'] as Map<String, dynamic>);
-    _status = AuthStatus.authed;
-    await _persistToken(_token!);
-    notifyListeners();
-  }
-
   Future<void> refreshUser() async {
     if (!isAuthed) return;
     try {
@@ -128,6 +114,11 @@ class AuthProvider extends ChangeNotifier {
   Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
+    // Also leave Google/Firebase, so the next sign-in can pick another
+    // account. Best-effort: Firebase may not be set up (tests, web).
+    try {
+      await GoogleAuthService.signOut();
+    } catch (_) {}
     _token = null;
     _user = null;
     _status = AuthStatus.anon;
