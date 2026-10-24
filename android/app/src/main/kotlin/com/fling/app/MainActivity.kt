@@ -2,6 +2,7 @@ package com.fling.app
 
 import android.app.PictureInPictureParams
 import android.content.res.Configuration
+import android.media.MediaDrm
 import android.os.Build
 import android.util.Log
 import android.util.Rational
@@ -10,6 +11,7 @@ import com.fling.app.media3.Media3PlayerViewFactory
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.util.UUID
 
 // audio_service requires the host activity to extend AudioServiceActivity
 // (a FlutterFragmentActivity subclass) instead of plain FlutterActivity —
@@ -57,7 +59,29 @@ class MainActivity : AudioServiceActivity() {
                 else -> result.notImplemented()
             }
         }
+
+        // Netflix/Prime watch-party sync — see OttRemoteChannel.kt.
+        OttRemoteChannel(applicationContext, flutterEngine.dartExecutor.binaryMessenger)
+
+        // Whether this device has Widevine, the copy protection Netflix,
+        // Prime and Hotstar need — see core/drm_support.dart. Emulators and
+        // some phones don't, and no WebView can play those services there.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.fling.app/drm")
+            .setMethodCallHandler { call, result ->
+                if (call.method == "hasWidevine") {
+                    val supported = try {
+                        MediaDrm.isCryptoSchemeSupported(widevineUuid)
+                    } catch (e: Exception) {
+                        false
+                    }
+                    result.success(supported)
+                } else {
+                    result.notImplemented()
+                }
+            }
     }
+
+    private val widevineUuid = UUID.fromString("edef8ba9-79d6-4ace-a3c8-27dcd51d21ed")
 
     private fun enterPip(): Boolean {
         Log.d("FlingPip", "enterPip() called, sdkInt=${Build.VERSION.SDK_INT}")

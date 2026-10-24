@@ -5,6 +5,7 @@ import '../core/api_exception.dart';
 import '../core/auth_provider.dart';
 import '../theme/app_colors.dart';
 import 'glass.dart';
+import '../theme/room_themes.dart';
 
 const _kGameTypes = [
   ['tictactoe', 'Tic Tac Toe'],
@@ -63,6 +64,7 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
   late bool _autoPlay = widget.room['autoPlay'] != false;
   late String _nextTrackMode =
       widget.room['nextTrackMode'] as String? ?? 'justPlay';
+  late String _theme = widget.room['theme'] as String? ?? 'midnight';
 
   bool _saving = false;
   bool _savedOnce = false;
@@ -117,6 +119,47 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
     _saveSettings(
         {'visibility': v}, () => _visibility = v, () => _visibility = old);
   }
+
+  void _setTheme(String v) {
+    final old = _theme;
+    _saveSettings({'theme': v}, () => _theme = v, () => _theme = old);
+  }
+
+  // One swatch per lobby theme; everyone in the room sees the host's pick.
+  Widget _themePicker() => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final t in RoomTheme.all)
+            Padding(
+              padding: const EdgeInsets.only(left: 6),
+              child: Semantics(
+                button: true,
+                selected: _theme == t.id,
+                label: '${t.label} theme',
+                child: GestureDetector(
+                  onTap:
+                      _saving || _theme == t.id ? null : () => _setTheme(t.id),
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [t.bgGradient.colors.last, t.primary]),
+                      border: Border.all(
+                          color: _theme == t.id
+                              ? AppColors.accent
+                              : Colors.white24,
+                          width: _theme == t.id ? 2.5 : 1),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      );
 
   void _setMics(bool v) {
     _saveSettings(
@@ -448,6 +491,7 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
                     onChanged: _setVisibility,
                   ),
                 ),
+                _row(Icons.palette_outlined, 'Theme', _themePicker()),
                 _row(
                   Icons.mic_rounded,
                   'Mics',

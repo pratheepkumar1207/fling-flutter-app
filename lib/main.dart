@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:provider/provider.dart';
 import 'core/app_messenger.dart';
 import 'core/app_navigator.dart';
@@ -16,6 +17,12 @@ import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Lets Chrome DevTools inspect in-app web pages (Netflix rooms etc.) on a
+  // test build: flutter build ... --dart-define=WEBVIEW_DEBUG=true. Off in
+  // every normal build.
+  if (const bool.fromEnvironment('WEBVIEW_DEBUG')) {
+    await InAppWebViewController.setWebContentsDebuggingEnabled(true);
+  }
   await initFirebase();
   // Only used for "Sign in with Google" (see google_auth_service.dart) —
   // phone login still goes through Firebase directly.

@@ -24,6 +24,9 @@ class RoomSocketController extends ChangeNotifier {
   // syncHandler.js's queue:voteSkip. required is a live majority of
   // whoever's actually in the room right now, not a fixed number.
   Map<String, dynamic> skipVote = {'count': 0, 'required': 1};
+  // Netflix/Prime rooms: each member's sync status (userId -> {name,
+  // status, offsetSec, at}), as their phones report it. Host-facing only.
+  Map<String, Map<String, dynamic>> ottStatuses = {};
   // Participant "vote to add this suggestion" tallies — see
   // syncHandler.js's queue:voteAdd. Keyed by videoUrl since several
   // suggestions can be mid-vote at once, unlike skipVote's single tally.
@@ -193,6 +196,14 @@ class RoomSocketController extends ChangeNotifier {
     });
     s.on('playback:state', (data) {
       playback = data == null ? null : Map<String, dynamic>.from(data);
+      notifyListeners();
+    });
+    s.on('ott:status', (data) {
+      if (data is! Map || data['userId'] is! String) return;
+      ottStatuses = {
+        ...ottStatuses,
+        data['userId'] as String: Map<String, dynamic>.from(data),
+      };
       notifyListeners();
     });
     s.on('queue:skipVoteState', (data) {
@@ -396,6 +407,11 @@ class RoomSocketController extends ChangeNotifier {
       socket?.emit('playback:seek', {'roomId': roomId, 'position': position});
     }
   }
+
+  // Netflix/Prime rooms: tell the room how this phone's player is doing.
+  void sendOttStatus(String status, double offsetSec) => socket?.emit(
+      'ott:status',
+      {'roomId': roomId, 'status': status, 'offsetSec': offsetSec});
 
   void requestState() =>
       socket?.emit('playback:requestState', {'roomId': roomId});

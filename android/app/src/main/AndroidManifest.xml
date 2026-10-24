@@ -79,6 +79,19 @@
             </intent-filter>
         </receiver>
 
+        <!-- Netflix/Prime watch-party sync: lets the room play/pause/seek
+             the Netflix or Prime Video app once the person grants
+             Notification access. See MediaControlListener.kt. -->
+        <service
+            android:name=".MediaControlListener"
+            android:label="Insync watch party sync"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
@@ -113,5 +126,8 @@
             <action android:name="android.intent.action.SENDTO"/>
             <data android:scheme="mailto"/>
         </intent>
+        <!-- Watch-party sync checks whether these are installed. -->
+        <package android:name="com.netflix.mediaclient"/>
+        <package android:name="com.amazon.avod.thirdpartyclient"/>
     </queries>
 </manifest>

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
-import '../../theme/vola_party_colors.dart';
+import '../../theme/room_themes.dart';
 
 /// Game rooms: the game owns the screen. A slim song bar sits on top (the
 /// room's music keeps playing while people play), the board fills the
@@ -78,7 +78,9 @@ class _GameRoomBodyState extends State<GameRoomBody> {
                     height: 40,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                        color: VolaPartyColors.surface.withValues(alpha: 0.8),
+                        color: RoomTheme.of(context)
+                            .surface
+                            .withValues(alpha: 0.8),
                         borderRadius: BorderRadius.circular(12)),
                     alignment: Alignment.centerLeft,
                     child: const Row(
@@ -125,9 +127,9 @@ class _GameRoomBodyState extends State<GameRoomBody> {
           margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
           padding: const EdgeInsets.fromLTRB(12, 9, 10, 9),
           decoration: BoxDecoration(
-            color: VolaPartyColors.surface.withValues(alpha: 0.95),
+            color: RoomTheme.of(context).surface.withValues(alpha: 0.95),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: VolaPartyColors.border),
+            border: Border.all(color: RoomTheme.of(context).border),
           ),
           child: Row(
             children: [
@@ -199,7 +201,7 @@ class _GameRoomBodyState extends State<GameRoomBody> {
                   color: AppColors.bg.withValues(alpha: 0.96),
                   borderRadius:
                       const BorderRadius.vertical(top: Radius.circular(20)),
-                  border: Border.all(color: VolaPartyColors.border),
+                  border: Border.all(color: RoomTheme.of(context).border),
                 ),
                 child: Column(
                   children: [

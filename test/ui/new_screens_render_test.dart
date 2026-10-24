@@ -17,6 +17,7 @@ import 'package:provider/provider.dart';
 import 'package:fling/models/room_models.dart';
 import 'package:fling/screens/party/game_room_body.dart';
 import 'package:fling/screens/party/game_seat_prompts.dart';
+import 'package:fling/screens/party/ott_sync_panel.dart';
 import 'package:fling/screens/profile/profile_post_grid.dart';
 import 'package:fling/widgets/game_board_view.dart';
 import 'package:fling/widgets/game_seat.dart';
@@ -163,8 +164,9 @@ void main() {
         .readAsBytes()
         .then((b) => ByteData.sublistView(b)));
     await icons.load();
-    _games = jsonDecode(File('test/fixtures/game_states.json').readAsStringSync())
-        as Map<String, dynamic>;
+    _games =
+        jsonDecode(File('test/fixtures/game_states.json').readAsStringSync())
+            as Map<String, dynamic>;
   });
 
   for (final (size, text) in _sizes) {
@@ -250,7 +252,8 @@ void main() {
       expect(tester.takeException(), isNull);
       await _render(
           tester,
-          ProfilePostGrid(posts: [_post('5', 'reel')], reels: true, emptyText: ''),
+          ProfilePostGrid(
+              posts: [_post('5', 'reel')], reels: true, emptyText: ''),
           size: size,
           text: text);
       expect(tester.takeException(), isNull);
@@ -321,6 +324,42 @@ void main() {
             ]),
             size: size,
             text: text);
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    // The Netflix-app panel, at the space it gets inside the room player
+    // (16:9 minus the control strip, and the smaller 21:9 player).
+    for (final (name, height, roomy) in [
+      ('full', 92.0, true),
+      ('compact', 68.0, false)
+    ]) {
+      testWidgets('Netflix sync panel ($name) renders at $label',
+          (tester) async {
+        await _render(
+            tester,
+            Align(
+              alignment: Alignment.topCenter,
+              child: SizedBox(
+                width: size.width,
+                height: height,
+                child: OttSyncPanel(
+                  platform: 'netflix',
+                  label: 'Netflix',
+                  titleUrl: 'https://www.netflix.com/watch/82811466',
+                  isHost: true,
+                  roomPlaying: true,
+                  hasRoomState: true,
+                  roomPosition: () => 120,
+                  onPlay: (_) {},
+                  onPause: (_) {},
+                  roomy: roomy,
+                ),
+              ),
+            ),
+            size: size,
+            text: text);
+        expect(find.textContaining('Netflix'), findsWidgets);
         expect(tester.takeException(), isNull);
       });
     }

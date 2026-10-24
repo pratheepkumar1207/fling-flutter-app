@@ -1,10 +1,16 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/drm_support.dart';
 import '../../core/mobile_webview_settings.dart';
 import '../../theme/app_colors.dart';
+import 'ott_sync_engine.dart';
+import 'ott_sync_panel.dart';
+import '../../core/ott_remote.dart';
+import '../../theme/room_themes.dart';
 
 /// Netflix/Prime "browse together" sibling of sync_video_player.dart /
 /// drive_video_player.dart. Unlike those two there is still no *real* sync
@@ -56,6 +62,10 @@ class WebviewRoomPlayer extends StatefulWidget {
   final VoidCallback? onVoteSkip;
   final int skipVoteCount;
   final int skipVoteRequired;
+  // Netflix/Prime sync (see ott_sync_panel.dart): each member's reported
+  // status, and how this phone reports its own.
+  final Map<String, Map<String, dynamic>> ottStatuses;
+  final void Function(String status, double offsetSec)? onOttStatus;
 
   const WebviewRoomPlayer({
     super.key,
@@ -73,6 +83,8 @@ class WebviewRoomPlayer extends StatefulWidget {
     this.onVoteSkip,
     this.skipVoteCount = 0,
     this.skipVoteRequired = 1,
+    this.ottStatuses = const {},
+    this.onOttStatus,
   });
 
   @override
@@ -96,6 +108,18 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
   bool _noWidevine = false;
   bool _drmChecked = false;
 
+  // Netflix/Prime: like Rave, the title plays right here in the room and
+  // the room drives that web player (see _WebPlayerTarget). Switches to
+  // the platform's own app (ott_sync_panel.dart) when the web player shows
+  // an error — as Netflix does on emulators — or the person asks to.
+  bool _useApp = false;
+  OttSyncEngine? _webSync;
+  Timer? _webSyncTimer;
+  bool _webBusy = false;
+  String _webStatus = 'not_playing';
+  String? _lastSentStatus;
+  DateTime _lastSentAt = DateTime.fromMillisecondsSinceEpoch(0);
+
   @override
   void initState() {
     super.initState();
@@ -103,6 +127,11 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     // state on join so a late joiner's elapsed-time estimate starts
     // correct instead of at zero.
     if (!widget.isHost) widget.onRequestState();
+    _checkWidevine();
+    if (_isOtt) {
+      _webSyncTimer = Timer.periodic(
+          const Duration(milliseconds: 1500), (_) => _webSyncTick());
+    }
     // Forces the elapsed-time display to keep advancing even when no new
     // playback:state has arrived — purely cosmetic, doesn't affect
     // anything sent to the backend.
@@ -115,7 +144,12 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     super.didUpdateWidget(old);
     final wasPlaying = old.playback?['isPlaying'] as bool?;
     final isPlaying = widget.playback?['isPlaying'] as bool?;
-    if (!widget.isHost && isPlaying != null && isPlaying != wasPlaying) {
+    // No "press play too" when the room already does it for them.
+    final autoSynced = _isOtt && (_useApp || _webSync?.local != null);
+    if (!widget.isHost &&
+        !autoSynced &&
+        isPlaying != null &&
+        isPlaying != wasPlaying) {
       _showNudge(isPlaying
           ? 'Host pressed play — press play in your app too'
           : 'Host paused — pause yours too');
@@ -134,8 +168,45 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
   // the host's last play/pause, same correction pattern
   // sync_video_player.dart/drive_video_player.dart use for the real thing.
   // Purely a display estimate; nothing here can seek anyone's actual video.
+  // The host's own last play/pause/seek. The backend only sends those to
+  // everyone else, so without this the host's own clock (and Netflix
+  // sync, which compares against it) would stay on the old state.
+  Map<String, dynamic>? _hostLocal;
+  final _ottPanel = GlobalKey<OttSyncPanelState>();
+
+  Map<String, dynamic>? get _playback {
+    final local = _hostLocal;
+    final remote = widget.playback;
+    if (local == null) return remote;
+    if (remote == null) return local;
+    return ((remote['updatedAt'] as num?) ?? 0) > (local['updatedAt'] as num)
+        ? remote
+        : local;
+  }
+
+  void _record(double position, bool playing) => _hostLocal = {
+        'position': position,
+        'isPlaying': playing,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      };
+
+  void _emitPlay(double position) {
+    _record(position, true);
+    widget.onPlay(position);
+  }
+
+  void _emitPause(double position) {
+    _record(position, false);
+    widget.onPause(position);
+  }
+
+  void _emitSeek(double position) {
+    _record(position, true);
+    widget.onSeek?.call(position);
+  }
+
   double get _elapsedSeconds {
-    final p = widget.playback;
+    final p = _playback;
     if (p == null) return 0;
     var position = (p['position'] as num?)?.toDouble() ?? 0;
     final updatedAt = p['updatedAt'] == null ? null : (p['updatedAt'] as num);
@@ -147,21 +218,22 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     return position;
   }
 
-  bool get _isPlaying => widget.playback?['isPlaying'] == true;
+  bool get _isPlaying => _playback?['isPlaying'] == true;
 
   String _formatTime(double seconds) {
     final d = Duration(seconds: seconds.round());
-    final m = d.inMinutes.remainder(60).toString().padLeft(1, '0');
     final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$m:$s';
+    if (d.inHours > 0) {
+      final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+      return '${d.inHours}:$m:$s';
+    }
+    return '${d.inMinutes}:$s';
   }
 
   void _hostTogglePlay() {
-    if (_isPlaying) {
-      widget.onPause(_elapsedSeconds);
-    } else {
-      widget.onPlay(_elapsedSeconds);
-    }
+    final playing = !_isPlaying;
+    playing ? _emitPlay(_elapsedSeconds) : _emitPause(_elapsedSeconds);
+    _hostCommand(playing: playing);
   }
 
   // There's no real duration to size this against — Netflix/Prime never
@@ -178,14 +250,22 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
   void _handleSeekChanged(double value) =>
       setState(() => _dragPosition = value);
 
+  // Total length when the player reports it (Netflix's page or app).
+  double? get _durationSec =>
+      _webSync?.local?.durationSec ?? _ottPanel.currentState?.durationSec;
+
+  // Host: move the room (and their own player) to [position], keeping it
+  // playing or paused as it was.
+  void _hostSeekTo(double position) {
+    final target = position < 0 ? 0.0 : position;
+    final playing = _isPlaying;
+    playing ? _emitSeek(target) : _emitPause(target);
+    _hostCommand(playing: playing, seekTo: target);
+  }
+
   void _handleSeekEnd(double value) {
     setState(() => _dragPosition = null);
-    // Dragging the estimate forward/back is itself a "please match this"
-    // signal to the room, same spirit as play/pause — always broadcasts,
-    // regardless of whether it happened to be playing or paused right
-    // before the drag (the backend's playback:seek marks it playing
-    // either way, same as YouTube/Drive's real seek bar already does).
-    widget.onSeek?.call(value);
+    _hostSeekTo(value);
   }
 
   // Best-effort only — platforms don't expose a stable "you're logged out"
@@ -310,25 +390,55 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     return null;
   }
 
-  // Asks the page's own browser engine (EME) whether Widevine exists here.
-  Future<void> _checkWidevine(InAppWebViewController controller) async {
+  bool get _isOtt => _drmPlatform == 'Netflix' || _drmPlatform == 'Prime Video';
+
+  // In app mode the page isn't shown; the platform's own app plays instead.
+  bool get _appOnly => _isOtt && _useApp;
+
+  Future<void> _webSyncTick() async {
+    final sync = _webSync;
+    if (_useApp || sync == null || _onLoginPage || _webBusy || !mounted) return;
+    _webBusy = true;
+    try {
+      final status = await sync.tick();
+      if (!mounted) return;
+      if ((sync.target as _WebPlayerTarget).error) {
+        // The web player refused (an error page) — use the app instead.
+        setState(() => _useApp = true);
+        return;
+      }
+      if (status != _webStatus) setState(() => _webStatus = status);
+      _reportStatus(status, sync.offset);
+    } finally {
+      _webBusy = false;
+    }
+  }
+
+  void _reportStatus(String status, double offset) {
+    final now = DateTime.now();
+    if (status != _lastSentStatus ||
+        now.difference(_lastSentAt) > const Duration(seconds: 5)) {
+      _lastSentStatus = status;
+      _lastSentAt = now;
+      widget.onOttStatus?.call(status, offset);
+    }
+  }
+
+  // The host used the room's own controls: move their player too.
+  void _hostCommand({required bool playing, double? seekTo}) {
+    if (_useApp) {
+      _ottPanel.currentState?.hostCommand(playing: playing, seekTo: seekTo);
+    } else {
+      _webSync?.hostCommand(playing: playing, seekTo: seekTo);
+    }
+  }
+
+  // Asks Android whether this device has Widevine at all.
+  Future<void> _checkWidevine() async {
     if (_drmChecked || _drmPlatform == null) return;
     _drmChecked = true;
-    try {
-      final result = await controller.callAsyncJavaScript(functionBody: '''
-        if (!navigator.requestMediaKeySystemAccess) return false;
-        try {
-          await navigator.requestMediaKeySystemAccess('com.widevine.alpha', [{
-            initDataTypes: ['cenc'],
-            videoCapabilities: [{contentType: 'video/mp4; codecs="avc1.42E01E"'}]
-          }]);
-          return true;
-        } catch (e) { return false; }
-      ''');
-      if (mounted && result?.value == false) setState(() => _noWidevine = true);
-    } catch (_) {
-      // Couldn't tell — leave the page as it is.
-    }
+    final supported = await DrmSupport.hasWidevine();
+    if (mounted && !supported) setState(() => _noWidevine = true);
   }
 
   Future<void> _openPlatformApp() async {
@@ -345,8 +455,233 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     }
   }
 
+  Widget _noWidevineNotice(bool roomy) => Container(
+        color: Colors.black,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        alignment: Alignment.center,
+        child: Row(
+          children: [
+            const Icon(Icons.lock_outline_rounded,
+                color: Colors.white70, size: 22),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Can’t play ${_drmPlatform ?? 'this'} on this phone',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12.5)),
+                  if (roomy)
+                    Text('Watch in the app. This room keeps time and chat.',
+                        maxLines:
+                            MediaQuery.textScalerOf(context).scale(10) > 13
+                                ? 1
+                                : 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 11)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: _openPlatformApp,
+              style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: AppColors.ink,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  visualDensity: VisualDensity.compact),
+              child: const Text('Open', style: TextStyle(fontSize: 12.5)),
+            ),
+          ],
+        ),
+      );
+
+  // Music-player style: elapsed / total and a progress bar (draggable by
+  // the host), then the host's back-10s / play-pause / forward-10s in the
+  // middle. No title or instructions — the picture is the content. Next-
+  // in-queue stays on the right (vote to skip for everyone else). Each
+  // person's own subtitle/audio/quality settings stay in the site's own
+  // player; only play/pause and position are shared.
+  Widget _controlStrip() {
+    final elapsed = _dragPosition ?? _elapsedSeconds;
+    final duration = _durationSec;
+    final max =
+        duration != null && duration > elapsed ? duration : _maxDragSeconds;
+    const timeStyle = TextStyle(
+        color: Colors.white,
+        fontSize: 10.5,
+        fontFeatures: [FontFeature.tabularFigures()]);
+    Widget icon(IconData i, String label, VoidCallback onTap,
+            {double size = 24}) =>
+        Semantics(
+          button: true,
+          label: label,
+          child: InkResponse(
+            onTap: onTap,
+            radius: size,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Icon(i, color: Colors.white, size: size),
+            ),
+          ),
+        );
+    final skip = widget.isHost && widget.onSkip != null
+        ? icon(Icons.skip_next_rounded, 'Next in queue', widget.onSkip!,
+            size: 20)
+        : (!widget.isHost && widget.onVoteSkip != null)
+            ? GestureDetector(
+                onTap: widget.onVoteSkip,
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.skip_next_rounded,
+                      color: Colors.white, size: 18),
+                  const SizedBox(width: 3),
+                  Text('${widget.skipVoteCount}/${widget.skipVoteRequired}',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600)),
+                ]),
+              )
+            : null;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 2, 10, 4),
+      color: Colors.black54,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Text(_formatTime(elapsed), style: timeStyle),
+              Expanded(
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 2,
+                    thumbShape: RoundSliderThumbShape(
+                        enabledThumbRadius: widget.isHost ? 5 : 0,
+                        disabledThumbRadius: 0),
+                    overlayShape: SliderComponentShape.noOverlay,
+                    disabledActiveTrackColor: RoomTheme.of(context).primary,
+                    disabledInactiveTrackColor: Colors.white24,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Slider(
+                      value: elapsed.clamp(0, max),
+                      max: max,
+                      activeColor: RoomTheme.of(context).primary,
+                      inactiveColor: Colors.white24,
+                      onChanged: widget.isHost && widget.onSeek != null
+                          ? _handleSeekChanged
+                          : null,
+                      onChangeEnd: widget.isHost && widget.onSeek != null
+                          ? _handleSeekEnd
+                          : null,
+                    ),
+                  ),
+                ),
+              ),
+              Text(duration != null ? _formatTime(duration) : '--:--',
+                  style: timeStyle),
+            ],
+          ),
+          SizedBox(
+            height: 32,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                if (widget.isHost)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (widget.onSeek != null)
+                        icon(Icons.replay_10_rounded, 'Back 10 seconds',
+                            () => _hostSeekTo(_elapsedSeconds - 10)),
+                      icon(
+                          _isPlaying
+                              ? Icons.pause_circle_filled_rounded
+                              : Icons.play_circle_fill_rounded,
+                          _isPlaying
+                              ? 'Pause for everyone'
+                              : 'Play for everyone',
+                          _hostTogglePlay,
+                          size: 32),
+                      if (widget.onSeek != null)
+                        icon(Icons.forward_10_rounded, 'Forward 10 seconds',
+                            () => _hostSeekTo(_elapsedSeconds + 10)),
+                    ],
+                  ),
+                if (skip != null)
+                  Align(alignment: Alignment.centerRight, child: skip),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Web mode: a small status pill over the video, and the way out to the
+  // platform's app.
+  Widget _webSyncChip() {
+    final label = _drmPlatform ?? 'the app';
+    final inSync =
+        widget.ottStatuses.values.where((e) => e['status'] == 'in_sync').length;
+    final text = widget.isHost
+        ? (widget.ottStatuses.isEmpty
+            ? 'You’re driving'
+            : '$inSync of ${widget.ottStatuses.length} in sync')
+        : switch (_webStatus) {
+            'in_sync' => 'In sync',
+            'behind' ||
+            'ahead' =>
+              '${(_webSync?.offset.abs() ?? 0).round()}s $_webStatus · fixing',
+            _ => 'Press play to start',
+          };
+    Widget pill(String s, VoidCallback onTap) => GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+            decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(999)),
+            child: Text(s,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600)),
+          ),
+        );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Flexible(
+          child: pill(
+              text,
+              widget.isHost
+                  ? () => showOttPeople(context, widget.ottStatuses, label)
+                  : () {}),
+        ),
+        if (OttRemote.supported) ...[
+          const SizedBox(width: 6),
+          Flexible(
+              child:
+                  pill('Use $label app', () => setState(() => _useApp = true))),
+        ],
+      ],
+    );
+  }
+
   @override
   void dispose() {
+    _webSyncTimer?.cancel();
     _tickTimer?.cancel();
     _nudgeDismissTimer?.cancel();
     super.dispose();
@@ -371,96 +706,119 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         child: Stack(
       fit: StackFit.expand,
       children: [
-        InAppWebView(
-          initialUrlRequest: URLRequest(url: WebUri(url)),
-          // Mobile UA here, not desktop: actual DRM video playback
-          // (Widevine) only works reliably in this WebView when Netflix
-          // thinks it's talking to mobile Chrome — a desktop UA makes it
-          // pick a playback path the WebView can't fulfill, surfacing as
-          // Netflix error M7701-1003 (confirmed live). Desktop mode stays
-          // on the browse/catalog screen (no DRM decode happens there);
-          // only the actual playback WebView needs to stay mobile.
-          initialSettings: mobileWebViewSettings,
-          onWebViewCreated: (controller) => _controller = controller,
-          onLoadStop: (controller, url) {
-            _checkLoginUrl(url);
-            _injectFullBleedVideoCss();
-            _checkWidevine(controller);
-          },
-          // Same "don't error out on a custom app-deeplink scheme" guard
-          // as webview_browse_screen.dart — see its comment for why.
-          shouldOverrideUrlLoading: (controller, navigationAction) async {
-            final scheme = navigationAction.request.url?.scheme;
-            if (scheme != null && scheme != 'http' && scheme != 'https') {
-              return NavigationActionPolicy.CANCEL;
-            }
-            return NavigationActionPolicy.ALLOW;
-          },
-          // Android WebView denies DRM (Widevine) permission requests by
-          // default — without granting this, Netflix/Prime's player
-          // can't initialize EME at all and fails with a generic
-          // HTML5-player error (confirmed live: Netflix's M7701-1003)
-          // regardless of user agent or anything else being right.
-          onPermissionRequest: (controller, request) async {
-            return PermissionResponse(
-                resources: request.resources,
-                action: PermissionResponseAction.GRANT);
-          },
-        ),
-        Positioned(
-          top: 8,
-          right: 8,
-          child: GestureDetector(
-            onTap: _requestFullscreen,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  shape: BoxShape.circle),
-              child: const Icon(Icons.fullscreen_rounded,
-                  color: Colors.white, size: 18),
-            ),
+        if (_appOnly)
+          const ColoredBox(color: Colors.black)
+        else
+          InAppWebView(
+            initialUrlRequest: URLRequest(url: WebUri(url)),
+            // Mobile UA here, not desktop: actual DRM video playback
+            // (Widevine) only works reliably in this WebView when Netflix
+            // thinks it's talking to mobile Chrome — a desktop UA makes it
+            // pick a playback path the WebView can't fulfill, surfacing as
+            // Netflix error M7701-1003 (confirmed live). Desktop mode stays
+            // on the browse/catalog screen (no DRM decode happens there);
+            // only the actual playback WebView needs to stay mobile.
+            initialSettings: mobileWebViewSettings,
+            onWebViewCreated: (controller) {
+              _controller = controller;
+              if (_isOtt) {
+                _webSync = OttSyncEngine(
+                  target: _WebPlayerTarget(controller),
+                  isHost: () => widget.isHost,
+                  roomPlaying: () => _isPlaying,
+                  hasRoomState: () => _playback != null,
+                  roomPosition: () => _elapsedSeconds,
+                  onPlay: _emitPlay,
+                  onPause: _emitPause,
+                  onSeek: widget.onSeek == null ? null : _emitSeek,
+                );
+              }
+            },
+            onLoadStop: (controller, url) {
+              _checkLoginUrl(url);
+              _injectFullBleedVideoCss();
+              _checkWidevine();
+            },
+            // Same "don't error out on a custom app-deeplink scheme" guard
+            // as webview_browse_screen.dart — see its comment for why.
+            shouldOverrideUrlLoading: (controller, navigationAction) async {
+              final scheme = navigationAction.request.url?.scheme;
+              if (scheme != null && scheme != 'http' && scheme != 'https') {
+                // Netflix answers a phone browser's watch link by handing
+                // off to its app (intent:// / nflx://) — confirmed live —
+                // which left this page blank. That's Netflix saying "use
+                // the app", so switch to app sync instead.
+                if (_isOtt && mounted && !_useApp) {
+                  setState(() => _useApp = true);
+                }
+                return NavigationActionPolicy.CANCEL;
+              }
+              return NavigationActionPolicy.ALLOW;
+            },
+            // Android WebView denies DRM (Widevine) permission requests by
+            // default — without granting this, Netflix/Prime's player
+            // can't initialize EME at all and fails with a generic
+            // HTML5-player error (confirmed live: Netflix's M7701-1003)
+            // regardless of user agent or anything else being right.
+            onPermissionRequest: (controller, request) async {
+              return PermissionResponse(
+                  resources: request.resources,
+                  action: PermissionResponseAction.GRANT);
+            },
           ),
-        ),
-        if (_noWidevine)
-          Positioned.fill(
-            child: Container(
-              color: Colors.black,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 56),
-              alignment: Alignment.center,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.lock_outline_rounded,
-                        color: Colors.white70, size: 26),
-                    const SizedBox(height: 8),
-                    Text(
-                      'This phone can’t play ${_drmPlatform ?? 'this'} inside Insync',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Its copy protection isn’t available here. Watch in the app and keep this room open for chat and the room timer.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white70, fontSize: 11.5),
-                    ),
-                    const SizedBox(height: 10),
-                    FilledButton(
-                      onPressed: _openPlatformApp,
-                      style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.accent,
-                          foregroundColor: AppColors.ink),
-                      child: Text('Open ${_drmPlatform ?? 'the'} app'),
-                    ),
-                  ],
-                ),
+        if (!_appOnly)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: _requestFullscreen,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    shape: BoxShape.circle),
+                child: const Icon(Icons.fullscreen_rounded,
+                    color: Colors.white, size: 18),
               ),
             ),
+          ),
+        // Compact so it fits the 16:9 box above the room's own control
+        // strip, which covers the bottom ~90px of this player.
+        if (_isOtt && !_useApp && !_onLoginPage)
+          Positioned(
+              top: 8,
+              left: 8,
+              right: 52,
+              child: Align(
+                  alignment: Alignment.centerLeft, child: _webSyncChip())),
+        if (_noWidevine || _appOnly)
+          Positioned.fill(
+            child: LayoutBuilder(builder: (context, box) {
+              final roomy = box.maxHeight >= 150;
+              return Padding(
+                padding:
+                    EdgeInsets.only(bottom: roomy ? 88 : box.maxHeight * 0.5),
+                child: _appOnly
+                    ? OttSyncPanel(
+                        key: _ottPanel,
+                        platform:
+                            _drmPlatform == 'Netflix' ? 'netflix' : 'amazon',
+                        label: _drmPlatform!,
+                        titleUrl: widget.videoUrl!,
+                        isHost: widget.isHost,
+                        roomPlaying: _isPlaying,
+                        hasRoomState: _playback != null,
+                        roomPosition: () => _elapsedSeconds,
+                        onPlay: _emitPlay,
+                        onPause: _emitPause,
+                        onSeek: widget.onSeek == null ? null : _emitSeek,
+                        onStatus: widget.onOttStatus,
+                        statuses: widget.ottStatuses,
+                        roomy: roomy,
+                      )
+                    : _noWidevineNotice(roomy),
+              );
+            }),
           ),
         if (_onLoginPage)
           Positioned(
@@ -503,127 +861,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
               ),
             ),
           ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            color: Colors.black54,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (widget.title != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      widget.title!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12),
-                    ),
-                  ),
-                // Host-draggable elapsed-time estimate — dragging this
-                // does NOT seek the actual Netflix/Prime video (DRM blocks
-                // that for anyone), it just moves the room's shared
-                // "roughly here" marker, same as the play/pause nudge
-                // already does. No known real duration to size the bar
-                // against (see _maxDragSeconds), so there's no "time
-                // remaining" figure, only elapsed / an assumed ceiling.
-                if (widget.isHost && widget.onSeek != null)
-                  Row(
-                    children: [
-                      Text(_formatTime(_dragPosition ?? _elapsedSeconds),
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 10)),
-                      Expanded(
-                        child: SliderTheme(
-                          data: SliderTheme.of(context).copyWith(
-                            trackHeight: 2,
-                            thumbShape: const RoundSliderThumbShape(
-                                enabledThumbRadius: 5),
-                          ),
-                          child: Slider(
-                            value: (_dragPosition ?? _elapsedSeconds)
-                                .clamp(0, _maxDragSeconds),
-                            max: _maxDragSeconds,
-                            activeColor: AppColors.primary,
-                            inactiveColor: Colors.white24,
-                            onChanged: _handleSeekChanged,
-                            onChangeEnd: _handleSeekEnd,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                Row(
-                  children: [
-                    if (widget.isHost)
-                      GestureDetector(
-                        onTap: _hostTogglePlay,
-                        child: Icon(
-                            _isPlaying
-                                ? Icons.pause_circle_filled_rounded
-                                : Icons.play_circle_fill_rounded,
-                            color: Colors.white,
-                            size: 22),
-                      ),
-                    if (widget.isHost) const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        widget.isHost
-                            ? 'Tap play/pause to nudge everyone — room is at ${_formatTime(_elapsedSeconds)}'
-                            : 'Room is roughly ${_formatTime(_elapsedSeconds)} in — scrub to match, then press play together.',
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 10),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    // Same skip control every source's player shows now — host
-                    // gets an immediate skip to the next queued item, everyone
-                    // else gets the same vote-to-skip pill YouTube/Drive use.
-                    if (widget.isHost && widget.onSkip != null)
-                      GestureDetector(
-                        onTap: widget.onSkip,
-                        child: const Padding(
-                          padding: EdgeInsets.only(left: 8),
-                          child: Icon(Icons.skip_next_rounded,
-                              color: Colors.white, size: 20),
-                        ),
-                      )
-                    else if (!widget.isHost && widget.onVoteSkip != null)
-                      GestureDetector(
-                        onTap: widget.onVoteSkip,
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 8),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.skip_next_rounded,
-                                  color: Colors.white, size: 18),
-                              const SizedBox(width: 3),
-                              Text(
-                                '${widget.skipVoteCount}/${widget.skipVoteRequired}',
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
+        Positioned(left: 0, right: 0, bottom: 0, child: _controlStrip()),
       ],
     ));
     return widget.fillHeight
@@ -631,4 +869,89 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         : AspectRatio(
             aspectRatio: widget.compact ? 21 / 9 : 16 / 9, child: webview);
   }
+}
+
+/// Netflix's (or Prime's) web player inside the room's WebView. Uses
+/// Netflix's own player controls where the page exposes them — setting
+/// the video element's time directly makes Netflix error out — and the
+/// plain <video> element otherwise. Copy protection covers the picture,
+/// not these controls, so the page's own script can drive them.
+class _WebPlayerTarget implements OttTarget {
+  final InAppWebViewController controller;
+  _WebPlayerTarget(this.controller);
+
+  /// Set once the page shows a playback error.
+  bool error = false;
+
+  static const _setup = r"""
+(function(){
+  if (window.__insync) return;
+  function nfPlayer(){
+    try {
+      var vp = netflix.appContext.state.playerApp.getAPI().videoPlayer;
+      var ids = vp.getAllPlayerSessionIds();
+      var id = ids.filter(function(i){ return i.indexOf('watch') >= 0; })[0] || ids[ids.length - 1];
+      return id ? vp.getVideoPlayerBySessionId(id) : null;
+    } catch (e) { return null; }
+  }
+  function video(){
+    var vs = Array.from(document.querySelectorAll('video'));
+    vs.sort(function(a,b){ return (b.offsetWidth*b.offsetHeight) - (a.offsetWidth*a.offsetHeight); });
+    return vs[0] || null;
+  }
+  function hasError(){
+    if (document.querySelector('.nf-error, .error-page, [data-uia="error-page"], [data-uia="player-error"]')) return true;
+    var t = document.body ? document.body.innerText.slice(0, 4000) : '';
+    return /Error Code|Pardon the interruption|isn.t available to watch/i.test(t);
+  }
+  window.__insync = {
+    state: function(){
+      if (hasError()) return JSON.stringify({error: true});
+      var v = video();
+      if (!v || !(v.duration > 0)) return null;
+      var p = nfPlayer();
+      var pos = p && p.getCurrentTime ? p.getCurrentTime() / 1000 : v.currentTime;
+      var dur = p && p.getDuration ? p.getDuration() / 1000 : v.duration;
+      return JSON.stringify({playing: !v.paused, pos: pos, dur: isFinite(dur) ? dur : 0, canSeek: true});
+    },
+    play: function(){ var p = nfPlayer(); if (p && p.play) p.play(); else { var v = video(); if (v) v.play(); } },
+    pause: function(){ var p = nfPlayer(); if (p && p.pause) p.pause(); else { var v = video(); if (v) v.pause(); } },
+    seek: function(s){ var p = nfPlayer(); if (p && p.seek) p.seek(Math.round(s * 1000)); else { var v = video(); if (v) v.currentTime = s; } }
+  };
+})();
+""";
+
+  Future<dynamic> _run(String call) async {
+    try {
+      return await controller.evaluateJavascript(source: '$_setup\n$call');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Future<OttPlayerState?> state() async {
+    final raw = await _run('window.__insync.state()');
+    if (raw is! String) return null;
+    final m = jsonDecode(raw);
+    if (m is! Map) return null;
+    if (m['error'] == true) {
+      error = true;
+      return null;
+    }
+    return OttPlayerState(
+      playing: m['playing'] == true,
+      positionSec: (m['pos'] as num?)?.toDouble() ?? 0,
+      canSeek: m['canSeek'] == true,
+      durationSec:
+          ((m['dur'] as num?) ?? 0) > 0 ? (m['dur'] as num).toDouble() : null,
+    );
+  }
+
+  @override
+  Future<void> play() => _run('window.__insync.play()');
+  @override
+  Future<void> pause() => _run('window.__insync.pause()');
+  @override
+  Future<void> seekTo(double seconds) => _run('window.__insync.seek($seconds)');
 }

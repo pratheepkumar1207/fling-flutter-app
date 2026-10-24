@@ -4,6 +4,7 @@ import '../models/room_models.dart';
 import '../theme/app_colors.dart';
 import '../theme/vola_party_colors.dart';
 import 'avatar.dart';
+import '../theme/room_themes.dart';
 
 /// Speaker stage + listener grid for Voice rooms — matches VoiceRoomDark.dc.html:
 /// plain "Speakers · N" / "Listening · N" sections directly on the room
@@ -52,18 +53,18 @@ class VoiceStageView extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 14),
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: VolaPartyColors.primary.withValues(alpha: 0.1),
+              color: RoomTheme.of(context).primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                  color: VolaPartyColors.primary.withValues(alpha: 0.3)),
+                  color: RoomTheme.of(context).primary.withValues(alpha: 0.3)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '${pendingRequests.length} request${pendingRequests.length == 1 ? '' : 's'} to talk',
-                  style: const TextStyle(
-                      color: VolaPartyColors.primary,
+                  style: TextStyle(
+                      color: RoomTheme.of(context).primary,
                       fontWeight: FontWeight.bold,
                       fontSize: 12),
                 ),
@@ -99,7 +100,7 @@ class VoiceStageView extends StatelessWidget {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 10, vertical: 5),
                                 decoration: BoxDecoration(
-                                    color: VolaPartyColors.primary,
+                                    color: RoomTheme.of(context).primary,
                                     borderRadius: BorderRadius.circular(999)),
                                 child: const Text('Approve',
                                     style: TextStyle(
@@ -117,7 +118,7 @@ class VoiceStageView extends StatelessWidget {
                                 decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(999),
                                     border: Border.all(
-                                        color: VolaPartyColors.border)),
+                                        color: RoomTheme.of(context).border)),
                                 child: const Text('Deny',
                                     style: TextStyle(
                                         color: VolaPartyColors.textDim,
@@ -176,7 +177,7 @@ class VoiceStageView extends StatelessWidget {
                                         : null,
                                     color: isHostSlot
                                         ? null
-                                        : VolaPartyColors.border,
+                                        : RoomTheme.of(context).border,
                                   ),
                                   child: SizedBox.square(
                                     dimension: circle - 6,
@@ -195,7 +196,7 @@ class VoiceStageView extends StatelessWidget {
                                 decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                        color: VolaPartyColors.border,
+                                        color: RoomTheme.of(context).border,
                                         width: 1.5,
                                         style: BorderStyle.solid)),
                                 alignment: Alignment.center,
@@ -215,7 +216,7 @@ class VoiceStageView extends StatelessWidget {
                                     color: VolaPartyColors.danger,
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                        color: VolaPartyColors.surface,
+                                        color: RoomTheme.of(context).surface,
                                         width: 2)),
                                 alignment: Alignment.center,
                                 child: const Icon(Icons.close,
