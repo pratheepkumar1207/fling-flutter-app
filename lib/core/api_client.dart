@@ -8,12 +8,12 @@ import 'api_exception.dart';
 class ApiClient {
   ApiClient._();
 
-  /// Same deployed backend the web app talks to. Railway account moved in
-  /// 2026-08 — new project's public domain (fling-production.up.railway.app
-  /// no longer resolves to anything under the old account).
+  /// Same deployed backend the web app talks to. Moved from Railway to
+  /// Render (Singapore) in 2026-10 — see the backend's render.yaml. Local
+  /// builds override it with --dart-define=API_BASE_URL=http://localhost:4000.
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://fling-backend-production-581f.up.railway.app',
+    defaultValue: 'https://fling-backend.onrender.com',
   );
 
   static String? Function()? tokenGetter;

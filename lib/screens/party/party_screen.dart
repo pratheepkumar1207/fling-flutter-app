@@ -479,6 +479,13 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     ));
   }
 
+  // Watch/voice/game rooms get the theme's backdrop; other room types keep
+  // the app's plain background.
+  Widget _maybeBackdrop(RoomTheme? theme, String? imageUrl, Widget child) =>
+      theme == null
+          ? child
+          : RoomBackdrop(theme: theme, imageUrl: imageUrl, child: child);
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -670,7 +677,6 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     // The host's lobby theme (Room settings -> Theme); Midnight by default.
     final roomTheme =
         RoomTheme.byId((rs.settings['theme'] ?? room['theme']) as String?);
-    final roomBgGradient = useVolaTheme ? roomTheme.bgGradient : null;
     final roomTextDim = useVolaTheme ? roomTheme.textDim : AppColors.textDim;
     final roomPrimary = useVolaTheme ? roomTheme.primary : AppColors.primary;
     final roomGold = useVolaTheme ? VolaPartyColors.gold : AppColors.gold;
@@ -1153,11 +1159,16 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                       _openQueue();
                     }
                   },
-                  child: Container(
-                    decoration: roomBgGradient != null
-                        ? BoxDecoration(gradient: roomBgGradient)
-                        : null,
-                    child: Column(
+                  child: _maybeBackdrop(
+                    useVolaTheme ? roomTheme : null,
+                    // Glass blurs what's playing, else the host's photo.
+                    (currentItem?['thumbnail'] ?? room['videoThumbnail'])
+                            as String? ??
+                        rs.roster
+                            .where((r) => r.userId == rs.hostId)
+                            .map((r) => r.avatarUrl)
+                            .firstOrNull,
+                    Column(
                       children: [
                         // Room-type-specific content — free to change shape however it
                         // needs to, since none of it holds long-lived playback state.

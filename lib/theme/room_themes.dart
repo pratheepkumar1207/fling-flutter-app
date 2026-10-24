@@ -1,4 +1,7 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
+import '../widgets/app_image.dart';
 
 /// Lobby themes the host picks in Room settings (watch, voice and game
 /// rooms). A theme changes the room's backdrop, accent (buttons, progress
@@ -18,6 +21,9 @@ class RoomTheme {
   final Color text;
   final Color textDim;
   final Color textFaint;
+  // Glass: the backdrop is a blurred, darkened copy of what's playing
+  // (see RoomBackdrop) and the surfaces are see-through.
+  final bool glass;
 
   const RoomTheme({
     required this.id,
@@ -31,6 +37,7 @@ class RoomTheme {
     this.text = const Color(0xFFF4F5F6),
     required this.textDim,
     required this.textFaint,
+    this.glass = false,
   });
 
   static const midnight = RoomTheme(
@@ -101,7 +108,44 @@ class RoomTheme {
     textFaint: Color(0xFFB0958A),
   );
 
-  static const all = [midnight, cinema, neon, sunset];
+  static const glassy = RoomTheme(
+    id: 'glass',
+    label: 'Glass',
+    // Shown only when there's nothing to blur behind the room.
+    bgGradient: LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFF3A1430), Color(0xFF121733)],
+    ),
+    surface: Color(0x1FFFFFFF),
+    surface2: Color(0x2EFFFFFF),
+    border: Color(0x38FFFFFF),
+    primary: Color(0xFF9B3BF5),
+    nameAccent: Color(0xFFFFD54D),
+    textDim: Color(0xFFE4E1EC),
+    textFaint: Color(0xFFC4C0D0),
+    glass: true,
+  );
+
+  // True black for AMOLED screens and night viewing.
+  static const dark = RoomTheme(
+    id: 'dark',
+    label: 'Dark',
+    bgGradient: LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFF0B0B0F), Color(0xFF000000)],
+    ),
+    surface: Color(0xFF141418),
+    surface2: Color(0xFF1C1C22),
+    border: Color(0x26FFFFFF),
+    primary: Color(0xFF52525B),
+    nameAccent: Color(0xFFE4E4E7),
+    textDim: Color(0xFFA1A1AA),
+    textFaint: Color(0xFF71717A),
+  );
+
+  static const all = [midnight, cinema, neon, sunset, glassy, dark];
 
   static RoomTheme byId(String? id) =>
       all.firstWhere((t) => t.id == id, orElse: () => midnight);
@@ -119,4 +163,42 @@ class RoomThemeScope extends InheritedWidget {
 
   @override
   bool updateShouldNotify(RoomThemeScope old) => old.theme.id != theme.id;
+}
+
+/// The room's background: the theme's gradient, or for Glass a blurred,
+/// darkened copy of [imageUrl] (the poster or cover of what's playing, or
+/// the host's photo). The blurred layer only repaints when the image
+/// changes, so it stays smooth on low-end phones.
+class RoomBackdrop extends StatelessWidget {
+  final RoomTheme theme;
+  final String? imageUrl;
+  final Widget child;
+  const RoomBackdrop(
+      {super.key,
+      required this.theme,
+      required this.imageUrl,
+      required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final url = imageUrl;
+    if (!theme.glass || url == null || url.isEmpty) {
+      return DecoratedBox(
+          decoration: BoxDecoration(gradient: theme.bgGradient), child: child);
+    }
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        DecoratedBox(decoration: BoxDecoration(gradient: theme.bgGradient)),
+        RepaintBoundary(
+          child: ImageFiltered(
+            imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+            child: AppImage(key: ValueKey(url), source: url, fit: BoxFit.cover),
+          ),
+        ),
+        const ColoredBox(color: Color(0x80080810)),
+        child,
+      ],
+    );
+  }
 }
