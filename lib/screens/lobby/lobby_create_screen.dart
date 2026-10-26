@@ -53,7 +53,7 @@ const _kGames = [
 ];
 
 class LobbyCreateScreen extends StatefulWidget {
-  /// 'watch', 'voice' or 'game' — preselected when opened from Create.
+  /// 'watch', 'voice', 'game' or 'live' — preselected when opened from Create.
   final String initialRoomType;
   const LobbyCreateScreen({super.key, this.initialRoomType = 'watch'});
 

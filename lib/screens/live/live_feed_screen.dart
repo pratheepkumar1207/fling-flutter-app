@@ -7,6 +7,7 @@ import '../../widgets/avatar.dart';
 import '../../widgets/in_icon_button.dart';
 import '../../widgets/spinner.dart';
 import '../leaderboards/leaderboards_screen.dart';
+import '../lobby/lobby_create_screen.dart';
 import '../party/party_screen.dart';
 import '../search/search_screen.dart';
 
@@ -23,7 +24,6 @@ enum _LiveSort { forYou, newest }
 
 class _LiveFeedScreenState extends State<LiveFeedScreen> {
   bool _loading = true;
-  bool _starting = false;
   _LiveSort _sort = _LiveSort.forYou;
   List<Map<String, dynamic>> _rooms = [];
 
@@ -70,23 +70,9 @@ class _LiveFeedScreenState extends State<LiveFeedScreen> {
   }
 
   Future<void> _goLive() async {
-    setState(() => _starting = true);
-    try {
-      final room = await ApiClient.post('/rooms', body: {
-        'title': 'Live now',
-        'roomType': 'live',
-        'visibility': 'public'
-      }) as Map<String, dynamic>;
-      if (!mounted) return;
-      _open(room);
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Couldn’t start your live. Try again.')));
-      }
-    } finally {
-      if (mounted) setState(() => _starting = false);
-    }
+    await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => const LobbyCreateScreen(initialRoomType: 'live')));
+    _load();
   }
 
   @override
@@ -100,11 +86,19 @@ class _LiveFeedScreenState extends State<LiveFeedScreen> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(18, 12, 10, 6),
             child: Row(children: [
-              const Text('Live',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
-              const SizedBox(width: 8),
-              LiveTag(label: '${_rooms.length}'),
-              const Spacer(),
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Row(children: [
+                    const Text('Live',
+                        style: TextStyle(
+                            fontSize: 22, fontWeight: FontWeight.w700)),
+                    const SizedBox(width: 8),
+                    LiveTag(label: '${_rooms.length}'),
+                  ]),
+                ),
+              ),
               InIconButton(InIcons.search,
                   tooltip: 'Search',
                   onPressed: () => Navigator.of(context).push(
@@ -114,7 +108,12 @@ class _LiveFeedScreenState extends State<LiveFeedScreen> {
                   onPressed: () => Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => const LeaderboardsScreen()))),
               const SizedBox(width: 4),
-              _GoLiveButton(busy: _starting, onTap: _goLive),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: _GoLiveButton(busy: false, onTap: _goLive),
+                ),
+              ),
             ]),
           ),
         ),

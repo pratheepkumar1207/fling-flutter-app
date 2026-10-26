@@ -8,6 +8,8 @@ import 'package:fling/screens/feed/feed_screen.dart';
 import 'package:fling/screens/calls/incoming_call_view.dart';
 import 'package:fling/screens/messages/messages_screen.dart';
 import 'package:fling/screens/lobby/lobby_create_screen.dart';
+import 'package:fling/screens/live/live_ended_screen.dart';
+import 'package:fling/screens/live/live_feed_screen.dart';
 import 'package:fling/screens/lobby/source_picker_screen.dart';
 import 'package:fling/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -131,7 +133,30 @@ void main() {
     await _snap(t, key, 'source-picker');
   });
 
+  testWidgets('Live tab and live ended summary', (t) async {
+    var key = await _render(t, const LiveFeedScreen());
+    expect(t.takeException(), isNull);
+    expect(find.text('Go live'), findsWidgets);
+    await _snap(t, key, 'live-feed');
+    key = await _render(
+        t,
+        const LiveEndedScreen(
+            title: 'Singing your requests',
+            duration: Duration(minutes: 72),
+            viewers: 1086,
+            peak: 312));
+    expect(find.text('Live ended'), findsOneWidget);
+    await _snap(t, key, 'live-ended');
+  });
+
   for (final s in [
+    const LiveFeedScreen(),
+    const LiveEndedScreen(
+        title: 'A very long live title that keeps going and going',
+        duration: Duration(hours: 2),
+        viewers: 123456,
+        peak: 99999),
+    const LobbyCreateScreen(initialRoomType: 'live'),
     const LobbyCreateScreen(),
     const SourcePickerScreen(visibility: 'public'),
     const FeedScreen(),

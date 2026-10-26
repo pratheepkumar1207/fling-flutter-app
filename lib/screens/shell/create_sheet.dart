@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../core/api_client.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
 import '../../widgets/post_composer_sheet.dart';
 import '../lobby/lobby_create_screen.dart';
-import '../party/party_screen.dart';
 
 /// The centre "+" in the bottom bar: start any kind of room, go live, or
 /// post. Go live is highlighted, as in the design.
@@ -26,24 +24,7 @@ class _CreateSheet extends StatelessWidget {
         builder: (_) => LobbyCreateScreen(initialRoomType: type)));
   }
 
-  Future<void> _goLive(BuildContext sheet) async {
-    Navigator.of(sheet).pop();
-    try {
-      final room = await ApiClient.post('/rooms', body: {
-        'title': 'Live now',
-        'roomType': 'live',
-        'visibility': 'public'
-      }) as Map<String, dynamic>;
-      if (!parent.mounted) return;
-      Navigator.of(parent).push(MaterialPageRoute(
-          builder: (_) => PartyScreen(roomId: room['id'] as String)));
-    } catch (_) {
-      if (parent.mounted) {
-        ScaffoldMessenger.of(parent).showSnackBar(const SnackBar(
-            content: Text('Couldn’t start your live. Try again.')));
-      }
-    }
-  }
+  void _goLive(BuildContext sheet) => _room(sheet, 'live');
 
   void _post(BuildContext sheet) {
     Navigator.of(sheet).pop();

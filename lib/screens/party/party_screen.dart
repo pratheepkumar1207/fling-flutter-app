@@ -15,6 +15,9 @@ import '../../widgets/gift_bottom_sheet.dart';
 import '../../widgets/game_board_view.dart';
 import '../../widgets/game_seat.dart';
 import '../../widgets/avatar.dart';
+import '../../core/profile_nav.dart';
+import '../live/live_ended_screen.dart';
+import '../live/live_feed_screen.dart' show LiveTag;
 import '../../widgets/glass.dart';
 import '../../widgets/live_video_view.dart';
 import '../../widgets/participant_avatar_row.dart';
@@ -261,9 +264,19 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     }
   }
 
+  // Live summary: everyone seen while live, and the most at once.
+  final Set<String> _liveSeen = {};
+  int _livePeak = 0;
+  final DateTime _openedAt = DateTime.now();
+
   void _onRoomStateChanged() {
     if (!mounted) return;
     final rs = _rs!;
+    for (final r in rs.roster) {
+      if (r.userId != rs.hostId) _liveSeen.add(r.userId);
+    }
+    final watching = rs.roster.where((r) => r.userId != rs.hostId).length;
+    if (watching > _livePeak) _livePeak = watching;
 
     if (rs.kicked) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -993,26 +1006,163 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
             // does, regardless of what focus state Flutter thinks it's in.
             final hideChromeForChat =
                 _chatFocused && MediaQuery.of(context).viewInsets.bottom > 0;
+            final rosterSheet = RosterSheet(
+              roster: rs.roster,
+              hostId: rs.hostId,
+              isHost: rs.isHost,
+              myUserId: myId,
+              onKick: rs.kick,
+              onMakeHost: rs.makeHost,
+              roomType: room['roomType'] as String?,
+              activeMics: activeMics,
+              mutedMics: mutedMics,
+              onInviteMic: rs.inviteMic,
+              onForceMute: rs.forceMuteMic,
+              onForceUnmute: rs.forceUnmuteMic,
+              onInvite: _openInvite,
+              onInviteGame: isGame && rs.isHost ? rs.gameInvite : null,
+              gamePlayerIds: gamePlayerIds,
+            );
+            // Live: Tango-style full-screen video with everything on top.
+            if (room['roomType'] == 'live' && _live != null) {
+              final host = rs.roster
+                  .where((r) => r.userId == rs.hostId)
+                  .cast<RosterEntry?>()
+                  .firstWhere((_) => true, orElse: () => null);
+              final viewers =
+                  rs.roster.where((r) => r.userId != rs.hostId).toList();
+              return Scaffold(
+                key: _scaffoldKey,
+                backgroundColor: Colors.black,
+                endDrawer: rosterSheet,
+                body: Stack(children: [
+                  Positioned.fill(
+                    child: LiveVideoView(
+                        controller: _live!, isHost: rs.isHost, fill: true),
+                  ),
+                  const Positioned(
+                    left: 0,
+                    right: 0,
+                    top: 0,
+                    height: 140,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Color(0x99000000), Colors.transparent])),
+                    ),
+                  ),
+                  const Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: 360,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [Color(0xCC000000), Colors.transparent])),
+                    ),
+                  ),
+                  SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 8, 8, 0),
+                      child: Row(children: [
+                        KeyedSubtree(
+                          key: _hostKey,
+                          child: _LiveHostChip(
+                            name: host?.name ??
+                                (room['hostName'] as String? ?? 'Host'),
+                            avatarUrl: host?.avatarUrl,
+                            isMe: rs.isHost,
+                            onTap: host == null || rs.isHost
+                                ? null
+                                : () => openProfile(context, host.userId),
+                          ),
+                        ),
+                        const Spacer(),
+                        _LiveViewers(viewers: viewers, onTap: _openRoster),
+                        const SizedBox(width: 4),
+                        if (rs.isHost)
+                          FilledButton(
+                            onPressed: _leaveRoom,
+                            style: FilledButton.styleFrom(
+                                backgroundColor: AppColors.danger,
+                                minimumSize: const Size(0, 34),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 14)),
+                            child: const Text('End'),
+                          )
+                        else
+                          InIconButton(InIcons.close,
+                              tooltip: 'Leave live',
+                              size: 36,
+                              iconSize: 18,
+                              background: Colors.black38,
+                              color: Colors.white,
+                              onPressed: _leaveRoom),
+                      ]),
+                    ),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+                        child: SizedBox(
+                          height: 300,
+                          child: ChatOverlay(
+                            messages: rs.messages,
+                            onSend: (text, mentionedUserIds) => rs.sendMessage(
+                                text,
+                                mentionedUserIds: mentionedUserIds),
+                            myUserId: myId,
+                            primaryColor: AppColors.primary,
+                            textColor: Colors.white,
+                            roster: rs.roster,
+                            myMicOn: myMicOn,
+                            myMicRequested: myMicRequested,
+                            onMicTap: handleMicTap,
+                            onPoll: () {
+                              if (rs.isHost) {
+                                showPollCreatorBottomSheet(context,
+                                    onCreate: rs.createPoll);
+                              } else if (rs.poll['active'] == true) {
+                                showPollBottomSheet(context,
+                                    poll: rs.poll,
+                                    myUserId: myId ?? '',
+                                    isHost: rs.isHost,
+                                    roster: rs.roster,
+                                    onVote: rs.votePoll,
+                                    onReset: rs.resetPoll);
+                              }
+                            },
+                            onGift: () => showGiftBottomSheet(context,
+                                toUserId: room['hostId'] as String? ?? '',
+                                roomId: widget.roomId,
+                                targetKey: _hostKey),
+                            onShare: _shareRoom,
+                            onInvite: _openInvite,
+                            onFocusChanged: _setChatFocused,
+                            likedUrls: _likedUrls,
+                            onToggleLike: _toggleLike,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ]),
+              );
+            }
             return Scaffold(
               key: _scaffoldKey,
               backgroundColor: useVolaTheme ? Colors.transparent : roomBg,
-              endDrawer: RosterSheet(
-                roster: rs.roster,
-                hostId: rs.hostId,
-                isHost: rs.isHost,
-                myUserId: myId,
-                onKick: rs.kick,
-                onMakeHost: rs.makeHost,
-                roomType: room['roomType'] as String?,
-                activeMics: activeMics,
-                mutedMics: mutedMics,
-                onInviteMic: rs.inviteMic,
-                onForceMute: rs.forceMuteMic,
-                onForceUnmute: rs.forceUnmuteMic,
-                onInvite: _openInvite,
-                onInviteGame: isGame && rs.isHost ? rs.gameInvite : null,
-                gamePlayerIds: gamePlayerIds,
-              ),
+              endDrawer: rosterSheet,
               // Hidden while composing a chat message — see hideChromeForChat —
               // so chat gets the full screen instead of sharing it with chrome
               // nobody's looking at mid-type.
@@ -1814,6 +1964,107 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       if (!mounted) return;
     }
     _didLeaveRoom = true;
+    final endedLive = rs != null && rs.isHost && _room?['roomType'] == 'live';
+    if (endedLive) {
+      Navigator.of(context).pushReplacement(MaterialPageRoute(
+          builder: (_) => LiveEndedScreen(
+                title: _room?['title'] as String? ?? 'Live',
+                duration: DateTime.now().difference(
+                    DateTime.tryParse('${_room?['createdAt'] ?? ''}')
+                            ?.toLocal() ??
+                        _openedAt),
+                viewers: _liveSeen.length,
+                peak: _livePeak,
+              )));
+      return;
+    }
     Navigator.of(context).pop();
+  }
+}
+
+class _LiveHostChip extends StatelessWidget {
+  final String name;
+  final String? avatarUrl;
+  final bool isMe;
+  final VoidCallback? onTap;
+  const _LiveHostChip(
+      {required this.name, this.avatarUrl, required this.isMe, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: onTap != null,
+      label: isMe ? 'You are live' : '$name is live',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(4, 4, 12, 4),
+          decoration: BoxDecoration(
+              color: Colors.black38, borderRadius: BorderRadius.circular(999)),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Avatar(src: avatarUrl, name: name, size: AvatarSize.sm, ring: true),
+            const SizedBox(width: 8),
+            Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 120),
+                    child: Text(isMe ? 'You' : name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700)),
+                  ),
+                  const LiveTag(),
+                ]),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _LiveViewers extends StatelessWidget {
+  final List<RosterEntry> viewers;
+  final VoidCallback onTap;
+  const _LiveViewers({required this.viewers, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final shown = viewers.take(3).toList();
+    return Semantics(
+      button: true,
+      label: '${viewers.length} watching',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          for (var i = 0; i < shown.length; i++)
+            Transform.translate(
+              offset: Offset(-8.0 * i, 0),
+              child: Avatar(
+                  src: shown[i].avatarUrl,
+                  name: shown[i].name,
+                  size: AvatarSize.sm),
+            ),
+          Transform.translate(
+            offset: Offset(-8.0 * shown.length + 4, 0),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+              decoration: BoxDecoration(
+                  color: Colors.black38,
+                  borderRadius: BorderRadius.circular(999)),
+              child: Text('${viewers.length}',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700)),
+            ),
+          ),
+        ]),
+      ),
+    );
   }
 }
