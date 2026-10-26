@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'app_colors.dart';
 import 'clay_colors.dart';
 
 class AppTheme {
@@ -8,16 +9,14 @@ class AppTheme {
   static ThemeData get dark => _build(Brightness.dark, ClayColors.dark);
   static ThemeData get light => _build(Brightness.light, ClayColors.light);
 
-  /// Bricolage Grotesque for display/heading text, Plus Jakarta Sans for
-  /// body text — the type pairing from the Claude Design redesign
-  /// (--font-d / --font-b in the design canvas tokens).
+  /// Plus Jakarta Sans throughout; headings use the heavier weights.
   static TextTheme _textTheme(Brightness brightness, Color bodyColor) {
     final base = GoogleFonts.plusJakartaSansTextTheme(
       brightness == Brightness.dark
           ? ThemeData.dark().textTheme
           : ThemeData.light().textTheme,
     ).apply(bodyColor: bodyColor, displayColor: bodyColor);
-    final display = GoogleFonts.bricolageGrotesqueTextTheme(base);
+    final display = GoogleFonts.plusJakartaSansTextTheme(base);
     return base.copyWith(
       displayLarge: display.displayLarge,
       displayMedium: display.displayMedium,
@@ -45,7 +44,7 @@ class AppTheme {
         surface: clay.surface,
         onSurface: clay.text,
         onPrimary: Colors.white,
-        onSecondary: const Color(0xFF101B35),
+        onSecondary: Colors.white,
         error: clay.danger,
       ),
       appBarTheme: AppBarTheme(
@@ -53,7 +52,7 @@ class AppTheme {
         foregroundColor: clay.text,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        titleTextStyle: GoogleFonts.bricolageGrotesque(
+        titleTextStyle: GoogleFonts.plusJakartaSans(
           color: clay.text,
           fontWeight: FontWeight.w700,
           fontSize: 19,
@@ -67,11 +66,12 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
-              backgroundColor: clay.accent,
-              foregroundColor: const Color(0xFF101B35),
+              backgroundColor: clay.primary,
+              foregroundColor: Colors.white,
               minimumSize: const Size(48, 48),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)))),
+              textStyle:
+                  const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+              shape: const StadiumBorder())),
       dialogTheme: DialogThemeData(
           backgroundColor: clay.surface,
           shape:
@@ -87,10 +87,9 @@ class AppTheme {
           selectedColor: clay.primary,
           labelStyle: TextStyle(color: clay.text),
           side: BorderSide(color: clay.border),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+          shape: const StadiumBorder()),
       listTileTheme: ListTileThemeData(
-          iconColor: clay.accent,
+          iconColor: AppColors.lilac,
           textColor: clay.text,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 20, vertical: 4)),
@@ -105,11 +104,11 @@ class AppTheme {
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(color: clay.border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(color: clay.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -126,8 +125,7 @@ class AppTheme {
           foregroundColor: Colors.white,
           minimumSize: const Size(48, 52),
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: const StadiumBorder(),
           textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
         ),
       ),

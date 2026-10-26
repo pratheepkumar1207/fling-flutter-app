@@ -291,7 +291,7 @@ class _RosterSheetState extends State<RosterSheet> {
       child: r.avatarUrl != null
           ? AppImage(source: r.avatarUrl, fit: BoxFit.cover)
           : Text(initials(r.name),
-              style: GoogleFonts.bricolageGrotesque(
+              style: GoogleFonts.plusJakartaSans(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
                   fontSize: 11.5)),

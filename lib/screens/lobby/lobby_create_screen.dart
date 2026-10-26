@@ -51,7 +51,9 @@ const _kGames = [
 ];
 
 class LobbyCreateScreen extends StatefulWidget {
-  const LobbyCreateScreen({super.key});
+  /// 'watch', 'voice' or 'game' — preselected when opened from Create.
+  final String initialRoomType;
+  const LobbyCreateScreen({super.key, this.initialRoomType = 'watch'});
 
   @override
   State<LobbyCreateScreen> createState() => _LobbyCreateScreenState();
@@ -88,7 +90,7 @@ const _visibilities = [
 ];
 
 class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
-  String _roomType = 'watch';
+  late String _roomType = widget.initialRoomType;
   final _nameController = TextEditingController();
   // Reused as the reference's "Room Description" field — topic already
   // covers exactly that concept server-side, so there's no need for a

@@ -42,7 +42,7 @@ class LegalScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 18, bottom: 6),
               child: Text(section.heading,
-                  style: GoogleFonts.bricolageGrotesque(
+                  style: GoogleFonts.plusJakartaSans(
                       color: AppColors.text,
                       fontWeight: FontWeight.w700,
                       fontSize: 14)),

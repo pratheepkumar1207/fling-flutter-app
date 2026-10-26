@@ -129,7 +129,7 @@ class _BlockedAccountsScreenState extends State<BlockedAccountsScreen> {
             child: avatarUrl != null
                 ? AppImage(source: avatarUrl, fit: BoxFit.cover)
                 : Text(initials(name),
-                    style: GoogleFonts.bricolageGrotesque(
+                    style: GoogleFonts.plusJakartaSans(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
                         fontSize: 15)),

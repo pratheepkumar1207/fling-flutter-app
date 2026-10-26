@@ -1,3 +1,4 @@
+import 'package:fling/theme/insync_icons.dart';
 import 'dart:io';
 import 'package:fling/screens/auth/onboarding_screen.dart';
 import 'package:flutter/services.dart';
@@ -94,10 +95,10 @@ void main() {
                     onTap: (_) {},
                     onCreateTap: () {},
                     items: const [
-                      NavItemData(Icons.home_rounded, 'Home'),
-                      NavItemData(Icons.explore_outlined, 'Discover'),
-                      NavItemData(Icons.chat_bubble_outline_rounded, 'Chat'),
-                      NavItemData(Icons.person_outline_rounded, 'Profile')
+                      NavItemData(InIcons.home, 'Home'),
+                      NavItemData(InIcons.feed, 'Feed'),
+                      NavItemData(InIcons.live, 'Live', tag: 'LIVE'),
+                      NavItemData(InIcons.flame, 'Discover')
                     ]),
                 body: Padding(
                     padding: const EdgeInsets.all(20),

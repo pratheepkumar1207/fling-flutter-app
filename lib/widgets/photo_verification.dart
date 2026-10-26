@@ -115,7 +115,7 @@ class _PhotoVerificationScreenState extends State<PhotoVerificationScreen> {
                   ),
                   const SizedBox(height: 24),
                   Text('Take a quick selfie',
-                      style: GoogleFonts.bricolageGrotesque(
+                      style: GoogleFonts.plusJakartaSans(
                           color: AppColors.text,
                           fontWeight: FontWeight.w800,
                           fontSize: 19)),

@@ -1,30 +1,39 @@
 import 'package:flutter/material.dart';
 
+/// Insync palette — black ground with the logo's pink → purple → blue.
 class AppColors {
   AppColors._();
-  static const paper = Color(0xFFD4FF65);
-  static const ink = Color(0xFF101B35);
-  static const inkMuted = Color(0xFF34435E);
+  // Fill for selected chips/pills; [ink] is the text drawn on it and on
+  // [accent], so it stays white.
+  static const paper = Color(0xFF8A2BE2);
+  static const ink = Color(0xFFFFFFFF);
+  static const inkMuted = Color(0xFFE7DDF5);
 
-  static const bg = Color(0xFF0C1226);
-  static const surface = Color(0xFF16213D);
-  static const surface2 = Color(0xFF203052);
-  static const surface3 = Color(
-      0xFF2B4069); // one step past surface2, same progression rate as the design's surface->surface2 step
-  static const border = Color(0xFF34496F);
-  static const primary = Color(0xFF2455F5);
-  static const primaryDim = Color(0xFF193CB8);
-  static const accent = Color(0xFFD4FF65);
-  static const accent2 = Color(0xFFD4FF65);
-  static const gold = Color(0xFFDBB155);
+  static const bg = Color(0xFF0A0A0D);
+  static const surface = Color(0xFF16141D);
+  static const surface2 = Color(0xFF1F1C29);
+  static const surface3 = Color(0xFF2A2436);
+  static const border = Color(0xFF2E2A3A);
+  static const primary = Color(0xFF8A2BE2);
+  static const primaryDim = Color(0xFF6A1FB0);
+  static const accent = Color(0xFF9B3BF5);
+  static const accent2 = Color(0xFFFB3F65);
+  static const gold = Color(0xFFFFC93C);
 
-  static const text = Color(0xFFF1F1F4);
-  static const textDim = Color(0xFFADBBD7);
-  static const textFaint = Color(0xFF91A1C2);
+  // Brand hues straight from the logo.
+  static const pink = Color(0xFFFB3F65);
+  static const purple = Color(0xFF9B3BF5);
+  static const blue = Color(0xFF4073FC);
+  static const lilac = Color(0xFFC79BFF);
+  static const diamond = Color(0xFF7AD7FF);
+
+  static const text = Color(0xFFF4F4F6);
+  static const textDim = Color(0xFFA29FB0);
+  static const textFaint = Color(0xFF8D899C);
 
   static const success = Color(0xFF43B966);
-  static const danger = Color(0xFFED4B43);
-  static const warning = Color(0xFFDBB155);
+  static const danger = Color(0xFFE5384F);
+  static const warning = Color(0xFFFFC93C);
 }
 
 class AppColorsLight {
@@ -36,11 +45,11 @@ class AppColorsLight {
   static const surface3 = Color(0xFFEBE7E1);
   static const border = Color(0xFFE4E1DD);
 
-  static const primary = Color(0xFF2455F5);
-  static const primaryDim = Color(0xFF193CB8);
-  static const accent = Color(0xFFD4FF65);
-  static const accent2 = Color(0xFFD4FF65);
-  static const gold = Color(0xFFDBB155);
+  static const primary = Color(0xFF8A2BE2);
+  static const primaryDim = Color(0xFF6A1FB0);
+  static const accent = Color(0xFF9B3BF5);
+  static const accent2 = Color(0xFFFB3F65);
+  static const gold = Color(0xFFE0A800);
 
   static const text = Color(0xFF16130F);
   static const textDim = Color(0xFF5B5752);
@@ -48,15 +57,16 @@ class AppColorsLight {
 
   static const success = Color(0xFF45B164);
   static const danger = Color(0xFFD73431);
-  static const warning = Color(0xFFDBB155);
+  static const warning = Color(0xFFE0A800);
 }
 
 class AppGradients {
   AppGradients._();
 
   static const List<Color> brand = [
-    Color(0xFF2455F5),
-    Color(0xFF315EDC),
+    Color(0xFFFB3F65),
+    Color(0xFF9B3BF5),
+    Color(0xFF4073FC),
   ];
 
   static const LinearGradient brandDiagonal = LinearGradient(
@@ -70,5 +80,13 @@ class AppGradients {
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
     colors: volaCta,
+  );
+
+  /// Hero cards: dark rose → violet → navy, as on Home and Wallet.
+  static const LinearGradient hero = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF3A1430), Color(0xFF22123F), Color(0xFF121A3D)],
+    stops: [0, 0.55, 1],
   );
 }

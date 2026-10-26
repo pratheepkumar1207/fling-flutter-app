@@ -9,18 +9,18 @@ import '../calls/call_screen.dart';
 import '../discover/discover_screen.dart';
 import '../feed/feed_screen.dart';
 import '../home/home_screen.dart';
-import '../lobby/lobby_create_screen.dart';
-import '../messages/messages_screen.dart';
+import '../live/live_feed_screen.dart';
 import '../party/mention_notifier.dart';
 import '../party/party_screen.dart';
 import '../party/persistent_room_audio.dart';
+import '../../theme/insync_icons.dart';
 import '../../widgets/avatar.dart';
+import 'create_sheet.dart';
 import 'liquid_glass_bottom_nav.dart';
 import 'top_bar.dart';
 
-/// Mirrors src/layout/AppShell.jsx's PRIMARY_NAV — Home/Feed/Discover/Rooms
-/// as bottom tabs (mobile-first, unlike the web app's sidebar+bottom-nav
-/// split), with the same persistent TopBar above.
+/// Bottom tabs Home, Feed, Live and Discover with the "+" Create sheet in
+/// the middle; Messages lives in the top bar (see FlingTopBar).
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
 
@@ -31,37 +31,21 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _index = 0;
 
-  // Only Home/Feed/Discover are real tabs backed by the IndexedStack below —
-  // Messages is a fourth nav slot that pushes its own screen instead (see
-  // _onNavTap), same pattern as the center "+" button already uses for
-  // LobbyCreateScreen. The former "Rooms" tab (LobbyJoinScreen) is gone —
-  // its one feature actually worth keeping (joining a room by ID/link) now
-  // lives directly on Home instead of behind its own tab.
   static const _screens = [
     HomeScreen(),
     FeedScreen(),
+    LiveFeedScreen(),
     DiscoverScreen(),
   ];
 
   static const _items = [
-    NavItemData(Icons.home_rounded, 'Home',
-        iconAsset: 'assets/icons/app/home.png'),
-    NavItemData(Icons.article_rounded, 'Feed',
-        iconAsset: 'assets/icons/app/feed.png'),
-    NavItemData(Icons.local_fire_department_rounded, 'Discover',
-        iconAsset: 'assets/icons/app/discover.png'),
-    NavItemData(Icons.chat_bubble_rounded, 'Messages',
-        iconAsset: 'assets/icons/app/message.png'),
+    NavItemData(InIcons.home, 'Home'),
+    NavItemData(InIcons.feed, 'Feed'),
+    NavItemData(InIcons.live, 'Live', tag: 'LIVE'),
+    NavItemData(InIcons.flame, 'Discover'),
   ];
 
-  void _onNavTap(int i) {
-    if (i == _items.length - 1) {
-      Navigator.of(context)
-          .push(MaterialPageRoute(builder: (_) => const MessagesScreen()));
-      return;
-    }
-    setState(() => _index = i);
-  }
+  void _onNavTap(int i) => setState(() => _index = i);
 
   bool _handlingIncomingCall = false;
   // Channel of the incoming-call dialog currently showing, if any — lets
@@ -228,8 +212,7 @@ class _AppShellState extends State<AppShell> {
             currentIndex: _index,
             onTap: _onNavTap,
             items: _items,
-            onCreateTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const LobbyCreateScreen())),
+            onCreateTap: () => showCreateSheet(context),
           ),
         ],
       ),

@@ -93,6 +93,7 @@ dependencies:
   # streaming services (Hotstar/Aha/SunNXT/SonyLIV/Airtel Xstream) have no
   # icon here and use a colored letter-badge instead (see source_picker_screen.dart).
   font_awesome_flutter: ^11.0.0
+  flutter_svg: ^2.0.10+1
   # Keeps the socket connection (and thus room presence/playback sync) alive
   # while the app is backgrounded — without a real foreground service,
   # Android suspends the process's network activity after a short grace
@@ -129,6 +130,9 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon/insync-icon.png
+    - assets/icon/insync-logo.png
+    - assets/icon/insync-symbol.png
+    - assets/logo/
     - assets/icons/rooms/
     - assets/icons/app/
 

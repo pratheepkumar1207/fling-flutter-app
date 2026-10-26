@@ -918,7 +918,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _profileStat(String value, String label) => Column(
         children: [
           Text(value,
-              style: GoogleFonts.bricolageGrotesque(
+              style: GoogleFonts.plusJakartaSans(
                   color: AppColors.text,
                   fontWeight: FontWeight.w700,
                   fontSize: 18)),

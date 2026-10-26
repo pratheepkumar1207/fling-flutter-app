@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../core/auth_provider.dart';
 import '../core/avatar_frame_cache.dart';
 import '../core/app_navigator.dart';
 import '../core/location_service.dart';
 import '../theme/app_colors.dart';
+import '../widgets/animated_logo.dart';
 import 'auth/complete_profile_screen.dart';
 import 'auth/login_screen.dart';
 import 'auth/onboarding_screen.dart';
@@ -20,6 +20,9 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  // The logo intro plays once per launch, then the splash steps aside as
+  // soon as auth has resolved.
+  static bool _introPlayed = false;
   bool _locationPinged = false;
   bool _frameCacheLoaded = false;
   bool? _hasSeenOnboarding;
@@ -50,6 +53,10 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, auth, _) {
+        if (!_introPlayed) {
+          return _SplashScaffold(
+              onIntroDone: () => setState(() => _introPlayed = true));
+        }
         switch (auth.status) {
           case AuthStatus.loading:
             return const _SplashScaffold();
@@ -96,14 +103,11 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 }
 
-/// Matches SplashDark.dc.html: two soft blurred glows, the brand glass
-/// icon, the "Insync" wordmark in the display font (the mockup's own
-/// text says "Fling", but that's not this app's actual brand — see
-/// pubspec.yaml's description, the Android manifest label, and iOS's
-/// CFBundleDisplayName, all of which already say Insync), tagline, and
-/// a spinning ring.
+/// Black ground, soft purple glow, the animated logo and a gradient
+/// loading bar — the approved splash design.
 class _SplashScaffold extends StatelessWidget {
-  const _SplashScaffold();
+  final VoidCallback? onIntroDone;
+  const _SplashScaffold({this.onIntroDone});
 
   @override
   Widget build(BuildContext context) {
@@ -111,75 +115,30 @@ class _SplashScaffold extends StatelessWidget {
       backgroundColor: AppColors.bg,
       body: Stack(
         children: [
-          Positioned(
-            top: 120,
-            left: -40,
-            child: _glow(220, AppColors.accent2.withValues(alpha: 0.35)),
-          ),
-          Positioned(
-            bottom: 140,
-            right: -30,
-            child: _glow(180, AppColors.primary.withValues(alpha: 0.35)),
+          const Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment(0, -0.12),
+                  radius: 0.9,
+                  colors: [Color(0xFF2A1240), AppColors.bg],
+                  stops: [0, 0.62],
+                ),
+              ),
+            ),
           ),
           Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 88,
-                  height: 88,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(26),
-                    gradient: const LinearGradient(colors: AppGradients.brand),
-                    boxShadow: [
-                      BoxShadow(
-                          color: AppColors.accent2.withValues(alpha: 0.55),
-                          blurRadius: 30,
-                          offset: const Offset(0, 10))
-                    ],
-                  ),
-                  alignment: Alignment.center,
-                  child: const Icon(Icons.favorite_rounded,
-                      color: Colors.white, size: 42),
-                ),
-                const SizedBox(height: 22),
-                Text('Insync',
-                    style: GoogleFonts.bricolageGrotesque(
-                        color: AppColors.text,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 34,
-                        letterSpacing: -0.3)),
-                const SizedBox(height: 6),
-                const Text('Watch, talk, play — together',
-                    style: TextStyle(color: AppColors.textFaint, fontSize: 13)),
-              ],
-            ),
+            child: onIntroDone != null
+                ? AnimatedLogo(width: 250, onDone: onIntroDone)
+                : Image.asset('assets/icon/insync-logo.png', width: 250),
           ),
           const Positioned(
             left: 0,
             right: 0,
-            bottom: 64,
-            child: Center(
-              child: SizedBox(
-                width: 26,
-                height: 26,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2.5, color: AppColors.textFaint),
-              ),
-            ),
+            bottom: 70,
+            child: Center(child: SplashLoadingBar()),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _glow(double size, Color color) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(colors: [color, color.withValues(alpha: 0)]),
       ),
     );
   }

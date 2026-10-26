@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
-import '../../core/format.dart';
 import '../../core/socket_service.dart';
 import '../../models/notification_item.dart';
-import '../../theme/app_colors.dart';
-import 'notification_actions.dart';
+import '../../theme/insync_icons.dart';
+import '../../widgets/in_icon_button.dart';
 import 'notifications_screen.dart';
 
-/// Mirrors src/components/NotificationBell.jsx — fetches recent
-/// notifications, shows an unread badge, and bumps in real time on the
-/// `notification:new` socket event pushed by notifyUser() server-side.
+/// Top-bar bell: unread badge from GET /notifications, bumped live by the
+/// `notification:new` socket event. Tapping opens the Notifications screen.
 class NotificationBell extends StatefulWidget {
   const NotificationBell({super.key});
 
@@ -61,133 +59,17 @@ class _NotificationBellState extends State<NotificationBell> {
     });
   }
 
-  Future<void> _openNotification(NotificationItem n) async {
-    if (!n.isRead) {
-      setState(() {
-        _items = _items
-            .map((it) => it.id == n.id
-                ? NotificationItem(
-                    id: it.id,
-                    type: it.type,
-                    title: it.title,
-                    body: it.body,
-                    data: it.data,
-                    isRead: true,
-                    createdAt: it.createdAt)
-                : it)
-            .toList();
-      });
-      try {
-        await ApiClient.post('/notifications/${n.id}/read');
-      } catch (_) {}
-    }
-    if (!mounted) return;
-    openNotificationTarget(context, n);
-  }
-
-  Future<void> _markAllRead() async {
-    try {
-      await ApiClient.post('/notifications/read-all');
-      if (!mounted) return;
-      setState(() {
-        _items = _items
-            .map((n) => NotificationItem(
-                  id: n.id,
-                  type: n.type,
-                  title: n.title,
-                  body: n.body,
-                  data: n.data,
-                  isRead: true,
-                  createdAt: n.createdAt,
-                ))
-            .toList();
-      });
-    } catch (_) {}
-  }
-
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<void>(
+    return InIconButton(
+      InIcons.bell,
       tooltip: 'Notifications',
-      icon: Badge(
-        isLabelVisible: _unreadCount > 0,
-        label: Text('$_unreadCount'),
-        backgroundColor: AppColors.primary,
-        textColor: Colors.white,
-        child: const Icon(Icons.notifications_none_rounded, size: 24),
-      ),
-      color: AppColors.surface2,
-      itemBuilder: (context) {
-        if (_items.isEmpty) {
-          return [
-            const PopupMenuItem<void>(
-                enabled: false,
-                child: Text('No notifications yet',
-                    style: TextStyle(color: AppColors.textFaint))),
-            PopupMenuItem<void>(
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => const NotificationsScreen())),
-              child: const Text('See all',
-                  style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700)),
-            ),
-          ];
-        }
-        // Capped at 4 and single-line-only (was 10 items with a 2-line body
-        // preview each) — that stretched the dropdown tall enough to cover
-        // most of the screen, reading as if it had navigated to a full page
-        // instead of just opening a small menu. "See all" is what actually
-        // opens the full list.
-        return [
-          PopupMenuItem<void>(
-            height: 32,
-            onTap: _markAllRead,
-            child: const Text('Mark all read',
-                style: TextStyle(color: AppColors.primary, fontSize: 12)),
-          ),
-          ..._items.take(4).map(
-                (n) => PopupMenuItem<void>(
-                  height: 40,
-                  onTap: () => _openNotification(n),
-                  child: SizedBox(
-                    width: 260,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            n.title,
-                            style: TextStyle(
-                                color: AppColors.text,
-                                fontWeight: n.isRead
-                                    ? FontWeight.normal
-                                    : FontWeight.bold,
-                                fontSize: 13),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(formatRelativeTime(n.createdAt),
-                            style: const TextStyle(
-                                color: AppColors.textFaint, fontSize: 10)),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-          PopupMenuItem<void>(
-            height: 32,
-            onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const NotificationsScreen())),
-            child: const Text('See all',
-                style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700)),
-          ),
-        ];
+      size: 38,
+      badge: _unreadCount,
+      onPressed: () async {
+        await Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+        _load();
       },
     );
   }

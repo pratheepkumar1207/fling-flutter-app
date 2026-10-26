@@ -96,7 +96,7 @@ class _SafetyGuidelinesScreenState extends State<SafetyGuidelinesScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text('Keep it a good time',
-                        style: GoogleFonts.bricolageGrotesque(
+                        style: GoogleFonts.plusJakartaSans(
                             color: AppColors.text,
                             fontWeight: FontWeight.w800,
                             fontSize: 23)),
