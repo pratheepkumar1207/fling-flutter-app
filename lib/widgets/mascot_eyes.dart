@@ -92,8 +92,12 @@ class _MascotPainter extends CustomPainter {
     } else {
       final eyeWhite = Paint()..color = Colors.white;
       final pupilPaint = Paint()..color = const Color(0xFF1A1A24);
-      canvas.drawOval(Rect.fromCenter(center: p(42, 58), width: 24 * s, height: 28 * s), eyeWhite);
-      canvas.drawOval(Rect.fromCenter(center: p(78, 58), width: 24 * s, height: 28 * s), eyeWhite);
+      canvas.drawOval(
+          Rect.fromCenter(center: p(42, 58), width: 24 * s, height: 28 * s),
+          eyeWhite);
+      canvas.drawOval(
+          Rect.fromCenter(center: p(78, 58), width: 24 * s, height: 28 * s),
+          eyeWhite);
       canvas.drawCircle(p(42, 58) + pupil, 6 * s, pupilPaint);
       canvas.drawCircle(p(78, 58) + pupil, 6 * s, pupilPaint);
     }

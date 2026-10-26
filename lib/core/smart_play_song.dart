@@ -39,8 +39,8 @@ Future<void> playSongSmart(BuildContext context, Song s) async {
           content: Text(added
               ? 'Added to "${active['title'] ?? 'your room'}"'
               : 'Could not add — only the host can add songs right now')));
-      Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => PartyScreen(roomId: activeRoomId)));
+      Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => PartyScreen(roomId: activeRoomId)));
       return;
     }
 
@@ -100,10 +100,12 @@ Future<void> playPlaylistSmart(BuildContext context, List<Song> songs) async {
       // songPermission is host-only and this user isn't the host, every
       // subsequent add in the same room would be denied identically, so
       // there's nothing more to learn from waiting on each one.
-      final firstAdded = await _addToQueueAndConfirm(socket, activeRoomId, toItem(songs.first));
+      final firstAdded = await _addToQueueAndConfirm(
+          socket, activeRoomId, toItem(songs.first));
       if (firstAdded) {
         for (final s in songs.skip(1)) {
-          socket?.emit('queue:add', {'roomId': activeRoomId, 'item': toItem(s)});
+          socket
+              ?.emit('queue:add', {'roomId': activeRoomId, 'item': toItem(s)});
         }
       }
       if (!context.mounted) return;
@@ -165,7 +167,8 @@ Future<void> playPlaylistSmart(BuildContext context, List<Song> songs) async {
 /// of blanket-clearing the event avoids silently breaking that (see
 /// PARTY.md's realtime-recovery section for the identical lesson learned
 /// the first time this exact mistake was almost made).
-Future<bool> _addToQueueAndConfirm(io.Socket? socket, String roomId, Map<String, dynamic> item) async {
+Future<bool> _addToQueueAndConfirm(
+    io.Socket? socket, String roomId, Map<String, dynamic> item) async {
   if (socket == null) return false;
   final completer = Completer<bool>();
   void onDenied(dynamic _) {

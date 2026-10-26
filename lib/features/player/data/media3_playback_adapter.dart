@@ -35,7 +35,9 @@ class Media3PlaybackAdapter implements PlaybackAdapter {
   final MediaSource source;
   final Media3PlayerAdapter _underlying;
 
-  Media3PlaybackAdapter({required this.source, required Media3PlayerAdapter underlying}) : _underlying = underlying;
+  Media3PlaybackAdapter(
+      {required this.source, required Media3PlayerAdapter underlying})
+      : _underlying = underlying;
 
   @override
   String get providerId => 'media3';
@@ -55,7 +57,8 @@ class Media3PlaybackAdapter implements PlaybackAdapter {
   @override
   Future<void> load(String mediaId) async {
     if (mediaId != source.id) {
-      throw StateError('Media3PlaybackAdapter is scoped to ${source.id}, got load($mediaId) — construct a new adapter per media item instead of reusing this one.');
+      throw StateError(
+          'Media3PlaybackAdapter is scoped to ${source.id}, got load($mediaId) — construct a new adapter per media item instead of reusing this one.');
     }
     final url = source.url;
     if (url == null) {
@@ -103,7 +106,8 @@ class Media3PlaybackAdapter implements PlaybackAdapter {
   @override
   Future<void> dispose() => _underlying.dispose();
 
-  static PlaybackStatus _statusFrom(bool isPlaying) => isPlaying ? PlaybackStatus.playing : PlaybackStatus.paused;
+  static PlaybackStatus _statusFrom(bool isPlaying) =>
+      isPlaying ? PlaybackStatus.playing : PlaybackStatus.paused;
 
   static VideoSourceType _sourceTypeFor(String sourceType) {
     switch (sourceType) {

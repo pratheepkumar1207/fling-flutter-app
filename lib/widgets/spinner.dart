@@ -10,7 +10,8 @@ class Spinner extends StatelessWidget {
     return SizedBox(
       width: size,
       height: size,
-      child: const CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.primary),
+      child: const CircularProgressIndicator(
+          strokeWidth: 2.5, color: AppColors.primary),
     );
   }
 }

@@ -27,8 +27,11 @@ class DirectMessage {
       text: json['text'] as String? ?? '',
       messageType: json['messageType'] as String? ?? 'text',
       mediaUrl: json['mediaUrl'] as String?,
-      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
-      readAt: json['readAt'] != null ? DateTime.tryParse(json['readAt'].toString()) : null,
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+          DateTime.now(),
+      readAt: json['readAt'] != null
+          ? DateTime.tryParse(json['readAt'].toString())
+          : null,
     );
   }
 }
@@ -64,7 +67,9 @@ class ConversationSummary {
       username: json['username'] as String?,
       avatarUrl: json['avatarUrl'] as String?,
       lastMessage: json['lastMessage'] as String? ?? '',
-      lastMessageAt: DateTime.tryParse(json['lastMessageAt']?.toString() ?? '') ?? DateTime.now(),
+      lastMessageAt:
+          DateTime.tryParse(json['lastMessageAt']?.toString() ?? '') ??
+              DateTime.now(),
       lastMessageIsMine: json['lastMessageIsMine'] as bool? ?? false,
       online: json['online'] as bool? ?? false,
       unreadCount: json['unreadCount'] as int? ?? 0,

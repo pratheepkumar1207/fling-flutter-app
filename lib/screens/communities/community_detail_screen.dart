@@ -329,7 +329,8 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                           if (_community?['description'] != null &&
                               (_community!['description'] as String).isNotEmpty)
                             _community!['description'],
-                          memberLabel(_community?['memberCount'] ?? _members.length),
+                          memberLabel(
+                              _community?['memberCount'] ?? _members.length),
                         ].join(' · '),
                         style: const TextStyle(
                             color: AppColors.textFaint, fontSize: 12),

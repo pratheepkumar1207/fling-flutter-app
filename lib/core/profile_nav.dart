@@ -13,6 +13,8 @@ void openProfile(BuildContext context, String? userId) {
   if (userId == null || userId.isEmpty) return;
   final myId = context.read<AuthProvider>().user?.id;
   Navigator.of(context).push(MaterialPageRoute(
-    builder: (_) => userId == myId ? const ProfileScreen() : CreatorProfileScreen(userId: userId),
+    builder: (_) => userId == myId
+        ? const ProfileScreen()
+        : CreatorProfileScreen(userId: userId),
   ));
 }

@@ -20,7 +20,9 @@ class AvatarFrameCache {
   static Future<Map<String, String>> refresh() async {
     try {
       final data = await ApiClient.get('/store/avatar-frames');
-      final frames = (data as List).map((e) => AvatarFrame.fromJson(e as Map<String, dynamic>)).toList();
+      final frames = (data as List)
+          .map((e) => AvatarFrame.fromJson(e as Map<String, dynamic>))
+          .toList();
       _urlById = {for (final f in frames) f.id: f.imageUrl};
     } catch (_) {
       _urlById = {};

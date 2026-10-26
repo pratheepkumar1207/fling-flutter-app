@@ -51,24 +51,41 @@ class _PostLikesSheetState extends State<_PostLikesSheet> {
       height: 420,
       child: Column(
         children: [
-          Padding(padding: const EdgeInsets.all(12), child: Text('Likes (${_likes.length})', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.bold))),
+          Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text('Likes (${_likes.length})',
+                  style: const TextStyle(
+                      color: AppColors.text, fontWeight: FontWeight.bold))),
           Expanded(
             child: _loading
                 ? const Center(child: Spinner())
                 : _likes.isEmpty
-                    ? const Center(child: Text('No likes yet.', style: TextStyle(color: AppColors.textFaint)))
+                    ? const Center(
+                        child: Text('No likes yet.',
+                            style: TextStyle(color: AppColors.textFaint)))
                     : ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         itemCount: _likes.length,
                         itemBuilder: (context, i) {
                           final u = _likes[i];
                           return ListTile(
-                            leading: Avatar(src: u['avatarUrl'] as String?, name: u['name'] as String?, size: AvatarSize.sm),
-                            title: Text(u['name'] as String? ?? '', style: const TextStyle(color: AppColors.text)),
-                            subtitle: u['username'] != null ? Text('@${u['username']}', style: const TextStyle(color: AppColors.textFaint, fontSize: 12)) : null,
+                            leading: Avatar(
+                                src: u['avatarUrl'] as String?,
+                                name: u['name'] as String?,
+                                size: AvatarSize.sm),
+                            title: Text(u['name'] as String? ?? '',
+                                style: const TextStyle(color: AppColors.text)),
+                            subtitle: u['username'] != null
+                                ? Text('@${u['username']}',
+                                    style: const TextStyle(
+                                        color: AppColors.textFaint,
+                                        fontSize: 12))
+                                : null,
                             onTap: () {
                               Navigator.of(context).pop();
-                              Navigator.of(context).push(MaterialPageRoute(builder: (_) => CreatorProfileScreen(userId: u['id'] as String)));
+                              Navigator.of(context).push(MaterialPageRoute(
+                                  builder: (_) => CreatorProfileScreen(
+                                      userId: u['id'] as String)));
                             },
                           );
                         },

@@ -5,6 +5,8 @@ class Photo {
   Photo({required this.id, required this.imageData});
 
   factory Photo.fromJson(Map<String, dynamic> json) {
-    return Photo(id: json['id'] as String, imageData: json['imageData'] as String? ?? '');
+    return Photo(
+        id: json['id'] as String,
+        imageData: json['imageData'] as String? ?? '');
   }
 }

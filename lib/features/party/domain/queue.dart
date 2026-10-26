@@ -29,5 +29,7 @@ class PartyQueue {
     this.version = 0,
   });
 
-  QueueItem? get current => items.isNotEmpty && currentIndex < items.length ? items[currentIndex] : null;
+  QueueItem? get current => items.isNotEmpty && currentIndex < items.length
+      ? items[currentIndex]
+      : null;
 }

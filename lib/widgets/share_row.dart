@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/api_client.dart';
+import '../theme/insync_icons.dart';
 import 'share_bottom_sheet.dart';
 
 /// Single share entry point — opens the app's own "Share to" bottom sheet
@@ -22,7 +23,7 @@ class ShareRow extends StatelessWidget {
           showShareBottomSheet(context, text: text, url: _shareUrl),
       icon: iconAsset != null
           ? Image.asset(iconAsset!, width: 40, height: 40)
-          : const Icon(Icons.share_rounded, size: 20),
+          : const InIcon(InIcons.send, size: 21),
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
       tooltip: 'Share',

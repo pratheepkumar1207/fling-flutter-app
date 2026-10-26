@@ -12,7 +12,8 @@ class ParticipantAvatarRow extends StatelessWidget {
   final List<RosterEntry> roster;
   final VoidCallback onOpenRoster;
 
-  const ParticipantAvatarRow({super.key, required this.roster, required this.onOpenRoster});
+  const ParticipantAvatarRow(
+      {super.key, required this.roster, required this.onOpenRoster});
 
   @override
   Widget build(BuildContext context) {
@@ -34,15 +35,26 @@ class ParticipantAvatarRow extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(2),
                     decoration: r.micOn
-                        ? const BoxDecoration(shape: BoxShape.circle, border: Border.fromBorderSide(BorderSide(color: AppColors.success, width: 2)))
+                        ? const BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.fromBorderSide(
+                                BorderSide(color: AppColors.success, width: 2)))
                         : const BoxDecoration(
                             shape: BoxShape.circle,
-                            gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppGradients.brand),
+                            gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: AppGradients.brand),
                           ),
                     child: Container(
-                      padding: r.micOn ? EdgeInsets.zero : const EdgeInsets.all(2),
-                      decoration: r.micOn ? null : const BoxDecoration(shape: BoxShape.circle, color: AppColors.bg),
-                      child: Avatar(src: r.avatarUrl, name: r.name, size: AvatarSize.sm),
+                      padding:
+                          r.micOn ? EdgeInsets.zero : const EdgeInsets.all(2),
+                      decoration: r.micOn
+                          ? null
+                          : const BoxDecoration(
+                              shape: BoxShape.circle, color: AppColors.bg),
+                      child: Avatar(
+                          src: r.avatarUrl, name: r.name, size: AvatarSize.sm),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -51,7 +63,8 @@ class ParticipantAvatarRow extends StatelessWidget {
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: AppColors.textFaint, fontSize: 10),
+                    style: const TextStyle(
+                        color: AppColors.textFaint, fontSize: 10),
                   ),
                 ],
               ),

@@ -54,7 +54,8 @@ class BackgroundAudioHandler extends BaseAudioHandler with SeekHandler {
   void Function()? onMirrorSkip;
 
   BackgroundAudioHandler() {
-    player.playbackEventStream.listen(_broadcastState, onError: (Object e, StackTrace st) {});
+    player.playbackEventStream
+        .listen(_broadcastState, onError: (Object e, StackTrace st) {});
   }
 
   /// Holds the foreground service + lock-screen notification for a YouTube

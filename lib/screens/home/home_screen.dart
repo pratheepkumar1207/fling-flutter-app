@@ -255,11 +255,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                       : AppColors.text),
                           label: Text(filter.$2),
                           selected: _typeFilter == filter.$1,
-                          labelStyle: TextStyle(
-                              color: _typeFilter == filter.$1
-                                  ? Colors.white
-                                  : AppColors.text,
-                              fontWeight: FontWeight.w500),
+                          labelStyle: Theme.of(context)
+                              .textTheme
+                              .labelLarge
+                              ?.copyWith(
+                                  color: _typeFilter == filter.$1
+                                      ? Colors.white
+                                      : AppColors.text,
+                                  fontWeight: FontWeight.w500),
                           onSelected: (_) =>
                               setState(() => _typeFilter = filter.$1))),
               ])),

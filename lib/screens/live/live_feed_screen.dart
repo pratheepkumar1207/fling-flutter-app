@@ -251,7 +251,7 @@ class _SortChip extends StatelessWidget {
         selected: selected,
         showCheckmark: false,
         onSelected: (_) => onTap(),
-        labelStyle: TextStyle(
+        labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
             color: selected ? Colors.white : AppColors.text,
             fontWeight: FontWeight.w500),
       ),

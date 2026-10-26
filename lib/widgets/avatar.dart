@@ -24,7 +24,13 @@ class Avatar extends StatelessWidget {
   /// second rebuild.
   final String? frameId;
 
-  const Avatar({super.key, this.src, this.name, this.size = AvatarSize.md, this.ring = false, this.frameId});
+  const Avatar(
+      {super.key,
+      this.src,
+      this.name,
+      this.size = AvatarSize.md,
+      this.ring = false,
+      this.frameId});
 
   double get _dimension {
     switch (size) {
@@ -46,13 +52,17 @@ class Avatar extends StatelessWidget {
         width: d,
         height: d,
         child: (src != null && src!.isNotEmpty)
-            ? AppImage(source: src, fit: BoxFit.cover, placeholder: (_) => _fallback(d))
+            ? AppImage(
+                source: src,
+                fit: BoxFit.cover,
+                placeholder: (_) => _fallback(d))
             : _fallback(d),
       ),
     );
     final frameUrl = AvatarFrameCache.urlFor(frameId);
     if (frameUrl != null) {
-      const frameOverhang = 1.25; // frame art extends past the avatar's own edge
+      const frameOverhang =
+          1.25; // frame art extends past the avatar's own edge
       return SizedBox(
         width: d * frameOverhang,
         height: d * frameOverhang,
@@ -60,7 +70,8 @@ class Avatar extends StatelessWidget {
           alignment: Alignment.center,
           children: [
             avatar,
-            Positioned.fill(child: AppImage(source: frameUrl, fit: BoxFit.contain)),
+            Positioned.fill(
+                child: AppImage(source: frameUrl, fit: BoxFit.contain)),
           ],
         ),
       );
@@ -73,11 +84,16 @@ class Avatar extends StatelessWidget {
       padding: const EdgeInsets.all(ringWidth),
       decoration: const BoxDecoration(
         shape: BoxShape.circle,
-        gradient: LinearGradient(colors: AppGradients.brand, begin: Alignment.topLeft, end: Alignment.bottomRight),
+        gradient: LinearGradient(
+            colors: AppGradients.brand,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight),
       ),
       child: Container(
         padding: const EdgeInsets.all(2),
-        decoration: BoxDecoration(shape: BoxShape.circle, color: Theme.of(context).scaffoldBackgroundColor),
+        decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Theme.of(context).scaffoldBackgroundColor),
         child: avatar,
       ),
     );
@@ -89,7 +105,10 @@ class Avatar extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         initials(name),
-        style: TextStyle(color: AppColors.textFaint, fontWeight: FontWeight.bold, fontSize: d * 0.35),
+        style: TextStyle(
+            color: AppColors.textFaint,
+            fontWeight: FontWeight.bold,
+            fontSize: d * 0.35),
       ),
     );
   }

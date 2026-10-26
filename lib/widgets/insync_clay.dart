@@ -85,7 +85,9 @@ class InsyncPageTitle extends StatelessWidget {
   const InsyncPageTitle(this.title, {super.key});
   IconData get icon {
     final key = title.toLowerCase();
-    if (key.contains('wallet') || key.contains('coin') || key.contains('cash')) {
+    if (key.contains('wallet') ||
+        key.contains('coin') ||
+        key.contains('cash')) {
       return Icons.account_balance_wallet_rounded;
     }
     if (key.contains('game')) return Icons.sports_esports_rounded;

@@ -110,7 +110,8 @@ class AppTheme {
       chipTheme: base.chipTheme.copyWith(
           backgroundColor: clay.surface2,
           selectedColor: clay.primary,
-          labelStyle: TextStyle(color: clay.text),
+          labelStyle: textTheme.labelLarge
+              ?.copyWith(color: clay.text, fontWeight: FontWeight.w500),
           side: BorderSide(color: clay.border),
           shape: const StadiumBorder()),
       listTileTheme: ListTileThemeData(

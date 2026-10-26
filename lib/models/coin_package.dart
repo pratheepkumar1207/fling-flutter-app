@@ -5,7 +5,11 @@ class CoinPackage {
   final int coins;
   final double priceRupees;
 
-  CoinPackage({required this.id, required this.name, required this.coins, required this.priceRupees});
+  CoinPackage(
+      {required this.id,
+      required this.name,
+      required this.coins,
+      required this.priceRupees});
 
   factory CoinPackage.fromJson(Map<String, dynamic> json) {
     return CoinPackage(

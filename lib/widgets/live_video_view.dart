@@ -10,7 +10,8 @@ class LiveVideoView extends StatelessWidget {
   final LiveBroadcastController controller;
   final bool isHost;
 
-  const LiveVideoView({super.key, required this.controller, required this.isHost});
+  const LiveVideoView(
+      {super.key, required this.controller, required this.isHost});
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +22,9 @@ class LiveVideoView extends StatelessWidget {
         Widget? surface;
         if (engine != null && controller.joined) {
           if (isHost) {
-            surface = AgoraVideoView(controller: VideoViewController(rtcEngine: engine, canvas: const VideoCanvas(uid: 0)));
+            surface = AgoraVideoView(
+                controller: VideoViewController(
+                    rtcEngine: engine, canvas: const VideoCanvas(uid: 0)));
           } else if (controller.remoteUid != null) {
             surface = AgoraVideoView(
               controller: VideoViewController.remote(
@@ -51,8 +54,13 @@ class LiveVideoView extends StatelessWidget {
                         const Text('📹', style: TextStyle(fontSize: 48)),
                         const SizedBox(height: 8),
                         Text(
-                          !controller.joined ? 'Connecting…' : (isHost ? 'Turning on your camera…' : 'Waiting for the host to go live'),
-                          style: const TextStyle(color: Colors.white70, fontSize: 13),
+                          !controller.joined
+                              ? 'Connecting…'
+                              : (isHost
+                                  ? 'Turning on your camera…'
+                                  : 'Waiting for the host to go live'),
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 13),
                         ),
                       ],
                     ),
@@ -61,9 +69,16 @@ class LiveVideoView extends StatelessWidget {
                   top: 8,
                   left: 8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: AppColors.danger, borderRadius: BorderRadius.circular(999)),
-                    child: const Text('🔴 LIVE', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                        color: AppColors.danger,
+                        borderRadius: BorderRadius.circular(999)),
+                    child: const Text('🔴 LIVE',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],

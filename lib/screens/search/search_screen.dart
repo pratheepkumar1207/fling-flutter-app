@@ -40,14 +40,18 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Future<void> _loadRecent() async {
     final prefs = await SharedPreferences.getInstance();
-    if (mounted) setState(() => _recent = prefs.getStringList(_kRecentSearchesKey) ?? []);
+    if (mounted)
+      setState(() => _recent = prefs.getStringList(_kRecentSearchesKey) ?? []);
   }
 
   Future<void> _saveRecent(String q) async {
     final trimmed = q.trim();
     if (trimmed.isEmpty) return;
     final prefs = await SharedPreferences.getInstance();
-    final updated = [trimmed, ..._recent.where((r) => r.toLowerCase() != trimmed.toLowerCase())].take(_kMaxRecentSearches).toList();
+    final updated = [
+      trimmed,
+      ..._recent.where((r) => r.toLowerCase() != trimmed.toLowerCase())
+    ].take(_kMaxRecentSearches).toList();
     await prefs.setStringList(_kRecentSearchesKey, updated);
     if (mounted) setState(() => _recent = updated);
   }
@@ -80,7 +84,8 @@ class _SearchScreenState extends State<SearchScreen> {
     }
     setState(() => _loading = true);
     try {
-      final data = await ApiClient.get('/search?q=${Uri.encodeQueryComponent(q)}&type=all') as Map;
+      final data = await ApiClient.get(
+          '/search?q=${Uri.encodeQueryComponent(q)}&type=all') as Map;
       final users = data['users'] as List? ?? [];
       final communities = data['communities'] as List? ?? [];
       if (!mounted) return;
@@ -112,7 +117,9 @@ class _SearchScreenState extends State<SearchScreen> {
           autofocus: true,
           onChanged: _onChanged,
           style: const TextStyle(color: AppColors.text),
-          decoration: const InputDecoration(hintText: 'Search people, communities…', border: InputBorder.none),
+          decoration: const InputDecoration(
+              hintText: 'Search people, communities…',
+              border: InputBorder.none),
         ),
       ),
       body: _loading
@@ -120,7 +127,9 @@ class _SearchScreenState extends State<SearchScreen> {
           : !showingResults
               ? _recentSearchesView()
               : (_users.isEmpty && _communities.isEmpty)
-                  ? const Center(child: Text('No results found', style: TextStyle(color: AppColors.textFaint)))
+                  ? const Center(
+                      child: Text('No results found',
+                          style: TextStyle(color: AppColors.textFaint)))
                   : ListView(
                       children: [
                         if (_users.isNotEmpty) ...[
@@ -138,7 +147,9 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _recentSearchesView() {
     if (_recent.isEmpty) {
-      return const Center(child: Text('Search by name, @username, or community', style: TextStyle(color: AppColors.textFaint)));
+      return const Center(
+          child: Text('Search by name, @username, or community',
+              style: TextStyle(color: AppColors.textFaint)));
     }
     return ListView(
       children: [
@@ -152,16 +163,24 @@ class _SearchScreenState extends State<SearchScreen> {
               return GestureDetector(
                 onTap: () => _runSearch(q),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
-                  decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(999)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+                  decoration: BoxDecoration(
+                      color: AppColors.surface2,
+                      borderRadius: BorderRadius.circular(999)),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(q, style: const TextStyle(color: AppColors.textDim, fontSize: 12, fontWeight: FontWeight.w600)),
+                      Text(q,
+                          style: const TextStyle(
+                              color: AppColors.textDim,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600)),
                       const SizedBox(width: 6),
                       GestureDetector(
                         onTap: () => _removeRecent(q),
-                        child: const Icon(Icons.close_rounded, size: 12, color: AppColors.textFaint),
+                        child: const Icon(Icons.close_rounded,
+                            size: 12, color: AppColors.textFaint),
                       ),
                     ],
                   ),
@@ -176,23 +195,38 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _sectionLabel(String text) => Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
-        child: Text(text, style: const TextStyle(color: AppColors.textFaint, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
+        child: Text(text,
+            style: const TextStyle(
+                color: AppColors.textFaint,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6)),
       );
 
   Widget _userRow(Map<String, dynamic> u) => GestureDetector(
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => CreatorProfileScreen(userId: u['id'] as String))),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => CreatorProfileScreen(userId: u['id'] as String))),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           child: Row(children: [
-            Avatar(src: u['avatarUrl'] as String?, name: u['name'] as String?, size: AvatarSize.md),
+            Avatar(
+                src: u['avatarUrl'] as String?,
+                name: u['name'] as String?,
+                size: AvatarSize.md),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(u['name'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.5)),
+                  Text(u['name'] as String? ?? '',
+                      style: const TextStyle(
+                          color: AppColors.text,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13.5)),
                   if (u['username'] != null)
-                    Text('@${u['username']}', style: const TextStyle(color: AppColors.textFaint, fontSize: 11.5)),
+                    Text('@${u['username']}',
+                        style: const TextStyle(
+                            color: AppColors.textFaint, fontSize: 11.5)),
                 ],
               ),
             ),
@@ -201,14 +235,18 @@ class _SearchScreenState extends State<SearchScreen> {
       );
 
   Widget _communityRow(Map<String, dynamic> c) => GestureDetector(
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => CommunityDetailScreen(communityId: c['id'] as String, name: c['name'] as String?))),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => CommunityDetailScreen(
+                communityId: c['id'] as String, name: c['name'] as String?))),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           child: Row(children: [
             Container(
               width: 44,
               height: 44,
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), gradient: const LinearGradient(colors: AppGradients.brand)),
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: const LinearGradient(colors: AppGradients.brand)),
               alignment: Alignment.center,
               child: const Text('🏘️', style: TextStyle(fontSize: 18)),
             ),
@@ -217,8 +255,14 @@ class _SearchScreenState extends State<SearchScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(c['name'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.5)),
-                  Text(memberLabel(c['memberCount']), style: const TextStyle(color: AppColors.textFaint, fontSize: 11.5)),
+                  Text(c['name'] as String? ?? '',
+                      style: const TextStyle(
+                          color: AppColors.text,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13.5)),
+                  Text(memberLabel(c['memberCount']),
+                      style: const TextStyle(
+                          color: AppColors.textFaint, fontSize: 11.5)),
                 ],
               ),
             ),

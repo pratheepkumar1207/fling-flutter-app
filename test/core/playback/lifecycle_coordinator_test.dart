@@ -50,7 +50,8 @@ class _RecordingAdapter implements PlaybackAdapter {
   Future<Duration> position() async => Duration.zero;
 
   @override
-  Future<void> setSurface(PlaybackSurface surface) async => calls.add('setSurface:${surface.name}');
+  Future<void> setSurface(PlaybackSurface surface) async =>
+      calls.add('setSurface:${surface.name}');
 
   @override
   Future<PlaybackSession> snapshot() async => PlaybackSession.idle();
@@ -102,7 +103,8 @@ void main() {
     expect(manager.surface, PlaybackSurface.backgroundAudio);
   });
 
-  test('leavingPip and returningForeground both call setSurface(foreground)', () async {
+  test('leavingPip and returningForeground both call setSurface(foreground)',
+      () async {
     await coordinator.handle(PlaybackIntent.leavingPip);
     expect(adapter.calls, ['setSurface:foreground']);
     adapter.calls.clear();
@@ -111,7 +113,11 @@ void main() {
   });
 
   // Steady-states (not transitions) must be complete no-ops.
-  for (final intent in [PlaybackIntent.active, PlaybackIntent.inPip, PlaybackIntent.background]) {
+  for (final intent in [
+    PlaybackIntent.active,
+    PlaybackIntent.inPip,
+    PlaybackIntent.background
+  ]) {
     test('$intent makes no adapter calls at all', () async {
       await coordinator.handle(intent);
       expect(adapter.calls, isEmpty);

@@ -132,8 +132,9 @@ class VoiceChatController extends ChangeNotifier {
       _engine = engine;
 
       final uid = Random().nextInt(1000000);
-      final data = await ApiClient.post(tokenPath,
-          body: {'roomId': roomId, 'uid': uid}) as Map<String, dynamic>;
+      final data =
+          await ApiClient.post(tokenPath, body: {'roomId': roomId, 'uid': uid})
+              as Map<String, dynamic>;
       await engine.joinChannel(
         token: data['token'] as String,
         channelId: data['channelName'] as String,

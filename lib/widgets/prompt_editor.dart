@@ -11,7 +11,11 @@ class PromptEditor extends StatefulWidget {
   final ValueChanged<List<Map<String, dynamic>>> onChanged;
   final int max;
 
-  const PromptEditor({super.key, required this.prompts, required this.onChanged, this.max = kMaxPrompts});
+  const PromptEditor(
+      {super.key,
+      required this.prompts,
+      required this.onChanged,
+      this.max = kMaxPrompts});
 
   @override
   State<PromptEditor> createState() => _PromptEditorState();
@@ -35,7 +39,8 @@ class _PromptEditorState extends State<PromptEditor> {
   void _syncControllers() {
     while (_controllers.length < widget.prompts.length) {
       final i = _controllers.length;
-      _controllers.add(TextEditingController(text: widget.prompts[i]['answer'] as String? ?? ''));
+      _controllers.add(TextEditingController(
+          text: widget.prompts[i]['answer'] as String? ?? ''));
     }
     while (_controllers.length > widget.prompts.length) {
       _controllers.removeLast().dispose();
@@ -50,7 +55,10 @@ class _PromptEditorState extends State<PromptEditor> {
 
   void _addSlot() {
     if (widget.prompts.length >= widget.max) return;
-    widget.onChanged([...widget.prompts, {'prompt': '', 'answer': ''}]);
+    widget.onChanged([
+      ...widget.prompts,
+      {'prompt': '', 'answer': ''}
+    ]);
   }
 
   void _removeSlot(int i) {
@@ -67,7 +75,10 @@ class _PromptEditorState extends State<PromptEditor> {
           Container(
             margin: const EdgeInsets.only(bottom: 10),
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
+            decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -75,19 +86,34 @@ class _PromptEditorState extends State<PromptEditor> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        initialValue: (widget.prompts[i]['prompt'] as String?)?.isNotEmpty == true ? widget.prompts[i]['prompt'] as String : null,
+                        initialValue: (widget.prompts[i]['prompt'] as String?)
+                                    ?.isNotEmpty ==
+                                true
+                            ? widget.prompts[i]['prompt'] as String
+                            : null,
                         isExpanded: true,
                         dropdownColor: AppColors.surface2,
-                        hint: const Text('Choose a prompt…', style: TextStyle(color: AppColors.textFaint, fontSize: 12)),
+                        hint: const Text('Choose a prompt…',
+                            style: TextStyle(
+                                color: AppColors.textFaint, fontSize: 12)),
                         items: [
                           for (final opt in kPromptOptions)
-                            if (opt == widget.prompts[i]['prompt'] || !widget.prompts.any((p) => p['prompt'] == opt))
-                              DropdownMenuItem(value: opt, child: Text(opt, style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)),
+                            if (opt == widget.prompts[i]['prompt'] ||
+                                !widget.prompts.any((p) => p['prompt'] == opt))
+                              DropdownMenuItem(
+                                  value: opt,
+                                  child: Text(opt,
+                                      style: const TextStyle(fontSize: 12),
+                                      overflow: TextOverflow.ellipsis)),
                         ],
                         onChanged: (v) => _updateSlot(i, {'prompt': v ?? ''}),
                       ),
                     ),
-                    TextButton(onPressed: () => _removeSlot(i), child: const Text('Remove', style: TextStyle(color: AppColors.danger, fontSize: 12))),
+                    TextButton(
+                        onPressed: () => _removeSlot(i),
+                        child: const Text('Remove',
+                            style: TextStyle(
+                                color: AppColors.danger, fontSize: 12))),
                   ],
                 ),
                 const SizedBox(height: 6),
@@ -105,7 +131,9 @@ class _PromptEditorState extends State<PromptEditor> {
         if (widget.prompts.length < widget.max)
           OutlinedButton(
             onPressed: _addSlot,
-            style: OutlinedButton.styleFrom(foregroundColor: AppColors.textDim, side: const BorderSide(color: AppColors.border)),
+            style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.textDim,
+                side: const BorderSide(color: AppColors.border)),
             child: const Text('+ Add a prompt'),
           ),
       ],

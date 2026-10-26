@@ -16,16 +16,21 @@ class CompanionRoomCard extends StatelessWidget {
   final String platform; // 'netflix' | 'amazon'
   final bool compact;
 
-  const CompanionRoomCard({super.key, required this.platform, this.compact = false});
+  const CompanionRoomCard(
+      {super.key, required this.platform, this.compact = false});
 
   String get _label => platform == 'netflix' ? 'Netflix' : 'Prime Video';
   String get _emoji => platform == 'netflix' ? '🎬' : '📦';
-  String get _url => platform == 'netflix' ? 'https://www.netflix.com' : 'https://www.primevideo.com';
+  String get _url => platform == 'netflix'
+      ? 'https://www.netflix.com'
+      : 'https://www.primevideo.com';
 
   Future<void> _open(BuildContext context) async {
-    final ok = await launchUrl(Uri.parse(_url), mode: LaunchMode.externalApplication);
+    final ok =
+        await launchUrl(Uri.parse(_url), mode: LaunchMode.externalApplication);
     if (!ok && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not open $_label')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Could not open $_label')));
     }
   }
 
@@ -33,7 +38,10 @@ class CompanionRoomCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.all(compact ? 12 : 20),
-      decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+          color: AppColors.surface2,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border)),
       child: Row(
         children: [
           Text(_emoji, style: TextStyle(fontSize: compact ? 24 : 32)),
@@ -42,13 +50,18 @@ class CompanionRoomCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('$_label party', style: TextStyle(color: AppColors.text, fontSize: compact ? 13 : 15, fontWeight: FontWeight.w700)),
+                Text('$_label party',
+                    style: TextStyle(
+                        color: AppColors.text,
+                        fontSize: compact ? 13 : 15,
+                        fontWeight: FontWeight.w700)),
                 if (!compact)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
                       'Everyone opens their own $_label app and presses play together — chat and vibe here while you watch.',
-                      style: const TextStyle(color: AppColors.textFaint, fontSize: 11),
+                      style: const TextStyle(
+                          color: AppColors.textFaint, fontSize: 11),
                     ),
                   ),
               ],
@@ -57,7 +70,9 @@ class CompanionRoomCard extends StatelessWidget {
           const SizedBox(width: 8),
           ElevatedButton(
             onPressed: () => _open(context),
-            style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
+            style: ElevatedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
             child: Text('Open $_label', style: const TextStyle(fontSize: 12)),
           ),
         ],

@@ -86,6 +86,7 @@ class PlaybackSession {
   Duration expectedPosition(DateTime serverNow) {
     if (!isPlaying) return position;
     final elapsed = serverNow.difference(updatedAt);
-    return position + Duration(milliseconds: (elapsed.inMilliseconds * playbackRate).round());
+    return position +
+        Duration(milliseconds: (elapsed.inMilliseconds * playbackRate).round());
   }
 }

@@ -9,7 +9,8 @@ class RoomClock {
 
   RoomClock({this.serverOffsetMs = 0});
 
-  DateTime get serverNow => DateTime.now().toUtc().add(Duration(milliseconds: serverOffsetMs));
+  DateTime get serverNow =>
+      DateTime.now().toUtc().add(Duration(milliseconds: serverOffsetMs));
 
   /// expectedPosition = serverPosition + (serverNow - updatedAt) * rate.
   /// Callers apply this as: <0.3s drift -> ignore, 0.3-1.5s -> nudge
@@ -25,6 +26,7 @@ class RoomClock {
   }) {
     if (!isPlaying) return position;
     final elapsed = serverNow.difference(updatedAt.toUtc());
-    return position + Duration(milliseconds: (elapsed.inMilliseconds * playbackRate).round());
+    return position +
+        Duration(milliseconds: (elapsed.inMilliseconds * playbackRate).round());
   }
 }

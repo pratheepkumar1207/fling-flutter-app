@@ -4,6 +4,20 @@
 /// pipeline exists here, so this is the honest equivalent rather than a
 /// half-built one.
 const kChatStickers = [
-  '❤️', '😂', '😍', '🔥', '👍', '🎉', '😘', '😭',
-  '😎', '🥳', '👏', '💯', '🙌', '😅', '🤔', '😢',
+  '❤️',
+  '😂',
+  '😍',
+  '🔥',
+  '👍',
+  '🎉',
+  '😘',
+  '😭',
+  '😎',
+  '🥳',
+  '👏',
+  '💯',
+  '🙌',
+  '😅',
+  '🤔',
+  '😢',
 ];

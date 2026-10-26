@@ -59,7 +59,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     try {
       final data = await ApiClient.get('/blends/with/${widget.userId}');
       if (mounted && data is Map) {
-        setState(() => _blend = Blend.fromJson(Map<String, dynamic>.from(data)));
+        setState(
+            () => _blend = Blend.fromJson(Map<String, dynamic>.from(data)));
       }
     } catch (_) {}
   }

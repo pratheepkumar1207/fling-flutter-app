@@ -19,7 +19,8 @@ final mobileWebViewSettings = InAppWebViewSettings(
   loadWithOverviewMode: true,
   javaScriptEnabled: true,
   domStorageEnabled: true,
-  userAgent: 'Mozilla/5.0 (Linux; Android 13; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+  userAgent:
+      'Mozilla/5.0 (Linux; Android 13; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
   // Android's default WebView compositing (a virtual-display texture) can't
   // present hardware-protected DRM (Widevine) video frames at all — the
   // frame exists but the texture pipeline is exactly what DRM's hardware
@@ -50,5 +51,6 @@ final desktopWebViewSettings = InAppWebViewSettings(
   loadWithOverviewMode: true,
   javaScriptEnabled: true,
   domStorageEnabled: true,
-  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  userAgent:
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
 );

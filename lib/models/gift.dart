@@ -8,7 +8,12 @@ class Gift {
   final String name;
   final int coins;
 
-  Gift({required this.id, required this.type, required this.emoji, required this.name, required this.coins});
+  Gift(
+      {required this.id,
+      required this.type,
+      required this.emoji,
+      required this.name,
+      required this.coins});
 
   factory Gift.fromJson(Map<String, dynamic> json) {
     return Gift(

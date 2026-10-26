@@ -16,13 +16,17 @@ class LocationService {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
-      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
         return false;
       }
       if (!await Geolocator.isLocationServiceEnabled()) return false;
 
       final position = await Geolocator.getCurrentPosition();
-      await ApiClient.post('/auth/location', body: {'latitude': position.latitude, 'longitude': position.longitude});
+      await ApiClient.post('/auth/location', body: {
+        'latitude': position.latitude,
+        'longitude': position.longitude
+      });
       return true;
     } catch (_) {
       return false;

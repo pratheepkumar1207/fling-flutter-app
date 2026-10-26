@@ -58,9 +58,9 @@ List<Color> notificationColors(String type) => switch (type) {
       'room_invite' => const [AppColors.accent2, AppColors.primary],
       'mention' => const [AppColors.gold, Color(0xFFC98F3A)],
       'like' || 'match' => const [AppColors.danger, Color(0xFFE0567A)],
-      'friend_request' ||
-      'friend_accept' ||
-      'follow' =>
-        const [AppColors.success, AppColors.primary],
+      'friend_request' || 'friend_accept' || 'follow' => const [
+          AppColors.success,
+          AppColors.primary
+        ],
       _ => const [AppColors.accent, AppColors.primaryDim],
     };

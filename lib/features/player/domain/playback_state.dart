@@ -4,7 +4,17 @@
 /// legitimately diverge from the party state for a moment (e.g. this
 /// viewer is BUFFERING while the party itself is PLAYING — see spec
 /// section 43).
-enum PlayerLifecycleState { idle, loading, ready, playing, paused, buffering, ended, error, disposed }
+enum PlayerLifecycleState {
+  idle,
+  loading,
+  ready,
+  playing,
+  paused,
+  buffering,
+  ended,
+  error,
+  disposed
+}
 
 class PlaybackStateSnapshot {
   final PlayerLifecycleState state;
@@ -21,5 +31,6 @@ class PlaybackStateSnapshot {
     this.errorMessage,
   });
 
-  factory PlaybackStateSnapshot.idle() => const PlaybackStateSnapshot(state: PlayerLifecycleState.idle, position: Duration.zero);
+  factory PlaybackStateSnapshot.idle() => const PlaybackStateSnapshot(
+      state: PlayerLifecycleState.idle, position: Duration.zero);
 }

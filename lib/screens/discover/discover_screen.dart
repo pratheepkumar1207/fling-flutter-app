@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../widgets/insync_clay.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
@@ -7,6 +6,10 @@ import '../../core/auth_provider.dart';
 import '../../core/language_options.dart';
 import '../../models/user.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/insync_icons.dart';
+import '../../widgets/avatar.dart';
+import '../../widgets/in_icon_button.dart';
+import '../messages/messages_screen.dart';
 import '../../widgets/interest_picker.dart';
 import '../../widgets/spinner.dart';
 import 'map_explore_screen.dart';
@@ -23,7 +26,6 @@ class DiscoverScreen extends StatefulWidget {
 class _DiscoverScreenState extends State<DiscoverScreen> {
   List<DiscoverProfile>? _deck;
   bool _loading = true;
-  bool _showFilters = false;
   String? _matchName;
   DiscoverProfile? _lastSwiped;
   bool _undoing = false;
@@ -147,212 +149,60 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              padding: const EdgeInsets.fromLTRB(18, 10, 12, 4),
               child: Row(
                 children: [
-                  const Padding(
-                      padding: EdgeInsets.only(right: 12),
-                      child: InsyncClayIcon(Icons.explore_rounded, size: 44)),
-                  const Text('Discover',
-                      style: TextStyle(
-                          color: AppColors.text,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold)),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () => setState(() => _showFilters = !_showFilters),
-                    child: Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.surface,
-                          border:
-                              Border.all(color: AppColors.border, width: 1.5)),
-                      alignment: Alignment.center,
-                      child: const Icon(Icons.tune_rounded,
-                          color: AppColors.text, size: 17),
-                    ),
+                  const Expanded(
+                    child: Text('Discover',
+                        style: TextStyle(
+                            fontSize: 22, fontWeight: FontWeight.w700)),
                   ),
+                  InIconButton(InIcons.map,
+                      tooltip: 'Explore map',
+                      border: true,
+                      iconSize: 20,
+                      onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => const MapExploreScreen()))),
+                  const SizedBox(width: 6),
+                  InIconButton(InIcons.dice,
+                      tooltip: 'Random match',
+                      border: true,
+                      iconSize: 20,
+                      onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => const RandomMatchScreen()))),
+                  const SizedBox(width: 6),
+                  InIconButton(InIcons.tune,
+                      tooltip: 'Filters',
+                      border: true,
+                      iconSize: 20,
+                      badge: _activeFilterCount,
+                      onPressed: _openFilters),
                 ],
               ),
             ),
-            const SizedBox(height: 10),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _segmentButton(
-                      icon: Icons.casino_rounded,
-                      label: 'Random Match',
-                      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                          builder: (_) => const RandomMatchScreen())),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _segmentButton(
-                      icon: Icons.map_rounded,
-                      label: 'Explore Map',
-                      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                          builder: (_) => const MapExploreScreen())),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (_showFilters)
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.all(14),
-                decoration: insyncClay(radius: 22),
-                child: Column(
-                  children: [
-                    TextField(
-                        controller: _cityController,
-                        style: const TextStyle(color: AppColors.text),
-                        decoration: const InputDecoration(hintText: 'City')),
-                    const SizedBox(height: 8),
-                    Row(children: [
-                      Expanded(
-                          child: TextField(
-                              controller: _minAgeController,
-                              keyboardType: TextInputType.number,
-                              style: const TextStyle(color: AppColors.text),
-                              decoration:
-                                  const InputDecoration(hintText: 'Min age'))),
-                      const SizedBox(width: 8),
-                      Expanded(
-                          child: TextField(
-                              controller: _maxAgeController,
-                              keyboardType: TextInputType.number,
-                              style: const TextStyle(color: AppColors.text),
-                              decoration:
-                                  const InputDecoration(hintText: 'Max age'))),
-                    ]),
-                    const SizedBox(height: 8),
-                    DropdownButton<String?>(
-                      value: _gender,
-                      isExpanded: true,
-                      dropdownColor: AppColors.surface2,
-                      hint: const Text('Any gender',
-                          style: TextStyle(color: AppColors.textFaint)),
-                      items: const [
-                        DropdownMenuItem(
-                            value: null, child: Text('Any gender')),
-                        DropdownMenuItem(value: 'male', child: Text('Male')),
-                        DropdownMenuItem(
-                            value: 'female', child: Text('Female')),
-                        DropdownMenuItem(value: 'other', child: Text('Other')),
-                      ],
-                      onChanged: (v) => setState(() => _gender = v),
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButton<String?>(
-                      value: _lookingFor,
-                      isExpanded: true,
-                      dropdownColor: AppColors.surface2,
-                      hint: const Text('Any relationship goal',
-                          style: TextStyle(color: AppColors.textFaint)),
-                      items: const [
-                        DropdownMenuItem(
-                            value: null, child: Text('Any relationship goal')),
-                        DropdownMenuItem(
-                            value: 'friends', child: Text('🤝 Friends')),
-                        DropdownMenuItem(
-                            value: 'explore', child: Text('✨ Explore')),
-                        DropdownMenuItem(
-                            value: 'short_term', child: Text('💫 Short-term')),
-                        DropdownMenuItem(
-                            value: 'long_term', child: Text('💍 Long-term')),
-                        DropdownMenuItem(
-                            value: 'not_sure', child: Text('🤔 Not sure yet')),
-                      ],
-                      onChanged: (v) => setState(() => _lookingFor = v),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                        controller: _religionController,
-                        style: const TextStyle(color: AppColors.text),
-                        decoration:
-                            const InputDecoration(hintText: 'Religion')),
-                    const SizedBox(height: 8),
-                    const Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text('Languages',
-                            style: TextStyle(
-                                color: AppColors.textFaint, fontSize: 12))),
-                    const SizedBox(height: 6),
-                    InterestPicker(
-                        selected: _languages,
-                        onChanged: (v) => setState(() => _languages = v),
-                        options: kLanguageOptions),
-                    const SizedBox(height: 8),
-                    CheckboxListTile(
-                      value: _onlineOnly,
-                      onChanged: (v) =>
-                          setState(() => _onlineOnly = v ?? false),
-                      title: const Text('Online only',
-                          style: TextStyle(
-                              color: AppColors.textDim, fontSize: 13)),
-                      contentPadding: EdgeInsets.zero,
-                      controlAffinity: ListTileControlAffinity.leading,
-                    ),
-                    SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                            onPressed: _load,
-                            child: const Text('Apply filters'))),
-                  ],
-                ),
-              ),
             Expanded(
               child: _loading
                   ? const Center(child: Spinner(size: 28))
                   : (deck == null || deck.isEmpty)
-                      ? const Center(
-                          child: Padding(
-                              padding: EdgeInsets.all(24),
-                              child: Text(
-                                  'No more profiles.\nCheck back later, or widen your filters.',
-                                  textAlign: TextAlign.center,
-                                  style:
-                                      TextStyle(color: AppColors.textFaint))))
+                      ? _EmptyDeck(onFilters: _openFilters)
                       : Padding(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                           child: Stack(
                             children: [
                               if (deck.length > 1)
                                 Positioned.fill(
-                                  child: Transform.rotate(
-                                    angle: 0.05,
-                                    child: Container(
-                                      margin: const EdgeInsets.symmetric(
-                                          horizontal: 8),
-                                      decoration: BoxDecoration(
-                                          color: AppColors.surface2,
-                                          borderRadius:
-                                              BorderRadius.circular(24),
-                                          border: Border.all(
-                                              color: AppColors.border)),
-                                    ),
-                                  ),
-                                ),
-                              if (deck.length > 2)
-                                Positioned.fill(
-                                  child: Transform.rotate(
-                                    angle: -0.035,
-                                    child: Container(
-                                      margin: const EdgeInsets.symmetric(
-                                          horizontal: 3),
-                                      decoration: BoxDecoration(
-                                          color: AppColors.surface,
-                                          borderRadius:
-                                              BorderRadius.circular(24),
-                                          border: Border.all(
-                                              color: AppColors.border)),
-                                    ),
+                                  top: 10,
+                                  left: 14,
+                                  right: 14,
+                                  bottom: -6,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                        color: const Color(0xFF1A1724),
+                                        borderRadius: BorderRadius.circular(26),
+                                        border: Border.all(
+                                            color: AppColors.border)),
                                   ),
                                 ),
                               ...deck
@@ -373,117 +223,242 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             ),
             if (deck != null && deck.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.fromLTRB(0, 16, 0, 14),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _iconButton(
-                        Icons.replay_rounded,
+                    _roundAction(
+                        InIcons.undo,
+                        'Rewind',
                         AppColors.gold,
                         _lastSwiped != null && !_undoing
                             ? _undoLastSwipe
                             : null,
-                        size: 50),
+                        size: 48),
                     const SizedBox(width: 16),
-                    _iconButton(Icons.close_rounded, AppColors.danger,
+                    _roundAction(InIcons.close, 'Nope', const Color(0xFFFF6B7F),
                         () => _handleSwipe('pass'),
-                        size: 62, iconSize: 24),
+                        size: 62, iconSize: 28),
                     const SizedBox(width: 16),
-                    _iconButton(Icons.favorite_rounded, Colors.white,
-                        () => _handleSwipe('like'),
-                        size: 70, iconSize: 28, filled: true),
-                    const SizedBox(width: 16),
-                    _iconButton(Icons.star_rounded, AppColors.accent2,
+                    _roundAction(
+                        InIcons.star,
+                        'Super like',
+                        const Color(0xFF6E95FD),
                         () => _handleSwipe('superlike'),
-                        size: 50),
+                        size: 48),
+                    const SizedBox(width: 16),
+                    _roundAction(InIcons.heart, 'Like', Colors.white,
+                        () => _handleSwipe('like'),
+                        size: 62, iconSize: 28, filled: true),
                   ],
                 ),
               ),
           ],
         ),
         if (_matchName != null)
-          GestureDetector(
-            onTap: () => setState(() => _matchName = null),
-            child: Container(
-              color: Colors.black.withValues(alpha: 0.8),
-              alignment: Alignment.center,
-              child: Container(
-                margin: const EdgeInsets.all(24),
-                padding: const EdgeInsets.all(28),
-                decoration: insyncClay(radius: 22),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text("It's a match! 🎉",
-                        style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Text('You and $_matchName liked each other.',
-                        style: const TextStyle(color: AppColors.textDim),
-                        textAlign: TextAlign.center),
-                  ],
-                ),
-              ),
-            ),
+          _MatchOverlay(
+            name: _matchName!,
+            onClose: () => setState(() => _matchName = null),
+            onMessage: () {
+              setState(() => _matchName = null);
+              Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const MessagesScreen()));
+            },
           ),
       ],
     );
   }
 
-  Widget _iconButton(IconData icon, Color color, VoidCallback? onTap,
-      {required double size, double iconSize = 19, bool filled = false}) {
-    final disabled = onTap == null;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient:
-              filled ? const LinearGradient(colors: AppGradients.brand) : null,
-          color: filled ? null : AppColors.surface,
-          border:
-              filled ? null : Border.all(color: AppColors.border, width: 1.5),
-          boxShadow: filled
-              ? [
-                  BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.5),
-                      blurRadius: 20,
-                      offset: const Offset(0, 6))
-                ]
-              : null,
-        ),
-        alignment: Alignment.center,
-        child: Icon(icon,
-            color: disabled ? color.withValues(alpha: 0.35) : color,
-            size: iconSize),
+  int get _activeFilterCount => [
+        _cityController.text.trim().isNotEmpty,
+        _minAgeController.text.trim().isNotEmpty ||
+            _maxAgeController.text.trim().isNotEmpty,
+        _gender != null,
+        _lookingFor != null,
+        _religionController.text.trim().isNotEmpty,
+        _languages.isNotEmpty,
+        _onlineOnly,
+      ].where((x) => x).length;
+
+  Future<void> _openFilters() async {
+    final apply = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheet) => StatefulBuilder(
+        builder: (sheet, setSheet) {
+          void set(VoidCallback f) {
+            setSheet(f);
+            setState(() {});
+          }
+
+          Widget label(String t) => Padding(
+                padding: const EdgeInsets.only(top: 16, bottom: 8),
+                child: Text(t,
+                    style: const TextStyle(
+                        color: AppColors.textDim,
+                        fontSize: 12,
+                        letterSpacing: 0.6,
+                        fontWeight: FontWeight.w600)),
+              );
+          Widget choice(String text, bool on, VoidCallback tap) => ChoiceChip(
+                label: Text(text),
+                selected: on,
+                showCheckmark: false,
+                labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: on ? Colors.white : AppColors.text,
+                    fontWeight: FontWeight.w500),
+                onSelected: (_) => tap(),
+              );
+          return Padding(
+            padding:
+                EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(sheet).bottom),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                  maxHeight: MediaQuery.sizeOf(sheet).height * 0.85),
+              child: ListView(
+                shrinkWrap: true,
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                children: [
+                  const Text('Filters',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                  label('SHOW ME'),
+                  Wrap(spacing: 8, runSpacing: 8, children: [
+                    for (final g in const [
+                      (null, 'Any gender'),
+                      ('female', 'Female'),
+                      ('male', 'Male'),
+                      ('other', 'Other'),
+                    ])
+                      choice(g.$2, _gender == g.$1,
+                          () => set(() => _gender = g.$1)),
+                  ]),
+                  label('AGE'),
+                  Row(children: [
+                    Expanded(
+                        child: TextField(
+                            controller: _minAgeController,
+                            keyboardType: TextInputType.number,
+                            decoration:
+                                const InputDecoration(hintText: 'From 18'))),
+                    const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 10),
+                        child: Text('–')),
+                    Expanded(
+                        child: TextField(
+                            controller: _maxAgeController,
+                            keyboardType: TextInputType.number,
+                            decoration:
+                                const InputDecoration(hintText: 'To any'))),
+                  ]),
+                  label('CITY'),
+                  TextField(
+                      controller: _cityController,
+                      decoration: const InputDecoration(
+                          hintText: 'Anywhere',
+                          prefixIcon: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 12),
+                              child: InIcon(InIcons.pin,
+                                  size: 18, color: AppColors.textDim)),
+                          prefixIconConstraints:
+                              BoxConstraints(minWidth: 0, minHeight: 0))),
+                  label('RELATIONSHIP GOAL'),
+                  Wrap(spacing: 8, runSpacing: 8, children: [
+                    for (final g in const [
+                      (null, 'Any'),
+                      ('long_term', 'Long-term'),
+                      ('short_term', 'Short-term'),
+                      ('friends', 'Friends'),
+                      ('not_sure', 'Not sure yet'),
+                      ('explore', 'Explore'),
+                    ])
+                      choice(g.$2, _lookingFor == g.$1,
+                          () => set(() => _lookingFor = g.$1)),
+                  ]),
+                  label('LANGUAGES'),
+                  InterestPicker(
+                      selected: _languages,
+                      onChanged: (v) => set(() => _languages = v),
+                      options: kLanguageOptions),
+                  label('RELIGION'),
+                  TextField(
+                      controller: _religionController,
+                      decoration: const InputDecoration(hintText: 'Any')),
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    value: _onlineOnly,
+                    onChanged: (v) => set(() => _onlineOnly = v),
+                    title: const Text('Online only'),
+                    contentPadding: EdgeInsets.zero,
+                    activeTrackColor: AppColors.primary,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    Expanded(
+                      flex: 2,
+                      child: OutlinedButton(
+                        onPressed: () => set(() {
+                          _cityController.clear();
+                          _minAgeController.clear();
+                          _maxAgeController.clear();
+                          _religionController.clear();
+                          _gender = null;
+                          _lookingFor = null;
+                          _languages = [];
+                          _onlineOnly = false;
+                        }),
+                        style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(50)),
+                        child: const Text('Reset'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 3,
+                      child: FilledButton(
+                        onPressed: () => Navigator.of(sheet).pop(true),
+                        style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(50)),
+                        child: const Text('Apply filters'),
+                      ),
+                    ),
+                  ]),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
+    if (apply == true) _load();
   }
 
-  Widget _segmentButton(
-      {required IconData icon,
-      required String label,
-      required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: insyncClay(radius: 22),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: AppColors.primary, size: 16),
-            const SizedBox(width: 6),
-            Text(label,
-                style: const TextStyle(
-                    color: AppColors.text,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600)),
-          ],
+  Widget _roundAction(
+      InIconData icon, String label, Color color, VoidCallback? onTap,
+      {required double size, double iconSize = 22, bool filled = false}) {
+    final disabled = onTap == null;
+    return Semantics(
+      button: true,
+      enabled: !disabled,
+      label: label,
+      child: InkResponse(
+        onTap: onTap,
+        radius: size / 2 + 4,
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: filled ? AppGradients.brandDiagonal : null,
+            color: filled ? null : AppColors.surface,
+            border: filled ? null : Border.all(color: AppColors.border),
+          ),
+          alignment: Alignment.center,
+          child: InIcon(icon,
+              size: iconSize,
+              filled: filled || icon == InIcons.star,
+              color: disabled ? color.withValues(alpha: 0.35) : color),
         ),
       ),
     );
@@ -496,5 +471,130 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     _maxAgeController.dispose();
     _religionController.dispose();
     super.dispose();
+  }
+}
+
+class _EmptyDeck extends StatelessWidget {
+  final VoidCallback onFilters;
+  const _EmptyDeck({required this.onFilters});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+                color: const Color(0xFF2A1A10),
+                borderRadius: BorderRadius.circular(21)),
+            child: const Center(
+                child:
+                    InIcon(InIcons.flame, size: 30, color: Color(0xFFFF9F5A))),
+          ),
+          const SizedBox(height: 12),
+          const Text('No one new nearby',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          const Text('Check back later, or widen your filters.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+          const SizedBox(height: 14),
+          OutlinedButton(
+              onPressed: onFilters, child: const Text('Edit filters')),
+        ]),
+      ),
+    );
+  }
+}
+
+/// "It's a match!" — full-screen celebration after a mutual like.
+class _MatchOverlay extends StatelessWidget {
+  final String name;
+  final VoidCallback onClose;
+  final VoidCallback onMessage;
+  const _MatchOverlay(
+      {required this.name, required this.onClose, required this.onMessage});
+
+  @override
+  Widget build(BuildContext context) {
+    final me = context.read<AuthProvider>().user;
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment(0, -0.3),
+            radius: 1,
+            colors: [Color(0xF04A1A5A), Color(0xF20A0A0D)],
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          const Text('IT’S A',
+              style: TextStyle(
+                  color: AppColors.lilac,
+                  fontSize: 14,
+                  letterSpacing: 2,
+                  fontWeight: FontWeight.w700)),
+          ShaderMask(
+            shaderCallback: (r) => AppGradients.brandDiagonal.createShader(r),
+            child: const Text('Match!',
+                style: TextStyle(
+                    fontSize: 48,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -1.5,
+                    color: Colors.white)),
+          ),
+          const SizedBox(height: 18),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Transform.rotate(
+              angle: -0.14,
+              child: Avatar(
+                  src: me?.avatarUrl,
+                  name: me?.name,
+                  size: AvatarSize.lg,
+                  ring: true),
+            ),
+            Container(
+              width: 46,
+              height: 46,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              decoration: BoxDecoration(
+                  color: AppColors.pink,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.bg, width: 3)),
+              child: const Center(
+                  child: InIcon(InIcons.heart,
+                      size: 22, color: Colors.white, filled: true)),
+            ),
+            Transform.rotate(
+              angle: 0.14,
+              child: Avatar(name: name, size: AvatarSize.lg, ring: true),
+            ),
+          ]),
+          const SizedBox(height: 18),
+          Text('You and $name liked each other.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Color(0xFFD8D4E2), fontSize: 15)),
+          const SizedBox(height: 22),
+          FilledButton.icon(
+            onPressed: onMessage,
+            style:
+                FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+            icon: const InIcon(InIcons.chat, size: 18, color: Colors.white),
+            label: const Text('Send a message'),
+          ),
+          const SizedBox(height: 6),
+          TextButton(
+            onPressed: onClose,
+            child: const Text('Keep swiping',
+                style: TextStyle(color: AppColors.textDim)),
+          ),
+        ]),
+      ),
+    );
   }
 }

@@ -239,11 +239,14 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                       label: Text(o[1]),
                       selected: _lookingFor == o[0],
                       showCheckmark: false,
-                      labelStyle: TextStyle(
-                          color: _lookingFor == o[0]
-                              ? Colors.white
-                              : AppColors.text,
-                          fontWeight: FontWeight.w500),
+                      labelStyle: Theme.of(context)
+                          .textTheme
+                          .labelLarge
+                          ?.copyWith(
+                              color: _lookingFor == o[0]
+                                  ? Colors.white
+                                  : AppColors.text,
+                              fontWeight: FontWeight.w500),
                       onSelected: (_) => setState(() => _lookingFor = o[0]),
                     ),
                 ]),

@@ -63,13 +63,26 @@ class _GoogleConnectGateState extends State<GoogleConnectGate> {
             children: [
               const Text('🔗', style: TextStyle(fontSize: 36)),
               const SizedBox(height: 12),
-              const Text('Connect your Google account to browse it here.', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+              const Text('Connect your Google account to browse it here.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.textDim, fontSize: 13)),
               const SizedBox(height: 16),
               if (!GoogleContentService.isConfigured)
-                const Text('Google sign-in isn\'t set up on this build yet.', style: TextStyle(color: AppColors.textFaint, fontSize: 11))
+                const Text('Google sign-in isn\'t set up on this build yet.',
+                    style: TextStyle(color: AppColors.textFaint, fontSize: 11))
               else
-                ElevatedButton(onPressed: _connecting ? null : _connect, child: Text(_connecting ? 'Connecting…' : 'Connect Google account')),
-              if (_error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_error!, style: const TextStyle(color: AppColors.danger, fontSize: 11), textAlign: TextAlign.center)),
+                ElevatedButton(
+                    onPressed: _connecting ? null : _connect,
+                    child: Text(_connecting
+                        ? 'Connecting…'
+                        : 'Connect Google account')),
+              if (_error != null)
+                Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(_error!,
+                        style: const TextStyle(
+                            color: AppColors.danger, fontSize: 11),
+                        textAlign: TextAlign.center)),
             ],
           ),
         ),

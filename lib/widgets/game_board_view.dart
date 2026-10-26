@@ -36,7 +36,10 @@ class GameBoardView extends StatelessWidget {
       return AspectRatio(
         aspectRatio: 16 / 9,
         child: Container(
-          decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+          decoration: BoxDecoration(
+              color: AppColors.surface2,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border)),
           alignment: Alignment.center,
           child: const Text('🎮', style: TextStyle(fontSize: 48)),
         ),
@@ -55,32 +58,55 @@ class GameBoardView extends StatelessWidget {
     }
 
     if (gameType == 'truth_or_dare') {
-      return TruthOrDarePanel(game: game!, myUserId: myUserId, onJoin: onJoin, onMove: onMove);
+      return TruthOrDarePanel(
+          game: game!, myUserId: myUserId, onJoin: onJoin, onMove: onMove);
     }
 
     if (gameType == 'ludo') {
-      return LudoBoard(game: game!, myUserId: myUserId, isHost: isHost, onJoin: onJoin, onMove: onMove, onReset: onReset);
+      return LudoBoard(
+          game: game!,
+          myUserId: myUserId,
+          isHost: isHost,
+          onJoin: onJoin,
+          onMove: onMove,
+          onReset: onReset);
     }
 
     if (gameType == 'chess') {
-      return ChessBoard(game: game!, myUserId: myUserId, isHost: isHost, onJoin: onJoin, onMove: onMove, onReset: onReset);
+      return ChessBoard(
+          game: game!,
+          myUserId: myUserId,
+          isHost: isHost,
+          onJoin: onJoin,
+          onMove: onMove,
+          onReset: onReset);
     }
 
     if (gameType == 'uno') {
-      return UnoBoard(game: game!, myUserId: myUserId, isHost: isHost, onJoin: onJoin, onMove: onMove, onReset: onReset);
+      return UnoBoard(
+          game: game!,
+          myUserId: myUserId,
+          isHost: isHost,
+          onJoin: onJoin,
+          onMove: onMove,
+          onReset: onReset);
     }
 
     return AspectRatio(
       aspectRatio: 16 / 9,
       child: Container(
-        decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+        decoration: BoxDecoration(
+            color: AppColors.surface2,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border)),
         alignment: Alignment.center,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: const [
             Text('🎮', style: TextStyle(fontSize: 48)),
             SizedBox(height: 8),
-            Text("This game isn't available yet.", style: TextStyle(color: AppColors.textFaint, fontSize: 13)),
+            Text("This game isn't available yet.",
+                style: TextStyle(color: AppColors.textFaint, fontSize: 13)),
           ],
         ),
       ),

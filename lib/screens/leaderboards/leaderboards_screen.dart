@@ -119,9 +119,14 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
                     label: Text(t['label'] as String),
                     selected: selected,
                     selectedColor: AppColors.primary.withValues(alpha: 0.2),
-                    labelStyle: TextStyle(
-                        color: selected ? AppColors.primary : AppColors.textDim,
-                        fontSize: 12),
+                    labelStyle: Theme.of(context)
+                        .textTheme
+                        .labelLarge
+                        ?.copyWith(
+                            color: selected
+                                ? AppColors.primary
+                                : AppColors.textDim,
+                            fontSize: 12),
                     backgroundColor: AppColors.surface,
                     onSelected: (_) {
                       setState(() => _tab = t['key'] as String);

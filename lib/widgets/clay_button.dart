@@ -39,7 +39,8 @@ class ClayGradientButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(999),
               boxShadow: [
                 BoxShadow(
-                  color: clay.shadowDark.withValues(alpha: isDark ? 0.45 : 0.28),
+                  color:
+                      clay.shadowDark.withValues(alpha: isDark ? 0.45 : 0.28),
                   blurRadius: 18,
                   offset: const Offset(0, 8),
                 ),
@@ -55,7 +56,10 @@ class ClayGradientButton extends StatelessWidget {
                 ],
                 Text(
                   label,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15),
                 ),
               ],
             ),

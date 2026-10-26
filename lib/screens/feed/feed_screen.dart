@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
-import '../../widgets/insync_clay.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_client.dart';
@@ -13,6 +12,8 @@ import '../../core/youtube_util.dart';
 import '../../models/post.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/glass.dart';
+import '../../theme/insync_icons.dart';
+import '../../widgets/in_icon_button.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/post_composer_sheet.dart';
@@ -27,6 +28,7 @@ import '../../widgets/report_user_sheet.dart';
 import '../lobby/watch_room_creator.dart';
 import 'hashtag_screen.dart';
 import 'post_detail_screen.dart';
+import 'saved_posts_screen.dart';
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -36,7 +38,6 @@ class FeedScreen extends StatefulWidget {
 }
 
 class _FeedScreenState extends State<FeedScreen> {
-  String _tab = 'posts';
   bool _loading = true;
   List<Post> _posts = [];
   List<StoryEntry> _stories = [];
@@ -262,13 +263,12 @@ class _FeedScreenState extends State<FeedScreen> {
                       height: 22,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient:
-                            const LinearGradient(colors: AppGradients.brand),
+                        color: AppColors.primary,
                         border: Border.all(color: AppColors.bg, width: 2),
                       ),
                       alignment: Alignment.center,
-                      child: const Icon(Icons.add_rounded,
-                          color: Colors.white, size: 13),
+                      child: const InIcon(InIcons.plus,
+                          size: 13, color: Colors.white),
                     ),
                   ),
                 ],
@@ -311,84 +311,85 @@ class _FeedScreenState extends State<FeedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-      // Pull to refresh reloads stories too — they used to load only once,
-      // so new ones never appeared until the app restarted.
-      onRefresh: () => Future.wait([_load(), _loadStories()]),
-      child: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(children: [
-              const InsyncSectionBanner(
-                  title: 'In the loop',
-                  subtitle: 'Little moments from your people.',
-                  icon: Icons.auto_awesome_rounded),
-              StoryBar(
+    return Stack(children: [
+      RefreshIndicator(
+        // Pull to refresh reloads stories too.
+        onRefresh: () => Future.wait([_load(), _loadStories()]),
+        child: ListView(
+          padding: const EdgeInsets.only(top: 6, bottom: 96),
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: StoryBar(
                   stories: _stories,
                   onOpen: _openStoryViewer,
                   leading: _yourStoryTile()),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: insyncClay(radius: 22),
-                      child: Row(
-                        children: [
-                          _tabButton('posts', 'Posts'),
-                          _tabButton('reels', 'Reels', onTap: _openReels),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  GestureDetector(
-                    onTap: () =>
-                        showPostComposerSheet(context, onPosted: _load),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                          gradient: AppGradients.volaCtaDiagonal,
-                          borderRadius: BorderRadius.circular(999)),
-                      child:
-                          const Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.add, color: Colors.white, size: 16),
-                        SizedBox(width: 4),
-                        Text('Post',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13)),
-                      ]),
-                    ),
-                  ),
-                ],
-              ),
-            ]),
-          ),
-          const SizedBox(height: 12),
-          if (_loading)
-            const Center(
-                child: Padding(padding: EdgeInsets.all(24), child: Spinner()))
-          else ...[
-            if (_regularPosts.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 32),
-                child: Center(
-                  child: Text(
-                      'Your feed is empty.\nFollow people or add friends to see their posts here.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.textFaint)),
-                ),
-              )
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(18, 2, 18, 12),
+              child: Row(children: [
+                _chip('Posts', selected: true, onTap: () {}),
+                _chip('Reels', icon: InIcons.reel, onTap: _openReels),
+                _chip('Saved',
+                    icon: InIcons.bookmark,
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const SavedPostsScreen()))),
+              ]),
+            ),
+            if (_loading)
+              const Center(
+                  child: Padding(padding: EdgeInsets.all(24), child: Spinner()))
+            else if (_regularPosts.isEmpty)
+              const _EmptyFeed()
             else
               ..._regularPosts.map((post) => _postCard(post)),
           ],
-        ],
+        ),
+      ),
+      Positioned(
+        right: 18,
+        bottom: 18,
+        child: Semantics(
+          button: true,
+          label: 'New post',
+          child: Material(
+            color: AppColors.primary,
+            borderRadius: BorderRadius.circular(18),
+            elevation: 3,
+            shadowColor: Colors.black,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: () => showPostComposerSheet(context, onPosted: _load),
+              child: const SizedBox(
+                width: 56,
+                height: 56,
+                child: Center(
+                    child: InIcon(InIcons.plus, size: 26, color: Colors.white)),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ]);
+  }
+
+  Widget _chip(String label,
+      {required VoidCallback onTap, InIconData? icon, bool selected = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        avatar: icon == null
+            ? null
+            : InIcon(icon,
+                size: 15, color: selected ? Colors.white : AppColors.text),
+        label: Text(label),
+        selected: selected,
+        showCheckmark: false,
+        labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: selected ? Colors.white : AppColors.text,
+            fontWeight: FontWeight.w500),
+        onSelected: (_) => onTap(),
       ),
     );
   }
@@ -396,27 +397,6 @@ class _FeedScreenState extends State<FeedScreen> {
   List<Post> get _regularPosts =>
       _posts.where((p) => p.mediaType != 'reel').toList();
   List<Post> get _reels => _posts.where((p) => p.mediaType == 'reel').toList();
-
-  Widget _tabButton(String key, String label, {VoidCallback? onTap}) {
-    final selected = _tab == key;
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap ?? () => setState(() => _tab = key),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-              gradient: selected ? AppGradients.volaCtaDiagonal : null,
-              borderRadius: BorderRadius.circular(9)),
-          alignment: Alignment.center,
-          child: Text(label,
-              style: TextStyle(
-                  color: selected ? Colors.white : AppColors.textDim,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13)),
-        ),
-      ),
-    );
-  }
 
   // #tags and @mentions in captions stand out (tappable once hashtag
   // pages land); the rest of the caption is plain.
@@ -431,7 +411,7 @@ class _FeedScreenState extends State<FeedScreen> {
       final token = m.group(0)!;
       spans.add(TextSpan(
           text: token,
-          style: const TextStyle(color: Color(0xFF6F9BFF)),
+          style: const TextStyle(color: AppColors.lilac),
           recognizer: token.startsWith('#')
               ? (TapGestureRecognizer()
                 ..onTap = () => Navigator.of(context).push(MaterialPageRoute(
@@ -730,12 +710,11 @@ class _FeedScreenState extends State<FeedScreen> {
                     ),
                   ),
                 ),
-                IconButton(
-                  tooltip: 'More',
-                  onPressed: () => _postMenu(post),
-                  icon: const Icon(Icons.more_horiz_rounded,
-                      color: AppColors.textDim, size: 20),
-                ),
+                InIconButton(InIcons.more,
+                    tooltip: 'More',
+                    iconSize: 20,
+                    color: AppColors.textDim,
+                    onPressed: () => _postMenu(post)),
               ],
             ),
           ),
@@ -778,7 +757,7 @@ class _FeedScreenState extends State<FeedScreen> {
                       onTap: () => openProfile(context, t['id'] as String?),
                       child: Text('@${t['username'] ?? t['name']}',
                           style: const TextStyle(
-                              color: Color(0xFF6F9BFF), fontSize: 12.5)),
+                              color: AppColors.lilac, fontSize: 12.5)),
                     ),
                 ],
               ),
@@ -786,17 +765,34 @@ class _FeedScreenState extends State<FeedScreen> {
           if (post.mediaType == 'voice' && post.voiceData != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                    color: AppColors.surface2,
-                    borderRadius: BorderRadius.circular(999)),
-                child: const Row(children: [
-                  Icon(Icons.graphic_eq, color: AppColors.accent, size: 18),
-                  SizedBox(width: 8),
-                  Text('Voice note',
-                      style: TextStyle(color: AppColors.textDim, fontSize: 12))
-                ]),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () => _openPostDetail(post),
+                child: Ink(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      border: Border.all(color: AppColors.border),
+                      borderRadius: BorderRadius.circular(16)),
+                  child: const Row(children: [
+                    CircleAvatar(
+                      radius: 19,
+                      backgroundColor: AppColors.primary,
+                      child: InIcon(InIcons.play,
+                          size: 16, color: Colors.white, filled: true),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                        child: Row(children: [
+                      InIcon(InIcons.wave, size: 22, color: AppColors.lilac),
+                      InIcon(InIcons.wave, size: 22, color: AppColors.lilac),
+                      InIcon(InIcons.wave, size: 22, color: AppColors.lilac),
+                    ])),
+                    Text('Voice note',
+                        style:
+                            TextStyle(color: AppColors.textDim, fontSize: 12)),
+                  ]),
+                ),
               ),
             ),
           if (post.mediaType == 'video_link' && post.videoUrl != null)
@@ -804,62 +800,39 @@ class _FeedScreenState extends State<FeedScreen> {
           if (post.mediaType == 'poll' && post.pollOptions != null)
             Padding(padding: side, child: _pollOptions(post)),
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+            padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
             child: Row(
               children: [
-                GestureDetector(
+                _action(
+                  post.likedByMe ? 'Unlike' : 'Like',
+                  InIcon(InIcons.heart,
+                      size: 24,
+                      filled: post.likedByMe,
+                      color: post.likedByMe ? AppColors.pink : AppColors.text),
+                  count: post.likesHidden ? null : post.likesCount,
                   onTap: () => _toggleLike(post),
-                  child: Icon(
-                      post.likedByMe
-                          ? Icons.favorite_rounded
-                          : Icons.favorite_border_rounded,
-                      color: post.likedByMe
-                          ? const Color(0xFFFF5C8A)
-                          : AppColors.text,
-                      size: 25,
-                      semanticLabel: post.likedByMe ? 'Unlike' : 'Like'),
+                  onCountTap: () =>
+                      showPostLikesSheet(context, postId: post.id),
                 ),
-                if (!post.commentsDisabled || post.isOwn) ...[
-                  const SizedBox(width: 16),
-                  GestureDetector(
+                if (!post.commentsDisabled || post.isOwn)
+                  _action(
+                    'Comments',
+                    const InIcon(InIcons.comment, size: 23),
+                    count: post.commentsCount,
                     onTap: () => _openComments(post),
-                    child: const Icon(Icons.mode_comment_outlined,
-                        color: AppColors.text,
-                        size: 23,
-                        semanticLabel: 'Comments'),
                   ),
-                ],
-                const SizedBox(width: 16),
                 ShareRow(
                     text: post.text, url: '${ApiClient.baseUrl}/p/${post.id}'),
                 const Spacer(),
-                GestureDetector(
+                _action(
+                  post.savedByMe ? 'Unsave' : 'Save',
+                  InIcon(InIcons.bookmark, size: 22, filled: post.savedByMe),
                   onTap: () => _toggleSave(post),
-                  child: Icon(
-                      post.savedByMe
-                          ? Icons.bookmark_rounded
-                          : Icons.bookmark_border_rounded,
-                      color: AppColors.text,
-                      size: 23,
-                      semanticLabel: post.savedByMe ? 'Unsave' : 'Save'),
                 ),
               ],
             ),
           ),
-          if (!post.likesHidden && post.likesCount > 0)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
-              child: GestureDetector(
-                onTap: () => showPostLikesSheet(context, postId: post.id),
-                child: Text(
-                    '${post.likesCount} ${post.likesCount == 1 ? 'like' : 'likes'}',
-                    style: const TextStyle(
-                        color: AppColors.text,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13)),
-              ),
-            )
-          else if (post.likesHidden && post.likesCount > 0 && post.isOwn)
+          if (post.likesHidden && post.likesCount > 0 && post.isOwn)
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
               child: Text('${post.likesCount} likes · only you can see this',
@@ -1011,8 +984,8 @@ class _FeedScreenState extends State<FeedScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
-                        color: AppColors.surface2,
-                        borderRadius: BorderRadius.circular(10),
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppColors.border)),
                   ),
                   if (voted)
@@ -1021,7 +994,7 @@ class _FeedScreenState extends State<FeedScreen> {
                         widthFactor: pct / 100,
                         child: Container(
                             decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.2),
+                                color: const Color(0xFF3A1F5C),
                                 borderRadius: BorderRadius.circular(10))),
                       ),
                     ),
@@ -1042,7 +1015,9 @@ class _FeedScreenState extends State<FeedScreen> {
                         if (voted)
                           Text('$pct%',
                               style: const TextStyle(
-                                  color: AppColors.textFaint, fontSize: 12)),
+                                  color: AppColors.text,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700)),
                       ],
                     ),
                   ),
@@ -1117,6 +1092,73 @@ class _DoubleTapLikeState extends State<_DoubleTapLike>
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Like / comment button with its count beside it.
+Widget _action(String label, Widget icon,
+    {int? count, required VoidCallback onTap, VoidCallback? onCountTap}) {
+  final hasCount = count != null && count > 0;
+  return Row(mainAxisSize: MainAxisSize.min, children: [
+    Semantics(
+      button: true,
+      label: label,
+      child: InkResponse(
+        onTap: onTap,
+        radius: 24,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(6, 8, hasCount ? 3 : 6, 8),
+          child: icon,
+        ),
+      ),
+    ),
+    if (hasCount)
+      Semantics(
+        button: onCountTap != null,
+        label: '$count',
+        child: InkWell(
+          onTap: onCountTap ?? onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(2, 8, 6, 8),
+            child: Text('$count',
+                style: const TextStyle(
+                    color: AppColors.text,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500)),
+          ),
+        ),
+      ),
+  ]);
+}
+
+class _EmptyFeed extends StatelessWidget {
+  const _EmptyFeed();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(36, 40, 36, 0),
+      child: Column(children: [
+        Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+              color: const Color(0xFF2A1028),
+              borderRadius: BorderRadius.circular(21)),
+          child: const Center(
+              child: InIcon(InIcons.image, size: 30, color: AppColors.pink)),
+        ),
+        const SizedBox(height: 12),
+        const Text('No posts yet',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 4),
+        const Text(
+            'Follow people or add friends to see their posts here — or share your first one.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+      ]),
     );
   }
 }

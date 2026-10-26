@@ -37,7 +37,8 @@ class VolumeDots extends StatelessWidget {
         width: 24,
         height: height,
         padding: const EdgeInsets.symmetric(vertical: 6),
-        decoration: BoxDecoration(color: trackColor, borderRadius: BorderRadius.circular(999)),
+        decoration: BoxDecoration(
+            color: trackColor, borderRadius: BorderRadius.circular(999)),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: List.generate(dots, (i) {
@@ -48,7 +49,11 @@ class VolumeDots extends StatelessWidget {
                 duration: const Duration(milliseconds: 200),
                 width: lit ? 6 : 4.5,
                 height: lit ? 6 : 4.5,
-                decoration: BoxDecoration(shape: BoxShape.circle, color: lit ? AppColors.primary : Colors.white.withValues(alpha: 0.15)),
+                decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: lit
+                        ? AppColors.primary
+                        : Colors.white.withValues(alpha: 0.15)),
               ),
             );
           }),

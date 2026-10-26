@@ -265,10 +265,13 @@ class _VibeMatchScreenState extends State<VibeMatchScreen> {
                                 onSelected: (_) => setState(() => mood = m),
                                 selectedColor: AppColors.primary,
                                 backgroundColor: AppColors.surface2,
-                                labelStyle: TextStyle(
-                                    color: mood == m
-                                        ? Colors.white
-                                        : AppColors.textDim),
+                                labelStyle: Theme.of(context)
+                                    .textTheme
+                                    .labelLarge
+                                    ?.copyWith(
+                                        color: mood == m
+                                            ? Colors.white
+                                            : AppColors.textDim),
                               ))
                           .toList()),
                   const SizedBox(height: 20),

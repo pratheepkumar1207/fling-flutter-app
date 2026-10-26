@@ -24,13 +24,16 @@ class Media3PlayerAdapter implements VideoPlayerAdapter {
   Media3PlayerAdapter(int viewId)
       : _methodChannel = MethodChannel('fling/media3_player_$viewId'),
         _eventChannel = EventChannel('fling/media3_player_events_$viewId') {
-    _eventSubscription = _eventChannel.receiveBroadcastStream().listen(_onEvent, onError: _onEventError);
+    _eventSubscription = _eventChannel
+        .receiveBroadcastStream()
+        .listen(_onEvent, onError: _onEventError);
   }
 
   final MethodChannel _methodChannel;
   final EventChannel _eventChannel;
   StreamSubscription<dynamic>? _eventSubscription;
-  final StreamController<PlaybackStateSnapshot> _controller = StreamController<PlaybackStateSnapshot>.broadcast();
+  final StreamController<PlaybackStateSnapshot> _controller =
+      StreamController<PlaybackStateSnapshot>.broadcast();
 
   PlayerLifecycleState _state = PlayerLifecycleState.idle;
   Duration _position = Duration.zero;
@@ -41,7 +44,8 @@ class Media3PlayerAdapter implements VideoPlayerAdapter {
   @override
   Future<void> initialize(VideoSource source) {
     _state = PlayerLifecycleState.loading;
-    return _methodChannel.invokeMethod<void>('initialize', source.toChannelArgs());
+    return _methodChannel.invokeMethod<void>(
+        'initialize', source.toChannelArgs());
   }
 
   @override
@@ -51,17 +55,20 @@ class Media3PlayerAdapter implements VideoPlayerAdapter {
   Future<void> pause() => _methodChannel.invokeMethod<void>('pause');
 
   @override
-  Future<void> seek(Duration position) => _methodChannel.invokeMethod<void>('seekTo', {'positionMs': position.inMilliseconds});
+  Future<void> seek(Duration position) => _methodChannel
+      .invokeMethod<void>('seekTo', {'positionMs': position.inMilliseconds});
 
   @override
-  Future<void> setPlaybackRate(double rate) => _methodChannel.invokeMethod<void>('setPlaybackRate', {'rate': rate});
+  Future<void> setPlaybackRate(double rate) =>
+      _methodChannel.invokeMethod<void>('setPlaybackRate', {'rate': rate});
 
   /// Not part of the shared VideoPlayerAdapter interface (spec section 14
   /// doesn't list volume), but every provider that has real playback
   /// control also needs it — exposed as an adapter-specific extra rather
   /// than forcing every implementation (including future YouTube/
   /// authorized-provider adapters that may not support it) to carry it.
-  Future<void> setVolume(double volume) => _methodChannel.invokeMethod<void>('setVolume', {'volume': volume.clamp(0.0, 1.0)});
+  Future<void> setVolume(double volume) => _methodChannel
+      .invokeMethod<void>('setVolume', {'volume': volume.clamp(0.0, 1.0)});
 
   @override
   Future<void> dispose() async {
@@ -98,7 +105,8 @@ class Media3PlayerAdapter implements VideoPlayerAdapter {
       case 'tick':
         _position = _durationFromMs(map['positionMs']) ?? _position;
         _duration = _durationFromMs(map['durationMs']);
-        _bufferedPosition = _durationFromMs(map['bufferedPositionMs']) ?? _bufferedPosition;
+        _bufferedPosition =
+            _durationFromMs(map['bufferedPositionMs']) ?? _bufferedPosition;
         _isPlaying = map['isPlaying'] as bool? ?? _isPlaying;
         _emit();
       case 'error':
@@ -125,7 +133,8 @@ class Media3PlayerAdapter implements VideoPlayerAdapter {
     );
   }
 
-  static Duration? _durationFromMs(Object? value) => value is num ? Duration(milliseconds: value.toInt()) : null;
+  static Duration? _durationFromMs(Object? value) =>
+      value is num ? Duration(milliseconds: value.toInt()) : null;
 
   static PlayerLifecycleState _stateFromString(String? value) {
     switch (value) {

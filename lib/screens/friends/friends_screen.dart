@@ -301,7 +301,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
         label: Text(label),
         selected: _tab == key,
         selectedColor: AppColors.primary.withValues(alpha: 0.2),
-        labelStyle: TextStyle(
+        labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
             color: _tab == key ? AppColors.primary : AppColors.textDim,
             fontSize: 12),
         backgroundColor: AppColors.surface,

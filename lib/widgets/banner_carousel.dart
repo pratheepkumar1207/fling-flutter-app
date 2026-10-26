@@ -31,9 +31,11 @@ class _BannerCarouselState extends State<BannerCarousel> {
 
   Future<void> _load() async {
     try {
-      final data = await ApiClient.get('/banners?placement=${widget.placement}');
+      final data =
+          await ApiClient.get('/banners?placement=${widget.placement}');
       if (!mounted) return;
-      setState(() => _banners = ((data as List?) ?? []).cast<Map<String, dynamic>>());
+      setState(() =>
+          _banners = ((data as List?) ?? []).cast<Map<String, dynamic>>());
       if (_banners.length > 1) {
         _timer = Timer.periodic(const Duration(milliseconds: _kRotateMs), (_) {
           if (mounted) setState(() => _index = (_index + 1) % _banners.length);
@@ -54,8 +56,10 @@ class _BannerCarouselState extends State<BannerCarousel> {
         child: AspectRatio(
           aspectRatio: 21 / 9,
           child: DecoratedBox(
-            decoration: BoxDecoration(border: Border.all(color: AppColors.border)),
-            child: AppImage(source: _banners[0]['imageUrl'] as String?, fit: BoxFit.cover),
+            decoration:
+                BoxDecoration(border: Border.all(color: AppColors.border)),
+            child: AppImage(
+                source: _banners[0]['imageUrl'] as String?, fit: BoxFit.cover),
           ),
         ),
       );
@@ -66,7 +70,8 @@ class _BannerCarouselState extends State<BannerCarousel> {
       child: AspectRatio(
         aspectRatio: 21 / 9,
         child: DecoratedBox(
-          decoration: BoxDecoration(border: Border.all(color: AppColors.border)),
+          decoration:
+              BoxDecoration(border: Border.all(color: AppColors.border)),
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -74,7 +79,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
                 AnimatedOpacity(
                   duration: const Duration(milliseconds: 700),
                   opacity: i == _index ? 1 : 0,
-                  child: AppImage(source: _banners[i]['imageUrl'] as String?, fit: BoxFit.cover),
+                  child: AppImage(
+                      source: _banners[i]['imageUrl'] as String?,
+                      fit: BoxFit.cover),
                 ),
               Positioned(
                 left: 0,
@@ -88,7 +95,10 @@ class _BannerCarouselState extends State<BannerCarousel> {
                       margin: const EdgeInsets.symmetric(horizontal: 2),
                       width: 6,
                       height: 6,
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: i == _index ? 1 : 0.4)),
+                      decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white
+                              .withValues(alpha: i == _index ? 1 : 0.4)),
                     ),
                   ),
                 ),

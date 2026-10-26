@@ -5,6 +5,7 @@ import '../../core/auth_provider.dart';
 import '../../core/format.dart';
 import '../../models/photo.dart';
 import '../../models/user.dart';
+import '../../theme/insync_icons.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_image.dart';
 import '../messages/message_thread_screen.dart';
@@ -219,11 +220,15 @@ class _SwipeCardState extends State<SwipeCard>
                 decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(999)),
-                child: const Text('🔄 Tap to Flip',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600)),
+                child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                  InIcon(InIcons.flip, size: 14, color: Colors.white),
+                  SizedBox(width: 5),
+                  Text('Tap to flip',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600)),
+                ]),
               ),
             ),
             Positioned(
@@ -250,8 +255,8 @@ class _SwipeCardState extends State<SwipeCard>
                         ),
                         if (profile.isVerified) ...[
                           const SizedBox(width: 6),
-                          const Icon(Icons.verified_rounded,
-                              color: AppColors.gold, size: 18),
+                          const InIcon(InIcons.verified,
+                              size: 20, color: AppColors.blue),
                         ],
                         if (profile.online) ...[
                           const SizedBox(width: 8),
@@ -267,10 +272,23 @@ class _SwipeCardState extends State<SwipeCard>
                     if (profile.city != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
-                        child: Text('📍 ${profile.city}',
-                            style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.8),
-                                fontSize: 13)),
+                        child: Row(children: [
+                          const InIcon(InIcons.pin,
+                              size: 14, color: Color(0xFFD8D4E2)),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                                '${profile.city}${profile.online ? ' · ' : ''}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    color: Color(0xFFD8D4E2), fontSize: 13)),
+                          ),
+                          if (profile.online)
+                            const Text('Online',
+                                style: TextStyle(
+                                    color: AppColors.success, fontSize: 13)),
+                        ]),
                       ),
                     if (profile.bio != null && profile.bio!.isNotEmpty)
                       Padding(

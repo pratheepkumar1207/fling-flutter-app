@@ -17,7 +17,8 @@ class InterestOptionsCache {
     try {
       final data = await ApiClient.get('/auth/interest-options');
       final options = (data as List)
-          .map((e) => [e['key'] as String, e['label'] as String, e['emoji'] as String])
+          .map((e) =>
+              [e['key'] as String, e['label'] as String, e['emoji'] as String])
           .toList();
       // An empty/failed response shouldn't leave the picker with nothing to
       // show — fall back to the old static list rather than a blank screen.

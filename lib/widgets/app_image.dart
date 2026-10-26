@@ -12,7 +12,11 @@ class AppImage extends StatelessWidget {
   final BoxFit fit;
   final Widget Function(BuildContext context)? placeholder;
 
-  const AppImage({super.key, required this.source, this.fit = BoxFit.cover, this.placeholder});
+  const AppImage(
+      {super.key,
+      required this.source,
+      this.fit = BoxFit.cover,
+      this.placeholder});
 
   static Uint8List? _decodeDataUri(String uri) {
     final commaIndex = uri.indexOf(',');
@@ -32,14 +36,17 @@ class AppImage extends StatelessWidget {
     }
     if (src.startsWith('data:image')) {
       final bytes = _decodeDataUri(src);
-      if (bytes == null) return placeholder?.call(context) ?? const SizedBox.shrink();
+      if (bytes == null)
+        return placeholder?.call(context) ?? const SizedBox.shrink();
       return Image.memory(bytes, fit: fit);
     }
     return CachedNetworkImage(
       imageUrl: src,
       fit: fit,
-      placeholder: placeholder != null ? (context, _) => placeholder!(context) : null,
-      errorWidget: (context, _, __) => placeholder?.call(context) ?? const SizedBox.shrink(),
+      placeholder:
+          placeholder != null ? (context, _) => placeholder!(context) : null,
+      errorWidget: (context, _, __) =>
+          placeholder?.call(context) ?? const SizedBox.shrink(),
     );
   }
 }

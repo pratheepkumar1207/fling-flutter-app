@@ -140,7 +140,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   shape: BoxShape.circle,
                   gradient: LinearGradient(colors: notificationColors(n.type))),
               alignment: Alignment.center,
-              child: Icon(notificationIcon(n.type), color: Colors.white, size: 17),
+              child:
+                  Icon(notificationIcon(n.type), color: Colors.white, size: 17),
             ),
             const SizedBox(width: 12),
             Expanded(

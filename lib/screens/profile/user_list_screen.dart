@@ -43,7 +43,8 @@ class _UserListScreenState extends State<UserListScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final data = await ApiClient.get(_following ? '/social/following' : '/social/followers');
+      final data = await ApiClient.get(
+          _following ? '/social/following' : '/social/followers');
       if (!mounted) return;
       setState(() {
         _users = (data as List).cast<Map<String, dynamic>>();
@@ -83,8 +84,12 @@ class _UserListScreenState extends State<UserListScreen> {
         children: [
           Row(
             children: [
-              Expanded(child: _tab('Followers', _counts?['followers'], !_following, () => _switchTab(false))),
-              Expanded(child: _tab('Following', _counts?['following'], _following, () => _switchTab(true))),
+              Expanded(
+                  child: _tab('Followers', _counts?['followers'], !_following,
+                      () => _switchTab(false))),
+              Expanded(
+                  child: _tab('Following', _counts?['following'], _following,
+                      () => _switchTab(true))),
             ],
           ),
           Padding(
@@ -92,20 +97,26 @@ class _UserListScreenState extends State<UserListScreen> {
             child: Container(
               height: 38,
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                  color: AppColors.surface2,
+                  borderRadius: BorderRadius.circular(12)),
               child: Row(
                 children: [
-                  const Icon(Icons.search_rounded, size: 16, color: AppColors.textFaint),
+                  const Icon(Icons.search_rounded,
+                      size: 16, color: AppColors.textFaint),
                   const SizedBox(width: 8),
                   Expanded(
                     child: TextField(
                       onChanged: (v) => setState(() => _query = v),
-                      style: const TextStyle(color: AppColors.text, fontSize: 12.5),
+                      style: const TextStyle(
+                          color: AppColors.text, fontSize: 12.5),
                       decoration: InputDecoration(
                         border: InputBorder.none,
                         isDense: true,
-                        hintText: 'Search ${_following ? 'following' : 'followers'}',
-                        hintStyle: const TextStyle(color: AppColors.textFaint, fontSize: 12.5),
+                        hintText:
+                            'Search ${_following ? 'following' : 'followers'}',
+                        hintStyle: const TextStyle(
+                            color: AppColors.textFaint, fontSize: 12.5),
                       ),
                     ),
                   ),
@@ -117,27 +128,45 @@ class _UserListScreenState extends State<UserListScreen> {
             child: _loading
                 ? const Center(child: Spinner())
                 : results.isEmpty
-                    ? Center(child: Text(_users.isEmpty ? 'No one here yet.' : 'No matches.', style: const TextStyle(color: AppColors.textFaint)))
+                    ? Center(
+                        child: Text(
+                            _users.isEmpty ? 'No one here yet.' : 'No matches.',
+                            style: const TextStyle(color: AppColors.textFaint)))
                     : ListView.builder(
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         itemCount: results.length,
                         itemBuilder: (context, i) {
                           final u = results[i];
                           return GestureDetector(
-                            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => CreatorProfileScreen(userId: u['id'] as String))),
+                            onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                    builder: (_) => CreatorProfileScreen(
+                                        userId: u['id'] as String))),
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 9),
                               child: Row(
                                 children: [
-                                  Avatar(src: u['avatarUrl'] as String?, name: u['name'] as String?, size: AvatarSize.md),
+                                  Avatar(
+                                      src: u['avatarUrl'] as String?,
+                                      name: u['name'] as String?,
+                                      size: AvatarSize.md),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Text(u['name'] as String? ?? '', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.5)),
+                                        Text(u['name'] as String? ?? '',
+                                            style: const TextStyle(
+                                                color: AppColors.text,
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 13.5)),
                                         if (u['username'] != null)
-                                          Text('@${u['username']}', style: const TextStyle(color: AppColors.textFaint, fontSize: 11.5)),
+                                          Text('@${u['username']}',
+                                              style: const TextStyle(
+                                                  color: AppColors.textFaint,
+                                                  fontSize: 11.5)),
                                       ],
                                     ),
                                   ),
@@ -159,10 +188,17 @@ class _UserListScreenState extends State<UserListScreen> {
       child: Container(
         height: 42,
         alignment: Alignment.center,
-        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: selected ? AppColors.text : Colors.transparent, width: 2))),
+        decoration: BoxDecoration(
+            border: Border(
+                bottom: BorderSide(
+                    color: selected ? AppColors.text : Colors.transparent,
+                    width: 2))),
         child: Text(
           count != null ? '$label · ${formatNumber(count)}' : label,
-          style: TextStyle(color: selected ? AppColors.text : AppColors.textFaint, fontSize: 13, fontWeight: selected ? FontWeight.w700 : FontWeight.w600),
+          style: TextStyle(
+              color: selected ? AppColors.text : AppColors.textFaint,
+              fontSize: 13,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w600),
         ),
       ),
     );

@@ -81,7 +81,8 @@ class ActiveRoomHolder {
     var position = ((playback?['position'] as num?) ?? 0).toDouble();
     final updatedAt = playback?['updatedAt'] as num?;
     if (playback?['isPlaying'] == true && updatedAt != null) {
-      final elapsed = (DateTime.now().millisecondsSinceEpoch - updatedAt) / 1000;
+      final elapsed =
+          (DateTime.now().millisecondsSinceEpoch - updatedAt) / 1000;
       if (elapsed > 0) position += elapsed;
     }
     return position;
@@ -111,8 +112,9 @@ class ActiveRoomHolder {
     // uses — Drive gets its own real background session (see
     // drive_video_player.dart), OTT/DRM sources have no audio-only story at
     // all, so YouTube is what's actually left once both are excluded.
-    final isYoutubePath =
-        sourceType != null && sourceType != 'drive' && !webviewSourceTypes.contains(sourceType);
+    final isYoutubePath = sourceType != null &&
+        sourceType != 'drive' &&
+        !webviewSourceTypes.contains(sourceType);
     final playback = rs.playback;
     final isPlaying = playback?['isPlaying'] == true;
     if (!isYoutubePath || !isPlaying) {

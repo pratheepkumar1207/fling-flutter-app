@@ -7,7 +7,13 @@ class AvatarFrame {
   final bool owned;
   final bool equipped;
 
-  AvatarFrame({required this.id, required this.name, required this.imageUrl, required this.coinCost, this.owned = false, this.equipped = false});
+  AvatarFrame(
+      {required this.id,
+      required this.name,
+      required this.imageUrl,
+      required this.coinCost,
+      this.owned = false,
+      this.equipped = false});
 
   factory AvatarFrame.fromJson(Map<String, dynamic> json) {
     return AvatarFrame(

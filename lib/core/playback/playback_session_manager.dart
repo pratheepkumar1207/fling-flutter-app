@@ -31,7 +31,8 @@ class PlaybackSessionManager {
 
   Future<void> play() => _adapter?.play() ?? Future.value();
   Future<void> pause() => _adapter?.pause() ?? Future.value();
-  Future<void> seek(Duration position) => _adapter?.seek(position) ?? Future.value();
+  Future<void> seek(Duration position) =>
+      _adapter?.seek(position) ?? Future.value();
 
   // Guarded by capabilities.pip so a media source that can't actually PiP
   // (e.g. any webview/OTT "browse together" source per FLING_AUDIT.md §4)
