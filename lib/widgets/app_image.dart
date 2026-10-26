@@ -36,8 +36,9 @@ class AppImage extends StatelessWidget {
     }
     if (src.startsWith('data:image')) {
       final bytes = _decodeDataUri(src);
-      if (bytes == null)
+      if (bytes == null) {
         return placeholder?.call(context) ?? const SizedBox.shrink();
+      }
       return Image.memory(bytes, fit: fit);
     }
     return CachedNetworkImage(

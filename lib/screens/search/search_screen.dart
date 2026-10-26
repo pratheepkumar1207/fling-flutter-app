@@ -40,8 +40,9 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Future<void> _loadRecent() async {
     final prefs = await SharedPreferences.getInstance();
-    if (mounted)
+    if (mounted) {
       setState(() => _recent = prefs.getStringList(_kRecentSearchesKey) ?? []);
+    }
   }
 
   Future<void> _saveRecent(String q) async {

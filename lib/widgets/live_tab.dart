@@ -57,9 +57,10 @@ class _LiveTabState extends State<LiveTab> {
               builder: (_) => PartyScreen(roomId: room['id'] as String)))
           .then((_) => _load());
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Failed to start a live broadcast')));
+      }
     } finally {
       if (mounted) setState(() => _starting = false);
     }

@@ -134,9 +134,10 @@ class _InviteScreenState extends State<InviteScreen>
         Navigator.of(context).pop();
       }
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Failed to send invites')));
+      }
     } finally {
       if (mounted) setState(() => _inviting = false);
     }
@@ -206,10 +207,11 @@ class _InviteScreenState extends State<InviteScreen>
       required List<Map<String, dynamic>> people,
       required String emptyText}) {
     if (loading) return const Center(child: Spinner());
-    if (people.isEmpty)
+    if (people.isEmpty) {
       return Center(
           child: Text(emptyText,
               style: const TextStyle(color: AppColors.textFaint)));
+    }
     return ListView.builder(
       itemCount: people.length,
       itemBuilder: (context, i) => _personTile(people[i]),
