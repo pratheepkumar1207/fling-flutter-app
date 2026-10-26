@@ -9,6 +9,9 @@ import 'package:fling/screens/calls/incoming_call_view.dart';
 import 'package:fling/screens/messages/messages_screen.dart';
 import 'package:fling/screens/lobby/lobby_create_screen.dart';
 import 'package:fling/screens/live/live_ended_screen.dart';
+import 'package:fling/screens/settings/settings_screen.dart';
+import 'package:fling/screens/wallet/wallet_screen.dart';
+import 'package:fling/screens/profile/profile_screen.dart';
 import 'package:fling/screens/live/live_feed_screen.dart';
 import 'package:fling/screens/lobby/source_picker_screen.dart';
 import 'package:fling/theme/app_theme.dart';
@@ -149,7 +152,22 @@ void main() {
     await _snap(t, key, 'live-ended');
   });
 
+  testWidgets('Profile, wallet and settings', (t) async {
+    var key = await _render(t, const WalletScreen());
+    expect(t.takeException(), isNull);
+    await _snap(t, key, 'wallet');
+    key = await _render(t, const SettingsScreen());
+    expect(t.takeException(), isNull);
+    await _snap(t, key, 'settings');
+    key = await _render(t, const ProfileScreen());
+    expect(t.takeException(), isNull);
+    await _snap(t, key, 'profile');
+  });
+
   for (final s in [
+    const WalletScreen(),
+    const SettingsScreen(),
+    const ProfileScreen(),
     const LiveFeedScreen(),
     const LiveEndedScreen(
         title: 'A very long live title that keeps going and going',

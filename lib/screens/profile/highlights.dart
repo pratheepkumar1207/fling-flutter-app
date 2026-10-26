@@ -167,8 +167,9 @@ class _HighlightsRowState extends State<HighlightsRow> {
     if (!_loaded || (_highlights.isEmpty && !widget.isMine)) {
       return const SizedBox.shrink();
     }
+    // Circle plus one label line; grows with the system text size.
     return SizedBox(
-      height: 84,
+      height: 66 + MediaQuery.textScalerOf(context).scale(11) * 1.6,
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [

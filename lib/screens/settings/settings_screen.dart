@@ -1,6 +1,6 @@
+import '../../widgets/avatar.dart';
 import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
-import '../../widgets/insync_clay.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
@@ -90,137 +90,145 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final locationEnabled = user?.locationSharingEnabled ?? false;
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const InsyncPageTitle('Settings')),
+      appBar: AppBar(title: const Text('Settings')),
       body: ListView(
+        padding: const EdgeInsets.fromLTRB(18, 4, 18, 28),
         children: [
-          const Padding(
-              padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
-              child: InsyncSectionBanner(
-                  title: 'Make it yours',
-                  subtitle: 'Your account. Your comfort. Your control.',
-                  icon: InIcons.tune)),
-          _group('Account'),
-          _tile(context,
-              emoji: '👤',
-              label: 'Edit profile',
-              builder: (_) => const EditProfileSheet()),
-          if (user?.phone != null && user!.phone!.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              child: Row(children: [
-                _iconBadge('📞'),
-                const SizedBox(width: 13),
-                const Expanded(
-                    child: Text('Phone number',
-                        style:
-                            TextStyle(color: AppColors.text, fontSize: 13.5))),
-                Text(user.phone!,
-                    style: const TextStyle(
-                        color: AppColors.textFaint, fontSize: 12.5)),
-              ]),
-            ),
-          GestureDetector(
-            onTap: () => Navigator.of(context)
-                .push(MaterialPageRoute(builder: (_) => const ProfileScreen())),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              child: Row(children: [
-                _iconBadge('✅'),
-                const SizedBox(width: 13),
-                const Expanded(
-                    child: Text('Verification',
-                        style:
-                            TextStyle(color: AppColors.text, fontSize: 13.5))),
-                Text(
-                  _verificationLabel(user?.photoVerificationStatus),
-                  style: TextStyle(
-                      color: user?.photoVerificationStatus == 'verified'
-                          ? AppColors.success
-                          : AppColors.textFaint,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700),
-                ),
-              ]),
-            ),
-          ),
-          _group('Privacy & Safety'),
-          _tile(context,
-              emoji: '🔒',
-              label: 'Room activity and likes',
-              builder: (_) => const PrivacyScreen()),
-          _tile(context,
-              emoji: '🚫',
-              label: 'Blocked accounts',
-              builder: (_) => const BlockedAccountsScreen()),
-          _switchTile(
-            emoji: '📍',
-            label: 'Location sharing',
-            value: locationEnabled,
-            onChanged: _savingLocation ? null : _toggleLocation,
-          ),
-          _group('Preferences'),
-          _switchTile(
-            emoji: '🔔',
-            label: 'Notifications',
-            value: notificationsEnabled,
-            onChanged: _savingNotifications ? null : _toggleNotifications,
-          ),
-          _tile(context,
-              emoji: '🌐',
-              label: 'Language',
-              builder: (_) => const LanguagePreferencesScreen()),
-          _group('Support'),
-          _tile(context,
-              emoji: '🆘',
-              label: 'Help Center',
-              builder: (_) => const HelpCenterScreen()),
-          _tile(context,
-              emoji: '📄',
-              label: 'Terms of Service',
-              builder: (_) => const LegalScreen(
-                  title: 'Terms of Service',
-                  lastUpdated: 'January 2026',
-                  sections: kTermsOfServiceSections)),
-          _tile(context,
-              emoji: '🛡️',
-              label: 'Privacy Policy',
-              builder: (_) => const LegalScreen(
-                  title: 'Privacy Policy',
-                  lastUpdated: 'January 2026',
-                  sections: kPrivacyPolicySections)),
-          _tile(
-            context,
-            emoji: 'ℹ️',
-            label: 'About Us',
-            builder: (_) => const LegalScreen(
-              title: 'About Us',
-              sections: [
-                LegalSection('Insync',
-                    'Watch parties, voice rooms, and social discovery — all in one app.'),
-                LegalSection('Version', '1.0.0'),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 22, 20, 30),
-            child: SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: _logout,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.danger,
-                  side: BorderSide(
-                      color: AppColors.danger.withValues(alpha: 0.35)),
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                ),
-                child: const Text('Log out',
-                    style:
-                        TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+                color: AppColors.surface,
+                border: Border.all(color: AppColors.border),
+                borderRadius: BorderRadius.circular(18)),
+            child: Row(children: [
+              Avatar(
+                  src: user?.avatarUrl,
+                  name: user?.name,
+                  size: AvatarSize.md,
+                  ring: true),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(user?.name ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.w600)),
+                      if (user?.phone != null && user!.phone!.isNotEmpty)
+                        Text(user.phone!,
+                            style: const TextStyle(
+                                color: AppColors.textDim, fontSize: 12)),
+                    ]),
               ),
-            ),
+              if (user?.isVip == true)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                      color: AppColors.gold,
+                      borderRadius: BorderRadius.circular(8)),
+                  child: const Text('VIP',
+                      style: TextStyle(
+                          color: Color(0xFF2A1E00),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700)),
+                ),
+            ]),
           ),
+          _group('Account'),
+          _card([
+            _tile(context,
+                icon: InIcons.user,
+                label: 'Edit profile',
+                builder: (_) => const EditProfileSheet()),
+            _tile(context,
+                icon: InIcons.verified,
+                color: AppColors.blue,
+                label: 'Verification',
+                value: _verificationLabel(user?.photoVerificationStatus),
+                valueColor: user?.photoVerificationStatus == 'verified'
+                    ? AppColors.success
+                    : null,
+                builder: (_) => const ProfileScreen()),
+            _tile(context,
+                icon: InIcons.lock,
+                label: 'Room activity and likes',
+                builder: (_) => const PrivacyScreen()),
+            _tile(context,
+                icon: InIcons.block,
+                label: 'Blocked accounts',
+                builder: (_) => const BlockedAccountsScreen()),
+          ]),
+          _group('App'),
+          _card([
+            _switchTile(
+              icon: InIcons.bell,
+              label: 'Notifications',
+              value: notificationsEnabled,
+              onChanged: _savingNotifications ? null : _toggleNotifications,
+            ),
+            _switchTile(
+              icon: InIcons.pin,
+              label: 'Location sharing',
+              value: locationEnabled,
+              onChanged: _savingLocation ? null : _toggleLocation,
+            ),
+            _tile(context,
+                icon: InIcons.lang,
+                label: 'Language',
+                builder: (_) => const LanguagePreferencesScreen()),
+          ]),
+          _group('Support'),
+          _card([
+            _tile(context,
+                icon: InIcons.help,
+                label: 'Help Center',
+                builder: (_) => const HelpCenterScreen()),
+            _tile(context,
+                icon: InIcons.info,
+                label: 'About Us',
+                builder: (_) => const LegalScreen(
+                      title: 'About Us',
+                      sections: [
+                        LegalSection('Insync',
+                            'Watch parties, voice rooms, and social discovery — all in one app.'),
+                        LegalSection('Version', '1.0.0'),
+                      ],
+                    )),
+            _tile(context,
+                icon: InIcons.doc,
+                label: 'Privacy Policy',
+                builder: (_) => const LegalScreen(
+                    title: 'Privacy Policy',
+                    lastUpdated: 'January 2026',
+                    sections: kPrivacyPolicySections)),
+            _tile(context,
+                icon: InIcons.doc,
+                label: 'Terms of Service',
+                builder: (_) => const LegalScreen(
+                    title: 'Terms of Service',
+                    lastUpdated: 'January 2026',
+                    sections: kTermsOfServiceSections)),
+          ]),
+          const SizedBox(height: 20),
+          OutlinedButton.icon(
+            onPressed: _logout,
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(50),
+              foregroundColor: const Color(0xFFFF8AA0),
+              backgroundColor: Colors.transparent,
+              side: const BorderSide(color: Color(0xFF4A2230)),
+            ),
+            icon: const InIcon(InIcons.logout,
+                size: 18, color: Color(0xFFFF8AA0)),
+            label: const Text('Log out'),
+          ),
+          const SizedBox(height: 10),
+          const Text('Insync 1.0.0',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textFaint, fontSize: 12)),
         ],
       ),
     );
@@ -234,41 +242,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
       };
 
   Widget _group(String title) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
+        padding: const EdgeInsets.fromLTRB(4, 18, 4, 8),
         child: Text(title.toUpperCase(),
             style: const TextStyle(
-                color: AppColors.textFaint,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+                color: AppColors.textDim,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
                 letterSpacing: 0.6)),
       );
 
-  Widget _iconBadge(String emoji) => Container(
-        width: 32,
-        height: 32,
+  Widget _card(List<Widget> rows) => Material(
+        color: AppColors.surface,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+            side: const BorderSide(color: AppColors.border),
+            borderRadius: BorderRadius.circular(18)),
+        child: Column(children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0) const Divider(height: 1, color: Color(0xFF221F2C)),
+            rows[i],
+          ],
+        ]),
+      );
+
+  Widget _iconBadge(InIconData icon, Color color) => Container(
+        width: 34,
+        height: 34,
         decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: AppGradients.brand),
-            borderRadius: BorderRadius.circular(12)),
+            color: const Color(0xFF1F1A2C),
+            borderRadius: BorderRadius.circular(11)),
         alignment: Alignment.center,
-        child: Text(emoji, style: const TextStyle(fontSize: 15)),
+        child: InIcon(icon, size: 18, color: color),
       );
 
   Widget _tile(BuildContext context,
-      {required String emoji,
+      {required InIconData icon,
       required String label,
-      required WidgetBuilder builder}) {
-    return GestureDetector(
+      required WidgetBuilder builder,
+      Color color = AppColors.lilac,
+      String? value,
+      Color? valueColor}) {
+    return InkWell(
       onTap: () =>
           Navigator.of(context).push(MaterialPageRoute(builder: builder)),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         child: Row(children: [
-          _iconBadge(emoji),
-          const SizedBox(width: 13),
+          _iconBadge(icon, color),
+          const SizedBox(width: 12),
           Expanded(
               child: Text(label,
-                  style:
-                      const TextStyle(color: AppColors.text, fontSize: 13.5))),
+                  style: const TextStyle(color: AppColors.text, fontSize: 14))),
+          if (value != null) ...[
+            Text(value,
+                style: TextStyle(
+                    color: valueColor ?? AppColors.textDim, fontSize: 13)),
+            const SizedBox(width: 6),
+          ],
           const InIcon(InIcons.chev, color: AppColors.textFaint, size: 18),
         ]),
       ),
@@ -276,23 +306,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _switchTile(
-      {required String emoji,
+      {required InIconData icon,
       required String label,
       required bool value,
       required ValueChanged<bool>? onChanged}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      child: Row(children: [
-        _iconBadge(emoji),
-        const SizedBox(width: 13),
-        Expanded(
-            child: Text(label,
-                style: const TextStyle(color: AppColors.text, fontSize: 13.5))),
-        Switch(
-            value: value,
-            onChanged: onChanged,
-            activeTrackColor: AppColors.primary),
-      ]),
+    return SwitchListTile(
+      value: value,
+      onChanged: onChanged,
+      activeTrackColor: AppColors.primary,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+      secondary: _iconBadge(icon, AppColors.lilac),
+      title: Text(label,
+          style: const TextStyle(color: AppColors.text, fontSize: 14)),
     );
   }
 }

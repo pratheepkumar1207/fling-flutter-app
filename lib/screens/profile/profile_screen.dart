@@ -422,63 +422,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
     final percent = user?.completenessPercent ?? 0;
     final verification = user?.photoVerificationStatus ?? 'none';
-    return SizedBox(
-      height: 74,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          if (user != null)
-            card(
-              'Profile',
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(999),
-                    child: LinearProgressIndicator(
-                        value: (percent / 100).clamp(0, 1).toDouble(),
-                        minHeight: 5,
-                        backgroundColor: AppColors.surface3,
-                        color: AppColors.accent),
-                  ),
-                  const SizedBox(height: 4),
-                  Text('$percent% complete',
-                      style:
-                          const TextStyle(color: AppColors.text, fontSize: 12)),
-                ],
+    // Cards size to their content, so large system text never clips them.
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (user != null)
+              card(
+                'Profile',
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                          value: (percent / 100).clamp(0, 1).toDouble(),
+                          minHeight: 5,
+                          backgroundColor: AppColors.surface3,
+                          color: AppColors.accent),
+                    ),
+                    const SizedBox(height: 4),
+                    Text('$percent% complete',
+                        style: const TextStyle(
+                            color: AppColors.text, fontSize: 12)),
+                  ],
+                ),
+                ProfileCompletenessMeter(percent: percent),
               ),
-              ProfileCompletenessMeter(percent: percent),
-            ),
-          card(
-            'Photo check',
-            Text(
-              switch (verification) {
-                'verified' => 'Verified',
-                'pending' => 'In review',
-                'rejected' => 'Try again',
-                _ => 'Get verified',
-              },
-              style: TextStyle(
-                  color: verification == 'verified'
-                      ? AppColors.success
-                      : AppColors.text,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600),
-            ),
-            PhotoVerificationEntry(
-              status: verification,
-              selfieUrl: user?.verificationSelfieUrl,
-              onSubmitted: () => context.read<AuthProvider>().refreshUser(),
-            ),
-          ),
-          if (_gam != null)
             card(
-              'Level ${_gam!['level']}',
-              Text('🔥 ${_gam!['loginStreak']} day streak',
-                  style: const TextStyle(color: AppColors.text, fontSize: 12)),
-              _gamificationCard(),
+              'Photo check',
+              Text(
+                switch (verification) {
+                  'verified' => 'Verified',
+                  'pending' => 'In review',
+                  'rejected' => 'Try again',
+                  _ => 'Get verified',
+                },
+                style: TextStyle(
+                    color: verification == 'verified'
+                        ? AppColors.success
+                        : AppColors.text,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600),
+              ),
+              PhotoVerificationEntry(
+                status: verification,
+                selfieUrl: user?.verificationSelfieUrl,
+                onSubmitted: () => context.read<AuthProvider>().refreshUser(),
+              ),
             ),
-        ],
+            if (_gam != null)
+              card(
+                'Level ${_gam!['level']}',
+                Text('🔥 ${_gam!['loginStreak']} day streak',
+                    style:
+                        const TextStyle(color: AppColors.text, fontSize: 12)),
+                _gamificationCard(),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -650,10 +654,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 : 'Profile'),
         actions: [
           IconButton(
+            tooltip: 'Settings',
             onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const SettingsScreen())),
-            icon: Image.asset('assets/icons/app/setting.png',
-                width: 44, height: 44),
+            icon: const InIcon(InIcons.gear, color: AppColors.text),
           ),
           IconButton(
             tooltip: 'Menu',
@@ -686,9 +690,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     SliverPersistentHeader(
                       pinned: true,
                       delegate: _TabBarHeader(TabBar(
-                        indicatorColor: AppColors.accent,
-                        labelColor: AppColors.accent,
-                        unselectedLabelColor: AppColors.textDim,
+                        indicatorColor: AppColors.text,
+                        indicatorSize: TabBarIndicatorSize.tab,
+                        dividerColor: const Color(0xFF1E1B27),
+                        labelColor: AppColors.text,
+                        unselectedLabelColor: AppColors.textFaint,
                         tabs: [
                           for (final t in tabs)
                             Tab(
@@ -732,8 +738,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       value: (percent / 100).clamp(0, 1),
                       strokeWidth: 3,
                       backgroundColor: AppColors.border,
-                      valueColor:
-                          const AlwaysStoppedAnimation(AppColors.accent),
+                      valueColor: const AlwaysStoppedAnimation(AppColors.pink),
                     ),
                   ),
                   Padding(
@@ -756,10 +761,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 2),
-                      decoration: insyncClay(radius: 22),
+                      decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: AppColors.bg, width: 2)),
                       child: Text('$percent%',
                           style: const TextStyle(
-                              color: AppColors.accent,
+                              color: Colors.white,
                               fontSize: 9,
                               fontWeight: FontWeight.w700)),
                     ),
@@ -859,17 +867,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           builder: (_) => const EditProfileSheet()))
                       .then((_) => _loadAll()),
                   child: Container(
-                    height: 38,
+                    height: 40,
                     decoration: BoxDecoration(
-                        gradient:
-                            const LinearGradient(colors: AppGradients.brand),
+                        color: AppColors.surface2,
                         borderRadius: BorderRadius.circular(12)),
                     alignment: Alignment.center,
                     child: const Text('Edit profile',
                         style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13)),
+                            color: AppColors.text,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14)),
                   ),
                 ),
               ),
@@ -878,7 +885,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: GestureDetector(
                   onTap: () => _shareProfile(user),
                   child: Container(
-                    height: 38,
+                    height: 40,
                     decoration: BoxDecoration(
                         color: AppColors.surface2,
                         borderRadius: BorderRadius.circular(12)),
@@ -887,7 +894,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: TextStyle(
                             color: AppColors.text,
                             fontWeight: FontWeight.w600,
-                            fontSize: 13)),
+                            fontSize: 14)),
                   ),
                 ),
               ),
@@ -898,8 +905,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: GestureDetector(
                   onTap: _openArrange,
                   child: Container(
-                    width: 38,
-                    height: 38,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                         color: AppColors.surface2,
                         borderRadius: BorderRadius.circular(12)),
@@ -1067,8 +1074,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 minHeight: 8),
           ),
           const SizedBox(height: 8),
-          Text('🔥 ${g['loginStreak']} day streak',
-              style: const TextStyle(color: AppColors.textFaint, fontSize: 12)),
+          Row(children: [
+            const InIcon(InIcons.streak, size: 15, color: Color(0xFFFF9F5A)),
+            const SizedBox(width: 4),
+            Text('${g['loginStreak']} day streak',
+                style: const TextStyle(color: Color(0xFFFF9F5A), fontSize: 12)),
+          ]),
           const SizedBox(height: 10),
           ElevatedButton(
               onPressed: _claimDailyBonus,

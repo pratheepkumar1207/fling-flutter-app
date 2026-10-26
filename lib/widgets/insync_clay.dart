@@ -2,27 +2,16 @@ import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-/// Shared sculpted surfaces for the cobalt and lime identity.
+/// Shared card surface from the redesign: a flat dark card with a hairline
+/// border. [cobalt] is the hero variant (rose → violet → navy).
 BoxDecoration insyncClay({bool cobalt = false, double radius = 24}) =>
     BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: cobalt
-                ? const [Color(0xFF396AFF), Color(0xFF1941CE)]
-                : const [Color(0xFF24365D), Color(0xFF16213D)]),
-        border: Border.all(color: Colors.white.withValues(alpha: .12)),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: .25),
-              blurRadius: 16,
-              offset: const Offset(3, 7)),
-          BoxShadow(
-              color: const Color(0xFF7295FF).withValues(alpha: .07),
-              blurRadius: 10,
-              offset: const Offset(-3, -3))
-        ]);
+      borderRadius: BorderRadius.circular(radius.clamp(0, 22).toDouble()),
+      color: cobalt ? null : AppColors.surface,
+      gradient: cobalt ? AppGradients.hero : null,
+      border: Border.all(
+          color: cobalt ? const Color(0xFF3A2A55) : AppColors.border),
+    );
 
 class InsyncClayIcon extends StatelessWidget {
   final InIconData icon;
@@ -33,16 +22,10 @@ class InsyncClayIcon extends StatelessWidget {
       child: Container(
           width: size,
           height: size,
-          decoration: insyncClay(cobalt: true, radius: size * .3),
-          child: InIcon(icon,
-              size: size * .55,
-              color: AppColors.accent,
-              shadows: const [
-                Shadow(
-                    color: Color(0xFF102363),
-                    offset: Offset(2, 4),
-                    blurRadius: 2)
-              ])));
+          decoration: BoxDecoration(
+              color: const Color(0xFF1F1A2C),
+              borderRadius: BorderRadius.circular(size * .32)),
+          child: InIcon(icon, size: size * .5, color: AppColors.lilac)));
 }
 
 class InsyncSectionBanner extends StatelessWidget {
@@ -59,7 +42,7 @@ class InsyncSectionBanner extends StatelessWidget {
   Widget build(BuildContext context) => Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: EdgeInsets.all(compact ? 16 : 20),
-      decoration: insyncClay(cobalt: !compact),
+      decoration: insyncClay(cobalt: true, radius: 22),
       child: Row(children: [
         Expanded(
             child:
@@ -67,20 +50,21 @@ class InsyncSectionBanner extends StatelessWidget {
           Text(title,
               style: TextStyle(
                   color: Colors.white,
-                  fontSize: compact ? 20 : 25,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -.6)),
+                  fontSize: compact ? 18 : 22,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -.4)),
           const SizedBox(height: 6),
           Text(subtitle,
               style: const TextStyle(
-                  color: Color(0xFFD8E3FF), fontSize: 12, height: 1.5)),
+                  color: Color(0xFFCFC6E6), fontSize: 13, height: 1.45)),
         ])),
         const SizedBox(width: 14),
         InsyncClayIcon(icon, size: compact ? 48 : 62)
       ]));
 }
 
-/// Compact route heading with a sculpted emblem; leaves room for app-bar actions.
+/// Page title for app bars; shrinks to leave room for actions. [icon] is
+/// kept for callers that show it elsewhere.
 class InsyncPageTitle extends StatelessWidget {
   final String title;
   const InsyncPageTitle(this.title, {super.key});
@@ -122,8 +106,7 @@ class InsyncPageTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       Row(mainAxisSize: MainAxisSize.min, children: [
-        InsyncClayIcon(icon, size: 32),
-        const SizedBox(width: 10),
+        // Plain title, as in the design (the emblem was the old look).
         // Shrinks a little to fit next to app-bar actions instead of being
         // cut off ("Co…" for Communities).
         Flexible(
@@ -133,8 +116,8 @@ class InsyncPageTitle extends StatelessWidget {
                 child: Text(title,
                     maxLines: 1,
                     style: const TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -.4)))),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -.3)))),
       ]);
 }
