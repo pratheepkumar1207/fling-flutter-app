@@ -198,8 +198,38 @@ class InIcons {
   static const hash =
       InIconData('hash', '<path d="M5 9h14M4 15h14M10 4L8 20M16 4l-2 16"/>');
 
+  static const edit = InIconData('edit',
+      '<path d="M4 20h4L19 9a2.8 2.8 0 00-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>');
+  static const copy = InIconData('copy',
+      '<rect x="8" y="8" width="12" height="12" rx="3"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/>');
+  static const fullscreen = InIconData('fullscreen',
+      '<path d="M4 9V5a1 1 0 011-1h4M15 4h4a1 1 0 011 1v4M20 15v4a1 1 0 01-1 1h-4M9 20H5a1 1 0 01-1-1v-4"/>');
+  static const pip = InIconData('pip',
+      '<rect x="3" y="5" width="18" height="14" rx="3"/><rect x="12" y="11" width="6" height="5" rx="1.5"/>');
+  static const bolt =
+      InIconData('bolt', '<path d="M13 3L5 13.5h6L10 21l8-10.5h-6z"/>');
+  static const skipNext = InIconData(
+      'skipNext', '<path d="M6 5.5v13l9-6.5z"/><path d="M18 5v14"/>');
+  static const skipPrev = InIconData(
+      'skipPrev', '<path d="M18 5.5v13l-9-6.5z"/><path d="M6 5v14"/>');
+  static const hourglass = InIconData('hourglass',
+      '<path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9s8 4 8 9"/>');
+  static const external = InIconData('external',
+      '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v4a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4"/>');
+  static const bank = InIconData('bank',
+      '<path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>');
+
   /// Icons that render solid when [InIcon.filled] is set.
-  static const filledNames = {'bookmark', 'crown', 'heart', 'play', 'star'};
+  static const filledNames = {
+    'bookmark',
+    'crown',
+    'heart',
+    'play',
+    'star',
+    'skipNext',
+    'skipPrev',
+    'bolt'
+  };
 }
 
 class InIcon extends StatelessWidget {
@@ -230,10 +260,20 @@ class InIcon extends StatelessWidget {
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="$fill" '
         'stroke="$hex" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
         '${icon.paths.replaceAll('currentColor', hex)}</svg>';
-    final picture = Opacity(
-      opacity: c.a,
-      child: SvgPicture.string(svg,
-          width: size, height: size, semanticsLabel: semanticLabel),
+    // Align keeps the icon at [size] even when a parent forces a bigger
+    // box (input prefix slots, list tile leading, etc.).
+    final picture = Align(
+      widthFactor: 1,
+      heightFactor: 1,
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: Opacity(
+          opacity: c.a,
+          child: SvgPicture.string(svg,
+              width: size, height: size, semanticsLabel: semanticLabel),
+        ),
+      ),
     );
     final shadowList = shadows;
     if (shadowList == null || shadowList.isEmpty) return picture;

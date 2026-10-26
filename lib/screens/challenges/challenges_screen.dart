@@ -21,7 +21,7 @@ const _scopeLabels = {
 const _kChallengeStyles = [
   (icon: InIcons.star, colors: [Color(0xFFE0836B), Color(0xFFB8422C)]),
   (icon: InIcons.gift, colors: [Color(0xFF6ED9A0), Color(0xFF2E9B5F)]),
-  (icon: InIcons.flame, colors: [Color(0xFFDBB155), Color(0xFFB98A3D)]),
+  (icon: InIcons.bolt, colors: [Color(0xFFDBB155), Color(0xFFB98A3D)]),
   (icon: InIcons.trophy, colors: [Color(0xFF7FA8D9), Color(0xFF4272D9)]),
 ];
 

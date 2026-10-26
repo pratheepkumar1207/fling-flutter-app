@@ -209,7 +209,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(color: AppColors.border)),
                         alignment: Alignment.center,
-                        child: const InIcon(InIcons.link,
+                        child: const InIcon(InIcons.copy,
                             color: AppColors.textDim, size: 18),
                       ),
                     ),

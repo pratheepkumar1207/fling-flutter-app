@@ -196,14 +196,14 @@ class OttSyncPanelState extends State<OttSyncPanel>
       VoidCallback? onAction
     ) = switch (_step) {
       _Step.checking => (
-          InIcons.calendar,
+          InIcons.hourglass,
           'Getting ${widget.label} ready…',
           null,
           null,
           null
         ),
       _Step.unsupported => (
-          InIcons.link,
+          InIcons.external,
           '${widget.label} plays in its own app',
           'Press play there too. This room keeps time and chat.',
           'Open',

@@ -282,7 +282,7 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
                                         color: AppColors.surface,
                                         borderRadius: BorderRadius.circular(9)),
                                     alignment: Alignment.center,
-                                    child: const InIcon(InIcons.wallet,
+                                    child: const InIcon(InIcons.bank,
                                         color: AppColors.accent, size: 17),
                                   ),
                                   const SizedBox(width: 10),

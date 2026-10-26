@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
 import '../../theme/app_colors.dart';
@@ -129,7 +128,7 @@ class _BlockedAccountsScreenState extends State<BlockedAccountsScreen> {
             child: avatarUrl != null
                 ? AppImage(source: avatarUrl, fit: BoxFit.cover)
                 : Text(initials(name),
-                    style: GoogleFonts.plusJakartaSans(
+                    style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
                         fontSize: 15)),

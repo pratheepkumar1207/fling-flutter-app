@@ -1,7 +1,6 @@
 import '../theme/insync_icons.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../core/api_client.dart';
 import '../theme/app_colors.dart';
@@ -116,7 +115,7 @@ class _PhotoVerificationScreenState extends State<PhotoVerificationScreen> {
                   ),
                   const SizedBox(height: 24),
                   Text('Take a quick selfie',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(
                           color: AppColors.text,
                           fontWeight: FontWeight.w800,
                           fontSize: 19)),

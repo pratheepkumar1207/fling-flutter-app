@@ -717,7 +717,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                               shape: BoxShape.circle,
                             ),
                             child: const InIcon(
-                              InIcons.tv,
+                              InIcons.pip,
                               color: Colors.white,
                               size: 16,
                             ),
@@ -781,7 +781,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                               shape: BoxShape.circle,
                             ),
                             child: const InIcon(
-                              InIcons.tv,
+                              InIcons.fullscreen,
                               color: Colors.white,
                               size: 18,
                             ),
@@ -955,7 +955,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                                       onTap: widget.onSkip,
                                       child: const Padding(
                                         padding: EdgeInsets.only(left: 8),
-                                        child: InIcon(InIcons.right,
+                                        child: InIcon(InIcons.skipNext,
                                             color: Colors.white, size: 20),
                                       ),
                                     )
@@ -967,7 +967,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            const InIcon(InIcons.right,
+                                            const InIcon(InIcons.skipNext,
                                                 color: Colors.white, size: 18),
                                             const SizedBox(width: 3),
                                             Text(

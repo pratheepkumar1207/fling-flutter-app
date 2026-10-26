@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_colors.dart';
 
 class LegalSection {
@@ -42,7 +41,7 @@ class LegalScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 18, bottom: 6),
               child: Text(section.heading,
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(
                       color: AppColors.text,
                       fontWeight: FontWeight.w700,
                       fontSize: 14)),

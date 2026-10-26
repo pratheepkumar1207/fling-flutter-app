@@ -532,12 +532,12 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
           ),
         );
     final skip = widget.isHost && widget.onSkip != null
-        ? icon(InIcons.right, 'Next in queue', widget.onSkip!, size: 20)
+        ? icon(InIcons.skipNext, 'Next in queue', widget.onSkip!, size: 20)
         : (!widget.isHost && widget.onVoteSkip != null)
             ? GestureDetector(
                 onTap: widget.onVoteSkip,
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const InIcon(InIcons.right, color: Colors.white, size: 18),
+                  const InIcon(InIcons.skipNext, color: Colors.white, size: 18),
                   const SizedBox(width: 3),
                   Text('${widget.skipVoteCount}/${widget.skipVoteRequired}',
                       style: const TextStyle(
@@ -773,7 +773,8 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
                 decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.5),
                     shape: BoxShape.circle),
-                child: const InIcon(InIcons.tv, color: Colors.white, size: 18),
+                child: const InIcon(InIcons.fullscreen,
+                    color: Colors.white, size: 18),
               ),
             ),
           ),

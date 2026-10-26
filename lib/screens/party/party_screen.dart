@@ -6,6 +6,7 @@ import '../../core/auth_provider.dart';
 import '../../core/pip_service.dart';
 import '../../core/room_source_types.dart';
 import '../../core/socket_service.dart';
+import '../../models/room_models.dart';
 import '../../theme/insync_icons.dart';
 import '../../widgets/in_icon_button.dart';
 import '../../theme/app_colors.dart';
@@ -1704,54 +1705,114 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _leaveRoom() async {
-    final confirmed = await showDialog<bool>(
+    final rs = _rs;
+    final others = rs == null || !rs.isHost
+        ? const <RosterEntry>[]
+        : rs.roster.where((r) => r.userId != rs.myUserId).toList();
+    String? nextHost = others.isEmpty ? null : others.first.userId;
+    final result = await showDialog<String>(
       context: context,
-      builder: (dialog) => Dialog(
-        backgroundColor: const Color(0xFF121019),
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-            side: const BorderSide(color: AppColors.border)),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 18),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                  color: const Color(0xFF2A1018),
-                  borderRadius: BorderRadius.circular(20)),
-              child: const Center(
-                  child: InIcon(InIcons.logout,
-                      size: 28, color: Color(0xFFFF8AA0))),
-            ),
-            const SizedBox(height: 14),
-            const Text('Leave this room?',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            const Text(
-                'Everyone else stays. Just switching screens doesn’t need this — the room keeps going in the background.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textDim, fontSize: 14)),
-            const SizedBox(height: 18),
-            FilledButton(
-              onPressed: () => Navigator.of(dialog).pop(true),
-              style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(50),
-                  backgroundColor: AppColors.danger),
-              child: const Text('Leave room'),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton(
-              onPressed: () => Navigator.of(dialog).pop(false),
-              style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(50)),
-              child: const Text('Stay'),
-            ),
-          ]),
+      builder: (dialog) => StatefulBuilder(
+        builder: (dialog, setDialog) => Dialog(
+          backgroundColor: const Color(0xFF121019),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+              side: const BorderSide(color: AppColors.border)),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 18),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                    color: const Color(0xFF2A1018),
+                    borderRadius: BorderRadius.circular(20)),
+                child: const Center(
+                    child: InIcon(InIcons.logout,
+                        size: 28, color: Color(0xFFFF8AA0))),
+              ),
+              const SizedBox(height: 14),
+              const Text('Leave this room?',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              Text(
+                  others.isEmpty
+                      ? 'Everyone else stays. Just switching screens doesn’t need this — the room keeps going in the background.'
+                      : 'You’re the host. Pick who takes over before you go.',
+                  textAlign: TextAlign.center,
+                  style:
+                      const TextStyle(color: AppColors.textDim, fontSize: 14)),
+              if (others.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final r in others.take(8))
+                      ChoiceChip(
+                        avatar: Avatar(
+                            src: r.avatarUrl,
+                            name: r.name,
+                            size: AvatarSize.sm),
+                        label: Text(r.name.split(' ').first),
+                        selected: nextHost == r.userId,
+                        showCheckmark: false,
+                        labelStyle: Theme.of(dialog)
+                            .textTheme
+                            .labelLarge
+                            ?.copyWith(
+                                color: nextHost == r.userId
+                                    ? Colors.white
+                                    : AppColors.text),
+                        onSelected: (_) => setDialog(() => nextHost = r.userId),
+                      ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 18),
+              if (others.isNotEmpty && nextHost != null)
+                FilledButton(
+                  onPressed: () =>
+                      Navigator.of(dialog).pop('handover:$nextHost'),
+                  style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(50)),
+                  child: Text(
+                      'Make ${others.firstWhere((r) => r.userId == nextHost).name.split(' ').first} host and leave',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                ),
+              if (others.isNotEmpty) const SizedBox(height: 8),
+              FilledButton(
+                onPressed: () => Navigator.of(dialog).pop('leave'),
+                style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50),
+                    backgroundColor:
+                        others.isEmpty ? AppColors.danger : AppColors.surface2,
+                    foregroundColor: others.isEmpty
+                        ? Colors.white
+                        : const Color(0xFFFF8AA0)),
+                child: const Text('Leave room'),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: () => Navigator.of(dialog).pop('stay'),
+                style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50)),
+                child: const Text('Stay'),
+              ),
+            ]),
+          ),
         ),
       ),
     );
-    if (confirmed != true || !mounted) return;
+    if (result == null || result == 'stay' || !mounted) return;
+    if (result.startsWith('handover:')) {
+      rs?.makeHost(result.substring('handover:'.length));
+      // Give the server a moment to hand over before we disconnect.
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      if (!mounted) return;
+    }
     _didLeaveRoom = true;
     Navigator.of(context).pop();
   }

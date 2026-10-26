@@ -2,7 +2,6 @@ import '../../theme/insync_icons.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
@@ -919,7 +918,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _profileStat(String value, String label) => Column(
         children: [
           Text(value,
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(
                   color: AppColors.text,
                   fontWeight: FontWeight.w700,
                   fontSize: 18)),

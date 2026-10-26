@@ -526,7 +526,7 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
                   ),
                 ),
                 _row(
-                  InIcons.queue,
+                  InIcons.skipNext,
                   'Next song',
                   _segments(
                     options: const [

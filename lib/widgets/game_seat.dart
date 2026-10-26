@@ -219,7 +219,7 @@ class GameJoinButton extends StatelessWidget {
         buttons.add(_primary('Join game', scope.onSit));
       } else if (scope.requested) {
         buttons.add(_secondary('Requested · Cancel', scope.onCancelRequest,
-            icon: InIcons.calendar));
+            icon: InIcons.hourglass));
       } else {
         buttons.add(_primary('Ask to play', scope.onRequest));
       }

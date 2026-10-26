@@ -256,7 +256,7 @@ class _BlendSettingsScreenState extends State<BlendSettingsScreen> {
               subtitle: Text(_blend.name ?? 'No name yet',
                   style: const TextStyle(color: AppColors.textFaint)),
               trailing: editable
-                  ? const InIcon(InIcons.tune, color: AppColors.textDim)
+                  ? const InIcon(InIcons.edit, color: AppColors.textDim)
                   : null,
               onTap: editable ? _rename : null,
             ),

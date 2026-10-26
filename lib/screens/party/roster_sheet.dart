@@ -1,6 +1,5 @@
 import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
 import '../../core/profile_nav.dart';
@@ -291,7 +290,7 @@ class _RosterSheetState extends State<RosterSheet> {
       child: r.avatarUrl != null
           ? AppImage(source: r.avatarUrl, fit: BoxFit.cover)
           : Text(initials(r.name),
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
                   fontSize: 11.5)),

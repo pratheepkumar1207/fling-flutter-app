@@ -22,7 +22,7 @@ class RoomSkipButton extends StatelessWidget {
         decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: 0.4), shape: BoxShape.circle),
         child: InIcon(
-          forward ? InIcons.right : InIcons.back,
+          forward ? InIcons.skipNext : InIcons.skipPrev,
           color: enabled ? Colors.white : Colors.white38,
           size: 24,
         ),

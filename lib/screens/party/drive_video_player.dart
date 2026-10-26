@@ -663,7 +663,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
                                   onTap: widget.onSkip,
                                   child: const Padding(
                                     padding: EdgeInsets.only(left: 8),
-                                    child: InIcon(InIcons.right,
+                                    child: InIcon(InIcons.skipNext,
                                         color: Colors.white, size: 20),
                                   ),
                                 )
@@ -675,7 +675,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const InIcon(InIcons.right,
+                                        const InIcon(InIcons.skipNext,
                                             color: Colors.white, size: 18),
                                         const SizedBox(width: 3),
                                         Text(

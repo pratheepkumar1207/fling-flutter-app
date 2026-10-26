@@ -176,7 +176,7 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
                     decoration: const BoxDecoration(
                         color: AppColors.surface3, shape: BoxShape.circle),
                     alignment: Alignment.center,
-                    child: InIcon(InIcons.back,
+                    child: InIcon(InIcons.skipPrev,
                         color: AppColors.text, size: c ? 16 : 22),
                   ),
                 ),
@@ -207,7 +207,7 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
                     decoration: const BoxDecoration(
                         color: AppColors.surface3, shape: BoxShape.circle),
                     alignment: Alignment.center,
-                    child: InIcon(InIcons.right,
+                    child: InIcon(InIcons.skipNext,
                         color: AppColors.text, size: c ? 16 : 22),
                   ),
                 ),
