@@ -7,6 +7,8 @@ import 'package:fling/screens/discover/discover_screen.dart';
 import 'package:fling/screens/feed/feed_screen.dart';
 import 'package:fling/screens/calls/incoming_call_view.dart';
 import 'package:fling/screens/messages/messages_screen.dart';
+import 'package:fling/screens/lobby/lobby_create_screen.dart';
+import 'package:fling/screens/lobby/source_picker_screen.dart';
 import 'package:fling/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -108,7 +110,30 @@ void main() {
     await _snap(t, key, 'incoming-call');
   });
 
+  testWidgets('Start a room shows all four types and the theme picker',
+      (t) async {
+    final key = await _render(t, const LobbyCreateScreen());
+    expect(t.takeException(), isNull);
+    expect(find.text('Go live'), findsOneWidget);
+    expect(find.text('Lobby theme'), findsOneWidget);
+    await _snap(t, key, 'start-room');
+    await t.tap(find.text('Game room'));
+    await t.pump();
+    expect(find.text('Choose a game'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('Source picker groups free and subscription sources', (t) async {
+    final key =
+        await _render(t, const SourcePickerScreen(visibility: 'public'));
+    expect(t.takeException(), isNull);
+    expect(find.text('FREE'), findsOneWidget);
+    await _snap(t, key, 'source-picker');
+  });
+
   for (final s in [
+    const LobbyCreateScreen(),
+    const SourcePickerScreen(visibility: 'public'),
     const FeedScreen(),
     const DiscoverScreen(),
     const MessagesScreen(),

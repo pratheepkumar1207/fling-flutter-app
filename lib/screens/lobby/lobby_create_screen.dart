@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/insync_icons.dart';
+import '../../theme/room_themes.dart';
+import '../../widgets/in_icon_button.dart';
 import '../party/party_screen.dart';
 import 'source_picker_screen.dart';
 import 'watch_room_creator.dart';
@@ -15,35 +17,35 @@ import 'watch_room_creator.dart';
 const _kGames = [
   (
     value: 'chess',
-    icon: Icons.shield_rounded,
+    icon: InIcons.crown,
     label: 'Chess',
     subtitle: '1 vs 1 · classic',
     colors: [Color(0xFF7FA8D9), Color(0xFF4272D9)]
   ),
   (
     value: 'ludo',
-    icon: Icons.grid_view_rounded,
+    icon: InIcons.dice,
     label: 'Ludo',
     subtitle: '2–4 players',
     colors: [Color(0xFF6ED9A0), Color(0xFF2E9B5F)]
   ),
   (
     value: 'tictactoe',
-    icon: Icons.apps_rounded,
+    icon: InIcons.close,
     label: 'Tic Tac Toe',
     subtitle: '1 vs 1 · quick',
     colors: [Color(0xFFE0836B), Color(0xFFB8422C)]
   ),
   (
     value: 'uno',
-    icon: Icons.style_rounded,
+    icon: InIcons.ticket,
     label: 'UNO',
     subtitle: '2–6 players',
     colors: [Color(0xFFDBB155), Color(0xFFB98A3D)]
   ),
   (
     value: 'truth_or_dare',
-    icon: Icons.mood_rounded,
+    icon: InIcons.smile,
     label: 'Truth or Dare',
     subtitle: 'Group · party',
     colors: [Color(0xFFE0836B), Color(0xFFB8422C)]
@@ -59,13 +61,15 @@ class LobbyCreateScreen extends StatefulWidget {
   State<LobbyCreateScreen> createState() => _LobbyCreateScreenState();
 }
 
-// Plain line-icon-on-glass-gradient treatment, matching RoomSetupDark.dc.html's
-// room-type row exactly — not the old app's 3D illustration assets.
 class _RoomTypeSpec {
   final String value;
-  final IconData icon;
+  final InIconData icon;
   final String label;
-  const _RoomTypeSpec(this.value, this.icon, this.label);
+  final String subtitle;
+  final Color color;
+  final Color tile;
+  const _RoomTypeSpec(
+      this.value, this.icon, this.label, this.subtitle, this.color, this.tile);
 }
 
 class _VisibilitySpec {
@@ -75,9 +79,14 @@ class _VisibilitySpec {
 }
 
 const _roomTypes = [
-  _RoomTypeSpec('watch', Icons.smart_display_rounded, 'Watch'),
-  _RoomTypeSpec('voice', Icons.mic_rounded, 'Voice'),
-  _RoomTypeSpec('game', Icons.sports_esports_rounded, 'Game'),
+  _RoomTypeSpec('watch', InIcons.tv, 'Watch party',
+      'YouTube, Netflix, Prime and more', AppColors.pink, Color(0xFF24102A)),
+  _RoomTypeSpec('voice', InIcons.mic, 'Voice room', 'Talk and sing together',
+      Color(0xFFB97CF8), Color(0xFF1C1638)),
+  _RoomTypeSpec('game', InIcons.game, 'Game room', 'Ludo, UNO, Chess…',
+      Color(0xFF6E95FD), Color(0xFF122046)),
+  _RoomTypeSpec('live', InIcons.live, 'Go live',
+      'Stream to followers, earn gifts', AppColors.pink, Color(0xFF2A1028)),
 ];
 
 // Short labels so all four fit on one line; Private shows as a lock icon
@@ -102,6 +111,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
   // source picker), along with the room name.
   bool _micEnabled = true;
   bool _songPermission = true;
+  String _theme = RoomTheme.midnight.id;
   bool _saving = false;
   bool _moreOptions = false;
   String _selectedGame = _kGames.first.value;
@@ -121,6 +131,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
       await ApiClient.patch('/rooms/$roomId/settings', body: {
         'micEnabled': _micEnabled,
         'songPermission': _songPermission ? 'anyone' : 'host',
+        'theme': _theme,
       }).catchError((_) => null);
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
@@ -143,6 +154,30 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
         'roomType': 'game',
         'gameType': _selectedGame,
         'visibility': 'public',
+      }) as Map<String, dynamic>;
+      await ApiClient.patch('/rooms/${room['id']}/settings',
+          body: {'theme': _theme}).catchError((_) => null);
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(MaterialPageRoute(
+          builder: (_) => PartyScreen(roomId: room['id'] as String)));
+    } on ApiException catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) setState(() => _saving = false);
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _goLive() async {
+    setState(() => _saving = true);
+    try {
+      final room = await ApiClient.post('/rooms', body: {
+        'title': _nameController.text.trim().isEmpty
+            ? 'Live now'
+            : _nameController.text.trim(),
+        'roomType': 'live',
+        'visibility': _visibility,
       }) as Map<String, dynamic>;
       if (!mounted) return;
       Navigator.of(context).pushReplacement(MaterialPageRoute(
@@ -170,6 +205,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
                   : _nameController.text.trim(),
               micEnabled: _micEnabled,
               anyoneCanAddSongs: _songPermission,
+              theme: _theme,
             )),
       ),
     );
@@ -188,38 +224,46 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
   Widget build(BuildContext context) {
     final hostName = context.watch<AuthProvider>().user?.name;
     final isGame = _roomType == 'game';
+    final isLive = _roomType == 'live';
+    final VoidCallback? action = _saving
+        ? null
+        : switch (_roomType) {
+            'watch' => _openSourcePicker,
+            'game' => _createGame,
+            'live' => _goLive,
+            _ => _create,
+          };
+    final actionLabel = _saving
+        ? 'Creating…'
+        : switch (_roomType) {
+            'watch' => 'Next · pick what to watch',
+            'live' => 'Go live',
+            _ => 'Create room',
+          };
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
         child: Column(
           children: [
-            // Compact title bar instead of the old hero banner, so the whole
-            // form fits on one phone screen.
             Padding(
-              padding: const EdgeInsets.fromLTRB(4, 4, 16, 4),
+              padding: const EdgeInsets.fromLTRB(8, 4, 16, 4),
               child: Row(
                 children: [
-                  IconButton(
-                      icon: const Icon(Icons.arrow_back, color: AppColors.text),
+                  InIconButton(InIcons.back,
+                      tooltip: 'Back',
                       onPressed: () => Navigator.of(context).pop()),
+                  const SizedBox(width: 4),
                   const Text('New room',
-                      style: TextStyle(
-                          color: AppColors.text,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700)),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                padding: const EdgeInsets.fromLTRB(18, 4, 18, 12),
                 children: [
-                  _sectionLabel('Room type'),
-                  const SizedBox(height: 8),
-                  _typeSegments(),
-                  // Game rooms pick their game right here (matches
-                  // GamePickerDark.dc.html's cards) — quick-create flow:
-                  // public visibility, no title/topic, same as before.
+                  _typeCards(),
                   if (isGame) ...[
                     const SizedBox(height: 18),
                     _sectionLabel('Choose a game'),
@@ -227,98 +271,81 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
                     for (final game in _kGames) _gameCard(game),
                   ] else ...[
                     const SizedBox(height: 18),
-                    _sectionLabel('Who can join'),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        for (var i = 0; i < _visibilities.length; i++) ...[
-                          if (i > 0) const SizedBox(width: 6),
-                          Expanded(child: _visibilityChip(_visibilities[i])),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 18),
                     _sectionLabel('Room name'),
                     const SizedBox(height: 8),
-                    _pillField(_nameController, _defaultName(hostName)),
-                    const SizedBox(height: 10),
-                    // Less-used settings tucked away until asked for.
-                    InkWell(
-                      borderRadius: BorderRadius.circular(10),
-                      onTap: () => setState(() => _moreOptions = !_moreOptions),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.tune_rounded,
-                                color: AppColors.textDim, size: 18),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text('More options',
-                                  style: TextStyle(
-                                      color: _moreOptions
-                                          ? AppColors.text
-                                          : AppColors.textDim,
-                                      fontSize: 13.5,
-                                      fontWeight: FontWeight.w600)),
-                            ),
-                            Icon(
-                                _moreOptions
-                                    ? Icons.keyboard_arrow_up_rounded
-                                    : Icons.keyboard_arrow_down_rounded,
-                                color: AppColors.textDim),
-                          ],
+                    _pillField(
+                        _nameController,
+                        isLive
+                            ? 'What’s your live about?'
+                            : _defaultName(hostName)),
+                    const SizedBox(height: 18),
+                    _sectionLabel('Who can join'),
+                    const SizedBox(height: 8),
+                    Wrap(spacing: 8, runSpacing: 8, children: [
+                      for (final v in _visibilities) _visibilityChip(v),
+                    ]),
+                  ],
+                  if (!isLive) ...[
+                    const SizedBox(height: 18),
+                    _sectionLabel('Lobby theme'),
+                    const SizedBox(height: 8),
+                    _themePicker(),
+                  ],
+                  if (!isGame && !isLive) ...[
+                    const SizedBox(height: 14),
+                    Material(
+                      color: AppColors.surface,
+                      clipBehavior: Clip.antiAlias,
+                      shape: RoundedRectangleBorder(
+                          side: const BorderSide(color: AppColors.border),
+                          borderRadius: BorderRadius.circular(18)),
+                      child: Column(children: [
+                        _toggleRow(
+                            InIcons.mic,
+                            'Mics on for everyone',
+                            _micEnabled,
+                            (v) => setState(() => _micEnabled = v)),
+                        const Divider(height: 1, color: Color(0xFF221F2C)),
+                        _toggleRow(
+                            InIcons.music,
+                            'Anyone can add songs',
+                            _songPermission,
+                            (v) => setState(() => _songPermission = v)),
+                        const Divider(height: 1, color: Color(0xFF221F2C)),
+                        InkWell(
+                          onTap: () =>
+                              setState(() => _moreOptions = !_moreOptions),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 12),
+                            child: Row(children: [
+                              _tile(InIcons.tune),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                  child: Text('More options',
+                                      style: TextStyle(fontSize: 14))),
+                              InIcon(_moreOptions ? InIcons.down : InIcons.chev,
+                                  size: 18, color: AppColors.textFaint),
+                            ]),
+                          ),
                         ),
-                      ),
+                      ]),
                     ),
                     if (_moreOptions) ...[
-                      _toggleRow('Mics on', _micEnabled,
-                          (v) => setState(() => _micEnabled = v)),
-                      _toggleRow('Anyone can add songs', _songPermission,
-                          (v) => setState(() => _songPermission = v)),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 10),
                       _pillField(_topicController, 'Description (optional)'),
                     ],
                   ],
                 ],
               ),
             ),
-            // Pinned, so the main action never needs scrolling to find.
-            // Watch parties create once a video is picked in the source
-            // picker (see watch_room_creator.dart); game rooms create off the
-            // chosen game card (_createGame); voice rooms via _create.
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-              child: SizedBox(
-                width: double.infinity,
-                child: Container(
-                  decoration: BoxDecoration(
-                      gradient: AppGradients.volaCtaDiagonal,
-                      borderRadius: BorderRadius.circular(999)),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(999),
-                      onTap: _roomType == 'watch'
-                          ? _openSourcePicker
-                          : (_saving ? null : (isGame ? _createGame : _create)),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        child: Center(
-                          child: Text(
-                            _roomType == 'watch'
-                                ? 'Choose what to watch'
-                                : (_saving ? 'Creating…' : 'Create room'),
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 15),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+              padding: const EdgeInsets.fromLTRB(18, 4, 18, 14),
+              child: FilledButton(
+                onPressed: action,
+                style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52)),
+                child: Text(actionLabel),
               ),
             ),
           ],
@@ -328,225 +355,201 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
   }
 
   Widget _sectionLabel(String text) => Text(text,
-      style: const TextStyle(
-          color: AppColors.textDim,
-          fontSize: 12.5,
-          fontWeight: FontWeight.w600));
+      style: const TextStyle(color: AppColors.textDim, fontSize: 13));
+
+  Widget _tile(InIconData icon) => Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+            color: const Color(0xFF1F1A2C),
+            borderRadius: BorderRadius.circular(10)),
+        child: Center(child: InIcon(icon, size: 17, color: AppColors.lilac)),
+      );
+
+  Widget _typeCards() {
+    return LayoutBuilder(builder: (context, box) {
+      final w = (box.maxWidth - 10) / 2;
+      return Wrap(spacing: 10, runSpacing: 10, children: [
+        for (final t in _roomTypes)
+          SizedBox(
+            width: w,
+            child: Semantics(
+              button: true,
+              selected: _roomType == t.value,
+              label: t.label,
+              child: InkWell(
+                onTap: () => setState(() => _roomType = t.value),
+                borderRadius: BorderRadius.circular(18),
+                child: Ink(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _roomType == t.value ? t.tile : AppColors.surface,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                        color: _roomType == t.value
+                            ? AppColors.purple
+                            : AppColors.border,
+                        width: _roomType == t.value ? 2 : 1),
+                  ),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        InIcon(t.icon, size: 22, color: t.color),
+                        const SizedBox(height: 6),
+                        Text(t.label,
+                            style: const TextStyle(
+                                fontSize: 15, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 2),
+                        Text(t.subtitle,
+                            maxLines: 2,
+                            style: const TextStyle(
+                                fontSize: 12, color: AppColors.textDim)),
+                      ]),
+                ),
+              ),
+            ),
+          ),
+      ]);
+    });
+  }
+
+  Widget _themePicker() {
+    return SizedBox(
+      // Swatch + label; grows with the system text size.
+      height: 60 + MediaQuery.textScalerOf(context).scale(11) * 1.6,
+      child: ListView(scrollDirection: Axis.horizontal, children: [
+        for (final t in RoomTheme.all)
+          Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: Semantics(
+              button: true,
+              selected: _theme == t.id,
+              label: '${t.label} theme',
+              child: GestureDetector(
+                onTap: () => setState(() => _theme = t.id),
+                child: Column(children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      gradient: t.bgGradient,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                          color:
+                              _theme == t.id ? Colors.white : AppColors.border,
+                          width: _theme == t.id ? 2 : 1),
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(t.label.split(' ').first,
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: _theme == t.id
+                              ? AppColors.text
+                              : AppColors.textDim)),
+                ]),
+              ),
+            ),
+          ),
+      ]),
+    );
+  }
 
   Widget _gameCard(
       ({
         String value,
-        IconData icon,
+        InIconData icon,
         String label,
         String subtitle,
         List<Color> colors
       }) game) {
     final selected = _selectedGame == game.value;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedGame = game.value),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-              color: selected ? AppColors.accent2 : AppColors.border,
-              width: 1.5),
-          color: selected
-              ? AppColors.accent2.withValues(alpha: 0.1)
-              : AppColors.surface,
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: AppGradients.brand)),
-              alignment: Alignment.center,
-              child: Icon(game.icon, color: Colors.white, size: 22),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(game.label,
-                      style: const TextStyle(
-                          color: AppColors.text,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14)),
-                  const SizedBox(height: 2),
-                  Text(game.subtitle,
-                      style: const TextStyle(
-                          color: AppColors.textFaint, fontSize: 11.5)),
-                ],
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: game.label,
+      child: InkWell(
+        onTap: () => setState(() => _selectedGame = game.value),
+        borderRadius: BorderRadius.circular(16),
+        child: Ink(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+                color: selected ? AppColors.purple : AppColors.border,
+                width: selected ? 2 : 1),
+            color: selected ? const Color(0xFF1C1638) : AppColors.surface,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    color: const Color(0xFF122046)),
+                alignment: Alignment.center,
+                child:
+                    InIcon(game.icon, size: 22, color: const Color(0xFF8FB0FF)),
               ),
-            ),
-            Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: selected ? AppColors.accent2 : null,
-                border: selected
-                    ? null
-                    : Border.all(color: AppColors.border, width: 2),
-              ),
-              alignment: Alignment.center,
-              child: selected
-                  ? const Icon(Icons.check_rounded,
-                      color: AppColors.ink, size: 12)
-                  : null,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // One compact segmented row (icon over label) instead of three tall cards
-  // — same three choices, about a third of the height.
-  Widget _typeSegments() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      padding: const EdgeInsets.all(4),
-      child: Row(
-        children: [
-          for (final spec in _roomTypes)
-            Expanded(
-              child: GestureDetector(
-                onTap: () => setState(() => _roomType = spec.value),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    color: _roomType == spec.value
-                        ? AppColors.accent.withValues(alpha: 0.16)
-                        : Colors.transparent,
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(spec.icon,
-                          size: 20,
-                          color: _roomType == spec.value
-                              ? AppColors.accent
-                              : AppColors.textDim),
-                      const SizedBox(height: 3),
-                      Text(spec.label,
-                          style: TextStyle(
-                              color: _roomType == spec.value
-                                  ? AppColors.accent
-                                  : AppColors.textDim,
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w700)),
-                    ],
-                  ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(game.label,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 15)),
+                    Text(game.subtitle,
+                        style: const TextStyle(
+                            color: AppColors.textDim, fontSize: 12)),
+                  ],
                 ),
               ),
-            ),
-        ],
+              if (selected)
+                const InIcon(InIcons.check, size: 20, color: AppColors.lilac),
+            ],
+          ),
+        ),
       ),
-    );
+    ).withBottomGap(10);
   }
 
-  // Equal-width chips so all four fit on one line; Private (link only) is a
-  // lock icon, still labelled in full for screen readers.
   Widget _visibilityChip(_VisibilitySpec spec) {
     final selected = _visibility == spec.value;
-    final color = selected ? AppColors.accent : AppColors.textDim;
-    return Semantics(
-      label: spec.label,
+    return ChoiceChip(
+      avatar: spec.value == 'private'
+          ? InIcon(InIcons.lock,
+              size: 14, color: selected ? Colors.white : AppColors.text)
+          : null,
+      label: Text(spec.value == 'private' ? 'Private' : spec.label),
+      tooltip: spec.label,
       selected: selected,
-      button: true,
-      child: GestureDetector(
-        onTap: () => setState(() => _visibility = spec.value),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 9),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            color: selected
-                ? AppColors.accent.withValues(alpha: 0.16)
-                : Colors.transparent,
-            border: Border.all(
-                color: selected ? AppColors.accent : AppColors.border,
-                width: selected ? 1.5 : 1),
-          ),
-          child: ExcludeSemantics(
-            child: spec.value == 'private'
-                ? Icon(Icons.lock_rounded, size: 15, color: color)
-                : Text(spec.label,
-                    maxLines: 1,
-                    style: TextStyle(
-                        color: color,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600)),
-          ),
-        ),
-      ),
+      showCheckmark: false,
+      labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+          color: selected ? Colors.white : AppColors.text,
+          fontWeight: FontWeight.w500),
+      onSelected: (_) => setState(() => _visibility = spec.value),
     );
   }
 
-  Widget _toggleRow(String label, bool value, ValueChanged<bool> onChanged) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: GestureDetector(
-        onTap: () => onChanged(!value),
-        child: Row(
-          children: [
-            Expanded(
-                child: Text(label,
-                    style: const TextStyle(
-                        color: AppColors.text, fontSize: 13.5))),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              width: 36,
-              height: 20,
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
-                gradient: value
-                    ? const LinearGradient(colors: AppGradients.brand)
-                    : null,
-                color: value ? null : AppColors.surface2,
-              ),
-              alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-              child: Container(
-                  width: 16,
-                  height: 16,
-                  decoration: const BoxDecoration(
-                      color: Colors.white, shape: BoxShape.circle)),
-            ),
-          ],
-        ),
-      ),
+  Widget _toggleRow(
+      InIconData icon, String label, bool value, ValueChanged<bool> onChanged) {
+    return SwitchListTile(
+      value: value,
+      onChanged: onChanged,
+      activeTrackColor: AppColors.primary,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+      secondary: _tile(icon),
+      title: Text(label, style: const TextStyle(fontSize: 14)),
     );
   }
 
   Widget _pillField(TextEditingController controller, String hint) {
-    return Container(
-      decoration: insyncClay(radius: 22),
-      child: TextField(
-        controller: controller,
-        style: const TextStyle(color: AppColors.text),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(color: AppColors.textFaint, fontSize: 13),
-          border: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        ),
-      ),
+    return TextField(
+      controller: controller,
+      style: const TextStyle(color: AppColors.text, fontSize: 15),
+      decoration: InputDecoration(hintText: hint),
     );
   }
 
@@ -556,4 +559,9 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
     _topicController.dispose();
     super.dispose();
   }
+}
+
+extension on Widget {
+  Widget withBottomGap(double gap) =>
+      Padding(padding: EdgeInsets.only(bottom: gap), child: this);
 }

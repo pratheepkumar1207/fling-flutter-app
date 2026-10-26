@@ -18,8 +18,12 @@ class WatchRoomOptions {
   final String? title;
   final bool micEnabled;
   final bool anyoneCanAddSongs;
+  final String? theme;
   const WatchRoomOptions(
-      {this.title, this.micEnabled = true, this.anyoneCanAddSongs = true});
+      {this.title,
+      this.micEnabled = true,
+      this.anyoneCanAddSongs = true,
+      this.theme});
 }
 
 Future<void> createWatchRoomAndEnter(
@@ -54,6 +58,7 @@ Future<void> createWatchRoomAndEnter(
       await ApiClient.patch('/rooms/${room['id']}/settings', body: {
         'micEnabled': options.micEnabled,
         'songPermission': options.anyoneCanAddSongs ? 'anyone' : 'host',
+        if (options.theme != null) 'theme': options.theme,
       }).catchError((_) => null);
     }
     if (!context.mounted) return;

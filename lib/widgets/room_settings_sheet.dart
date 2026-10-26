@@ -3,6 +3,7 @@ import '../core/api_client.dart';
 import 'package:provider/provider.dart';
 import '../core/api_exception.dart';
 import '../core/auth_provider.dart';
+import '../theme/insync_icons.dart';
 import '../theme/app_colors.dart';
 import 'glass.dart';
 import '../theme/room_themes.dart';
@@ -277,8 +278,8 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.rocket_launch_rounded,
-              size: 18, color: AppColors.gold),
+          const InIcon(InIcons.star,
+              size: 18, color: AppColors.gold, filled: true),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -296,8 +297,10 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
               foregroundColor: AppColors.ink,
               visualDensity: VisualDensity.compact,
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              textStyle:
-                  const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+              textStyle: Theme.of(context)
+                  .textTheme
+                  .labelLarge
+                  ?.copyWith(fontSize: 12, fontWeight: FontWeight.w700),
             ),
             child: _boosting
                 ? const SizedBox(
@@ -360,20 +363,29 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
     );
   }
 
-  Widget _row(IconData icon, String label, Widget control) {
+  Widget _row(InIconData icon, String label, Widget control) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: AppColors.textDim),
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+                color: const Color(0xFF1F1A2C),
+                borderRadius: BorderRadius.circular(10)),
+            child:
+                Center(child: InIcon(icon, size: 17, color: AppColors.lilac)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(label,
+                style: const TextStyle(
+                    color: AppColors.text,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600)),
+          ),
           const SizedBox(width: 8),
-          Text(label,
-              style: const TextStyle(
-                  color: AppColors.text,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600)),
-          const SizedBox(width: 8),
-          const Spacer(),
           Flexible(
             flex: 0,
             child: FittedBox(
@@ -447,7 +459,7 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
                     else if (_savedOnce)
                       const Row(
                         children: [
-                          Icon(Icons.check_rounded,
+                          InIcon(InIcons.check,
                               size: 14, color: AppColors.success),
                           SizedBox(width: 3),
                           Text('Saved',
@@ -461,7 +473,7 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
                 _boostRow(),
                 if (canSwitchType)
                   _row(
-                    Icons.grid_view_rounded,
+                    InIcons.tv,
                     'Type',
                     _segments(
                       options: const [
@@ -474,7 +486,7 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
                   ),
                 if (pendingPick && _roomType == 'game') _gamePicker(),
                 _row(
-                  Icons.public_rounded,
+                  InIcons.globe,
                   'Join',
                   _segments(
                     options: const [
@@ -483,17 +495,17 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
                       ('subscribers', Text('Subs')),
                       (
                         'private',
-                        Icon(Icons.lock_rounded,
-                            semanticLabel: 'Private (link only)')
+                        InIcon(InIcons.lock,
+                            size: 16, semanticLabel: 'Private (link only)')
                       ),
                     ],
                     value: _visibility,
                     onChanged: _setVisibility,
                   ),
                 ),
-                _row(Icons.palette_outlined, 'Theme', _themePicker()),
+                _row(InIcons.spark, 'Theme', _themePicker()),
                 _row(
-                  Icons.mic_rounded,
+                  InIcons.mic,
                   'Mics',
                   Switch(
                     value: _micEnabled,
@@ -502,7 +514,7 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
                   ),
                 ),
                 _row(
-                  Icons.music_note_rounded,
+                  InIcons.music,
                   'Music',
                   _segments(
                     options: const [
@@ -514,7 +526,7 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
                   ),
                 ),
                 _row(
-                  Icons.skip_next_rounded,
+                  InIcons.queue,
                   'Next song',
                   _segments(
                     options: const [

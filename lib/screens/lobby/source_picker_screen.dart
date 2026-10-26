@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../widgets/insync_clay.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/insync_icons.dart';
 import '../../widgets/app_song_lists.dart';
 import 'youtube_browse_screen.dart';
 import 'drive_browse_screen.dart';
@@ -44,7 +44,7 @@ class SourcePickerScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const InsyncPageTitle('Choose a source')),
+      appBar: AppBar(title: const Text('What are we watching?')),
       body: SourcePickerBody(
           visibility: visibility, topic: topic, options: options),
     );
@@ -238,7 +238,7 @@ class SourcePickerBody extends StatelessWidget {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => Scaffold(
         backgroundColor: AppColors.bg,
-        appBar: AppBar(title: const InsyncPageTitle('Playlists')),
+        appBar: AppBar(title: Text('Playlists')),
         body: AppPlaylistsTab(
           onAdd: (
                   {required videoUrl,
@@ -301,140 +301,196 @@ class SourcePickerBody extends StatelessWidget {
         onAdd: onAddToQueue!,
       );
     }
-    return GridView.count(
-      padding: EdgeInsets.all(c ? 10 : 16),
-      crossAxisCount: c ? 5 : 3,
-      mainAxisSpacing: c ? 8 : 12,
-      crossAxisSpacing: c ? 8 : 12,
-      childAspectRatio: c ? 0.85 : 0.68,
+    final tiles = <String, Widget>{
+      'YouTube': _SourceTile(
+          compact: c,
+          iconAsset: 'assets/icons/app/youtube.png',
+          label: 'YouTube',
+          available: true,
+          onTap: () => _openYoutube(context)),
+      'Liked': _SourceTile(
+          compact: c,
+          inIcon: InIcons.heart,
+          label: 'Liked',
+          available: true,
+          onTap: () => _openAppSongList(context,
+              title: 'Liked songs', endpoint: '/liked-songs')),
+      'History': _SourceTile(
+          compact: c,
+          inIcon: InIcons.undo,
+          label: 'History',
+          available: true,
+          onTap: () => _openAppSongList(context,
+              title: 'History', endpoint: '/song-history')),
+      'Playlists': _SourceTile(
+          compact: c,
+          inIcon: InIcons.queue,
+          label: 'Playlists',
+          available: true,
+          onTap: () => _openPlaylists(context)),
+      'YouTube Surf': _SourceTile(
+          compact: c,
+          iconAsset: 'assets/icons/app/youtube.png',
+          label: 'YouTube Surf',
+          available: true,
+          onTap: () => _openWebviewSource(context,
+              platform: 'youtube_surf',
+              label: 'YouTube Surf',
+              homeUrl: 'https://www.youtube.com')),
+      'Drive': _SourceTile(
+          compact: c,
+          icon: FontAwesomeIcons.googleDrive,
+          iconColor: const Color(0xFF0F9D58),
+          label: 'Drive',
+          available: true,
+          onTap: () => _openDrive(context)),
+      'Netflix': _SourceTile(
+          compact: c,
+          iconAsset: 'assets/icons/app/netflix.png',
+          label: 'Netflix',
+          available: true,
+          onTap: () => _openWebviewSource(context,
+              platform: 'netflix',
+              label: 'Netflix',
+              homeUrl: 'https://www.netflix.com/in/')),
+      'Hotstar': _SourceTile(
+          compact: c,
+          letter: 'H',
+          badgeColor: const Color(0xFF1F80E0),
+          label: 'Hotstar',
+          available: true,
+          onTap: () => _openWebviewSource(context,
+              platform: 'hotstar',
+              label: 'Hotstar',
+              homeUrl: 'https://www.hotstar.com/in/')),
+      'Prime Video': _SourceTile(
+          compact: c,
+          iconAsset: 'assets/icons/app/amazon_prime.png',
+          label: 'Prime Video',
+          available: true,
+          onTap: () => _openWebviewSource(context,
+              platform: 'amazon',
+              label: 'Prime Video',
+              homeUrl: 'https://www.primevideo.com')),
+      'Aha': _SourceTile(
+          compact: c,
+          letter: 'A',
+          badgeColor: const Color(0xFFE4002B),
+          label: 'Aha',
+          available: true,
+          onTap: () => _openWebviewSource(context,
+              platform: 'aha', label: 'Aha', homeUrl: 'https://www.aha.video')),
+      'SunNXT': _SourceTile(
+          compact: c,
+          letter: 'S',
+          badgeColor: const Color(0xFFF7941D),
+          label: 'SunNXT',
+          available: true,
+          onTap: () => _openWebviewSource(context,
+              platform: 'sunnxt',
+              label: 'SunNXT',
+              homeUrl: 'https://www.sunnxt.com')),
+      'SonyLIV': _SourceTile(
+          compact: c,
+          letter: 'S',
+          badgeColor: const Color(0xFF00A0DC),
+          label: 'SonyLIV',
+          available: true,
+          onTap: () => _openWebviewSource(context,
+              platform: 'sonyliv',
+              label: 'SonyLIV',
+              homeUrl: 'https://www.sonyliv.com')),
+      'Airtel Xstream': _SourceTile(
+          compact: c,
+          letter: 'A',
+          badgeColor: const Color(0xFFE40000),
+          label: 'Airtel Xstream',
+          available: true,
+          onTap: () => _openWebviewSource(context,
+              platform: 'airtel_xstream',
+              label: 'Airtel Xstream',
+              homeUrl: 'https://www.airtelxstream.in')),
+      'Crunchyroll': _SourceTile(
+          compact: c,
+          letter: 'C',
+          badgeColor: const Color(0xFFF47521),
+          label: 'Crunchyroll',
+          available: false),
+      'X': _SourceTile(
+          compact: c,
+          icon: FontAwesomeIcons.xTwitter,
+          iconColor: AppColors.text,
+          label: 'X',
+          available: false),
+    };
+    if (c) {
+      return GridView.count(
+        padding: const EdgeInsets.all(10),
+        crossAxisCount: 5,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        childAspectRatio: 0.85,
+        children: tiles.values.toList(),
+      );
+    }
+    Widget section(String title, List<String> names) => Padding(
+          padding: const EdgeInsets.only(bottom: 18),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 2, bottom: 10),
+              child: Text(title,
+                  style: const TextStyle(
+                      color: AppColors.textDim,
+                      fontSize: 12,
+                      letterSpacing: 0.6,
+                      fontWeight: FontWeight.w600)),
+            ),
+            // Fixed four per row; height follows the label (large text).
+            LayoutBuilder(
+              builder: (context, box) => Wrap(
+                runSpacing: 12,
+                children: [
+                  for (final n in names)
+                    SizedBox(width: box.maxWidth / 4, child: tiles[n]!),
+                ],
+              ),
+            ),
+          ]),
+        );
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
       children: [
-        _SourceTile(
-            compact: c,
-            iconAsset: 'assets/icons/app/youtube.png',
-            label: 'YouTube',
-            available: true,
-            onTap: () => _openYoutube(context)),
-        _SourceTile(
-            compact: c,
-            emoji: '❤️',
-            label: 'Liked',
-            available: true,
-            onTap: () => _openAppSongList(context,
-                title: 'Liked songs', endpoint: '/liked-songs')),
-        _SourceTile(
-            compact: c,
-            emoji: '🕘',
-            label: 'History',
-            available: true,
-            onTap: () => _openAppSongList(context,
-                title: 'History', endpoint: '/song-history')),
-        _SourceTile(
-            compact: c,
-            emoji: '📃',
-            label: 'Playlists',
-            available: true,
-            onTap: () => _openPlaylists(context)),
-        _SourceTile(
-            compact: c,
-            iconAsset: 'assets/icons/app/youtube.png',
-            label: 'YouTube Surf',
-            available: true,
-            onTap: () => _openWebviewSource(context,
-                platform: 'youtube_surf',
-                label: 'YouTube Surf',
-                homeUrl: 'https://www.youtube.com')),
-        _SourceTile(
-            compact: c,
-            icon: FontAwesomeIcons.googleDrive,
-            iconColor: const Color(0xFF0F9D58),
-            label: 'Drive',
-            available: true,
-            onTap: () => _openDrive(context)),
-        // Netflix/Crunchyroll and the India-specific platforms below have no
-        // real logo glyph available in font_awesome_flutter's brand set —
-        // rather than guess at reproducing their trademarked logo art from
-        // memory, these use a colored letter-badge (see _SourceTile.letter)
-        // instead of a real logo.
-        _SourceTile(
-            compact: c,
-            iconAsset: 'assets/icons/app/netflix.png',
-            label: 'Netflix',
-            available: true,
-            onTap: () => _openWebviewSource(context,
-                platform: 'netflix',
-                label: 'Netflix',
-                homeUrl: 'https://www.netflix.com/in/')),
-        _SourceTile(
-            compact: c,
-            letter: 'H',
-            badgeColor: const Color(0xFF1F80E0),
-            label: 'Hotstar',
-            available: true,
-            onTap: () => _openWebviewSource(context,
-                platform: 'hotstar',
-                label: 'Hotstar',
-                homeUrl: 'https://www.hotstar.com/in/')),
-        _SourceTile(
-            compact: c,
-            iconAsset: 'assets/icons/app/amazon_prime.png',
-            label: 'Prime Video',
-            available: true,
-            onTap: () => _openWebviewSource(context,
-                platform: 'amazon',
-                label: 'Prime Video',
-                homeUrl: 'https://www.primevideo.com')),
-        _SourceTile(
-            compact: c,
-            letter: 'A',
-            badgeColor: const Color(0xFFE4002B),
-            label: 'Aha',
-            available: true,
-            onTap: () => _openWebviewSource(context,
-                platform: 'aha',
-                label: 'Aha',
-                homeUrl: 'https://www.aha.video')),
-        _SourceTile(
-            compact: c,
-            letter: 'S',
-            badgeColor: const Color(0xFFF7941D),
-            label: 'SunNXT',
-            available: true,
-            onTap: () => _openWebviewSource(context,
-                platform: 'sunnxt',
-                label: 'SunNXT',
-                homeUrl: 'https://www.sunnxt.com')),
-        _SourceTile(
-            compact: c,
-            letter: 'S',
-            badgeColor: const Color(0xFF00A0DC),
-            label: 'SonyLIV',
-            available: true,
-            onTap: () => _openWebviewSource(context,
-                platform: 'sonyliv',
-                label: 'SonyLIV',
-                homeUrl: 'https://www.sonyliv.com')),
-        _SourceTile(
-            compact: c,
-            letter: 'A',
-            badgeColor: const Color(0xFFE40000),
-            label: 'Airtel Xstream',
-            available: true,
-            onTap: () => _openWebviewSource(context,
-                platform: 'airtel_xstream',
-                label: 'Airtel Xstream',
-                homeUrl: 'https://www.airtelxstream.in')),
-        _SourceTile(
-            compact: c,
-            letter: 'C',
-            badgeColor: const Color(0xFFF47521),
-            label: 'Crunchyroll',
-            available: false),
-        _SourceTile(
-            compact: c,
-            icon: FontAwesomeIcons.xTwitter,
-            iconColor: AppColors.text,
-            label: 'X',
-            available: false),
+        section('FREE', ['YouTube', 'YouTube Surf', 'Drive', 'X']),
+        section('YOUR SUBSCRIPTIONS · EACH PERSON SIGNS IN', [
+          'Netflix',
+          'Prime Video',
+          'Hotstar',
+          'SonyLIV',
+          'SunNXT',
+          'Aha',
+          'Airtel Xstream',
+          'Crunchyroll',
+        ]),
+        section('FROM YOUR LIBRARY', ['Playlists', 'Liked', 'History']),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+              color: AppColors.surface,
+              border: Border.all(color: AppColors.border),
+              borderRadius: BorderRadius.circular(16)),
+          child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                InIcon(InIcons.info, size: 18, color: AppColors.lilac),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                      'Netflix and Prime play in the Insync player. The host’s play and pause keep everyone in sync.',
+                      style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+                ),
+              ]),
+        ),
       ],
     );
   }
@@ -447,10 +503,10 @@ class SourcePickerBody extends StatelessWidget {
 ///  - [letter]+[badgeColor]: a colored letter-badge, used for services with
 ///    no real logo available here (see the "Netflix/Crunchyroll" comment
 ///    at the call site for why — not guessing at trademarked logo art).
-///  - [emoji]: app-internal categories (Liked/History/Playlists) that
+///  - [inIcon]: app-internal lists (Liked/History/Playlists) in the app's own line icons.
 ///    aren't a third-party brand at all.
 class _SourceTile extends StatelessWidget {
-  final String? emoji;
+  final InIconData? inIcon;
   final FaIconData? icon;
   final Color? iconColor;
   final String? letter;
@@ -462,7 +518,7 @@ class _SourceTile extends StatelessWidget {
   final bool compact;
 
   const _SourceTile({
-    this.emoji,
+    this.inIcon,
     this.icon,
     this.iconColor,
     this.letter,
@@ -475,14 +531,16 @@ class _SourceTile extends StatelessWidget {
   });
 
   Widget _visual() {
-    final iconSize = compact ? 30.0 : 56.0;
+    final iconSize = compact ? 26.0 : 40.0;
     final faSize = compact ? 18.0 : 26.0;
     final badgeSize = compact ? 24.0 : 32.0;
-    final emojiSize = compact ? 18.0 : 28.0;
     if (iconAsset != null) {
       return Image.asset(iconAsset!, width: iconSize, height: iconSize);
     }
     if (icon != null) return FaIcon(icon, color: iconColor, size: faSize);
+    if (inIcon != null) {
+      return InIcon(inIcon!, size: faSize, color: AppColors.lilac);
+    }
     if (letter != null) {
       return Container(
         width: badgeSize,
@@ -496,41 +554,48 @@ class _SourceTile extends StatelessWidget {
                 fontWeight: FontWeight.w800)),
       );
     }
-    return Text(emoji ?? '', style: TextStyle(fontSize: emojiSize));
+    return const SizedBox.shrink();
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: available ? onTap : null,
-      child: Opacity(
-        opacity: available ? 1 : 0.35,
-        child: Container(
-          decoration: BoxDecoration(
-              color: AppColors.surface,
-              border: Border.all(color: AppColors.border),
-              borderRadius: BorderRadius.circular(compact ? 10 : 14)),
-          alignment: Alignment.center,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _visual(),
-              SizedBox(height: compact ? 4 : 8),
-              Text(label,
-                  style: TextStyle(
-                      color: AppColors.text,
-                      fontSize: compact ? 9.5 : 12,
-                      fontWeight: FontWeight.w600),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis),
-              if (!available && !compact)
-                const Padding(
-                    padding: EdgeInsets.only(top: 4),
-                    child: Text('Coming soon',
-                        style: TextStyle(
-                            color: AppColors.textFaint, fontSize: 9))),
-            ],
+    final box = compact ? 44.0 : 64.0;
+    return Semantics(
+      button: available,
+      enabled: available,
+      label: available ? label : '$label, coming soon',
+      child: InkWell(
+        onTap: available ? onTap : null,
+        borderRadius: BorderRadius.circular(18),
+        child: Opacity(
+          opacity: available ? 1 : 0.4,
+          child: ExcludeSemantics(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: box,
+                  height: box,
+                  decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      border: Border.all(color: AppColors.border),
+                      borderRadius: BorderRadius.circular(compact ? 12 : 18)),
+                  alignment: Alignment.center,
+                  child: _visual(),
+                ),
+                SizedBox(height: compact ? 4 : 6),
+                Text(label,
+                    style: TextStyle(
+                        color: AppColors.text, fontSize: compact ? 9.5 : 12),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+                if (!available && !compact)
+                  const Text('Soon',
+                      style:
+                          TextStyle(color: AppColors.textFaint, fontSize: 10)),
+              ],
+            ),
           ),
         ),
       ),
@@ -574,7 +639,7 @@ class _MusicSourceRowState extends State<_MusicSourceRow> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               border: selected
-                  ? Border.all(color: AppColors.accent, width: 1.5)
+                  ? Border.all(color: AppColors.purple, width: 1.5)
                   : null,
             ),
             child: tile,
@@ -602,7 +667,7 @@ class _MusicSourceRowState extends State<_MusicSourceRow> {
               _tile(
                   _SourceTile(
                       compact: true,
-                      emoji: '❤️',
+                      inIcon: InIcons.heart,
                       label: 'Liked',
                       available: true,
                       onTap: () => _toggle('/liked-songs')),
@@ -610,14 +675,14 @@ class _MusicSourceRowState extends State<_MusicSourceRow> {
               _tile(
                   _SourceTile(
                       compact: true,
-                      emoji: '🕘',
+                      inIcon: InIcons.undo,
                       label: 'History',
                       available: true,
                       onTap: () => _toggle('/song-history')),
                   selected: _open == '/song-history'),
               _tile(_SourceTile(
                   compact: true,
-                  emoji: '📃',
+                  inIcon: InIcons.queue,
                   label: 'Playlists',
                   available: true,
                   onTap: widget.onPlaylists)),

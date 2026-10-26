@@ -6,6 +6,8 @@ import '../../core/auth_provider.dart';
 import '../../core/pip_service.dart';
 import '../../core/room_source_types.dart';
 import '../../core/socket_service.dart';
+import '../../theme/insync_icons.dart';
+import '../../widgets/in_icon_button.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/vola_party_colors.dart';
 import '../../widgets/gift_bottom_sheet.dart';
@@ -742,7 +744,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(
                 children: [
-                  Icon(Icons.star_rounded, color: roomGold, size: 20),
+                  InIcon(InIcons.star, size: 20, color: roomGold, filled: true),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -758,7 +760,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                       ],
                     ),
                   ),
-                  Icon(Icons.chevron_right_rounded, color: roomTextDim),
+                  InIcon(InIcons.chev, size: 18, color: roomTextDim),
                 ],
               ),
             ),
@@ -1032,20 +1034,16 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                       leading: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          IconButton(
-                            tooltip: 'Leave room',
-                            onPressed: _leaveRoom,
-                            icon:
-                                Icon(Icons.logout_rounded, color: roomTextDim),
-                          ),
+                          InIconButton(InIcons.logout,
+                              tooltip: 'Leave room',
+                              color: const Color(0xFFFF8AA0),
+                              onPressed: _leaveRoom),
                           if (rs.isHost && room['roomType'] != 'live')
-                            IconButton(
-                              tooltip: 'Room settings',
-                              onPressed: () => showRoomSettingsSheet(context,
-                                  room: room, onChanged: _refreshRoom),
-                              icon: Icon(Icons.settings_outlined,
-                                  color: roomTextDim),
-                            ),
+                            InIconButton(InIcons.gear,
+                                tooltip: 'Room settings',
+                                color: roomTextDim,
+                                onPressed: () => showRoomSettingsSheet(context,
+                                    room: room, onChanged: _refreshRoom)),
                         ],
                       ),
                       // Who's on mic, lit while talking. _hostKey stays on this
@@ -1068,12 +1066,10 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                               child: Stack(
                                 clipBehavior: Clip.none,
                                 children: [
-                                  IconButton(
-                                    tooltip: 'Search & queue',
-                                    onPressed: _openQueue,
-                                    icon:
-                                        Icon(Icons.search, color: roomTextDim),
-                                  ),
+                                  InIconButton(InIcons.queue,
+                                      tooltip: 'Search & queue',
+                                      color: roomTextDim,
+                                      onPressed: _openQueue),
                                   if (items.isNotEmpty)
                                     Positioned(
                                       top: 4,
@@ -1099,34 +1095,13 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                           ),
                         // Pill-styled participant count, matching the redesign's .pill
                         // component (WatchPartyDark.dc.html) instead of a plain TextButton.
-                        GestureDetector(
-                          onTap: _openRoster,
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            child: GlassPanel(
-                              borderRadius: BorderRadius.circular(999),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 6),
-                                child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                          width: 7,
-                                          height: 7,
-                                          decoration: const BoxDecoration(
-                                              color: AppColors.success,
-                                              shape: BoxShape.circle)),
-                                      const SizedBox(width: 5),
-                                      Text('${rs.roster.length}',
-                                          style: TextStyle(
-                                              color: roomTextDim,
-                                              fontSize: 11.5,
-                                              fontWeight: FontWeight.w600)),
-                                    ]),
-                              ),
-                            ),
-                          ),
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: InIconButton(InIcons.users,
+                              tooltip: 'People in the room',
+                              color: roomTextDim,
+                              badge: rs.roster.length,
+                              onPressed: _openRoster),
                         ),
                       ],
                     ),
@@ -1494,10 +1469,10 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                     child: GlassCircleButton(
                                       onTap: () => setState(
                                           () => _ottChatOpen = !_ottChatOpen),
-                                      child: Icon(
+                                      child: InIcon(
                                         _ottChatOpen
-                                            ? Icons.keyboard_arrow_down_rounded
-                                            : Icons.chat_bubble_outline_rounded,
+                                            ? InIcons.down
+                                            : InIcons.chat,
                                         color: Colors.white,
                                         size: 20,
                                       ),

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../core/profile_nav.dart';
 import '../../core/room_source_types.dart';
 import '../../models/room_models.dart';
+import '../../theme/insync_icons.dart';
+import '../../theme/app_colors.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/chat_attachment_sheet.dart';
 import '../../widgets/glass.dart';
@@ -315,22 +317,22 @@ class _ChatOverlayState extends State<ChatOverlay> {
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: GlassCircleButton(
-                size: 38,
+                size: 42,
                 onTap: widget.onMicTap,
                 color: widget.myMicOn
-                    ? Colors.red.withValues(alpha: 0.85)
+                    ? AppColors.primary
                     : (widget.myMicRequested
                         ? widget.primaryColor.withValues(alpha: 0.6)
                         : null),
-                child: Icon(widget.myMicOn ? Icons.mic : Icons.mic_off,
-                    color: Colors.white, size: 17),
+                child: InIcon(widget.myMicOn ? InIcons.mic : InIcons.micoff,
+                    color: Colors.white, size: 20),
               ),
             ),
             Expanded(
               child: GlassPanel(
                 borderRadius: BorderRadius.circular(100),
                 child: Container(
-                  constraints: const BoxConstraints(minHeight: 38),
+                  constraints: const BoxConstraints(minHeight: 42),
                   padding: const EdgeInsets.symmetric(horizontal: 6),
                   child: Row(
                     children: [
@@ -339,7 +341,7 @@ class _ChatOverlayState extends State<ChatOverlay> {
                           controller: _controller,
                           focusNode: _focusNode,
                           style: const TextStyle(
-                              color: Colors.white, fontSize: 13),
+                              color: Colors.white, fontSize: 14),
                           // Otherwise picks up the app's default theme
                           // accent for the cursor/selection handles — a
                           // stray splash of color against this glass bar's
@@ -355,41 +357,80 @@ class _ChatOverlayState extends State<ChatOverlay> {
                           ),
                         ),
                       ),
-                      if (!_focused) ...[
+                      if (!_focused)
                         _inlineIcon(
-                            Icons.attach_file_rounded,
+                            InIcons.clip,
+                            'Attach',
                             () => showChatAttachmentSheet(context,
                                 onPoll: widget.onPoll)),
-                        _inlineIcon(Icons.card_giftcard_rounded, widget.onGift),
-                        _inlineIcon(Icons.share_rounded, widget.onShare),
-                        _inlineIcon(
-                            Icons.person_add_alt_1_rounded, widget.onInvite),
-                      ],
                     ],
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            GlassCircleButton(
-              size: 38,
-              onTap: _send,
-              color: widget.primaryColor,
-              child:
-                  const Icon(Icons.send_rounded, color: Colors.white, size: 17),
-            ),
+            const SizedBox(width: 6),
+            // While typing: just Send. Otherwise gift, invite and share sit
+            // beside the field, as in the design.
+            if (_focused)
+              GlassCircleButton(
+                size: 42,
+                onTap: _send,
+                color: widget.primaryColor,
+                child:
+                    const InIcon(InIcons.send, color: Colors.white, size: 19),
+              )
+            else ...[
+              Semantics(
+                button: true,
+                label: 'Send a gift',
+                child: GlassCircleButton(
+                  size: 42,
+                  onTap: widget.onGift,
+                  color: const Color(0xFF2A2310),
+                  child: const InIcon(InIcons.gift,
+                      color: AppColors.gold, size: 20),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Semantics(
+                button: true,
+                label: 'Invite',
+                child: GlassCircleButton(
+                  size: 42,
+                  onTap: widget.onInvite,
+                  child: const InIcon(InIcons.useradd,
+                      color: Colors.white, size: 20),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Semantics(
+                button: true,
+                label: 'Share room',
+                child: GlassCircleButton(
+                  size: 42,
+                  onTap: widget.onShare,
+                  child: const InIcon(InIcons.share,
+                      color: Colors.white, size: 19),
+                ),
+              ),
+            ],
           ],
         ),
       ],
     );
   }
 
-  Widget _inlineIcon(IconData icon, VoidCallback onTap) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: GestureDetector(
+  Widget _inlineIcon(InIconData icon, String label, VoidCallback onTap) {
+    return Semantics(
+      button: true,
+      label: label,
+      child: InkResponse(
         onTap: onTap,
-        child: Icon(icon, color: Colors.white70, size: 19),
+        radius: 20,
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: InIcon(icon, color: Colors.white70, size: 19),
+        ),
       ),
     );
   }
