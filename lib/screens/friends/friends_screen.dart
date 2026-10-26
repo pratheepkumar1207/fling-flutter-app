@@ -80,13 +80,13 @@ class _FriendsScreenState extends State<FriendsScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 _tabChip('friends', 'Friends'),
-                const SizedBox(width: 8),
                 _tabChip('requests',
                     'Requests${_requests.isNotEmpty ? ' (${_requests.length})' : ''}'),
-                const SizedBox(width: 8),
                 _tabChip('find', 'Find people'),
               ],
             ),

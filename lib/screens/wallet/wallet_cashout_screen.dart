@@ -26,6 +26,7 @@ class WalletCashoutScreen extends StatefulWidget {
 
 class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
   bool _loading = true;
+  bool _loadFailed = false;
   String? _kycStatus;
   String? _bankLast4;
   String? _accountHolderName;
@@ -50,12 +51,26 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final results = await Future.wait([
-      ApiClient.get('/kyc/status'),
-      ApiClient.get('/wallet/cashout-info'),
-      ApiClient.get('/wallet/cashouts').catchError((_) => []),
-    ]);
+    setState(() {
+      _loading = true;
+      _loadFailed = false;
+    });
+    final List<dynamic> results;
+    try {
+      results = await Future.wait([
+        ApiClient.get('/kyc/status'),
+        ApiClient.get('/wallet/cashout-info'),
+        ApiClient.get('/wallet/cashouts').catchError((_) => []),
+      ]);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _loadFailed = true;
+        });
+      }
+      return;
+    }
     if (!mounted) return;
     final kyc = results[0] as Map<String, dynamic>;
     final rate = results[1] as Map<String, dynamic>;
@@ -114,300 +129,320 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
       appBar: AppBar(title: const InsyncPageTitle('Cash out')),
       body: _loading
           ? const Center(child: Spinner())
-          : _kycStatus != 'verified'
-              ? Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                            color: AppColors.warning.withValues(alpha: 0.1),
-                            border: Border.all(
-                                color:
-                                    AppColors.warning.withValues(alpha: 0.3)),
-                            borderRadius: BorderRadius.circular(12)),
-                        child: Text(
-                            'You need verified KYC before cashing out. Current status: ${_kycStatus ?? 'none'}.',
-                            style: const TextStyle(
-                                color: AppColors.warning, fontSize: 13)),
-                      ),
-                      const SizedBox(height: 12),
-                      GestureDetector(
-                        onTap: () => Navigator.of(context)
-                            .push(MaterialPageRoute(
-                                builder: (_) => const WalletKycScreen()))
-                            .then((_) => _load()),
-                        child: Container(
-                          height: 44,
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(14),
-                              gradient: const LinearGradient(
-                                  colors: AppGradients.brand)),
-                          alignment: Alignment.center,
-                          child: const Text('Complete KYC',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 13)),
-                        ),
-                      ),
-                    ],
-                  ),
+          : _loadFailed
+              ? Center(
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    const Text('Couldn’t load your cash-out details.',
+                        style: TextStyle(color: AppColors.textDim)),
+                    const SizedBox(height: 10),
+                    OutlinedButton(
+                        onPressed: _load, child: const Text('Try again')),
+                  ]),
                 )
-              : Column(
-                  children: [
-                    Expanded(
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+              : _kycStatus != 'verified'
+                  ? Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                                color: AppColors.surface2,
-                                borderRadius: BorderRadius.circular(16)),
-                            child: Column(
-                              children: [
-                                const Text('Available to redeem',
-                                    style: TextStyle(
-                                        color: AppColors.textFaint,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600)),
-                                const SizedBox(height: 4),
-                                RichText(
-                                  text: TextSpan(
-                                    children: [
-                                      TextSpan(
-                                          text: '${formatNumber(balance)} ',
-                                          style: const TextStyle(
-                                              color: AppColors.text,
-                                              fontWeight: FontWeight.w800,
-                                              fontSize: 26)),
-                                      const TextSpan(
-                                          text: 'coins',
-                                          style: TextStyle(
-                                              color: AppColors.textFaint,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 14)),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                    '≈ ₹${_rupeesFor(balance).toStringAsFixed(0)} at current rate',
-                                    style: const TextStyle(
-                                        color: AppColors.textFaint,
-                                        fontSize: 11)),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          const Text('Amount to cash out',
-                              style: TextStyle(
-                                  color: AppColors.textDim,
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w700)),
-                          const SizedBox(height: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 13, vertical: 4),
-                            decoration: BoxDecoration(
-                                color: AppColors.surface,
-                                borderRadius: BorderRadius.circular(12),
+                                color: AppColors.warning.withValues(alpha: 0.1),
                                 border: Border.all(
-                                    color: AppColors.border, width: 1.5)),
-                            child: Row(
-                              children: [
-                                const InIcon(InIcons.cash,
-                                    color: AppColors.gold, size: 16),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: TextField(
-                                    controller: _coinsController,
-                                    keyboardType: TextInputType.number,
-                                    style: const TextStyle(
-                                        color: AppColors.text, fontSize: 13.5),
-                                    decoration: const InputDecoration(
-                                        border: InputBorder.none,
-                                        contentPadding:
-                                            EdgeInsets.symmetric(vertical: 11)),
-                                    onChanged: (v) => setState(
-                                        () => _coins = int.tryParse(v)),
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: () => _setCoins(balance.floor()),
-                                  child: const Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 11),
-                                    child: Text('Max',
-                                        style: TextStyle(
-                                            color: AppColors.accent,
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 11.5)),
-                                  ),
-                                ),
-                              ],
-                            ),
+                                    color: AppColors.warning
+                                        .withValues(alpha: 0.3)),
+                                borderRadius: BorderRadius.circular(12)),
+                            child: Text(
+                                'You need verified KYC before cashing out. Current status: ${_kycStatus ?? 'none'}.',
+                                style: const TextStyle(
+                                    color: AppColors.warning, fontSize: 13)),
                           ),
-                          const SizedBox(height: 16),
-                          const Text('Bank account',
-                              style: TextStyle(
-                                  color: AppColors.textDim,
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w700)),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 12),
                           GestureDetector(
                             onTap: () => Navigator.of(context)
                                 .push(MaterialPageRoute(
                                     builder: (_) => const WalletKycScreen()))
                                 .then((_) => _load()),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 13),
+                              height: 44,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 20),
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                    color: AppColors.accent, width: 1.5),
-                                color: AppColors.accent.withValues(alpha: 0.16),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 34,
-                                    height: 34,
-                                    decoration: BoxDecoration(
-                                        color: AppColors.surface,
-                                        borderRadius: BorderRadius.circular(9)),
-                                    alignment: Alignment.center,
-                                    child: const InIcon(InIcons.bank,
-                                        color: AppColors.accent, size: 17),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                            _bankLast4 != null
-                                                ? 'Bank account •••• $_bankLast4'
-                                                : 'No bank account on file',
-                                            style: const TextStyle(
-                                                color: AppColors.text,
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 12.5)),
-                                        if (_accountHolderName != null)
-                                          Text(_accountHolderName!,
-                                              style: const TextStyle(
-                                                  color: AppColors.textFaint,
-                                                  fontSize: 10.5)),
-                                      ],
-                                    ),
-                                  ),
-                                  const InIcon(InIcons.chev,
-                                      color: AppColors.textFaint, size: 18),
-                                ],
-                              ),
+                                  borderRadius: BorderRadius.circular(14),
+                                  gradient: const LinearGradient(
+                                      colors: AppGradients.brand)),
+                              alignment: Alignment.center,
+                              child: const Text('Complete KYC',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13)),
                             ),
                           ),
-                          const SizedBox(height: 18),
-                          Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                                color:
-                                    AppColors.success.withValues(alpha: 0.16),
-                                borderRadius: BorderRadius.circular(14)),
-                            child: const Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                InIcon(InIcons.info,
-                                    color: AppColors.success, size: 16),
-                                SizedBox(width: 9),
-                                Expanded(
-                                  child: Text(
-                                    'Redeem requests are reviewed within 2-3 business days and paid directly to your bank account.',
-                                    style: TextStyle(
-                                        color: AppColors.success,
-                                        fontSize: 11.5,
-                                        height: 1.4),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (_cashouts.isNotEmpty) ...[
-                            const SizedBox(height: 22),
-                            const Text('RECENT REQUESTS',
-                                style: TextStyle(
-                                    color: AppColors.textFaint,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.6)),
-                            const SizedBox(height: 8),
-                            ..._cashouts.map((c) {
-                              final paid = c['type'] == 'cashout_paid';
-                              return Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 7),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text('${c['coins']} coins',
-                                        style: const TextStyle(
-                                            color: AppColors.text,
-                                            fontSize: 12.5,
-                                            fontWeight: FontWeight.w600)),
-                                    Text(paid ? 'Paid' : 'Pending',
-                                        style: TextStyle(
-                                            color: paid
-                                                ? AppColors.success
-                                                : AppColors.gold,
-                                            fontSize: 11.5,
-                                            fontWeight: FontWeight.w700)),
-                                  ],
-                                ),
-                              );
-                            }),
-                          ],
                         ],
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                      child: GestureDetector(
-                        onTap: (canSubmit && !_submitting) ? _submit : null,
-                        child: Container(
-                          width: double.infinity,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(14),
-                            gradient: (canSubmit && !_submitting)
-                                ? const LinearGradient(
-                                    colors: AppGradients.brand)
-                                : null,
-                            color: (canSubmit && !_submitting)
-                                ? null
-                                : AppColors.surface2,
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            _submitting ? 'Submitting…' : 'Request cash out',
-                            style: TextStyle(
-                                color: (canSubmit && !_submitting)
-                                    ? Colors.white
-                                    : AppColors.textFaint,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14),
+                    )
+                  : Column(
+                      children: [
+                        Expanded(
+                          child: ListView(
+                            padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+                            children: [
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                    color: AppColors.surface2,
+                                    borderRadius: BorderRadius.circular(16)),
+                                child: Column(
+                                  children: [
+                                    const Text('Available to redeem',
+                                        style: TextStyle(
+                                            color: AppColors.textFaint,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600)),
+                                    const SizedBox(height: 4),
+                                    RichText(
+                                      text: TextSpan(
+                                        children: [
+                                          TextSpan(
+                                              text: '${formatNumber(balance)} ',
+                                              style: const TextStyle(
+                                                  color: AppColors.text,
+                                                  fontWeight: FontWeight.w800,
+                                                  fontSize: 26)),
+                                          const TextSpan(
+                                              text: 'coins',
+                                              style: TextStyle(
+                                                  color: AppColors.textFaint,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 14)),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                        '≈ ₹${_rupeesFor(balance).toStringAsFixed(0)} at current rate',
+                                        style: const TextStyle(
+                                            color: AppColors.textFaint,
+                                            fontSize: 11)),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              const Text('Amount to cash out',
+                                  style: TextStyle(
+                                      color: AppColors.textDim,
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 13, vertical: 4),
+                                decoration: BoxDecoration(
+                                    color: AppColors.surface,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                        color: AppColors.border, width: 1.5)),
+                                child: Row(
+                                  children: [
+                                    const InIcon(InIcons.cash,
+                                        color: AppColors.gold, size: 16),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: TextField(
+                                        controller: _coinsController,
+                                        keyboardType: TextInputType.number,
+                                        style: const TextStyle(
+                                            color: AppColors.text,
+                                            fontSize: 13.5),
+                                        decoration: const InputDecoration(
+                                            border: InputBorder.none,
+                                            contentPadding:
+                                                EdgeInsets.symmetric(
+                                                    vertical: 11)),
+                                        onChanged: (v) => setState(
+                                            () => _coins = int.tryParse(v)),
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () => _setCoins(balance.floor()),
+                                      child: const Padding(
+                                        padding:
+                                            EdgeInsets.symmetric(vertical: 11),
+                                        child: Text('Max',
+                                            style: TextStyle(
+                                                color: AppColors.accent,
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 11.5)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              const Text('Bank account',
+                                  style: TextStyle(
+                                      color: AppColors.textDim,
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 6),
+                              GestureDetector(
+                                onTap: () => Navigator.of(context)
+                                    .push(MaterialPageRoute(
+                                        builder: (_) =>
+                                            const WalletKycScreen()))
+                                    .then((_) => _load()),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 13),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                        color: AppColors.accent, width: 1.5),
+                                    color: AppColors.accent
+                                        .withValues(alpha: 0.16),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 34,
+                                        height: 34,
+                                        decoration: BoxDecoration(
+                                            color: AppColors.surface,
+                                            borderRadius:
+                                                BorderRadius.circular(9)),
+                                        alignment: Alignment.center,
+                                        child: const InIcon(InIcons.bank,
+                                            color: AppColors.accent, size: 17),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                                _bankLast4 != null
+                                                    ? 'Bank account •••• $_bankLast4'
+                                                    : 'No bank account on file',
+                                                style: const TextStyle(
+                                                    color: AppColors.text,
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 12.5)),
+                                            if (_accountHolderName != null)
+                                              Text(_accountHolderName!,
+                                                  style: const TextStyle(
+                                                      color:
+                                                          AppColors.textFaint,
+                                                      fontSize: 10.5)),
+                                          ],
+                                        ),
+                                      ),
+                                      const InIcon(InIcons.chev,
+                                          color: AppColors.textFaint, size: 18),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+                              Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                    color: AppColors.success
+                                        .withValues(alpha: 0.16),
+                                    borderRadius: BorderRadius.circular(14)),
+                                child: const Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    InIcon(InIcons.info,
+                                        color: AppColors.success, size: 16),
+                                    SizedBox(width: 9),
+                                    Expanded(
+                                      child: Text(
+                                        'Redeem requests are reviewed within 2-3 business days and paid directly to your bank account.',
+                                        style: TextStyle(
+                                            color: AppColors.success,
+                                            fontSize: 11.5,
+                                            height: 1.4),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (_cashouts.isNotEmpty) ...[
+                                const SizedBox(height: 22),
+                                const Text('RECENT REQUESTS',
+                                    style: TextStyle(
+                                        color: AppColors.textFaint,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.6)),
+                                const SizedBox(height: 8),
+                                ..._cashouts.map((c) {
+                                  final paid = c['type'] == 'cashout_paid';
+                                  return Padding(
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 7),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text('${c['coins']} coins',
+                                            style: const TextStyle(
+                                                color: AppColors.text,
+                                                fontSize: 12.5,
+                                                fontWeight: FontWeight.w600)),
+                                        Text(paid ? 'Paid' : 'Pending',
+                                            style: TextStyle(
+                                                color: paid
+                                                    ? AppColors.success
+                                                    : AppColors.gold,
+                                                fontSize: 11.5,
+                                                fontWeight: FontWeight.w700)),
+                                      ],
+                                    ),
+                                  );
+                                }),
+                              ],
+                            ],
                           ),
                         ),
-                      ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                          child: GestureDetector(
+                            onTap: (canSubmit && !_submitting) ? _submit : null,
+                            child: Container(
+                              width: double.infinity,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(14),
+                                gradient: (canSubmit && !_submitting)
+                                    ? const LinearGradient(
+                                        colors: AppGradients.brand)
+                                    : null,
+                                color: (canSubmit && !_submitting)
+                                    ? null
+                                    : AppColors.surface2,
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                _submitting
+                                    ? 'Submitting…'
+                                    : 'Request cash out',
+                                style: TextStyle(
+                                    color: (canSubmit && !_submitting)
+                                        ? Colors.white
+                                        : AppColors.textFaint,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
     );
   }
 }

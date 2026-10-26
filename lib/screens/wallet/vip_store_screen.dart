@@ -207,10 +207,11 @@ class _VipStoreScreenState extends State<VipStoreScreen> {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-            child: Row(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 _categoryPill(_Category.frames, 'Avatar frames'),
-                const SizedBox(width: 8),
                 _categoryPill(_Category.cars, 'Admission cars'),
               ],
             ),

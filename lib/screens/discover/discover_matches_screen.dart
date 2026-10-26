@@ -71,14 +71,17 @@ class _DiscoverMatchesScreenState extends State<DiscoverMatchesScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      IconButton(
-                          onPressed: () => Navigator.of(context).maybePop(),
-                          icon: const InIcon(InIcons.back,
-                              color: AppColors.text)),
-                      const InsyncPageTitle('Your Matches'),
-                    ],
+                  Flexible(
+                    child: Row(
+                      children: [
+                        IconButton(
+                            tooltip: 'Back',
+                            onPressed: () => Navigator.of(context).maybePop(),
+                            icon: const InIcon(InIcons.back,
+                                color: AppColors.text)),
+                        const Flexible(child: InsyncPageTitle('Your Matches')),
+                      ],
+                    ),
                   ),
                   if (!_loading)
                     Text(
