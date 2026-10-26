@@ -1,3 +1,4 @@
+import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../core/profile_nav.dart';
 import '../theme/app_colors.dart';
@@ -160,8 +161,7 @@ class GameOpenSeat extends StatelessWidget {
         border: Border.all(color: AppColors.textFaint, width: 1.2),
       ),
       alignment: Alignment.center,
-      child:
-          const Icon(Icons.add_rounded, color: AppColors.textFaint, size: 18),
+      child: const InIcon(InIcons.plus, color: AppColors.textFaint, size: 18),
     );
     const label = Text('Open',
         style: TextStyle(color: AppColors.textFaint, fontSize: 11.5));
@@ -219,14 +219,13 @@ class GameJoinButton extends StatelessWidget {
         buttons.add(_primary('Join game', scope.onSit));
       } else if (scope.requested) {
         buttons.add(_secondary('Requested · Cancel', scope.onCancelRequest,
-            icon: Icons.hourglass_top_rounded));
+            icon: InIcons.calendar));
       } else {
         buttons.add(_primary('Ask to play', scope.onRequest));
       }
     }
     if (scope.isHost && !full && scope.onInvite != null) {
-      buttons.add(_secondary('Invite', scope.onInvite,
-          icon: Icons.person_add_alt_1_rounded));
+      buttons.add(_secondary('Invite', scope.onInvite, icon: InIcons.useradd));
     }
     if (buttons.isEmpty) return const SizedBox.shrink();
     return Wrap(
@@ -249,10 +248,10 @@ class GameJoinButton extends StatelessWidget {
         child: Text(label),
       );
 
-  Widget _secondary(String label, VoidCallback? onTap, {IconData? icon}) =>
+  Widget _secondary(String label, VoidCallback? onTap, {InIconData? icon}) =>
       OutlinedButton.icon(
         onPressed: onTap,
-        icon: Icon(icon, size: 16),
+        icon: icon == null ? const SizedBox.shrink() : InIcon(icon, size: 16),
         label: Text(label),
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.text,

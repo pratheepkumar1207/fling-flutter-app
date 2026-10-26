@@ -463,11 +463,11 @@ class _FeedScreenState extends State<FeedScreen> {
       );
 
   void _postMenu(Post post) {
-    Widget tile(IconData icon, String label, VoidCallback onTap,
+    Widget tile(InIconData icon, String label, VoidCallback onTap,
             {bool danger = false}) =>
         ListTile(
           leading:
-              Icon(icon, color: danger ? AppColors.danger : AppColors.text),
+              InIcon(icon, color: danger ? AppColors.danger : AppColors.text),
           title: Text(label,
               style:
                   TextStyle(color: danger ? AppColors.danger : AppColors.text)),
@@ -494,26 +494,20 @@ class _FeedScreenState extends State<FeedScreen> {
                   children: [
                     for (final (icon, label, action) in [
                       (
-                        post.savedByMe
-                            ? Icons.bookmark_rounded
-                            : Icons.bookmark_border_rounded,
+                        post.savedByMe ? InIcons.bookmark : InIcons.bookmark,
                         post.savedByMe ? 'Unsave' : 'Save',
                         () => _toggleSave(post)
                       ),
-                      (Icons.repeat_rounded, 'Repost', () => _repost(post)),
+                      (InIcons.repeat, 'Repost', () => _repost(post)),
                       (
-                        Icons.add_circle_outline_rounded,
+                        InIcons.plus,
                         'Add to story',
                         () => _repost(post, toStory: true)
                       ),
                       if (extractYouTubeId(post.videoUrl) case final videoId?)
-                        (
-                          Icons.smart_display_rounded,
-                          'Watch',
-                          () => _watchInRoom(videoId)
-                        ),
+                        (InIcons.tv, 'Watch', () => _watchInRoom(videoId)),
                       (
-                        Icons.link_rounded,
+                        InIcons.link,
                         'Link',
                         () {
                           Clipboard.setData(ClipboardData(
@@ -531,7 +525,7 @@ class _FeedScreenState extends State<FeedScreen> {
                         child: Padding(
                           padding: const EdgeInsets.all(8),
                           child: Column(children: [
-                            Icon(icon, color: AppColors.text),
+                            InIcon(icon, color: AppColors.text),
                             const SizedBox(height: 4),
                             Text(label,
                                 style: const TextStyle(
@@ -544,12 +538,10 @@ class _FeedScreenState extends State<FeedScreen> {
               ),
               const Divider(height: 1, color: AppColors.border),
               if (post.isOwn) ...[
-                tile(Icons.archive_outlined, 'Archive',
+                tile(InIcons.archive, 'Archive',
                     () => _setOption(post, {'archived': true}, 'Archived')),
                 tile(
-                    post.hideLikes
-                        ? Icons.favorite_border_rounded
-                        : Icons.heart_broken_outlined,
+                    post.hideLikes ? InIcons.heart : InIcons.heart,
                     post.hideLikes ? 'Show like count' : 'Hide like count',
                     () => _setOption(
                         post,
@@ -558,9 +550,7 @@ class _FeedScreenState extends State<FeedScreen> {
                             ? 'Like count shown'
                             : 'Like count hidden')),
                 tile(
-                    post.commentsDisabled
-                        ? Icons.mode_comment_outlined
-                        : Icons.comments_disabled_outlined,
+                    post.commentsDisabled ? InIcons.comment : InIcons.comment,
                     post.commentsDisabled
                         ? 'Turn on comments'
                         : 'Turn off comments',
@@ -572,35 +562,35 @@ class _FeedScreenState extends State<FeedScreen> {
                             : 'Comments off')),
               ] else ...[
                 tile(
-                    Icons.visibility_off_outlined,
+                    InIcons.eyeoff,
                     'Not interested',
                     () => _postAction(
                         () => ApiClient.post('/feed/${post.id}/not-interested'),
                         'We\'ll show you fewer posts like this')),
                 tile(
-                    Icons.volume_off_outlined,
+                    InIcons.mute,
                     'Mute ${post.author.name}',
                     () => _postAction(
                         () => ApiClient.post('/mute/${post.author.id}'),
                         'Muted ${post.author.name} — change this from their profile')),
                 tile(
-                    Icons.person_remove_alt_1_outlined,
+                    InIcons.block,
                     'Restrict',
                     () => _postAction(
                         () => ApiClient.post('/restrict/${post.author.id}'),
                         'Restricted — their comments on your posts are only visible to them',
                         reload: false)),
                 tile(
-                    Icons.person_off_outlined,
+                    InIcons.block,
                     'Unfollow',
                     () => _postAction(
                         () => ApiClient.post(
                             '/social/unfollow/${post.author.id}'),
                         'Unfollowed ${post.author.name}')),
-                tile(Icons.person_outline_rounded, 'Go to ${post.author.name}',
+                tile(InIcons.user, 'Go to ${post.author.name}',
                     () => openProfile(context, post.author.id)),
                 tile(
-                    Icons.flag_outlined,
+                    InIcons.flame,
                     'Report',
                     () => showReportReasonSheet(context,
                         userName: post.author.name,
@@ -693,7 +683,7 @@ class _FeedScreenState extends State<FeedScreen> {
                                   color: AppColors.textFaint, fontSize: 11.5)),
                         if (post.repostOf != null)
                           Row(children: [
-                            const Icon(Icons.repeat_rounded,
+                            const InIcon(InIcons.repeat,
                                 size: 12, color: AppColors.textFaint),
                             const SizedBox(width: 3),
                             Flexible(
@@ -750,8 +740,7 @@ class _FeedScreenState extends State<FeedScreen> {
                 runSpacing: 4,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  const Icon(Icons.person_pin_outlined,
-                      size: 16, color: AppColors.textDim),
+                  const InIcon(InIcons.pin, size: 16, color: AppColors.textDim),
                   for (final t in post.taggedUsers)
                     GestureDetector(
                       onTap: () => openProfile(context, t['id'] as String?),
@@ -950,8 +939,8 @@ class _FeedScreenState extends State<FeedScreen> {
               size: 52,
               colors: const [AppColors.accent2, AppColors.primary],
               glowColor: AppColors.primary.withValues(alpha: 0.4),
-              child: const Icon(Icons.play_arrow_rounded,
-                  color: Colors.white, size: 30),
+              child: const InIcon(InIcons.play,
+                  filled: true, color: Colors.white, size: 30),
             ),
           ),
         ),
@@ -1084,8 +1073,8 @@ class _DoubleTapLikeState extends State<_DoubleTapLike>
                 opacity: opacity.clamp(0, 1).toDouble(),
                 child: Transform.scale(
                   scale: scale,
-                  child: const Icon(Icons.favorite_rounded,
-                      color: Colors.white, size: 96),
+                  child: const InIcon(InIcons.heart,
+                      filled: true, color: Colors.white, size: 96),
                 ),
               );
             },

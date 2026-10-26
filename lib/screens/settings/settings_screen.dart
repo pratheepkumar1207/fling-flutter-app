@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
 import 'package:provider/provider.dart';
@@ -97,7 +98,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: InsyncSectionBanner(
                   title: 'Make it yours',
                   subtitle: 'Your account. Your comfort. Your control.',
-                  icon: Icons.tune_rounded)),
+                  icon: InIcons.tune)),
           _group('Account'),
           _tile(context,
               emoji: '👤',
@@ -268,8 +269,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Text(label,
                   style:
                       const TextStyle(color: AppColors.text, fontSize: 13.5))),
-          const Icon(Icons.chevron_right_rounded,
-              color: AppColors.textFaint, size: 18),
+          const InIcon(InIcons.chev, color: AppColors.textFaint, size: 18),
         ]),
       ),
     );

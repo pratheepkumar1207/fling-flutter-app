@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
@@ -102,7 +103,7 @@ class _UserListScreenState extends State<UserListScreen> {
                   borderRadius: BorderRadius.circular(12)),
               child: Row(
                 children: [
-                  const Icon(Icons.search_rounded,
+                  const InIcon(InIcons.search,
                       size: 16, color: AppColors.textFaint),
                   const SizedBox(width: 8),
                   Expanded(

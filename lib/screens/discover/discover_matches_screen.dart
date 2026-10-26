@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
 import 'package:intl/intl.dart';
@@ -74,7 +75,7 @@ class _DiscoverMatchesScreenState extends State<DiscoverMatchesScreen> {
                     children: [
                       IconButton(
                           onPressed: () => Navigator.of(context).maybePop(),
-                          icon: const Icon(Icons.arrow_back_rounded,
+                          icon: const InIcon(InIcons.back,
                               color: AppColors.text)),
                       const InsyncPageTitle('Your Matches'),
                     ],

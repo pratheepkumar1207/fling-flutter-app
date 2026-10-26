@@ -216,8 +216,7 @@ class _ActiveRoomBar extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
               children: [
-                const Icon(Icons.podcasts_rounded,
-                    color: AppColors.accent, size: 20),
+                const InIcon(InIcons.live, color: AppColors.accent, size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -233,8 +232,7 @@ class _ActiveRoomBar extends StatelessWidget {
                 const Text('Tap to return',
                     style: TextStyle(color: Colors.white70, fontSize: 12)),
                 const SizedBox(width: 6),
-                const Icon(Icons.chevron_right_rounded,
-                    color: Colors.white70, size: 18),
+                const InIcon(InIcons.chev, color: Colors.white70, size: 18),
               ],
             ),
           ),

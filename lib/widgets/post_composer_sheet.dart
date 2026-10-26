@@ -1,3 +1,4 @@
+import '../theme/insync_icons.dart';
 import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -213,7 +214,7 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 4),
                       child: Row(children: [
-                        const Icon(Icons.repeat_rounded,
+                        const InIcon(InIcons.repeat,
                             color: AppColors.accent, size: 18),
                         const SizedBox(width: 6),
                         Expanded(
@@ -330,7 +331,7 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
                   if (!_isStory && widget.repostOf == null) ...[
                     const SizedBox(height: 6),
                     _optionRow(
-                        Icons.person_add_alt_rounded,
+                        InIcons.useradd,
                         'Tag people',
                         _tagged.isEmpty
                             ? null
@@ -341,7 +342,7 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
                         setState(() => _tagged = picked);
                       }
                     }),
-                    _optionRow(Icons.group_add_outlined, 'Invite collaborator',
+                    _optionRow(InIcons.useradd, 'Invite collaborator',
                         _collaborator?.name, () async {
                       final picked = await showPeoplePicker(context,
                           title: 'Invite collaborator', single: true);
@@ -362,7 +363,7 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
                         decoration: const InputDecoration(
                           counterText: '',
                           isDense: true,
-                          prefixIcon: Icon(Icons.place_outlined,
+                          prefixIcon: InIcon(InIcons.pin,
                               color: AppColors.textDim, size: 20),
                           hintText: 'Add location',
                         ),
@@ -448,14 +449,14 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
   }
 
   Widget _optionRow(
-          IconData icon, String label, String? value, VoidCallback onTap,
+          InIconData icon, String label, String? value, VoidCallback onTap,
           {VoidCallback? onClear}) =>
       InkWell(
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 10),
           child: Row(children: [
-            Icon(icon, color: AppColors.textDim, size: 20),
+            InIcon(icon, color: AppColors.textDim, size: 20),
             const SizedBox(width: 12),
             Expanded(
                 child: Text(label,
@@ -474,13 +475,12 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
                 onTap: onClear,
                 child: const Padding(
                   padding: EdgeInsets.only(left: 6),
-                  child: Icon(Icons.close_rounded,
+                  child: InIcon(InIcons.close,
                       size: 18, color: AppColors.textFaint),
                 ),
               )
             else
-              const Icon(Icons.chevron_right_rounded,
-                  color: AppColors.textFaint),
+              const InIcon(InIcons.chev, color: AppColors.textFaint),
           ]),
         ),
       );

@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
@@ -140,8 +141,7 @@ class _WalletKycScreenState extends State<WalletKycScreen> {
                   child: const Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.check_circle_outline_rounded,
-                          color: AppColors.success, size: 18),
+                      InIcon(InIcons.check, color: AppColors.success, size: 18),
                       SizedBox(width: 10),
                       Expanded(
                         child: Text(
@@ -158,7 +158,7 @@ class _WalletKycScreenState extends State<WalletKycScreen> {
                 const SizedBox(height: 22),
                 _stepLabel('1. Government ID'),
                 _uploadCard(
-                  icon: Icons.badge_outlined,
+                  icon: InIcons.badge,
                   title: 'Upload a photo of your ID',
                   subtitle: "Passport, driver's license, or national ID",
                   dataUri: _idPhotoDataUri,
@@ -167,7 +167,7 @@ class _WalletKycScreenState extends State<WalletKycScreen> {
                 const SizedBox(height: 20),
                 _stepLabel('2. Selfie verification'),
                 _uploadCard(
-                  icon: Icons.face_retouching_natural_rounded,
+                  icon: InIcons.spark,
                   title: 'Take a quick selfie',
                   subtitle: 'Make sure your face is well-lit and clear',
                   dataUri: _selfieDataUri,
@@ -225,12 +225,11 @@ class _WalletKycScreenState extends State<WalletKycScreen> {
                     children: [
                       _step(
                           colors: const [Color(0xFF43B966), Color(0xFF2C8A49)],
-                          icon: Icons.check_rounded,
+                          icon: InIcons.check,
                           label: 'Phone verified'),
                       _step(
                         colors: _statusStepColors(),
-                        icon:
-                            _status == 'verified' ? Icons.check_rounded : null,
+                        icon: _status == 'verified' ? InIcons.check : null,
                         number: _status == 'verified' ? null : 2,
                         label: 'Identity review',
                         trailing: _statusLabel(),
@@ -295,7 +294,7 @@ class _WalletKycScreenState extends State<WalletKycScreen> {
       );
 
   Widget _uploadCard(
-      {required IconData icon,
+      {required InIconData icon,
       required String title,
       required String subtitle,
       required String? dataUri,
@@ -320,7 +319,7 @@ class _WalletKycScreenState extends State<WalletKycScreen> {
                     height: 90, fit: BoxFit.cover),
               )
             else
-              Icon(icon, color: AppColors.textFaint, size: 26),
+              InIcon(icon, color: AppColors.textFaint, size: 26),
             const SizedBox(height: 10),
             Text(filled ? 'Selected — tap to change' : title,
                 style: TextStyle(
@@ -372,7 +371,7 @@ class _WalletKycScreenState extends State<WalletKycScreen> {
 
   Widget _step(
       {required List<Color> colors,
-      IconData? icon,
+      InIconData? icon,
       int? number,
       required String label,
       Widget? trailing}) {
@@ -388,7 +387,7 @@ class _WalletKycScreenState extends State<WalletKycScreen> {
                 gradient: LinearGradient(colors: colors)),
             alignment: Alignment.center,
             child: icon != null
-                ? Icon(icon, color: Colors.white, size: 14)
+                ? InIcon(icon, color: Colors.white, size: 14)
                 : Text('$number',
                     style: const TextStyle(
                         color: Colors.white,

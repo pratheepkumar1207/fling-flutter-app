@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
@@ -112,7 +113,7 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
                             children: [
                               Expanded(
                                   child: _stat(
-                                      Icons.monetization_on_rounded,
+                                      InIcons.cash,
                                       AppColors.gold,
                                       'Wallet',
                                       formatNumber(d['coinBalance']),
@@ -120,7 +121,7 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
                               const SizedBox(width: 10),
                               Expanded(
                                   child: _stat(
-                                      Icons.card_giftcard_rounded,
+                                      InIcons.gift,
                                       AppColors.gold,
                                       'Lifetime gifts',
                                       formatNumber(d['totalCoinsCollected']),
@@ -132,7 +133,7 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
                             children: [
                               Expanded(
                                   child: _stat(
-                                      Icons.videocam_outlined,
+                                      InIcons.video,
                                       AppColors.textFaint,
                                       'Total streams',
                                       '${d['totalStreamCount']}',
@@ -140,7 +141,7 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
                               const SizedBox(width: 10),
                               Expanded(
                                   child: _stat(
-                                      Icons.schedule_rounded,
+                                      InIcons.calendar,
                                       AppColors.textFaint,
                                       'Avg. length',
                                       '${d['avgLengthMinutes']}m',
@@ -346,8 +347,7 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
                 shape: BoxShape.circle,
                 color: iconColor.withValues(alpha: 0.22)),
             alignment: Alignment.center,
-            child:
-                Icon(Icons.wifi_tethering_rounded, color: iconColor, size: 18),
+            child: InIcon(InIcons.live, color: iconColor, size: 18),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -370,7 +370,7 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
     );
   }
 
-  Widget _stat(IconData icon, Color iconColor, String label, String value,
+  Widget _stat(InIconData icon, Color iconColor, String label, String value,
       Color valueColor) {
     return Container(
       padding: const EdgeInsets.all(14),
@@ -381,7 +381,7 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
         children: [
           Row(
             children: [
-              Icon(icon, color: iconColor, size: 12),
+              InIcon(icon, color: iconColor, size: 12),
               const SizedBox(width: 5),
               Expanded(
                   child: Text(label,

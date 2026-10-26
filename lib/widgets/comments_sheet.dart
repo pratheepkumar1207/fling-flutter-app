@@ -1,3 +1,4 @@
+import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../core/api_client.dart';
 import '../core/api_exception.dart';
@@ -203,10 +204,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
                 padding: const EdgeInsets.all(6),
                 child: Column(
                   children: [
-                    Icon(
-                        liked
-                            ? Icons.favorite_rounded
-                            : Icons.favorite_border_rounded,
+                    InIcon(liked ? InIcons.heart : InIcons.heart,
                         size: 16,
                         color: liked
                             ? const Color(0xFFFF5C8A)
@@ -315,7 +313,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
                     ),
                     GestureDetector(
                       onTap: () => setState(() => _replyTo = null),
-                      child: const Icon(Icons.close_rounded,
+                      child: const InIcon(InIcons.close,
                           size: 18, color: AppColors.textFaint),
                     ),
                   ]),
@@ -336,7 +334,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
                       IconButton(
                           tooltip: 'Post comment',
                           onPressed: _sending ? null : _send,
-                          icon: const Icon(Icons.send_rounded,
+                          icon: const InIcon(InIcons.send,
                               color: AppColors.accent)),
                     ],
                   ),

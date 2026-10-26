@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
 import 'package:provider/provider.dart';
@@ -159,7 +160,8 @@ class _VipStoreScreenState extends State<VipStoreScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.star_rounded, color: AppColors.gold, size: 30),
+                  InIcon(InIcons.star,
+                      filled: true, color: AppColors.gold, size: 30),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(

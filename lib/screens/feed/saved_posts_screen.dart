@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
@@ -94,13 +95,15 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
                             const Positioned(
                                 top: 6,
                                 right: 6,
-                                child: Icon(Icons.play_arrow_rounded,
-                                    color: Colors.white, size: 16)),
+                                child: InIcon(InIcons.play,
+                                    filled: true,
+                                    color: Colors.white,
+                                    size: 16)),
                           if (p.mediaType == 'poll')
                             const Positioned(
                                 top: 6,
                                 right: 6,
-                                child: Icon(Icons.bar_chart_rounded,
+                                child: InIcon(InIcons.chart,
                                     color: Colors.white, size: 16)),
                         ],
                       ),

@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
@@ -93,18 +94,18 @@ class ProfileLayout {
         _ => id,
       };
 
-  static IconData icon(String id) => switch (id) {
-        'rightNow' => Icons.sensors_rounded,
-        'highlights' => Icons.auto_awesome_rounded,
-        'interests' => Icons.local_offer_outlined,
-        'progress' => Icons.insights_rounded,
-        'posts' => Icons.grid_on_rounded,
-        'reels' => Icons.movie_outlined,
-        'photos' => Icons.photo_outlined,
-        'music' => Icons.music_note_outlined,
-        'tagged' => Icons.assignment_ind_outlined,
-        'supporters' => Icons.volunteer_activism_outlined,
-        _ => Icons.circle_outlined,
+  static InIconData icon(String id) => switch (id) {
+        'rightNow' => InIcons.live,
+        'highlights' => InIcons.spark,
+        'interests' => InIcons.ticket,
+        'progress' => InIcons.chart,
+        'posts' => InIcons.feed,
+        'reels' => InIcons.film,
+        'photos' => InIcons.image,
+        'music' => InIcons.music,
+        'tagged' => InIcons.user,
+        'supporters' => InIcons.gift,
+        _ => InIcons.target,
       };
 }
 
@@ -176,12 +177,12 @@ class _ArrangeProfileScreenState extends State<ArrangeProfileScreen> {
                       index: i,
                       child: const Padding(
                         padding: EdgeInsets.all(8),
-                        child: Icon(Icons.drag_indicator_rounded,
+                        child: InIcon(InIcons.menu,
                             color: AppColors.textFaint,
                             semanticLabel: 'Drag to reorder'),
                       ),
                     ),
-                    Icon(ProfileLayout.icon(entries[i].id),
+                    InIcon(ProfileLayout.icon(entries[i].id),
                         color: AppColors.textDim, size: 20),
                   ],
                 ),

@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -189,12 +190,12 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                                     offset: const Offset(0, 6))
                               ]),
                           alignment: Alignment.center,
-                          child: const Icon(Icons.favorite_rounded,
-                              color: AppColors.accent, size: 24),
+                          child: const InIcon(InIcons.heart,
+                              filled: true, color: AppColors.accent, size: 24),
                         ),
                         const Positioned(
                           top: -6,
-                          child: Icon(Icons.arrow_drop_down_rounded,
+                          child: InIcon(InIcons.down,
                               color: AppColors.gold, size: 46),
                         ),
                       ],

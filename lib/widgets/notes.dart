@@ -1,3 +1,4 @@
+import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../core/api_client.dart';
 import '../core/api_exception.dart';
@@ -121,8 +122,8 @@ class _NotesRowState extends State<NotesRow> {
                           color: AppColors.primary,
                           shape: BoxShape.circle,
                           border: Border.all(color: AppColors.bg, width: 2)),
-                      child:
-                          const Icon(Icons.add, size: 11, color: Colors.white),
+                      child: const InIcon(InIcons.plus,
+                          size: 11, color: Colors.white),
                     ),
                   ),
               ],
@@ -252,7 +253,7 @@ class _NoteEditorState extends State<_NoteEditor> {
               style: const TextStyle(color: AppColors.text),
               decoration: const InputDecoration(
                   hintText: 'Or a song you\'re listening to',
-                  prefixIcon: Icon(Icons.music_note_rounded)),
+                  prefixIcon: InIcon(InIcons.music)),
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,

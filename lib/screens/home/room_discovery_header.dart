@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/avatar.dart';
@@ -60,13 +61,12 @@ class RoomDiscoveryHeader extends StatelessWidget {
               child: const Padding(
                   padding: EdgeInsets.all(16),
                   child: Row(children: [
-                    Icon(Icons.search_rounded, color: AppColors.textDim),
+                    InIcon(InIcons.search, color: AppColors.textDim),
                     SizedBox(width: 10),
                     Expanded(
                         child: Text('Find your people',
                             style: TextStyle(color: AppColors.textDim))),
-                    Icon(Icons.arrow_forward_rounded,
-                        size: 18, color: AppColors.textDim)
+                    InIcon(InIcons.chev, size: 18, color: AppColors.textDim)
                   ])))),
       const SizedBox(height: 20),
       Container(
@@ -150,19 +150,18 @@ class DiscoveryRoomCard extends StatelessWidget {
     final preview = watch
         ? image ??
             const Center(
-                child: Icon(Icons.ondemand_video_rounded,
-                    size: 38, color: AppColors.textDim))
+                child: InIcon(InIcons.film, size: 38, color: AppColors.textDim))
         : Stack(alignment: Alignment.center, children: [
             Padding(
                 padding: const EdgeInsets.all(12),
                 child: kind == 'game' &&
                         !['chess', 'ludo', 'uno'].contains(gameType)
-                    ? Icon(
+                    ? InIcon(
                         switch (gameType) {
-                          'tictactoe' => Icons.grid_3x3_rounded,
-                          'truth_or_dare' => Icons.question_answer_rounded,
-                          'would_you_rather' => Icons.compare_arrows_rounded,
-                          _ => Icons.sports_esports_rounded
+                          'tictactoe' => InIcons.dice,
+                          'truth_or_dare' => InIcons.chat,
+                          'would_you_rather' => InIcons.swap,
+                          _ => InIcons.game
                         },
                         size: 46,
                         color: AppColors.accent)
@@ -174,8 +173,8 @@ class DiscoveryRoomCard extends StatelessWidget {
                   child: CircleAvatar(
                       radius: 13,
                       backgroundColor: AppColors.accent,
-                      child: Icon(Icons.mic_rounded,
-                          color: AppColors.ink, size: 17))),
+                      child:
+                          InIcon(InIcons.mic, color: AppColors.ink, size: 17))),
           ]);
     final details =
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

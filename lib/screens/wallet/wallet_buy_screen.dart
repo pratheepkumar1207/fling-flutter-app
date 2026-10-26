@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
 import 'package:provider/provider.dart';
@@ -337,7 +338,7 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.add_rounded,
+                            InIcon(InIcons.plus,
                                 color: _customMode
                                     ? AppColors.accent
                                     : AppColors.textFaint,

@@ -1706,18 +1706,49 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   Future<void> _leaveRoom() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Leave this room?'),
-        content: const Text(
-            "You'll stop being part of the room — anyone else stays. Just switching screens or apps doesn't need this; the room keeps going in the background until you come back."),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel')),
-          TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Leave')),
-        ],
+      builder: (dialog) => Dialog(
+        backgroundColor: const Color(0xFF121019),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+            side: const BorderSide(color: AppColors.border)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 18),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                  color: const Color(0xFF2A1018),
+                  borderRadius: BorderRadius.circular(20)),
+              child: const Center(
+                  child: InIcon(InIcons.logout,
+                      size: 28, color: Color(0xFFFF8AA0))),
+            ),
+            const SizedBox(height: 14),
+            const Text('Leave this room?',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            const Text(
+                'Everyone else stays. Just switching screens doesn’t need this — the room keeps going in the background.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.textDim, fontSize: 14)),
+            const SizedBox(height: 18),
+            FilledButton(
+              onPressed: () => Navigator.of(dialog).pop(true),
+              style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(50),
+                  backgroundColor: AppColors.danger),
+              child: const Text('Leave room'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: () => Navigator.of(dialog).pop(false),
+              style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(50)),
+              child: const Text('Stay'),
+            ),
+          ]),
+        ),
       ),
     );
     if (confirmed != true || !mounted) return;

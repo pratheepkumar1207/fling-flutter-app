@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
@@ -192,7 +193,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                   ? Image.memory(
                       base64Decode(_screenshotDataUri!.split(',').last),
                       fit: BoxFit.cover)
-                  : const Icon(Icons.image_outlined,
+                  : const InIcon(InIcons.image,
                       color: AppColors.textFaint, size: 22),
             ),
           ),

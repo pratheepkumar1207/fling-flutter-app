@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
@@ -193,8 +194,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                                 shape: BoxShape.circle,
                                                 border: Border.all(
                                                     color: AppColors.border)),
-                                            child: const Icon(
-                                                Icons.close_rounded,
+                                            child: const InIcon(InIcons.close,
                                                 color: AppColors.textDim,
                                                 size: 15),
                                           ),

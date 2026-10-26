@@ -1,3 +1,4 @@
+import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/glass.dart';
@@ -175,7 +176,7 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
                     decoration: const BoxDecoration(
                         color: AppColors.surface3, shape: BoxShape.circle),
                     alignment: Alignment.center,
-                    child: Icon(Icons.skip_previous,
+                    child: InIcon(InIcons.back,
                         color: AppColors.text, size: c ? 16 : 22),
                   ),
                 ),
@@ -192,7 +193,7 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
                           : AppColors.primary,
                       shape: BoxShape.circle),
                   alignment: Alignment.center,
-                  child: Icon(widget.playing ? Icons.pause : Icons.play_arrow,
+                  child: InIcon(widget.playing ? InIcons.pause : InIcons.play,
                       color: Colors.white, size: c ? 14 : 20),
                 ),
               ),
@@ -206,7 +207,7 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
                     decoration: const BoxDecoration(
                         color: AppColors.surface3, shape: BoxShape.circle),
                     alignment: Alignment.center,
-                    child: Icon(Icons.skip_next,
+                    child: InIcon(InIcons.right,
                         color: AppColors.text, size: c ? 16 : 22),
                   ),
                 ),

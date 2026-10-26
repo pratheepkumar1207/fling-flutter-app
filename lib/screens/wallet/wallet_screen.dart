@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
 import 'package:provider/provider.dart';
@@ -120,7 +121,7 @@ class _WalletScreenState extends State<WalletScreen> {
           const InsyncSectionBanner(
               title: 'Make someone’s day',
               subtitle: 'Your coins, gifts and rewards in one place.',
-              icon: Icons.redeem_rounded),
+              icon: InIcons.gift),
           Container(
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
@@ -327,10 +328,8 @@ class _WalletScreenState extends State<WalletScreen> {
                           color: AppColors.surface2,
                           borderRadius: BorderRadius.circular(11)),
                       alignment: Alignment.center,
-                      child: Icon(
-                          positive
-                              ? Icons.arrow_downward_rounded
-                              : Icons.arrow_upward_rounded,
+                      child: InIcon(
+                          positive ? InIcons.arrowdn : InIcons.arrowup,
                           color:
                               positive ? AppColors.success : AppColors.textDim,
                           size: 16),

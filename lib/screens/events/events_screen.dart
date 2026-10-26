@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
 import 'package:intl/intl.dart';
@@ -8,22 +9,22 @@ import '../party/party_screen.dart';
 
 const _kRoomTypeStyles = {
   'watch': (
-    icon: Icons.play_arrow_rounded,
+    icon: InIcons.play,
     colors: [Color(0xFFE0836B), Color(0xFFB8422C)],
     label: 'Watch Party'
   ),
   'voice': (
-    icon: Icons.mic_rounded,
+    icon: InIcons.mic,
     colors: [Color(0xFF6ED9A0), Color(0xFF2E9B5F)],
     label: 'Voice Room'
   ),
   'game': (
-    icon: Icons.casino_rounded,
+    icon: InIcons.dice,
     colors: [Color(0xFF7FA8D9), Color(0xFF4272D9)],
     label: 'Game Room'
   ),
   'live': (
-    icon: Icons.wifi_tethering_rounded,
+    icon: InIcons.live,
     colors: [Color(0xFFED8B6B), Color(0xFFED4B43)],
     label: 'Live'
   ),
@@ -189,7 +190,7 @@ class _EventsScreenState extends State<EventsScreen> {
                       end: Alignment.bottomRight,
                       colors: style.colors)),
               alignment: Alignment.center,
-              child: Icon(style.icon, color: Colors.white, size: 18),
+              child: InIcon(style.icon, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 12),
             Expanded(

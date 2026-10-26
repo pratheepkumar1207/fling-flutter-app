@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -206,11 +208,15 @@ class InIcon extends StatelessWidget {
   final Color? color;
   final bool filled;
   final String? semanticLabel;
+
+  /// Soft drop shadows, for icons sitting on video or photos.
+  final List<Shadow>? shadows;
   const InIcon(this.icon,
       {super.key,
       this.size = 22,
       this.color,
       this.filled = false,
+      this.shadows,
       this.semanticLabel});
 
   @override
@@ -224,10 +230,26 @@ class InIcon extends StatelessWidget {
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="$fill" '
         'stroke="$hex" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
         '${icon.paths.replaceAll('currentColor', hex)}</svg>';
-    return Opacity(
+    final picture = Opacity(
       opacity: c.a,
       child: SvgPicture.string(svg,
           width: size, height: size, semanticsLabel: semanticLabel),
     );
+    final shadowList = shadows;
+    if (shadowList == null || shadowList.isEmpty) return picture;
+    return Stack(clipBehavior: Clip.none, children: [
+      for (final sh in shadowList)
+        Transform.translate(
+          offset: sh.offset,
+          child: ImageFiltered(
+            imageFilter:
+                ImageFilter.blur(sigmaX: sh.blurSigma, sigmaY: sh.blurSigma),
+            child: ExcludeSemantics(
+              child: InIcon(icon, size: size, color: sh.color, filled: filled),
+            ),
+          ),
+        ),
+      picture,
+    ]);
   }
 }

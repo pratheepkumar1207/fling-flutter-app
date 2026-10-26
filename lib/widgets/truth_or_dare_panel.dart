@@ -1,3 +1,4 @@
+import '../theme/insync_icons.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
@@ -241,10 +242,10 @@ class _TruthOrDarePanelState extends State<TruthOrDarePanel>
                                   borderRadius: BorderRadius.circular(12),
                                   color: Colors.white.withValues(alpha: 0.18)),
                               alignment: Alignment.center,
-                              child: Icon(
+                              child: InIcon(
                                   prompt['type'] == 'truth'
-                                      ? Icons.help_outline_rounded
-                                      : Icons.local_fire_department_rounded,
+                                      ? InIcons.help
+                                      : InIcons.flame,
                                   color: Colors.white,
                                   size: 19),
                             ),

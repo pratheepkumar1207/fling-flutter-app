@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../core/format.dart';
 import '../../widgets/insync_clay.dart';
@@ -152,7 +153,7 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
           tooltip: 'Search',
           onPressed: () => Navigator.of(context)
               .push(MaterialPageRoute(builder: (_) => const SearchScreen())),
-          icon: const Icon(Icons.search_rounded, color: AppColors.textDim),
+          icon: const InIcon(InIcons.search, color: AppColors.textDim),
         ),
         Padding(
             padding: const EdgeInsets.only(right: 12),

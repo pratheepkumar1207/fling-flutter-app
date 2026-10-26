@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../models/notification_item.dart';
 import '../../theme/app_colors.dart';
@@ -41,17 +42,17 @@ void openNotificationTarget(BuildContext context, NotificationItem n) {
   }
 }
 
-IconData notificationIcon(String type) => switch (type) {
-      'room_invite' => Icons.meeting_room_rounded,
-      'mention' => Icons.alternate_email_rounded,
-      'like' => Icons.favorite_rounded,
-      'comment' => Icons.chat_bubble_rounded,
-      'follow' => Icons.person_add_alt_1_rounded,
-      'friend_request' || 'friend_accept' => Icons.people_alt_rounded,
-      'match' => Icons.local_fire_department_rounded,
-      'blend_invite' || 'blend_watch' => Icons.movie_filter_rounded,
-      'broadcast' => Icons.campaign_rounded,
-      _ => Icons.notifications_rounded,
+InIconData notificationIcon(String type) => switch (type) {
+      'room_invite' => InIcons.tv,
+      'mention' => InIcons.mail,
+      'like' => InIcons.heart,
+      'comment' => InIcons.chat,
+      'follow' => InIcons.useradd,
+      'friend_request' || 'friend_accept' => InIcons.users,
+      'match' => InIcons.flame,
+      'blend_invite' || 'blend_watch' => InIcons.blend,
+      'broadcast' => InIcons.bell,
+      _ => InIcons.bell,
     };
 
 List<Color> notificationColors(String type) => switch (type) {

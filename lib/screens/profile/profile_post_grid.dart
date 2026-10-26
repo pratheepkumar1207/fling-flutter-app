@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../models/post.dart';
 import '../../theme/app_colors.dart';
@@ -28,10 +29,10 @@ class ProfilePostGrid extends StatelessWidget {
       content = AppImage(source: p.imageData, fit: BoxFit.cover);
     } else {
       final (icon, label) = switch (p.mediaType) {
-        'reel' => (Icons.play_arrow_rounded, null),
-        'voice' => (Icons.graphic_eq_rounded, 'Voice note'),
-        'poll' => (Icons.poll_outlined, p.text),
-        'video_link' => (Icons.smart_display_outlined, p.text),
+        'reel' => (InIcons.play, null),
+        'voice' => (InIcons.wave, 'Voice note'),
+        'poll' => (InIcons.poll, p.text),
+        'video_link' => (InIcons.tv, p.text),
         _ => (null, p.text),
       };
       content = Container(
@@ -42,7 +43,7 @@ class ProfilePostGrid extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null)
-              Icon(icon, color: AppColors.textDim, size: reels ? 34 : 24),
+              InIcon(icon, color: AppColors.textDim, size: reels ? 34 : 24),
             // Flexible so a big system text size shortens the preview
             // instead of overflowing the square tile.
             if (label != null && label.isNotEmpty)
@@ -75,8 +76,7 @@ class ProfilePostGrid extends StatelessWidget {
                 left: 6,
                 bottom: 6,
                 child: Row(children: [
-                  const Icon(Icons.favorite_border_rounded,
-                      color: Colors.white, size: 14),
+                  const InIcon(InIcons.heart, color: Colors.white, size: 14),
                   const SizedBox(width: 3),
                   Text('${p.likesCount}',
                       style: const TextStyle(
@@ -97,7 +97,7 @@ class ProfilePostGrid extends StatelessWidget {
       return ListView(
         padding: const EdgeInsets.all(40),
         children: [
-          Icon(reels ? Icons.movie_outlined : Icons.grid_on_rounded,
+          InIcon(reels ? InIcons.film : InIcons.feed,
               color: AppColors.textFaint, size: 36),
           const SizedBox(height: 10),
           Text(emptyText,

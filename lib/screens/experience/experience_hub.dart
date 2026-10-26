@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/glass.dart';
@@ -27,25 +28,25 @@ class FlingFeatureHubScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = [
       _HubItem('Vibe Match', 'Find someone who fits your mood right now',
-          Icons.auto_awesome_rounded, const VibeMatchScreen(), true),
+          InIcons.spark, const VibeMatchScreen(), true),
       _HubItem('Together', 'Shared moments, rooms, games and memories',
-          Icons.favorite_rounded, const TogetherScreen(), false),
+          InIcons.heart, const TogetherScreen(), false),
       _HubItem('Safety Center', 'Report, block, restrict and stay in control',
-          Icons.shield_rounded, const SafetyCenterScreen(), false),
+          InIcons.shield, const SafetyCenterScreen(), false),
       _HubItem('Privacy', 'Control discovery, calls, messages and activity',
-          Icons.lock_rounded, const PrivacyCenterScreen(), false),
+          InIcons.lock, const PrivacyCenterScreen(), false),
       _HubItem('Verification', 'Build trust with profile verification',
-          Icons.verified_rounded, const VerificationScreen(), false),
+          InIcons.verified, const VerificationScreen(), false),
       _HubItem('Creator Studio', 'Gifts, subscribers, rooms and earnings',
-          Icons.auto_graph_rounded, const CreatorStudioScreen(), true),
+          InIcons.chart, const CreatorStudioScreen(), true),
       _HubItem(
           'Room Moderation',
           'Host, co-host, speaker and audience controls',
-          Icons.admin_panel_settings_rounded,
+          InIcons.gear,
           const RoomModerationScreen(),
           false),
       _HubItem('Security', 'Devices, sessions and account protection',
-          Icons.security_rounded, const SecurityScreen(), false),
+          InIcons.shield, const SecurityScreen(), false),
     ];
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -63,13 +64,13 @@ class FlingFeatureHubScreen extends StatelessWidget {
               style: TextStyle(color: AppColors.textDim, fontSize: 14)),
           const SizedBox(height: 20),
           Wrap(spacing: 10, runSpacing: 10, children: [
-            _QuickAction(Icons.movie_rounded, 'Watch',
+            _QuickAction(InIcons.film, 'Watch',
                 () => _snack(context, 'Open Watch Party from Create')),
-            _QuickAction(Icons.mic_rounded, 'Voice',
+            _QuickAction(InIcons.mic, 'Voice',
                 () => _snack(context, 'Open Voice Room from Create')),
-            _QuickAction(Icons.sports_esports_rounded, 'Game',
+            _QuickAction(InIcons.game, 'Game',
                 () => _snack(context, 'Open Game Room from Create')),
-            _QuickAction(Icons.live_tv_rounded, 'Live',
+            _QuickAction(InIcons.tv, 'Live',
                 () => _snack(context, 'Open Live from Create')),
           ]),
           const SizedBox(height: 24),
@@ -85,29 +86,23 @@ class FlingFeatureHubScreen extends StatelessWidget {
                   fontSize: 11)),
           const SizedBox(height: 10),
           _SmallRow(
-              Icons.event_rounded,
+              InIcons.calendar,
               'Events',
               'Meetups and scheduled experiences',
               () => _push(context, const EventsScreen())),
           _SmallRow(
-              Icons.groups_rounded,
+              InIcons.community,
               'Communities',
               'Groups, rooms and shared interests',
               () => _push(context, const CommunitiesScreen())),
-          _SmallRow(
-              Icons.emoji_events_rounded,
-              'Achievements',
-              'Milestones and rewards',
+          _SmallRow(InIcons.trophy, 'Achievements', 'Milestones and rewards',
               () => _push(context, const AchievementsScreen())),
           _SmallRow(
-              Icons.leaderboard_rounded,
+              InIcons.trophy,
               'Leaderboards',
               'Seasonal rankings and game stats',
               () => _push(context, const LeaderboardsScreen())),
-          _SmallRow(
-              Icons.account_balance_wallet_rounded,
-              'Wallet',
-              'Coins, gifts, VIP and earnings',
+          _SmallRow(InIcons.wallet, 'Wallet', 'Coins, gifts, VIP and earnings',
               () => _push(context, const WalletScreen())),
         ],
       ),
@@ -117,7 +112,7 @@ class FlingFeatureHubScreen extends StatelessWidget {
 
 class _HubItem {
   final String title, subtitle;
-  final IconData icon;
+  final InIconData icon;
   final Widget page;
   final bool featured;
   _HubItem(this.title, this.subtitle, this.icon, this.page, this.featured);
@@ -140,7 +135,7 @@ class _HubCard extends StatelessWidget {
                 decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: .12),
                     borderRadius: BorderRadius.circular(17)),
-                child: Icon(item.icon,
+                child: InIcon(item.icon,
                     color: item.featured ? AppColors.primary : AppColors.text,
                     size: 25),
               ),
@@ -163,8 +158,7 @@ class _HubCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios_rounded,
-                  color: AppColors.textFaint, size: 16),
+              const InIcon(InIcons.chev, color: AppColors.textFaint, size: 16),
             ]),
           ),
         ),
@@ -172,7 +166,7 @@ class _HubCard extends StatelessWidget {
 }
 
 class _QuickAction extends StatelessWidget {
-  final IconData icon;
+  final InIconData icon;
   final String label;
   final VoidCallback onTap;
   const _QuickAction(this.icon, this.label, this.onTap);
@@ -184,7 +178,7 @@ class _QuickAction extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(icon, color: AppColors.text, size: 18),
+              InIcon(icon, color: AppColors.text, size: 18),
               const SizedBox(width: 7),
               Text(label,
                   style: const TextStyle(
@@ -198,7 +192,7 @@ class _QuickAction extends StatelessWidget {
 }
 
 class _SmallRow extends StatelessWidget {
-  final IconData icon;
+  final InIconData icon;
   final String title, subtitle;
   final VoidCallback onTap;
   const _SmallRow(this.icon, this.title, this.subtitle, this.onTap);
@@ -212,15 +206,14 @@ class _SmallRow extends StatelessWidget {
           decoration: BoxDecoration(
               color: AppColors.surface2,
               borderRadius: BorderRadius.circular(14)),
-          child: Icon(icon, color: AppColors.textDim, size: 20),
+          child: InIcon(icon, color: AppColors.textDim, size: 20),
         ),
         title: Text(title,
             style: const TextStyle(
                 color: AppColors.text, fontWeight: FontWeight.w700)),
         subtitle: Text(subtitle,
             style: const TextStyle(color: AppColors.textFaint, fontSize: 12)),
-        trailing:
-            const Icon(Icons.chevron_right_rounded, color: AppColors.textFaint),
+        trailing: const InIcon(InIcons.chev, color: AppColors.textFaint),
       );
 }
 
@@ -297,16 +290,16 @@ class _VibeMatchScreenState extends State<VibeMatchScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          const _MatchPreview('Ananya', 'Movies · Gaming · 2.4 km', '94%',
-              Icons.movie_filter_rounded),
-          const _MatchPreview('Rahul', 'Gaming · Voice · 4.1 km', '89%',
-              Icons.sports_esports_rounded),
+          const _MatchPreview(
+              'Ananya', 'Movies · Gaming · 2.4 km', '94%', InIcons.blend),
+          const _MatchPreview(
+              'Rahul', 'Gaming · Voice · 4.1 km', '89%', InIcons.game),
           const SizedBox(height: 8),
           SizedBox(
             height: 52,
             child: ElevatedButton.icon(
               onPressed: () => _snack(context, 'Match request sent'),
-              icon: const Icon(Icons.auto_awesome_rounded),
+              icon: const InIcon(InIcons.spark),
               label: const Text('Find my vibe'),
             ),
           ),
@@ -316,7 +309,7 @@ class _VibeMatchScreenState extends State<VibeMatchScreen> {
 
 class _MatchPreview extends StatelessWidget {
   final String name, detail, score;
-  final IconData icon;
+  final InIconData icon;
   const _MatchPreview(this.name, this.detail, this.score, this.icon);
   @override
   Widget build(BuildContext context) => Padding(
@@ -330,7 +323,7 @@ class _MatchPreview extends StatelessWidget {
               decoration: BoxDecoration(
                   color: AppColors.surface3,
                   borderRadius: BorderRadius.circular(16)),
-              child: Icon(icon, color: AppColors.primary),
+              child: InIcon(icon, color: AppColors.primary),
             ),
             title: Text(name,
                 style: const TextStyle(
@@ -392,7 +385,7 @@ class TogetherScreen extends StatelessWidget {
                     height: 48,
                     child: ElevatedButton.icon(
                       onPressed: () => _snack(context, 'Choose an activity'),
-                      icon: const Icon(Icons.play_arrow_rounded),
+                      icon: const InIcon(InIcons.play, filled: true),
                       label: const Text('Start something together'),
                     ),
                   ),
@@ -402,11 +395,10 @@ class TogetherScreen extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           const _Timeline('Today', 'Started a watch party together',
-              'Movie Night', Icons.movie_rounded),
-          const _Timeline('Yesterday', 'Played a game', 'Ludo',
-              Icons.sports_esports_rounded),
+              'Movie Night', InIcons.film),
+          const _Timeline('Yesterday', 'Played a game', 'Ludo', InIcons.game),
           const _Timeline('3 days ago', 'Joined a voice room',
-              'Late Night Talks', Icons.mic_rounded),
+              'Late Night Talks', InIcons.mic),
         ]),
       );
 }
@@ -429,7 +421,7 @@ class _Stat extends StatelessWidget {
 
 class _Timeline extends StatelessWidget {
   final String a, b, c;
-  final IconData icon;
+  final InIconData icon;
   const _Timeline(this.a, this.b, this.c, this.icon);
   @override
   Widget build(BuildContext context) => ListTile(
@@ -440,7 +432,7 @@ class _Timeline extends StatelessWidget {
           decoration: BoxDecoration(
               color: AppColors.surface2,
               borderRadius: BorderRadius.circular(14)),
-          child: Icon(icon, color: AppColors.textDim),
+          child: InIcon(icon, color: AppColors.textDim),
         ),
         title: Text(b,
             style: const TextStyle(
@@ -456,27 +448,27 @@ class SafetyCenterScreen extends StatelessWidget {
   Widget build(BuildContext context) =>
       _SettingsScaffold(title: 'Safety Center', children: [
         _SettingTile(
-            Icons.report_rounded,
+            InIcons.flame,
             'Report someone',
             'Flag a profile, message, room or post',
             () => _snack(context, 'Report flow ready')),
         _SettingTile(
-            Icons.block_rounded,
+            InIcons.block,
             'Blocked accounts',
             'Manage people you have blocked',
             () => _snack(context, 'Open blocked accounts')),
         _SettingTile(
-            Icons.remove_circle_outline_rounded,
+            InIcons.block,
             'Restrict messages',
             'Limit who can contact you',
             () => _snack(context, 'Restriction settings')),
         _SettingTile(
-            Icons.shield_rounded,
+            InIcons.shield,
             'Safety tips',
             'Practical guidance for meeting people online',
             () => _snack(context, 'Safety guide')),
         _SettingTile(
-            Icons.support_agent_rounded,
+            InIcons.help,
             'Get help',
             'Contact support about an urgent issue',
             () => _snack(context, 'Support request')),
@@ -509,8 +501,7 @@ class VerificationScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.verified_rounded,
-                    color: AppColors.primary, size: 36),
+                InIcon(InIcons.verified, color: AppColors.primary, size: 36),
                 SizedBox(height: 12),
                 Text('Build trust',
                     style: TextStyle(
@@ -526,17 +517,17 @@ class VerificationScreen extends StatelessWidget {
           ),
         ),
         _SettingTile(
-            Icons.phone_android_rounded,
+            InIcons.remote,
             'Phone verified',
             'Required for a secure account',
             () => _snack(context, 'Phone verification')),
         _SettingTile(
-            Icons.face_retouching_natural_rounded,
+            InIcons.spark,
             'Selfie verification',
             'Confirm you are the person in your profile',
             () => _snack(context, 'Selfie verification')),
         _SettingTile(
-            Icons.badge_rounded,
+            InIcons.badge,
             'Identity verification',
             'Optional KYC for advanced creator features',
             () => _snack(context, 'Identity verification')),
@@ -567,27 +558,27 @@ class CreatorStudioScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.auto_graph_rounded, color: AppColors.gold, size: 36),
+              InIcon(InIcons.chart, color: AppColors.gold, size: 36),
             ]),
           ),
         ),
         _SettingTile(
-            Icons.card_giftcard_rounded,
+            InIcons.gift,
             'Gifts & earnings',
             'Track gifts, room revenue and withdrawals',
             () => _snack(context, 'Creator earnings')),
         _SettingTile(
-            Icons.people_alt_rounded,
+            InIcons.users,
             'Subscribers',
             'Manage your subscriber community',
             () => _snack(context, 'Subscribers')),
         _SettingTile(
-            Icons.bar_chart_rounded,
+            InIcons.chart,
             'Analytics',
             'Views, retention, gifts and room performance',
             () => _snack(context, 'Creator analytics')),
         _SettingTile(
-            Icons.event_available_rounded,
+            InIcons.calendar,
             'Paid events',
             'Schedule premium experiences',
             () => _snack(context, 'Paid events')),
@@ -600,27 +591,24 @@ class RoomModerationScreen extends StatelessWidget {
   Widget build(BuildContext context) =>
       _SettingsScaffold(title: 'Room Moderation', children: [
         _SettingTile(
-            Icons.person_add_alt_1_rounded,
+            InIcons.useradd,
             'Co-hosts',
             'Give trusted people room controls',
             () => _snack(context, 'Co-host manager')),
         _SettingTile(
-            Icons.record_voice_over_rounded,
+            InIcons.mic,
             'Speaker queue',
             'Approve and manage speakers',
             () => _snack(context, 'Speaker queue')),
-        _SettingTile(
-            Icons.volume_off_rounded,
-            'Mute all',
-            'Quiet the room instantly',
+        _SettingTile(InIcons.mute, 'Mute all', 'Quiet the room instantly',
             () => _snack(context, 'Mute-all control')),
         _SettingTile(
-            Icons.gavel_rounded,
+            InIcons.doc,
             'Moderation',
             'Kick, ban, slow mode and keyword filters',
             () => _snack(context, 'Moderation controls')),
         _SettingTile(
-            Icons.flag_rounded,
+            InIcons.flame,
             'Report queue',
             'Review reports from your room',
             () => _snack(context, 'Report queue')),
@@ -633,15 +621,15 @@ class SecurityScreen extends StatelessWidget {
   Widget build(BuildContext context) =>
       _SettingsScaffold(title: 'Security', children: [
         _SettingTile(
-            Icons.devices_rounded,
+            InIcons.remote,
             'Active devices',
             'Review and sign out sessions',
             () => _snack(context, 'Device manager')),
-        _SettingTile(Icons.history_rounded, 'Login history',
-            'See recent sign-ins', () => _snack(context, 'Login history')),
+        _SettingTile(InIcons.undo, 'Login history', 'See recent sign-ins',
+            () => _snack(context, 'Login history')),
         const _SwitchTile('Two-step verification', false),
         _SettingTile(
-            Icons.logout_rounded,
+            InIcons.logout,
             'Sign out everywhere',
             'End all other sessions',
             () => _snack(context, 'All other sessions signed out')),
@@ -667,7 +655,7 @@ class _SettingsScaffold extends StatelessWidget {
 }
 
 class _SettingTile extends StatelessWidget {
-  final IconData icon;
+  final InIconData icon;
   final String title, subtitle;
   final VoidCallback onTap;
   const _SettingTile(this.icon, this.title, this.subtitle, this.onTap);
@@ -678,14 +666,13 @@ class _SettingTile extends StatelessWidget {
           onTap: onTap,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-          leading: Icon(icon, color: AppColors.textDim),
+          leading: InIcon(icon, color: AppColors.textDim),
           title: Text(title,
               style: const TextStyle(
                   color: AppColors.text, fontWeight: FontWeight.w700)),
           subtitle: Text(subtitle,
               style: const TextStyle(color: AppColors.textFaint, fontSize: 12)),
-          trailing: const Icon(Icons.chevron_right_rounded,
-              color: AppColors.textFaint),
+          trailing: const InIcon(InIcons.chev, color: AppColors.textFaint),
         ),
       );
 }

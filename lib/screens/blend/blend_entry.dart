@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
@@ -257,7 +258,7 @@ class BlendsRowState extends State<BlendsRow> {
               decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(color: AppColors.border)),
-              child: const Icon(Icons.movie_filter_outlined,
+              child: const InIcon(InIcons.blend,
                   color: AppColors.accent, size: 22),
             ),
             label: 'New Blend',

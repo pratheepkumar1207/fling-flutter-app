@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/api_client.dart';
@@ -184,7 +185,7 @@ class _RosterSheetState extends State<RosterSheet> {
                     IconButton(
                         visualDensity: VisualDensity.compact,
                         onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close_rounded,
+                        icon: const InIcon(InIcons.close,
                             color: AppColors.textFaint, size: 20)),
                   ],
                 ),
@@ -199,7 +200,7 @@ class _RosterSheetState extends State<RosterSheet> {
                       hintText: 'Search',
                       hintStyle: const TextStyle(
                           color: AppColors.textFaint, fontSize: 13),
-                      prefixIcon: const Icon(Icons.search_rounded,
+                      prefixIcon: const InIcon(InIcons.search,
                           color: AppColors.textFaint, size: 18),
                       contentPadding: const EdgeInsets.symmetric(vertical: 10),
                       filled: true,
@@ -244,8 +245,7 @@ class _RosterSheetState extends State<RosterSheet> {
                           Navigator.of(context).pop();
                           widget.onInvite!();
                         },
-                        icon: const Icon(Icons.person_add_alt_1_rounded,
-                            size: 18),
+                        icon: const InIcon(InIcons.useradd, size: 18),
                         label: const Text('Invite'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.accent,
@@ -335,16 +335,13 @@ class _RosterSheetState extends State<RosterSheet> {
                         if (isRowHost)
                           const Padding(
                             padding: EdgeInsets.only(right: 3),
-                            child: Icon(Icons.workspace_premium_rounded,
+                            child: InIcon(InIcons.crown,
                                 color: AppColors.gold, size: 12),
                           )
                         else if (onMic)
                           Padding(
                             padding: const EdgeInsets.only(right: 3),
-                            child: Icon(
-                                muted
-                                    ? Icons.mic_off_rounded
-                                    : Icons.mic_rounded,
+                            child: InIcon(muted ? InIcons.micoff : InIcons.mic,
                                 color: muted
                                     ? AppColors.textFaint
                                     : AppColors.success,
@@ -383,45 +380,42 @@ class _RosterSheetState extends State<RosterSheet> {
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints(minWidth: 180),
       iconSize: 20,
-      icon: const Icon(Icons.more_vert_rounded, color: AppColors.textDim),
+      icon: const InIcon(InIcons.more, color: AppColors.textDim),
       color: AppColors.surface,
       onSelected: (a) => _run(context, a, r),
       itemBuilder: (_) => [
-        _item(
-            _Action.follow,
-            following ? Icons.person_remove_rounded : Icons.person_add_rounded,
+        _item(_Action.follow, following ? InIcons.user : InIcons.useradd,
             following ? 'Unfollow' : 'Follow'),
-        _item(_Action.profile, Icons.person_rounded, 'View profile'),
-        _item(_Action.message, Icons.chat_bubble_rounded, 'Message'),
+        _item(_Action.profile, InIcons.user, 'View profile'),
+        _item(_Action.message, InIcons.chat, 'Message'),
         if (hostTools) ...[
           const PopupMenuDivider(),
           if (widget.roomType == 'game' &&
               widget.onInviteGame != null &&
               !widget.gamePlayerIds.contains(r.userId))
-            _item(_Action.inviteGame, Icons.sports_esports_rounded,
-                'Invite to play'),
+            _item(_Action.inviteGame, InIcons.game, 'Invite to play'),
           if (voice && !onMic && widget.onInviteMic != null)
-            _item(_Action.inviteMic, Icons.mic_rounded, 'Invite to mic'),
+            _item(_Action.inviteMic, InIcons.mic, 'Invite to mic'),
           if (voice && onMic && muted && widget.onForceUnmute != null)
-            _item(_Action.unmute, Icons.mic_rounded, 'Unmute mic'),
+            _item(_Action.unmute, InIcons.mic, 'Unmute mic'),
           if (voice && onMic && !muted && widget.onForceMute != null)
-            _item(_Action.mute, Icons.mic_off_rounded, 'Mute mic'),
-          _item(_Action.makeHost, Icons.workspace_premium_rounded, 'Make host'),
-          _item(_Action.remove, Icons.logout_rounded, 'Remove from room',
+            _item(_Action.mute, InIcons.micoff, 'Mute mic'),
+          _item(_Action.makeHost, InIcons.crown, 'Make host'),
+          _item(_Action.remove, InIcons.logout, 'Remove from room',
               danger: true),
         ],
       ],
     );
   }
 
-  PopupMenuItem<_Action> _item(_Action value, IconData icon, String label,
+  PopupMenuItem<_Action> _item(_Action value, InIconData icon, String label,
       {bool danger = false}) {
     final color = danger ? AppColors.danger : AppColors.text;
     return PopupMenuItem(
       value: value,
       child: Row(
         children: [
-          Icon(icon, size: 18, color: color),
+          InIcon(icon, size: 18, color: color),
           const SizedBox(width: 10),
           Text(label, style: TextStyle(color: color, fontSize: 13.5)),
         ],

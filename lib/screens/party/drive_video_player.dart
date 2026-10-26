@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -519,7 +520,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
                         decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.5),
                             shape: BoxShape.circle),
-                        child: const Icon(Icons.picture_in_picture_alt_rounded,
+                        child: const InIcon(InIcons.tv,
                             color: Colors.white, size: 16),
                       ),
                     ),
@@ -644,12 +645,12 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
                               IconButton(
                                 onPressed: () => setState(() =>
                                     _volumePopoverOpen = !_volumePopoverOpen),
-                                icon: Icon(
+                                icon: InIcon(
                                     _volume == 0
-                                        ? Icons.volume_off
+                                        ? InIcons.mute
                                         : (_volume < 50
-                                            ? Icons.volume_down
-                                            : Icons.volume_up),
+                                            ? InIcons.speaker
+                                            : InIcons.speaker),
                                     color: Colors.white,
                                     size: 18),
                                 padding: EdgeInsets.zero,
@@ -662,7 +663,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
                                   onTap: widget.onSkip,
                                   child: const Padding(
                                     padding: EdgeInsets.only(left: 8),
-                                    child: Icon(Icons.skip_next_rounded,
+                                    child: InIcon(InIcons.right,
                                         color: Colors.white, size: 20),
                                   ),
                                 )
@@ -674,7 +675,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.skip_next_rounded,
+                                        const InIcon(InIcons.right,
                                             color: Colors.white, size: 18),
                                         const SizedBox(width: 3),
                                         Text(

@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -461,8 +462,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         alignment: Alignment.center,
         child: Row(
           children: [
-            const Icon(Icons.lock_outline_rounded,
-                color: Colors.white70, size: 22),
+            const InIcon(InIcons.lock, color: Colors.white70, size: 22),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -517,7 +517,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         color: Colors.white,
         fontSize: 10.5,
         fontFeatures: [FontFeature.tabularFigures()]);
-    Widget icon(IconData i, String label, VoidCallback onTap,
+    Widget icon(InIconData i, String label, VoidCallback onTap,
             {double size = 24}) =>
         Semantics(
           button: true,
@@ -527,19 +527,17 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
             radius: size,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Icon(i, color: Colors.white, size: size),
+              child: InIcon(i, color: Colors.white, size: size),
             ),
           ),
         );
     final skip = widget.isHost && widget.onSkip != null
-        ? icon(Icons.skip_next_rounded, 'Next in queue', widget.onSkip!,
-            size: 20)
+        ? icon(InIcons.right, 'Next in queue', widget.onSkip!, size: 20)
         : (!widget.isHost && widget.onVoteSkip != null)
             ? GestureDetector(
                 onTap: widget.onVoteSkip,
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.skip_next_rounded,
-                      color: Colors.white, size: 18),
+                  const InIcon(InIcons.right, color: Colors.white, size: 18),
                   const SizedBox(width: 3),
                   Text('${widget.skipVoteCount}/${widget.skipVoteRequired}',
                       style: const TextStyle(
@@ -600,19 +598,17 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (widget.onSeek != null)
-                        icon(Icons.replay_10_rounded, 'Back 10 seconds',
+                        icon(InIcons.back10, 'Back 10 seconds',
                             () => _hostSeekTo(_elapsedSeconds - 10)),
                       icon(
-                          _isPlaying
-                              ? Icons.pause_circle_filled_rounded
-                              : Icons.play_circle_fill_rounded,
+                          _isPlaying ? InIcons.pause : InIcons.play,
                           _isPlaying
                               ? 'Pause for everyone'
                               : 'Play for everyone',
                           _hostTogglePlay,
                           size: 32),
                       if (widget.onSeek != null)
-                        icon(Icons.forward_10_rounded, 'Forward 10 seconds',
+                        icon(InIcons.forward10, 'Forward 10 seconds',
                             () => _hostSeekTo(_elapsedSeconds + 10)),
                     ],
                   ),
@@ -777,8 +773,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
                 decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.5),
                     shape: BoxShape.circle),
-                child: const Icon(Icons.fullscreen_rounded,
-                    color: Colors.white, size: 18),
+                child: const InIcon(InIcons.tv, color: Colors.white, size: 18),
               ),
             ),
           ),

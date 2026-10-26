@@ -1,3 +1,4 @@
+import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
@@ -39,7 +40,7 @@ class RoomPlayPauseButton extends StatelessWidget {
                 spreadRadius: 1),
           ],
         ),
-        child: Icon(playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+        child: InIcon(playing ? InIcons.pause : InIcons.play,
             color: Colors.white, size: 34),
       ),
     );

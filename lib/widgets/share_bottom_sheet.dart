@@ -1,3 +1,4 @@
+import '../theme/insync_icons.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -100,7 +101,7 @@ class _ShareBottomSheet extends StatelessWidget {
                             'https://t.me/share/url?url=$encodedUrl&text=$encodedText')),
                   ),
                   _AppTile(
-                    icon: const Icon(Icons.sms_rounded,
+                    icon: const InIcon(InIcons.chat,
                         color: AppColors.success, size: 24),
                     bgColor: AppColors.success,
                     label: 'Messages',
@@ -110,7 +111,7 @@ class _ShareBottomSheet extends StatelessWidget {
                             '${Platform.isIOS ? 'sms:&body=' : 'sms:?body='}$encodedText%20$encodedUrl')),
                   ),
                   _AppTile(
-                    icon: const Icon(Icons.email_rounded,
+                    icon: const InIcon(InIcons.mail,
                         color: AppColors.accent2, size: 24),
                     bgColor: AppColors.accent2,
                     label: 'Email',
@@ -122,7 +123,7 @@ class _ShareBottomSheet extends StatelessWidget {
                         })),
                   ),
                   _AppTile(
-                    icon: const Icon(Icons.more_horiz_rounded,
+                    icon: const InIcon(InIcons.more,
                         color: AppColors.textDim, size: 24),
                     bgColor: AppColors.textDim,
                     label: 'More',
@@ -146,7 +147,7 @@ class _ShareBottomSheet extends StatelessWidget {
                       decoration: const BoxDecoration(
                           color: AppColors.surface3, shape: BoxShape.circle),
                       alignment: Alignment.center,
-                      child: const Icon(Icons.link_rounded,
+                      child: const InIcon(InIcons.link,
                           color: AppColors.text, size: 20),
                     ),
                     const SizedBox(width: 14),

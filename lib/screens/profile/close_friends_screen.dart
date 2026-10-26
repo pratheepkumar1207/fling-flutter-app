@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
@@ -74,7 +75,7 @@ class _CloseFriendsScreenState extends State<CloseFriendsScreen> {
           IconButton(
               tooltip: 'Add people',
               onPressed: _add,
-              icon: const Icon(Icons.person_add_alt_1_rounded))
+              icon: const InIcon(InIcons.useradd))
         ],
       ),
       body: _loading
@@ -93,7 +94,7 @@ class _CloseFriendsScreenState extends State<CloseFriendsScreen> {
                     child: Center(
                       child: FilledButton.icon(
                         onPressed: _add,
-                        icon: const Icon(Icons.add),
+                        icon: const InIcon(InIcons.plus),
                         label: const Text('Add close friends'),
                         style: FilledButton.styleFrom(
                             backgroundColor: AppColors.success,

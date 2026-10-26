@@ -1,3 +1,4 @@
+import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
@@ -35,7 +36,7 @@ void showReportUserSheet(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.flag_rounded, color: AppColors.danger),
+              leading: const InIcon(InIcons.flame, color: AppColors.danger),
               title: const Text('Report This User',
                   style: TextStyle(
                       color: AppColors.text, fontWeight: FontWeight.w600)),
@@ -45,7 +46,7 @@ void showReportUserSheet(
               },
             ),
             ListTile(
-              leading: const Icon(Icons.block_rounded, color: AppColors.danger),
+              leading: const InIcon(InIcons.block, color: AppColors.danger),
               title: const Text('Block This User',
                   style: TextStyle(
                       color: AppColors.text, fontWeight: FontWeight.w600)),

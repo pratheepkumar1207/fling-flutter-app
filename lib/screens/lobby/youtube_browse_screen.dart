@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
@@ -353,7 +354,7 @@ class _PlaylistTile extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppColors.textFaint),
+            const InIcon(InIcons.chev, color: AppColors.textFaint),
           ],
         ),
       ),

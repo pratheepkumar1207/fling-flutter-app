@@ -1,3 +1,4 @@
+import '../theme/insync_icons.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -99,7 +100,7 @@ class _PhotoVerificationScreenState extends State<PhotoVerificationScreen> {
                         : Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.center_focus_weak_rounded,
+                              const InIcon(InIcons.target,
                                   color: AppColors.textFaint, size: 52),
                               const SizedBox(height: 12),
                               const Padding(
@@ -148,7 +149,7 @@ class _PhotoVerificationScreenState extends State<PhotoVerificationScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.schedule_rounded,
+                            InIcon(InIcons.calendar,
                                 color: statusInfo[1] as Color, size: 14),
                             const SizedBox(width: 8),
                             Text(statusInfo[0] as String,
@@ -231,8 +232,7 @@ class PhotoVerificationEntry extends StatelessWidget {
             border: Border.all(color: AppColors.border)),
         child: Row(
           children: [
-            const Icon(Icons.face_retouching_natural_rounded,
-                color: AppColors.primary, size: 20),
+            const InIcon(InIcons.spark, color: AppColors.primary, size: 20),
             const SizedBox(width: 12),
             const Expanded(
                 child: Text('Photo verification',
@@ -246,8 +246,7 @@ class PhotoVerificationEntry extends StatelessWidget {
                     fontSize: 12,
                     fontWeight: FontWeight.w600)),
             const SizedBox(width: 4),
-            const Icon(Icons.chevron_right_rounded,
-                color: AppColors.textFaint, size: 18),
+            const InIcon(InIcons.chev, color: AppColors.textFaint, size: 18),
           ],
         ),
       ),

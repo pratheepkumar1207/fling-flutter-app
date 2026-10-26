@@ -1,3 +1,4 @@
+import '../theme/insync_icons.dart';
 import 'package:video_player/video_player.dart';
 import 'package:flutter/material.dart';
 import '../core/api_client.dart';
@@ -12,7 +13,7 @@ import 'share_row.dart';
 // Toggling "on" fills the icon and adds a glow instead of a background
 // swap, so the button never looks like a flat colored chip.
 class _ReelIconButton extends StatelessWidget {
-  final IconData icon;
+  final InIconData icon;
   final bool active;
   final Color activeColor;
   final VoidCallback onTap;
@@ -40,7 +41,7 @@ class _ReelIconButton extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
+              InIcon(
                 icon,
                 size: 29,
                 color: active ? activeColor : Colors.white,
@@ -184,8 +185,8 @@ class _ReelCardState extends State<_ReelCard>
                         child: VideoPlayer(c)),
                   )
                 : const Center(
-                    child: Icon(Icons.movie_outlined,
-                        size: 48, color: Colors.white24)),
+                    child:
+                        InIcon(InIcons.film, size: 48, color: Colors.white24)),
           ),
           Center(
             child: AnimatedBuilder(
@@ -197,8 +198,8 @@ class _ReelCardState extends State<_ReelCard>
                   opacity: t < 0.7 ? 1 : (1 - (t - 0.7) / 0.3).clamp(0, 1),
                   child: Transform.scale(
                     scale: t < 0.3 ? Curves.easeOutBack.transform(t / 0.3) : 1,
-                    child: const Icon(Icons.favorite_rounded,
-                        color: Colors.white, size: 100),
+                    child: const InIcon(InIcons.heart,
+                        filled: true, color: Colors.white, size: 100),
                   ),
                 );
               },
@@ -210,8 +211,7 @@ class _ReelCardState extends State<_ReelCard>
             const Positioned(
               top: 70,
               right: 14,
-              child: Icon(Icons.volume_off_rounded,
-                  color: Colors.white70, size: 20),
+              child: InIcon(InIcons.mute, color: Colors.white70, size: 20),
             ),
           // Right rail.
           Positioned(
@@ -220,9 +220,7 @@ class _ReelCardState extends State<_ReelCard>
             child: Column(
               children: [
                 _ReelIconButton(
-                  icon: post.likedByMe
-                      ? Icons.favorite_rounded
-                      : Icons.favorite_border_rounded,
+                  icon: post.likedByMe ? InIcons.heart : InIcons.heart,
                   active: post.likedByMe,
                   activeColor: const Color(0xFFFF5C8A),
                   onTap: () => widget.onLike(post),
@@ -230,7 +228,7 @@ class _ReelCardState extends State<_ReelCard>
                   semantics: post.likedByMe ? 'Unlike' : 'Like',
                 ),
                 _ReelIconButton(
-                  icon: Icons.mode_comment_outlined,
+                  icon: InIcons.comment,
                   onTap: () => widget.onOpenComments(post),
                   label: '${post.commentsCount}',
                   semantics: 'Comments',
@@ -238,9 +236,7 @@ class _ReelCardState extends State<_ReelCard>
                 ShareRow(
                     text: post.text, url: '${ApiClient.baseUrl}/p/${post.id}'),
                 _ReelIconButton(
-                  icon: post.savedByMe
-                      ? Icons.bookmark_rounded
-                      : Icons.bookmark_border_rounded,
+                  icon: post.savedByMe ? InIcons.bookmark : InIcons.bookmark,
                   active: post.savedByMe,
                   activeColor: AppColors.gold,
                   onTap: () => widget.onSave(post),
@@ -324,7 +320,7 @@ class _ReelCardState extends State<_ReelCard>
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.music_note_rounded,
+                            const InIcon(InIcons.music,
                                 color: Colors.white, size: 13),
                             const SizedBox(width: 4),
                             Flexible(
@@ -346,7 +342,7 @@ class _ReelCardState extends State<_ReelCard>
           ),
           if (_held)
             const Center(
-              child: Icon(Icons.pause_rounded, color: Colors.white54, size: 64),
+              child: InIcon(InIcons.pause, color: Colors.white54, size: 64),
             ),
           // Thin progress line along the bottom edge.
           if (c != null && c.value.isInitialized)
@@ -500,8 +496,7 @@ class _ReelsScreenState extends State<ReelsScreen> {
                   IconButton(
                     tooltip: 'Back',
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.arrow_back_rounded,
-                        color: Colors.white),
+                    icon: const InIcon(InIcons.back, color: Colors.white),
                   ),
                   const Text('Reels',
                       style: TextStyle(
@@ -512,8 +507,7 @@ class _ReelsScreenState extends State<ReelsScreen> {
                   IconButton(
                     tooltip: 'New reel',
                     onPressed: widget.onCreate,
-                    icon:
-                        const Icon(Icons.add_box_outlined, color: Colors.white),
+                    icon: const InIcon(InIcons.plus, color: Colors.white),
                   ),
                 ],
               ),

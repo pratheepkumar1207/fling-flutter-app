@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
@@ -293,7 +294,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 16),
               if (_gam != null) ...[
                 _navRow(
-                    icon: Icons.redeem_rounded,
+                    icon: InIcons.gift,
                     label: 'Claim daily bonus',
                     onTap: () {
                       Navigator.of(sheet).pop();
@@ -302,7 +303,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 8),
               ],
               _navRow(
-                  icon: Icons.bookmark_rounded,
+                  icon: InIcons.bookmark,
                   label: 'Saved posts',
                   onTap: () => _openFromMenu(
                       sheet,
@@ -310,7 +311,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           builder: (_) => const SavedPostsScreen()))),
               const SizedBox(height: 8),
               _navRow(
-                  icon: Icons.archive_outlined,
+                  icon: InIcons.archive,
                   label: 'Archive',
                   onTap: () => _openFromMenu(
                       sheet,
@@ -318,7 +319,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           builder: (_) => const ArchiveScreen()))),
               const SizedBox(height: 8),
               _navRow(
-                  icon: Icons.stars_rounded,
+                  icon: InIcons.star,
                   label: 'Close friends',
                   onTap: () => _openFromMenu(
                       sheet,
@@ -326,7 +327,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           builder: (_) => const CloseFriendsScreen()))),
               const SizedBox(height: 8),
               _navRow(
-                  icon: Icons.view_agenda_outlined,
+                  icon: InIcons.feed,
                   label: 'Arrange profile',
                   onTap: () {
                     Navigator.of(sheet).pop();
@@ -334,7 +335,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   }),
               const SizedBox(height: 8),
               _navRow(
-                  icon: Icons.lock_outline_rounded,
+                  icon: InIcons.lock,
                   label: 'Privacy',
                   onTap: () => _openFromMenu(
                       sheet,
@@ -342,7 +343,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           builder: (_) => const PrivacyScreen()))),
               const SizedBox(height: 8),
               _navRow(
-                  icon: Icons.person_add_alt_1_rounded,
+                  icon: InIcons.useradd,
                   label: 'Invite friends',
                   onTap: () => _openFromMenu(
                       sheet,
@@ -496,7 +497,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.sensors_rounded, color: AppColors.success, size: 18),
+          const InIcon(InIcons.live, color: AppColors.success, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text('You\'re in ${room['title'] ?? 'a room'}',
@@ -552,7 +553,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ],
                               glowColor:
                                   AppColors.danger.withValues(alpha: 0.4),
-                              child: const Icon(Icons.close,
+                              child: const InIcon(InIcons.close,
                                   size: 14, color: Colors.white),
                             ),
                           ),
@@ -658,7 +659,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           IconButton(
             tooltip: 'Menu',
             onPressed: _openMenu,
-            icon: const Icon(Icons.menu_rounded, color: AppColors.text),
+            icon: const InIcon(InIcons.menu, color: AppColors.text),
           ),
         ],
       ),
@@ -692,7 +693,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         tabs: [
                           for (final t in tabs)
                             Tab(
-                                icon: Icon(ProfileLayout.icon(t),
+                                icon: InIcon(ProfileLayout.icon(t),
                                     semanticLabel: ProfileLayout.label(t))),
                         ],
                       )),
@@ -903,7 +904,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     decoration: BoxDecoration(
                         color: AppColors.surface2,
                         borderRadius: BorderRadius.circular(12)),
-                    child: const Icon(Icons.view_agenda_outlined,
+                    child: const InIcon(InIcons.feed,
                         color: AppColors.textDim, size: 18),
                   ),
                 ),
@@ -1012,7 +1013,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
 
   Widget _navRow(
-          {required IconData icon,
+          {required InIconData icon,
           required String label,
           required VoidCallback onTap}) =>
       GestureDetector(
@@ -1022,7 +1023,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           decoration: insyncClay(radius: 22),
           child: Row(
             children: [
-              Icon(icon, color: AppColors.accent, size: 19),
+              InIcon(icon, color: AppColors.accent, size: 19),
               const SizedBox(width: 12),
               Expanded(
                   child: Text(label,
@@ -1030,8 +1031,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           color: AppColors.text,
                           fontWeight: FontWeight.w600,
                           fontSize: 13.5))),
-              const Icon(Icons.chevron_right_rounded,
-                  color: AppColors.textFaint, size: 20),
+              const InIcon(InIcons.chev, color: AppColors.textFaint, size: 20),
             ],
           ),
         ),
@@ -1095,7 +1095,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       style: const TextStyle(
                           color: AppColors.text, fontWeight: FontWeight.w600))),
               IconButton(
-                icon: const Icon(Icons.add_circle_outline,
+                icon: const InIcon(InIcons.plus,
                     color: AppColors.primary, size: 20),
                 tooltip: 'Add song',
                 visualDensity: VisualDensity.compact,
@@ -1159,7 +1159,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   decoration: const BoxDecoration(
                                       color: Colors.black54,
                                       shape: BoxShape.circle),
-                                  child: const Icon(Icons.close,
+                                  child: const InIcon(InIcons.close,
                                       size: 10, color: Colors.white),
                                 ),
                               ),

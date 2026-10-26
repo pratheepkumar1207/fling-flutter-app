@@ -1,3 +1,4 @@
+import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
@@ -112,7 +113,7 @@ class _PollCreatorSheetState extends State<_PollCreatorSheet> {
                         const SizedBox(width: 8),
                         GestureDetector(
                           onTap: () => _removeOption(i),
-                          child: Icon(Icons.close_rounded,
+                          child: InIcon(InIcons.close,
                               color: AppColors.textFaint, size: 18),
                         ),
                       ],

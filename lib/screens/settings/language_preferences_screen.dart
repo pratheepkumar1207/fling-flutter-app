@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
 import 'package:provider/provider.dart';
@@ -141,8 +142,7 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
                       width: 2)),
               alignment: Alignment.center,
               child: selected
-                  ? const Icon(Icons.check_rounded,
-                      color: Colors.white, size: 13)
+                  ? const InIcon(InIcons.check, color: Colors.white, size: 13)
                   : null,
             ),
           ],

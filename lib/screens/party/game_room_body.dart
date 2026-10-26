@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/room_themes.dart';
@@ -62,7 +63,7 @@ class _GameRoomBodyState extends State<GameRoomBody> {
           height: 34,
           decoration: BoxDecoration(
               color: AppColors.accent, borderRadius: BorderRadius.circular(10)),
-          child: const Icon(Icons.add_rounded, color: AppColors.ink, size: 22),
+          child: const InIcon(InIcons.plus, color: AppColors.ink, size: 22),
         ),
       ),
     );
@@ -85,7 +86,7 @@ class _GameRoomBodyState extends State<GameRoomBody> {
                     alignment: Alignment.centerLeft,
                     child: const Row(
                       children: [
-                        Icon(Icons.music_note_rounded,
+                        InIcon(InIcons.music,
                             size: 18, color: AppColors.textFaint),
                         SizedBox(width: 8),
                         Flexible(
@@ -133,8 +134,7 @@ class _GameRoomBodyState extends State<GameRoomBody> {
           ),
           child: Row(
             children: [
-              const Icon(Icons.chat_bubble_outline_rounded,
-                  size: 18, color: AppColors.textDim),
+              const InIcon(InIcons.chat, size: 18, color: AppColors.textDim),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(preview,
@@ -158,8 +158,7 @@ class _GameRoomBodyState extends State<GameRoomBody> {
                           fontWeight: FontWeight.w700)),
                 ),
               const SizedBox(width: 4),
-              const Icon(Icons.keyboard_arrow_up_rounded,
-                  color: AppColors.textDim),
+              const InIcon(InIcons.arrowup, color: AppColors.textDim),
             ],
           ),
         ),

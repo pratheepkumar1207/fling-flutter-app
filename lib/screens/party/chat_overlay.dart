@@ -457,17 +457,17 @@ class _NowPlayingChatCard extends StatelessWidget {
       this.pinnerName,
       this.pinnerAvatar});
 
-  static (IconData, Color) _sourceIcon(String? sourceType) {
+  static (InIconData, Color) _sourceIcon(String? sourceType) {
     if (sourceType == 'youtube') {
-      return (Icons.smart_display_rounded, const Color(0xFFFF3B30));
+      return (InIcons.tv, const Color(0xFFFF3B30));
     }
     if (sourceType == 'drive') {
-      return (Icons.cloud_rounded, const Color(0xFF4285F4));
+      return (InIcons.cloud, const Color(0xFF4285F4));
     }
     if (sourceType != null && webviewSourceTypes.contains(sourceType)) {
-      return (Icons.live_tv_rounded, Colors.white70);
+      return (InIcons.tv, Colors.white70);
     }
-    return (Icons.play_circle_rounded, Colors.white70);
+    return (InIcons.play, Colors.white70);
   }
 
   @override
@@ -493,7 +493,7 @@ class _NowPlayingChatCard extends StatelessWidget {
                     width: 32, height: 32, fit: BoxFit.cover),
               ),
             if (hasPinner || thumbnail != null) const SizedBox(width: 8),
-            Icon(sourceIcon, size: 16, color: sourceColor),
+            InIcon(sourceIcon, size: 16, color: sourceColor),
             const SizedBox(width: 6),
             Expanded(
               child: Text(

@@ -1,3 +1,4 @@
+import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 
 /// Flanks RoomPlayPauseButton left/right (previous/next) — same
@@ -20,8 +21,8 @@ class RoomSkipButton extends StatelessWidget {
         height: 44,
         decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: 0.4), shape: BoxShape.circle),
-        child: Icon(
-          forward ? Icons.skip_next_rounded : Icons.skip_previous_rounded,
+        child: InIcon(
+          forward ? InIcons.right : InIcons.back,
           color: enabled ? Colors.white : Colors.white38,
           size: 24,
         ),

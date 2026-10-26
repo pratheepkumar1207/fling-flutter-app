@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'dart:collection';
 import 'dart:async';
 import 'dart:convert';
@@ -715,8 +716,8 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                               color: Colors.black.withValues(alpha: 0.5),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
-                              Icons.picture_in_picture_alt_rounded,
+                            child: const InIcon(
+                              InIcons.tv,
                               color: Colors.white,
                               size: 16,
                             ),
@@ -779,8 +780,8 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                               color: Colors.black.withValues(alpha: 0.5),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
-                              Icons.fullscreen_rounded,
+                            child: const InIcon(
+                              InIcons.tv,
                               color: Colors.white,
                               size: 18,
                             ),
@@ -933,12 +934,12 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                                       () => _volumePopoverOpen =
                                           !_volumePopoverOpen,
                                     ),
-                                    icon: Icon(
+                                    icon: InIcon(
                                       _volume == 0
-                                          ? Icons.volume_off
+                                          ? InIcons.mute
                                           : (_volume < 50
-                                              ? Icons.volume_down
-                                              : Icons.volume_up),
+                                              ? InIcons.speaker
+                                              : InIcons.speaker),
                                       color: Colors.white,
                                       size: 18,
                                     ),
@@ -954,7 +955,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                                       onTap: widget.onSkip,
                                       child: const Padding(
                                         padding: EdgeInsets.only(left: 8),
-                                        child: Icon(Icons.skip_next_rounded,
+                                        child: InIcon(InIcons.right,
                                             color: Colors.white, size: 20),
                                       ),
                                     )
@@ -966,7 +967,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            const Icon(Icons.skip_next_rounded,
+                                            const InIcon(InIcons.right,
                                                 color: Colors.white, size: 18),
                                             const SizedBox(width: 3),
                                             Text(

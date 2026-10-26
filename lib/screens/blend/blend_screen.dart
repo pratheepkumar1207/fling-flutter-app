@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -459,8 +460,7 @@ class _BlendScreenState extends State<BlendScreen> {
             IconButton(
               tooltip: 'Close',
               onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                  color: Colors.white, size: 28),
+              icon: const InIcon(InIcons.down, color: Colors.white, size: 28),
             ),
             SizedBox(
               width: 24.0 + 16 * (faces.take(3).length - 1).clamp(0, 2),
@@ -518,7 +518,7 @@ class _BlendScreenState extends State<BlendScreen> {
             IconButton(
               tooltip: 'Blend settings',
               onPressed: _openSettings,
-              icon: const Icon(Icons.tune_rounded, color: Colors.white),
+              icon: const InIcon(InIcons.tune, color: Colors.white),
             ),
           ],
         ),
@@ -581,15 +581,14 @@ class _BlendScreenState extends State<BlendScreen> {
               IconButton(
                 tooltip: _paused ? 'Play' : 'Pause',
                 onPressed: _togglePause,
-                icon: Icon(
-                    _paused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                icon: InIcon(_paused ? InIcons.play : InIcons.pause,
                     color: Colors.white),
               ),
             if (blend.micEnabled)
               IconButton(
                 tooltip: _micOn ? 'Mute mic' : 'Talk',
                 onPressed: _toggleMic,
-                icon: Icon(_micOn ? Icons.mic_rounded : Icons.mic_off_rounded,
+                icon: InIcon(_micOn ? InIcons.mic : InIcons.micoff,
                     color: _micOn ? AppColors.success : Colors.white),
               ),
           ],

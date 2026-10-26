@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
@@ -123,7 +124,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                             child: unlocked
                                 ? Text(a['icon'] as String? ?? '🏅',
                                     style: const TextStyle(fontSize: 24))
-                                : Icon(Icons.lock_rounded,
+                                : InIcon(InIcons.lock,
                                     color: AppColors.textFaint, size: 20),
                           ),
                           const SizedBox(height: 6),

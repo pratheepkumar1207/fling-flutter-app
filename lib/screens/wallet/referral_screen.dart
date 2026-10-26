@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
 import 'package:flutter/services.dart';
@@ -128,7 +129,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                       ],
                     ),
                     alignment: Alignment.center,
-                    child: const Icon(Icons.people_alt_rounded,
+                    child: const InIcon(InIcons.users,
                         color: Colors.white, size: 32),
                   ),
                 ),
@@ -208,7 +209,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(color: AppColors.border)),
                         alignment: Alignment.center,
-                        child: const Icon(Icons.copy_rounded,
+                        child: const InIcon(InIcons.link,
                             color: AppColors.textDim, size: 18),
                       ),
                     ),

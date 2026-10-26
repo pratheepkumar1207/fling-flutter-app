@@ -94,7 +94,7 @@ BoxDecoration glowRingDecoration({required Color color, double radius = 999}) {
 /// it sits on a saturated gradient, not the page background).
 ///
 /// Usage: `GlassIcon(colors: [Color(0xFF...), Color(0xFF...)], glowColor:
-/// Color(0x..), size: 34, radius: 11, child: Icon(Icons.favorite,
+/// Color(0x..), size: 34, radius: 11, child: InIcon(InIcons.heart, filled: true,
 /// color: Colors.white, size: 16))`
 class GlassIcon extends StatelessWidget {
   final Widget child;

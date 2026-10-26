@@ -4,6 +4,7 @@ import '../../core/api_client.dart';
 import '../../core/format.dart';
 import '../../models/notification_item.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/insync_icons.dart';
 import '../../widgets/spinner.dart';
 import 'notification_actions.dart';
 
@@ -140,8 +141,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   shape: BoxShape.circle,
                   gradient: LinearGradient(colors: notificationColors(n.type))),
               alignment: Alignment.center,
-              child:
-                  Icon(notificationIcon(n.type), color: Colors.white, size: 17),
+              child: InIcon(notificationIcon(n.type),
+                  color: Colors.white, size: 17),
             ),
             const SizedBox(width: 12),
             Expanded(

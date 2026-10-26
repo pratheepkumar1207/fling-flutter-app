@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../core/format.dart';
 import '../../widgets/insync_clay.dart';
@@ -229,8 +230,8 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                         top: 10,
                         left: 6,
                         child: IconButton(
-                            icon: const Icon(Icons.arrow_back,
-                                color: Colors.white),
+                            icon:
+                                const InIcon(InIcons.back, color: Colors.white),
                             onPressed: () => Navigator.of(context).pop()),
                       ),
                       if (isOwner)
@@ -238,8 +239,8 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                           top: 10,
                           right: 6,
                           child: PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert_rounded,
-                                color: Colors.white),
+                            icon:
+                                const InIcon(InIcons.more, color: Colors.white),
                             color: AppColors.surface2,
                             onSelected: (v) {
                               if (v == 'boost') _boost();
@@ -411,7 +412,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
-                      const Icon(Icons.push_pin_rounded,
+                      const InIcon(InIcons.pin,
                           size: 12, color: AppColors.gold),
                       const SizedBox(width: 6),
                       Text('Pinned',
@@ -481,8 +482,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                 borderRadius: BorderRadius.circular(14)),
             child: Row(
               children: [
-                const Icon(Icons.videocam_rounded,
-                    color: AppColors.textDim, size: 20),
+                const InIcon(InIcons.video, color: AppColors.textDim, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -532,8 +532,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.forum_outlined,
-                color: AppColors.textFaint, size: 36),
+            const InIcon(InIcons.chat, color: AppColors.textFaint, size: 36),
             const SizedBox(height: 12),
             const Text('Chat happens in the voice room',
                 textAlign: TextAlign.center,

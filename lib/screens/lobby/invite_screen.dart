@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -192,8 +193,7 @@ class _InviteScreenState extends State<InviteScreen>
                     : Border.all(color: AppColors.border, width: 1.5),
               ),
               child: selected
-                  ? const Icon(Icons.check_rounded,
-                      color: Colors.white, size: 15)
+                  ? const InIcon(InIcons.check, color: Colors.white, size: 15)
                   : null,
             ),
           ],
@@ -249,7 +249,7 @@ class _InviteScreenState extends State<InviteScreen>
           IconButton(
             tooltip: _searching ? 'Close search' : 'Search people',
             onPressed: _toggleSearch,
-            icon: Icon(_searching ? Icons.close : Icons.search,
+            icon: InIcon(_searching ? InIcons.close : InIcons.search,
                 color: AppColors.textDim),
           ),
         ],

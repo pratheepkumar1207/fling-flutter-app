@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
@@ -75,8 +76,7 @@ class _RandomMatchScreenState extends State<RandomMatchScreen> {
         title: const InsyncPageTitle('🎲 Random Match'),
         actions: [
           PopupMenuButton<String?>(
-            icon:
-                const Icon(Icons.filter_alt_outlined, color: AppColors.textDim),
+            icon: const InIcon(InIcons.tune, color: AppColors.textDim),
             color: AppColors.surface2,
             onSelected: (v) {
               setState(() => _gender = v);

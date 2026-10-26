@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -188,42 +189,42 @@ class OttSyncPanelState extends State<OttSyncPanel>
   @override
   Widget build(BuildContext context) {
     final (
-      IconData icon,
+      InIconData icon,
       String title,
       String? sub,
       String? action,
       VoidCallback? onAction
     ) = switch (_step) {
       _Step.checking => (
-          Icons.hourglass_empty_rounded,
+          InIcons.calendar,
           'Getting ${widget.label} ready…',
           null,
           null,
           null
         ),
       _Step.unsupported => (
-          Icons.open_in_new_rounded,
+          InIcons.link,
           '${widget.label} plays in its own app',
           'Press play there too. This room keeps time and chat.',
           'Open',
           _openTitle
         ),
       _Step.install => (
-          Icons.download_rounded,
+          InIcons.arrowdn,
           'Get the ${widget.label} app',
           'It plays in its own app, synced with this room.',
           'Install',
           _install
         ),
       _Step.allow => (
-          Icons.settings_remote_rounded,
+          InIcons.remote,
           'Let Insync play/pause ${widget.label}',
           'One-time Android permission: turn on Insync under Notification access.',
           'Allow',
           OttRemote.openAccessSettings
         ),
       _Step.open => (
-          Icons.play_circle_outline_rounded,
+          InIcons.play,
           'Open the title in ${widget.label}',
           widget.isHost
               ? 'Sign in if it asks, then play. Everyone follows you.'
@@ -233,7 +234,7 @@ class OttSyncPanelState extends State<OttSyncPanel>
         ),
       _Step.synced => widget.isHost
           ? (
-              Icons.sync_rounded,
+              InIcons.sync,
               'Synced to your ${widget.label}',
               widget.statuses.isEmpty
                   ? 'Your play, pause and jumps move everyone.'
@@ -242,9 +243,7 @@ class OttSyncPanelState extends State<OttSyncPanel>
               _showPeople
             )
           : (
-              _offset.abs() <= _tolerance
-                  ? Icons.check_circle_outline_rounded
-                  : Icons.sync_problem_rounded,
+              _offset.abs() <= _tolerance ? InIcons.check : InIcons.info,
               _offset.abs() <= _tolerance
                   ? 'In sync with the host'
                   : '${_offset.abs().round()}s ${_offset < 0 ? 'behind' : 'ahead'}${(_local?.canSeek ?? false) ? ' · fixing' : ''}',
@@ -262,7 +261,7 @@ class OttSyncPanelState extends State<OttSyncPanel>
       alignment: Alignment.center,
       child: Row(
         children: [
-          Icon(icon, color: Colors.white70, size: 22),
+          InIcon(icon, color: Colors.white70, size: 22),
           const SizedBox(width: 10),
           Expanded(
             child: Column(

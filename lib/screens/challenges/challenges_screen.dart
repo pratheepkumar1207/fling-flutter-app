@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
 import 'package:provider/provider.dart';
@@ -18,16 +19,10 @@ const _scopeLabels = {
 // ChallengesDark.dc.html's colorful icon squares — cycles by index since
 // challenges don't carry a "type" field to key off of.
 const _kChallengeStyles = [
-  (icon: Icons.star_rounded, colors: [Color(0xFFE0836B), Color(0xFFB8422C)]),
-  (
-    icon: Icons.card_giftcard_rounded,
-    colors: [Color(0xFF6ED9A0), Color(0xFF2E9B5F)]
-  ),
-  (icon: Icons.bolt_rounded, colors: [Color(0xFFDBB155), Color(0xFFB98A3D)]),
-  (
-    icon: Icons.emoji_events_rounded,
-    colors: [Color(0xFF7FA8D9), Color(0xFF4272D9)]
-  ),
+  (icon: InIcons.star, colors: [Color(0xFFE0836B), Color(0xFFB8422C)]),
+  (icon: InIcons.gift, colors: [Color(0xFF6ED9A0), Color(0xFF2E9B5F)]),
+  (icon: InIcons.flame, colors: [Color(0xFFDBB155), Color(0xFFB98A3D)]),
+  (icon: InIcons.trophy, colors: [Color(0xFF7FA8D9), Color(0xFF4272D9)]),
 ];
 
 class ChallengesScreen extends StatefulWidget {
@@ -101,8 +96,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.monetization_on_rounded,
-                        color: AppColors.gold, size: 13),
+                    const InIcon(InIcons.cash, color: AppColors.gold, size: 13),
                     const SizedBox(width: 5),
                     Text(formatNumber(coinBalance),
                         style: const TextStyle(
@@ -157,8 +151,8 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
                                         colors: style.colors),
                               ),
                               alignment: Alignment.center,
-                              child: Icon(
-                                  claimed ? Icons.check_rounded : style.icon,
+                              child: InIcon(
+                                  claimed ? InIcons.check : style.icon,
                                   color: claimed
                                       ? AppColors.success
                                       : Colors.white,

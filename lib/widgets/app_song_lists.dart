@@ -1,3 +1,4 @@
+import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../core/api_client.dart';
 import '../core/api_exception.dart';
@@ -296,7 +297,7 @@ class _AppPlaylistsTabState extends State<AppPlaylistsTab> {
                         onShuffle: () =>
                             widget.onAddAll!([...p.songs]..shuffle()),
                       ),
-                      const Icon(Icons.expand_more, color: AppColors.textDim),
+                      const InIcon(InIcons.down, color: AppColors.textDim),
                     ],
                   )
                 : null,
@@ -502,7 +503,7 @@ class _YoutubePlaylistTileState extends State<_YoutubePlaylistTile> {
                         onPlay: () => _addAll(),
                         onShuffle: () => _addAll(shuffle: true),
                       ),
-                const Icon(Icons.expand_more, color: AppColors.textDim),
+                const InIcon(InIcons.down, color: AppColors.textDim),
               ],
             )
           : null,
@@ -554,15 +555,14 @@ class _PlayAllButtons extends StatelessWidget {
           tooltip: 'Play all',
           visualDensity: VisualDensity.compact,
           onPressed: onPlay,
-          icon: const Icon(Icons.play_circle_fill_rounded,
-              color: AppColors.accent, size: 26),
+          icon: const InIcon(InIcons.play,
+              filled: true, color: AppColors.accent, size: 26),
         ),
         IconButton(
           tooltip: 'Shuffle',
           visualDensity: VisualDensity.compact,
           onPressed: onShuffle,
-          icon: const Icon(Icons.shuffle_rounded,
-              color: AppColors.textDim, size: 22),
+          icon: const InIcon(InIcons.swap, color: AppColors.textDim, size: 22),
         ),
       ],
     );

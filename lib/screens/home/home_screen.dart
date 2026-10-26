@@ -276,7 +276,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: EdgeInsets.all(32),
                 child: Center(child: CircularProgressIndicator()))
           else if (_roomsLoadFailed && active.isEmpty)
-            _actionRow(Icons.cloud_off_outlined, 'Could not load rooms',
+            _actionRow(InIcons.cloud, 'Could not load rooms',
                 'Tap to try again', () => _load())
           else if (active.isEmpty)
             _EmptyRooms(onCreate: _createRoom)
@@ -307,7 +307,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   .map((s) => Song.fromJson(s as Map<String, dynamic>))
                   .toList();
               return _actionRow(
-                  Icons.queue_music_rounded,
+                  InIcons.queue,
                   p['name'] as String? ?? 'Saved playlist',
                   '${songs.length} tracks · Your saved collection',
                   () => playPlaylistSmart(context, songs));
@@ -315,7 +315,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
           const SizedBox(height: 12),
           _actionRow(
-              Icons.explore_outlined,
+              InIcons.globe,
               'More ways to connect',
               'Vibe Match, communities & your creator space',
               () => Navigator.of(context).push(MaterialPageRoute(
@@ -350,7 +350,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ]);
 
   Widget _actionRow(
-          IconData icon, String title, String subtitle, VoidCallback onTap) =>
+          InIconData icon, String title, String subtitle, VoidCallback onTap) =>
       Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Material(
@@ -361,7 +361,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(16)),
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  leading: Icon(icon, color: AppColors.primary),
+                  leading: InIcon(icon, color: AppColors.primary),
                   title: Text(title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -373,7 +373,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           .textTheme
                           .bodySmall
                           ?.copyWith(color: AppColors.textDim)),
-                  trailing: const Icon(Icons.arrow_forward_rounded, size: 18),
+                  trailing: const InIcon(InIcons.chev, size: 18),
                   onTap: onTap)));
 }
 

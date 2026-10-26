@@ -1,3 +1,4 @@
+import 'package:fling/theme/insync_icons.dart';
 import 'package:fling/models/room_models.dart';
 import 'package:fling/screens/party/chat_overlay.dart';
 import 'package:fling/widgets/avatar.dart';
@@ -47,7 +48,7 @@ void main() {
     ]));
     expect(find.text('Now playing'), findsNothing);
     expect(find.text('Big Buck Bunny'), findsOneWidget);
-    expect(find.byIcon(Icons.smart_display_rounded), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => w is InIcon && w.icon == InIcons.tv), findsOneWidget);
     expect(find.byType(Avatar), findsOneWidget);
     expect(find.text('QT'), findsOneWidget);
   });
@@ -67,7 +68,7 @@ void main() {
       RosterEntry(userId: 'u2', name: 'Asha Rao'),
     ]));
     expect(find.text('Some Film'), findsOneWidget);
-    expect(find.byIcon(Icons.live_tv_rounded), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => w is InIcon && w.icon == InIcons.tv), findsOneWidget);
     expect(find.text('AR'), findsOneWidget);
   });
 
@@ -83,6 +84,6 @@ void main() {
     ]));
     expect(find.text('Old Song'), findsOneWidget);
     expect(find.byType(Avatar), findsNothing);
-    expect(find.byIcon(Icons.cloud_rounded), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => w is InIcon && w.icon == InIcons.cloud), findsOneWidget);
   });
 }

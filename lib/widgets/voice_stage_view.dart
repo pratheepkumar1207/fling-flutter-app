@@ -1,3 +1,4 @@
+import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../core/profile_nav.dart';
 import '../models/room_models.dart';
@@ -200,7 +201,7 @@ class VoiceStageView extends StatelessWidget {
                                         width: 1.5,
                                         style: BorderStyle.solid)),
                                 alignment: Alignment.center,
-                                child: const Icon(Icons.add_rounded,
+                                child: const InIcon(InIcons.plus,
                                     color: VolaPartyColors.textFaint, size: 20),
                               ),
                         if (isHost && p != null && uid != hostId)
@@ -219,7 +220,7 @@ class VoiceStageView extends StatelessWidget {
                                         color: RoomTheme.of(context).surface,
                                         width: 2)),
                                 alignment: Alignment.center,
-                                child: const Icon(Icons.close,
+                                child: const InIcon(InIcons.close,
                                     size: 10, color: Colors.white),
                               ),
                             ),

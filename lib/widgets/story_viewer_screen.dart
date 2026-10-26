@@ -1,3 +1,4 @@
+import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/api_client.dart';
@@ -246,7 +247,7 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
                     ),
                     IconButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close, color: Colors.white)),
+                        icon: const InIcon(InIcons.close, color: Colors.white)),
                   ],
                 ),
               ),
@@ -300,8 +301,7 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
         const SizedBox(width: 10),
         GestureDetector(
           onTap: () => _sendReply('❤️'),
-          child: const Icon(Icons.favorite_border_rounded,
-              color: Colors.white, size: 24),
+          child: const InIcon(InIcons.heart, color: Colors.white, size: 24),
         ),
         const SizedBox(width: 10),
         GestureDetector(
@@ -312,7 +312,7 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
                   height: 22,
                   child: CircularProgressIndicator(
                       strokeWidth: 2, color: Colors.white))
-              : const Icon(Icons.send_rounded, color: Colors.white, size: 22),
+              : const InIcon(InIcons.send, color: Colors.white, size: 22),
         ),
       ],
     );

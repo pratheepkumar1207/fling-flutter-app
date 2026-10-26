@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
@@ -160,11 +161,11 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
   }
 
   void _moreSheet(String name) {
-    Widget tile(IconData icon, String label, VoidCallback onTap,
+    Widget tile(InIconData icon, String label, VoidCallback onTap,
             {bool danger = false}) =>
         ListTile(
           leading:
-              Icon(icon, color: danger ? AppColors.danger : AppColors.text),
+              InIcon(icon, color: danger ? AppColors.danger : AppColors.text),
           title: Text(label,
               style:
                   TextStyle(color: danger ? AppColors.danger : AppColors.text)),
@@ -187,7 +188,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
           children: [
             const SizedBox(height: 8),
             tile(
-                closeFriend ? Icons.star_rounded : Icons.star_border_rounded,
+                closeFriend ? InIcons.star : InIcons.star,
                 closeFriend
                     ? 'Remove from close friends'
                     : 'Add to close friends',
@@ -197,7 +198,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                     'Added $name to close friends',
                     'Removed from close friends')),
             tile(
-                muted ? Icons.volume_up_outlined : Icons.volume_off_outlined,
+                muted ? InIcons.speaker : InIcons.mute,
                 muted ? 'Unmute' : 'Mute',
                 () => _toggleRelationship(
                     'mute',
@@ -205,14 +206,14 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                     'Muted — their posts and stories won\'t show in your feed',
                     'Unmuted')),
             tile(
-                Icons.person_remove_alt_1_outlined,
+                InIcons.block,
                 restricted ? 'Unrestrict' : 'Restrict',
                 () => _toggleRelationship(
                     'restrict',
                     'restricted',
                     'Restricted — their comments on your posts are only visible to them',
                     'Unrestricted')),
-            tile(Icons.flag_outlined, 'Report or block', () {
+            tile(InIcons.flame, 'Report or block', () {
               final p = _profile!;
               showReportUserSheet(
                 context,
@@ -403,10 +404,8 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(
-                                    pl.isLiked
-                                        ? Icons.favorite_rounded
-                                        : Icons.favorite_border_rounded,
+                                InIcon(
+                                    pl.isLiked ? InIcons.heart : InIcons.heart,
                                     color: pl.isLiked
                                         ? AppColors.danger
                                         : AppColors.textFaint,
@@ -609,8 +608,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                   overflow: TextOverflow.ellipsis)),
           if (p['isVerified'] == true) ...[
             const SizedBox(width: 6),
-            const Icon(Icons.verified_rounded,
-                color: AppColors.accent2, size: 14)
+            const InIcon(InIcons.verified, color: AppColors.accent2, size: 14)
           ],
           if (p['isCreator'] == true) ...[
             const SizedBox(width: 6),
@@ -749,7 +747,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                   tabs: [
                     for (final t in tabs)
                       Tab(
-                          icon: Icon(ProfileLayout.icon(t),
+                          icon: InIcon(ProfileLayout.icon(t),
                               semanticLabel: ProfileLayout.label(t))),
                   ],
                 )),
@@ -825,21 +823,21 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
 
     final (icon, color, label, gradientColors, verb) = switch (roomType) {
       'watch' => (
-          Icons.play_arrow_rounded,
+          InIcons.play,
           const Color(0xFF4272D9),
           'IN A WATCH PARTY',
           const [Color(0xFF9EC5F0), Color(0xFF4272D9)],
           'watching'
         ),
       'game' => (
-          Icons.sports_esports_rounded,
+          InIcons.game,
           AppColors.success,
           'IN A GAME ROOM',
           const [Color(0xFF9EE0BE), AppColors.success],
           'spectating'
         ),
       _ => (
-          Icons.mic_rounded,
+          InIcons.mic,
           AppColors.accent,
           'IN A VOICE ROOM',
           const [AppColors.accent2, AppColors.primary],
@@ -908,7 +906,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                     radius: 12,
                     colors: gradientColors,
                     glowColor: color.withValues(alpha: 0.4),
-                    child: Icon(isPrivate ? Icons.lock_rounded : icon,
+                    child: InIcon(isPrivate ? InIcons.lock : icon,
                         color: Colors.white, size: 18),
                   ),
                   const SizedBox(width: 10),
@@ -1021,7 +1019,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                     fit: BoxFit.cover,
                     placeholder: (_) => Container(
                         color: AppColors.surface3,
-                        child: const Icon(Icons.person,
+                        child: const InIcon(InIcons.user,
                             size: 18, color: AppColors.textFaint)),
                   ),
                 ),

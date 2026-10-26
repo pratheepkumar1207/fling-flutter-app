@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_image.dart';
@@ -122,7 +123,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
             if (!queueWasEmpty)
               IconButton(
                 tooltip: 'Move to top',
-                icon: const Icon(Icons.vertical_align_top_rounded,
+                icon: const InIcon(InIcons.arrowup,
                     color: Colors.white, size: 20),
                 onPressed: () {
                   final index = _findQueueIndex(item);
@@ -133,8 +134,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
               ),
             IconButton(
               tooltip: 'Remove',
-              icon: const Icon(Icons.close_rounded,
-                  color: Colors.white, size: 20),
+              icon: const InIcon(InIcons.close, color: Colors.white, size: 20),
               onPressed: () {
                 final index = _findQueueIndex(item);
                 if (index != null) widget.onRemove(index);
@@ -192,7 +192,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                     children: [
                       GestureDetector(
                           onTap: _close,
-                          child: const Icon(Icons.close_rounded,
+                          child: const InIcon(InIcons.close,
                               color: AppColors.textFaint, size: 20)),
                       RichText(
                         text: TextSpan(
@@ -305,8 +305,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                                       if (widget.isHost && !isCurrent)
                                         const Padding(
                                             padding: EdgeInsets.only(right: 11),
-                                            child: Icon(
-                                                Icons.drag_handle_rounded,
+                                            child: InIcon(InIcons.menu,
                                                 color: AppColors.textFaint,
                                                 size: 16)),
                                       Container(
@@ -331,8 +330,9 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                                               Container(
                                                   color: Colors.black26,
                                                   alignment: Alignment.center,
-                                                  child: const Icon(
-                                                      Icons.play_arrow_rounded,
+                                                  child: const InIcon(
+                                                      InIcons.play,
+                                                      filled: true,
                                                       color: Colors.white,
                                                       size: 18)),
                                           ],
@@ -368,21 +368,19 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                                           child: const Padding(
                                               padding:
                                                   EdgeInsets.only(right: 10),
-                                              child: Icon(
-                                                  Icons
-                                                      .play_circle_outline_rounded,
+                                              child: InIcon(InIcons.play,
                                                   color: AppColors.textFaint,
                                                   size: 18)),
                                         ),
                                       if (!isCurrent && widget.isHost)
                                         GestureDetector(
                                           onTap: () => widget.onRemove(i),
-                                          child: const Icon(Icons.close_rounded,
+                                          child: const InIcon(InIcons.close,
                                               color: AppColors.textFaint,
                                               size: 16),
                                         )
                                       else if (isCurrent)
-                                        const Icon(Icons.more_vert_rounded,
+                                        const InIcon(InIcons.more,
                                             color: AppColors.textFaint,
                                             size: 18),
                                     ],

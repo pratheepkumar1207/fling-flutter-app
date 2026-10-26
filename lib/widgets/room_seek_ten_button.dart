@@ -1,3 +1,4 @@
+import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 
 /// ±10s seek button flanking RoomPlayPauseButton — a real seek (YouTube/
@@ -24,8 +25,8 @@ class RoomSeekTenButton extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Icon(
-              forward ? Icons.forward_10_rounded : Icons.replay_10_rounded,
+            InIcon(
+              forward ? InIcons.forward10 : InIcons.back10,
               color: enabled ? Colors.white : Colors.white38,
               size: 24,
             ),

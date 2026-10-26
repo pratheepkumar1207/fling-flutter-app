@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
@@ -96,7 +97,7 @@ class _BlendSettingsScreenState extends State<BlendSettingsScreen> {
             ListTile(
               title: Text(label, style: const TextStyle(color: AppColors.text)),
               trailing: _blend.whoCanSwipe == value
-                  ? const Icon(Icons.check_rounded, color: AppColors.accent)
+                  ? const InIcon(InIcons.check, color: AppColors.accent)
                   : null,
               onTap: () => Navigator.of(sheet).pop(value),
             ),
@@ -255,7 +256,7 @@ class _BlendSettingsScreenState extends State<BlendSettingsScreen> {
               subtitle: Text(_blend.name ?? 'No name yet',
                   style: const TextStyle(color: AppColors.textFaint)),
               trailing: editable
-                  ? const Icon(Icons.edit_outlined, color: AppColors.textDim)
+                  ? const InIcon(InIcons.tune, color: AppColors.textDim)
                   : null,
               onTap: editable ? _rename : null,
             ),
@@ -313,7 +314,7 @@ class _BlendSettingsScreenState extends State<BlendSettingsScreen> {
               if (_blend.isCreator && _blend.members.length < _maxMembers)
                 TextButton.icon(
                   onPressed: _addPeople,
-                  icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+                  icon: const InIcon(InIcons.useradd, size: 18),
                   label: const Text('Add people'),
                 ),
             ],
@@ -362,8 +363,8 @@ class _BlendSettingsScreenState extends State<BlendSettingsScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.play_circle_outline_rounded,
-                              color: AppColors.textDim, size: 30),
+                          const InIcon(InIcons.play,
+                              filled: true, color: AppColors.textDim, size: 30),
                           const SizedBox(height: 6),
                           Text(p.author.name,
                               maxLines: 1,

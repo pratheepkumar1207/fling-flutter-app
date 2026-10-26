@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/format.dart';
@@ -180,7 +181,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       const SizedBox(width: 6),
                       GestureDetector(
                         onTap: () => _removeRecent(q),
-                        child: const Icon(Icons.close_rounded,
+                        child: const InIcon(InIcons.close,
                             size: 12, color: AppColors.textFaint),
                       ),
                     ],

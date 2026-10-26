@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
 import 'package:provider/provider.dart';
@@ -220,7 +221,7 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
                                     color: AppColors.border, width: 1.5)),
                             child: Row(
                               children: [
-                                const Icon(Icons.monetization_on_rounded,
+                                const InIcon(InIcons.cash,
                                     color: AppColors.gold, size: 16),
                                 const SizedBox(width: 8),
                                 Expanded(
@@ -281,10 +282,8 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
                                         color: AppColors.surface,
                                         borderRadius: BorderRadius.circular(9)),
                                     alignment: Alignment.center,
-                                    child: const Icon(
-                                        Icons.account_balance_rounded,
-                                        color: AppColors.accent,
-                                        size: 17),
+                                    child: const InIcon(InIcons.wallet,
+                                        color: AppColors.accent, size: 17),
                                   ),
                                   const SizedBox(width: 10),
                                   Expanded(
@@ -308,7 +307,7 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
                                       ],
                                     ),
                                   ),
-                                  const Icon(Icons.chevron_right_rounded,
+                                  const InIcon(InIcons.chev,
                                       color: AppColors.textFaint, size: 18),
                                 ],
                               ),
@@ -324,7 +323,7 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
                             child: const Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.info_outline_rounded,
+                                InIcon(InIcons.info,
                                     color: AppColors.success, size: 16),
                                 SizedBox(width: 9),
                                 Expanded(

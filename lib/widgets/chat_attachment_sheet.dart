@@ -1,3 +1,4 @@
+import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
@@ -37,7 +38,7 @@ Future<void> showChatAttachmentSheet(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _AttachOption(
-                  icon: Icons.poll_rounded,
+                  icon: InIcons.poll,
                   label: 'Poll',
                   onTap: () {
                     Navigator.of(context).pop();
@@ -45,22 +46,22 @@ Future<void> showChatAttachmentSheet(
                   },
                 ),
                 _AttachOption(
-                  icon: Icons.image_rounded,
+                  icon: InIcons.image,
                   label: 'Image',
                   onTap: () => _comingSoon(context, 'Image'),
                 ),
                 _AttachOption(
-                  icon: Icons.videocam_rounded,
+                  icon: InIcons.video,
                   label: 'Video',
                   onTap: () => _comingSoon(context, 'Video'),
                 ),
                 _AttachOption(
-                  icon: Icons.audiotrack_rounded,
+                  icon: InIcons.music,
                   label: 'Audio',
                   onTap: () => _comingSoon(context, 'Audio'),
                 ),
                 _AttachOption(
-                  icon: Icons.gif_box_rounded,
+                  icon: InIcons.gif,
                   label: 'GIF',
                   onTap: () => _comingSoon(context, 'GIF'),
                 ),
@@ -81,7 +82,7 @@ void _comingSoon(BuildContext context, String kind) {
 }
 
 class _AttachOption extends StatelessWidget {
-  final IconData icon;
+  final InIconData icon;
   final String label;
   final VoidCallback onTap;
 
@@ -101,7 +102,7 @@ class _AttachOption extends StatelessWidget {
             decoration: const BoxDecoration(
                 color: AppColors.surface3, shape: BoxShape.circle),
             alignment: Alignment.center,
-            child: Icon(icon, color: AppColors.text, size: 22),
+            child: InIcon(icon, color: AppColors.text, size: 22),
           ),
           const SizedBox(height: 6),
           Text(label,

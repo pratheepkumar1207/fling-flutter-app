@@ -1,3 +1,4 @@
+import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
@@ -24,7 +25,7 @@ BoxDecoration insyncClay({bool cobalt = false, double radius = 24}) =>
         ]);
 
 class InsyncClayIcon extends StatelessWidget {
-  final IconData icon;
+  final InIconData icon;
   final double size;
   const InsyncClayIcon(this.icon, {super.key, this.size = 54});
   @override
@@ -33,7 +34,7 @@ class InsyncClayIcon extends StatelessWidget {
           width: size,
           height: size,
           decoration: insyncClay(cobalt: true, radius: size * .3),
-          child: Icon(icon,
+          child: InIcon(icon,
               size: size * .55,
               color: AppColors.accent,
               shadows: const [
@@ -46,7 +47,7 @@ class InsyncClayIcon extends StatelessWidget {
 
 class InsyncSectionBanner extends StatelessWidget {
   final String title, subtitle;
-  final IconData icon;
+  final InIconData icon;
   final bool compact;
   const InsyncSectionBanner(
       {super.key,
@@ -83,39 +84,39 @@ class InsyncSectionBanner extends StatelessWidget {
 class InsyncPageTitle extends StatelessWidget {
   final String title;
   const InsyncPageTitle(this.title, {super.key});
-  IconData get icon {
+  InIconData get icon {
     final key = title.toLowerCase();
     if (key.contains('wallet') ||
         key.contains('coin') ||
         key.contains('cash')) {
-      return Icons.account_balance_wallet_rounded;
+      return InIcons.wallet;
     }
-    if (key.contains('game')) return Icons.sports_esports_rounded;
+    if (key.contains('game')) return InIcons.game;
     if (key.contains('message') || key.contains('chat')) {
-      return Icons.forum_rounded;
+      return InIcons.chat;
     }
     if (key.contains('friend') ||
         key.contains('communit') ||
         key.contains('invite')) {
-      return Icons.groups_rounded;
+      return InIcons.community;
     }
     if (key.contains('profile') || key.contains('account')) {
-      return Icons.person_rounded;
+      return InIcons.user;
     }
-    if (key.contains('event')) return Icons.event_rounded;
+    if (key.contains('event')) return InIcons.calendar;
     if (key.contains('leader') ||
         key.contains('achievement') ||
         key.contains('challenge')) {
-      return Icons.emoji_events_rounded;
+      return InIcons.trophy;
     }
-    if (key.contains('notification')) return Icons.notifications_rounded;
+    if (key.contains('notification')) return InIcons.bell;
     if (key.contains('setting') || key.contains('preference')) {
-      return Icons.tune_rounded;
+      return InIcons.tune;
     }
     if (key.contains('search') || key.contains('discover')) {
-      return Icons.explore_rounded;
+      return InIcons.globe;
     }
-    return Icons.auto_awesome_rounded;
+    return InIcons.spark;
   }
 
   @override

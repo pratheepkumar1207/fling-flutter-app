@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
@@ -141,7 +142,7 @@ class _DriveBrowseScreenState extends State<DriveBrowseScreen> {
                     decoration: const InputDecoration(
                         hintText: 'Search your Drive…',
                         prefixIcon:
-                            Icon(Icons.search, color: AppColors.textFaint)),
+                            InIcon(InIcons.search, color: AppColors.textFaint)),
                   ),
                 ),
                 if (_searchQuery.isEmpty)
@@ -155,7 +156,7 @@ class _DriveBrowseScreenState extends State<DriveBrowseScreen> {
                           if (i > 0)
                             const Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 4),
-                                child: Icon(Icons.chevron_right,
+                                child: InIcon(InIcons.chev,
                                     size: 14, color: AppColors.textFaint)),
                           GestureDetector(
                             onTap: () => _goToBreadcrumb(i),
@@ -224,7 +225,7 @@ class _DriveBrowseScreenState extends State<DriveBrowseScreen> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis)),
                 if (isFolder)
-                  const Icon(Icons.chevron_right, color: AppColors.textFaint),
+                  const InIcon(InIcons.chev, color: AppColors.textFaint),
               ],
             ),
           ),

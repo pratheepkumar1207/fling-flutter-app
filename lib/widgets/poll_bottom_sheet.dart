@@ -1,3 +1,4 @@
+import '../theme/insync_icons.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/room_models.dart';
@@ -269,7 +270,7 @@ class _PollSheetState extends State<_PollSheet> {
                         ),
                         alignment: Alignment.center,
                         child: selected
-                            ? const Icon(Icons.check_rounded,
+                            ? const InIcon(InIcons.check,
                                 color: Colors.white, size: 11)
                             : null,
                       ),

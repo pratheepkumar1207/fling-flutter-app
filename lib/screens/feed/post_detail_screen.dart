@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
@@ -239,7 +240,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                     color: AppColors.surface2,
                                     borderRadius: BorderRadius.circular(10)),
                                 child: const Row(children: [
-                                  Icon(Icons.graphic_eq,
+                                  InIcon(InIcons.wave,
                                       color: AppColors.primary, size: 18),
                                   SizedBox(width: 8),
                                   Text('Voice note',
@@ -255,17 +256,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                               children: [
                                 GestureDetector(
                                   onTap: _toggleLike,
-                                  child: Icon(
+                                  child: InIcon(
                                       post.likedByMe
-                                          ? Icons.favorite_rounded
-                                          : Icons.favorite_border_rounded,
+                                          ? InIcons.heart
+                                          : InIcons.heart,
                                       color: post.likedByMe
                                           ? AppColors.danger
                                           : AppColors.text,
                                       size: 24),
                                 ),
                                 const SizedBox(width: 16),
-                                const Icon(Icons.mode_comment_outlined,
+                                const InIcon(InIcons.comment,
                                     color: AppColors.text, size: 23),
                                 const SizedBox(width: 16),
                                 ShareRow(
@@ -274,10 +275,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                 const Spacer(),
                                 GestureDetector(
                                   onTap: _toggleSave,
-                                  child: Icon(
+                                  child: InIcon(
                                       post.savedByMe
-                                          ? Icons.bookmark_rounded
-                                          : Icons.bookmark_border_rounded,
+                                          ? InIcons.bookmark
+                                          : InIcons.bookmark,
                                       color: AppColors.text,
                                       size: 22),
                                 ),
@@ -363,7 +364,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                 alignment: Alignment.center,
                                 child: _sending
                                     ? const Spinner(size: 16)
-                                    : const Icon(Icons.send_rounded,
+                                    : const InIcon(InIcons.send,
                                         color: Colors.white, size: 17),
                               ),
                             ),
@@ -402,8 +403,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               size: 52,
               colors: const [AppColors.accent2, AppColors.primary],
               glowColor: AppColors.primary.withValues(alpha: 0.4),
-              child: const Icon(Icons.play_arrow_rounded,
-                  color: Colors.white, size: 30),
+              child: const InIcon(InIcons.play,
+                  filled: true, color: Colors.white, size: 30),
             ),
           ),
         ),

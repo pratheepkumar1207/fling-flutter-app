@@ -1,3 +1,4 @@
+import '../theme/insync_icons.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../core/api_client.dart';
@@ -175,8 +176,8 @@ class _PeoplePickerState extends State<_PeoplePicker> {
                   style: const TextStyle(color: AppColors.text),
                   decoration: InputDecoration(
                     hintText: 'Search people',
-                    prefixIcon:
-                        const Icon(Icons.search, color: AppColors.textFaint),
+                    prefixIcon: const InIcon(InIcons.search,
+                        color: AppColors.textFaint),
                     filled: true,
                     fillColor: AppColors.surface2,
                     isDense: true,
@@ -223,10 +224,10 @@ class _PeoplePickerState extends State<_PeoplePicker> {
                                               fontSize: 12)),
                                   trailing: widget.single
                                       ? null
-                                      : Icon(
+                                      : InIcon(
                                           _selected.containsKey(p.id)
-                                              ? Icons.check_circle_rounded
-                                              : Icons.radio_button_unchecked,
+                                              ? InIcons.check
+                                              : InIcons.target,
                                           color: _selected.containsKey(p.id)
                                               ? AppColors.accent
                                               : AppColors.textFaint),

@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
@@ -181,7 +182,7 @@ class _HighlightsRowState extends State<HighlightsRow> {
             _circle(
                 const ColoredBox(
                     color: AppColors.bg,
-                    child: Icon(Icons.add_rounded, color: AppColors.text)),
+                    child: InIcon(InIcons.plus, color: AppColors.text)),
                 'New',
                 onTap: _create,
                 dashed: true),

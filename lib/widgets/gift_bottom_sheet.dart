@@ -1,3 +1,4 @@
+import '../theme/insync_icons.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -179,7 +180,7 @@ class _GiftSheetState extends State<_GiftSheet> {
                         color: AppColors.surface2,
                         borderRadius: BorderRadius.circular(999)),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      const Icon(Icons.monetization_on_rounded,
+                      const InIcon(InIcons.cash,
                           color: AppColors.gold, size: 14),
                       const SizedBox(width: 5),
                       Text(formatNumber(coinBalance),
