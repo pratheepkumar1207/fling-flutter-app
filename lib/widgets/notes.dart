@@ -144,8 +144,9 @@ class _NotesRowState extends State<NotesRow> {
       for (final n in _notes)
         if (n['userId'] != widget.myUserId) n
     ];
+    // Grows with the system text size (note bubble + name lines).
     return SizedBox(
-      height: 112,
+      height: 94 + MediaQuery.textScalerOf(context).scale(12) * 1.6,
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 8),

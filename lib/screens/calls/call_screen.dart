@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/socket_service.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/insync_icons.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/gift_bottom_sheet.dart';
 import 'direct_call_controller.dart';
@@ -141,12 +142,12 @@ class _CallScreenState extends State<CallScreen> {
               return Stack(
                 fit: StackFit.expand,
                 children: [
-                  Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFF203052), Color(0xFF0C1226)]),
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(
+                          center: Alignment(0, -0.4),
+                          radius: 1,
+                          colors: [Color(0xFF3A1A5A), AppColors.bg]),
                     ),
                   ),
                   if (widget.video && connected)
@@ -172,10 +173,35 @@ class _CallScreenState extends State<CallScreen> {
                                     fontWeight: FontWeight.w600),
                               ),
                             ),
-                          Avatar(
-                              src: widget.peerAvatarUrl,
-                              name: widget.peerName,
-                              size: AvatarSize.lg),
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: AppGradients.brandDiagonal,
+                              boxShadow: [
+                                BoxShadow(
+                                    color: AppColors.purple
+                                        .withValues(alpha: 0.18),
+                                    spreadRadius: 14),
+                              ],
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: const BoxDecoration(
+                                  color: AppColors.bg, shape: BoxShape.circle),
+                              child: SizedBox(
+                                width: 124,
+                                height: 124,
+                                child: FittedBox(
+                                  child: Avatar(
+                                      src: widget.peerAvatarUrl,
+                                      name: widget.peerName,
+                                      size: AvatarSize.lg),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
                           const SizedBox(height: 16),
                           Text(widget.peerName,
                               style: const TextStyle(
@@ -272,62 +298,69 @@ class _CallScreenState extends State<CallScreen> {
                                   shape: BoxShape.circle,
                                   color: Colors.white.withValues(alpha: 0.12)),
                               alignment: Alignment.center,
-                              child: const Icon(Icons.cameraswitch_rounded,
-                                  color: Colors.white, size: 16),
+                              child: const InIcon(InIcons.flip,
+                                  size: 16, color: Colors.white),
                             ),
                           ),
                         ],
                       ),
                     ),
                   Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 32,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _circleButton(
-                          icon: _controller.micEnabled
-                              ? Icons.mic_rounded
-                              : Icons.mic_off_rounded,
-                          onTap: _controller.toggleMic,
-                          size: widget.video ? 52 : 56,
-                        ),
-                        SizedBox(width: widget.video ? 14 : 20),
-                        if (widget.video) ...[
-                          _circleButton(
-                            icon: _controller.cameraEnabled
-                                ? Icons.videocam_rounded
-                                : Icons.videocam_off_rounded,
-                            onTap: _controller.toggleCamera,
-                            size: 52,
-                          ),
-                          const SizedBox(width: 14),
+                    left: 16,
+                    right: 16,
+                    bottom: 24,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xE616141D),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Wrap(
+                        alignment: WrapAlignment.spaceEvenly,
+                        runSpacing: 14,
+                        children: [
+                          _control(
+                              icon: InIcons.speaker,
+                              label: 'Speaker',
+                              active: _controller.speakerEnabled,
+                              onTap: _controller.toggleSpeaker),
+                          _control(
+                              icon: _controller.micEnabled
+                                  ? InIcons.mic
+                                  : InIcons.micoff,
+                              label: _controller.micEnabled ? 'Mute' : 'Unmute',
+                              active: !_controller.micEnabled,
+                              onTap: _controller.toggleMic),
+                          if (widget.video) ...[
+                            _control(
+                                icon: InIcons.video,
+                                label: _controller.cameraEnabled
+                                    ? 'Video'
+                                    : 'Video off',
+                                active: !_controller.cameraEnabled,
+                                onTap: _controller.toggleCamera),
+                            _control(
+                                icon: InIcons.flip,
+                                label: 'Flip',
+                                onTap: _controller.switchCamera),
+                          ],
+                          _control(
+                              icon: InIcons.gift,
+                              label: 'Gift',
+                              color: AppColors.gold,
+                              tile: const Color(0xFF2A2310),
+                              onTap: () => showGiftBottomSheet(context,
+                                  toUserId: widget.peerId)),
+                          _control(
+                              icon: InIcons.phoneoff,
+                              label: 'End',
+                              color: Colors.white,
+                              tile: AppColors.danger,
+                              onTap: _hangUp),
                         ],
-                        _circleButton(
-                          icon: Icons.call_end_rounded,
-                          onTap: _hangUp,
-                          size: widget.video ? 52 : 64,
-                          danger: true,
-                        ),
-                        SizedBox(width: widget.video ? 14 : 20),
-                        _circleButton(
-                          icon: _controller.speakerEnabled
-                              ? Icons.volume_up_rounded
-                              : Icons.volume_down_rounded,
-                          onTap: _controller.toggleSpeaker,
-                          size: widget.video ? 52 : 56,
-                        ),
-                        if (widget.video) ...[
-                          const SizedBox(width: 14),
-                          _circleButton(
-                            icon: Icons.card_giftcard_rounded,
-                            onTap: () => showGiftBottomSheet(context,
-                                toUserId: widget.peerId),
-                            size: 52,
-                          ),
-                        ],
-                      ],
+                      ),
                     ),
                   ),
                 ],
@@ -349,23 +382,43 @@ class _CallScreenState extends State<CallScreen> {
     );
   }
 
-  Widget _circleButton(
-      {required IconData icon,
+  Widget _control(
+      {required InIconData icon,
+      required String label,
       required VoidCallback onTap,
-      required double size,
-      bool danger = false}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color:
-              danger ? AppColors.danger : Colors.white.withValues(alpha: 0.14),
+      bool active = false,
+      Color color = Colors.white,
+      Color? tile}) {
+    return SizedBox(
+      width: 72,
+      child: Semantics(
+        button: true,
+        toggled: active,
+        label: label,
+        child: InkResponse(
+          onTap: onTap,
+          radius: 34,
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color:
+                    tile ?? (active ? Colors.white : const Color(0xFF2A2436)),
+              ),
+              alignment: Alignment.center,
+              child: InIcon(icon,
+                  size: 24,
+                  color: tile == null && active ? AppColors.bg : color),
+            ),
+            const SizedBox(height: 6),
+            Text(label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: AppColors.textDim, fontSize: 11)),
+          ]),
         ),
-        alignment: Alignment.center,
-        child: Icon(icon, color: Colors.white, size: size * 0.42),
       ),
     );
   }

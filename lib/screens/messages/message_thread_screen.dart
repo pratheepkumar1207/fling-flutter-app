@@ -9,6 +9,8 @@ import '../../core/socket_service.dart';
 import '../../models/blend.dart';
 import '../../models/message.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/insync_icons.dart';
+import '../../widgets/in_icon_button.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/spinner.dart';
 import '../blend/blend_entry.dart';
@@ -277,173 +279,223 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final myId = context.watch<AuthProvider>().user?.id;
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        title: GestureDetector(
-          onTap: () => openProfile(context, widget.userId),
-          child: Row(
-            children: [
-              Avatar(
-                  src: widget.avatarUrl,
-                  name: widget.name,
-                  size: AvatarSize.sm),
-              const SizedBox(width: 10),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(widget.name, style: const TextStyle(fontSize: 14.5)),
-                  if (_online)
-                    const Text('Active now',
-                        style: TextStyle(
-                            color: AppColors.success,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500)),
-                ],
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            _header(),
+            const Divider(height: 1, color: Color(0xFF1E1B27)),
+            Expanded(
+              child: _loading
+                  ? const Center(child: Spinner())
+                  : _messages.isEmpty
+                      ? const Center(
+                          child: Text('No messages yet — say hi!',
+                              style: TextStyle(color: AppColors.textFaint)))
+                      : ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.all(12),
+                          itemCount: _messages.length,
+                          itemBuilder: (context, i) {
+                            final m = _messages[i];
+                            final mine = m.senderId == myId;
+                            return Align(
+                              alignment: mine
+                                  ? Alignment.centerRight
+                                  : Alignment.centerLeft,
+                              child: GestureDetector(
+                                onLongPress:
+                                    mine ? () => _deleteMessage(m) : null,
+                                child: Container(
+                                  margin:
+                                      const EdgeInsets.symmetric(vertical: 3),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 10),
+                                  constraints: BoxConstraints(
+                                      maxWidth:
+                                          MediaQuery.of(context).size.width *
+                                              0.7),
+                                  decoration: BoxDecoration(
+                                    color: mine
+                                        ? AppColors.primary
+                                        : const Color(0xFF1F1C29),
+                                    // Flat corner on the "tail" side (bottom-right for mine, bottom-left
+                                    // for theirs) — matches ChatDark.dc.html's speech-bubble shape.
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: const Radius.circular(20),
+                                      topRight: const Radius.circular(20),
+                                      bottomLeft:
+                                          Radius.circular(mine ? 20 : 6),
+                                      bottomRight:
+                                          Radius.circular(mine ? 6 : 20),
+                                    ),
+                                  ),
+                                  child: _messageContent(m, mine),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+            ),
+            if (_blend != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+                child: BlendCard(blend: _blend!, compact: true),
               ),
-            ],
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(_error!,
+                    style:
+                        const TextStyle(color: AppColors.danger, fontSize: 12)),
+              ),
+            SafeArea(
+              top: false,
+              child: Container(
+                decoration: const BoxDecoration(
+                    border: Border(top: BorderSide(color: Color(0xFF1E1B27)))),
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.only(left: 14, right: 4),
+                        decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            border: Border.all(color: AppColors.border),
+                            borderRadius: BorderRadius.circular(999)),
+                        child: Row(children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _textController,
+                              minLines: 1,
+                              maxLines: 4,
+                              style: const TextStyle(
+                                  color: AppColors.text, fontSize: 15),
+                              decoration: const InputDecoration(
+                                  hintText: 'Message…',
+                                  filled: false,
+                                  isDense: true,
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  contentPadding:
+                                      EdgeInsets.symmetric(vertical: 12)),
+                              onSubmitted: (_) => _send(),
+                            ),
+                          ),
+                          InIconButton(InIcons.smile,
+                              tooltip: 'Sticker',
+                              size: 36,
+                              iconSize: 20,
+                              color: AppColors.textDim,
+                              onPressed: _sending ? null : _openStickerPicker),
+                          InIconButton(InIcons.gif,
+                              tooltip: 'GIF',
+                              size: 36,
+                              iconSize: 20,
+                              color: AppColors.textDim,
+                              onPressed: _sending ? null : _pasteGifLink),
+                        ]),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Semantics(
+                      button: true,
+                      label: 'Send',
+                      child: InkResponse(
+                        onTap: _sending ? null : _send,
+                        radius: 26,
+                        child: Container(
+                          width: 46,
+                          height: 46,
+                          decoration: const BoxDecoration(
+                              color: AppColors.primary, shape: BoxShape.circle),
+                          alignment: Alignment.center,
+                          child: _sending
+                              ? const Spinner(size: 16)
+                              : const InIcon(InIcons.send,
+                                  size: 20, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _header() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 4, 6, 6),
+      child: Row(children: [
+        InIconButton(InIcons.back,
+            tooltip: 'Back', onPressed: () => Navigator.of(context).maybePop()),
+        Expanded(
+          child: Semantics(
+            button: true,
+            label: 'Open ${widget.name}\'s profile',
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => openProfile(context, widget.userId),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(children: [
+                  Stack(children: [
+                    Avatar(
+                        src: widget.avatarUrl,
+                        name: widget.name,
+                        size: AvatarSize.sm),
+                    if (_online)
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          width: 11,
+                          height: 11,
+                          decoration: BoxDecoration(
+                              color: AppColors.success,
+                              shape: BoxShape.circle,
+                              border:
+                                  Border.all(color: AppColors.bg, width: 2)),
+                        ),
+                      ),
+                  ]),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(widget.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 15, fontWeight: FontWeight.w600)),
+                        if (_online)
+                          const Text('Active now',
+                              style: TextStyle(
+                                  color: AppColors.success, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                ]),
+              ),
+            ),
           ),
         ),
-        actions: [
-          IconButton(
-              onPressed: _openBlend,
-              icon: const Icon(Icons.movie_filter_outlined,
-                  color: AppColors.primary),
-              tooltip: 'Reels Blend'),
-          IconButton(
-              onPressed: () => _startCall(false),
-              icon: const Icon(Icons.call_rounded, color: AppColors.primary),
-              tooltip: 'Audio call'),
-          IconButton(
-              onPressed: () => _startCall(true),
-              icon:
-                  const Icon(Icons.videocam_rounded, color: AppColors.primary),
-              tooltip: 'Video call'),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: _loading
-                ? const Center(child: Spinner())
-                : _messages.isEmpty
-                    ? const Center(
-                        child: Text('No messages yet — say hi!',
-                            style: TextStyle(color: AppColors.textFaint)))
-                    : ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.all(12),
-                        itemCount: _messages.length,
-                        itemBuilder: (context, i) {
-                          final m = _messages[i];
-                          final mine = m.senderId == myId;
-                          return Align(
-                            alignment: mine
-                                ? Alignment.centerRight
-                                : Alignment.centerLeft,
-                            child: GestureDetector(
-                              onLongPress:
-                                  mine ? () => _deleteMessage(m) : null,
-                              child: Container(
-                                margin: const EdgeInsets.symmetric(vertical: 3),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 10),
-                                constraints: BoxConstraints(
-                                    maxWidth:
-                                        MediaQuery.of(context).size.width *
-                                            0.7),
-                                decoration: BoxDecoration(
-                                  gradient: mine
-                                      ? const LinearGradient(
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                          colors: AppGradients.brand)
-                                      : null,
-                                  color: mine ? null : AppColors.surface2,
-                                  border: Border.all(
-                                      color:
-                                          Colors.white.withValues(alpha: .10)),
-                                  boxShadow: [
-                                    BoxShadow(
-                                        color:
-                                            Colors.black.withValues(alpha: .14),
-                                        blurRadius: 8,
-                                        offset: const Offset(2, 3))
-                                  ],
-                                  // Flat corner on the "tail" side (bottom-right for mine, bottom-left
-                                  // for theirs) — matches ChatDark.dc.html's speech-bubble shape.
-                                  borderRadius: BorderRadius.only(
-                                    topLeft: const Radius.circular(18),
-                                    topRight: const Radius.circular(18),
-                                    bottomLeft: Radius.circular(mine ? 18 : 5),
-                                    bottomRight: Radius.circular(mine ? 5 : 18),
-                                  ),
-                                ),
-                                child: _messageContent(m, mine),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-          ),
-          if (_blend != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-              child: BlendCard(blend: _blend!, compact: true),
-            ),
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(_error!,
-                  style:
-                      const TextStyle(color: AppColors.danger, fontSize: 12)),
-            ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: _sending ? null : _openStickerPicker,
-                    icon: const Icon(Icons.emoji_emotions_outlined,
-                        color: AppColors.textDim),
-                    tooltip: 'Sticker',
-                  ),
-                  IconButton(
-                    onPressed: _sending ? null : _pasteGifLink,
-                    icon: const Icon(Icons.gif_box_outlined,
-                        color: AppColors.textDim),
-                    tooltip: 'GIF',
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: _textController,
-                      style: const TextStyle(color: AppColors.text),
-                      decoration: const InputDecoration(hintText: 'Message…'),
-                      onSubmitted: (_) => _send(),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: _sending ? null : _send,
-                    child: Container(
-                      width: 38,
-                      height: 38,
-                      decoration: const BoxDecoration(
-                          gradient: LinearGradient(colors: AppGradients.brand),
-                          shape: BoxShape.circle),
-                      alignment: Alignment.center,
-                      child: _sending
-                          ? const Spinner(size: 16)
-                          : const Icon(Icons.send_rounded,
-                              color: Colors.white, size: 17),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+        InIconButton(InIcons.blend,
+            tooltip: 'Reels Blend',
+            color: AppColors.lilac,
+            onPressed: _openBlend),
+        InIconButton(InIcons.phone,
+            tooltip: 'Audio call', onPressed: () => _startCall(false)),
+        InIconButton(InIcons.video,
+            tooltip: 'Video call', onPressed: () => _startCall(true)),
+      ]),
     );
   }
 

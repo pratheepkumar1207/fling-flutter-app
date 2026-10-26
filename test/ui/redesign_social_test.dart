@@ -5,6 +5,8 @@ import 'package:fling/core/auth_provider.dart';
 import 'package:fling/models/user.dart';
 import 'package:fling/screens/discover/discover_screen.dart';
 import 'package:fling/screens/feed/feed_screen.dart';
+import 'package:fling/screens/calls/incoming_call_view.dart';
+import 'package:fling/screens/messages/messages_screen.dart';
 import 'package:fling/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -84,7 +86,38 @@ void main() {
     await _snap(t, key, 'discover-filters');
   });
 
-  for (final s in [const FeedScreen(), const DiscoverScreen()]) {
+  testWidgets('Messages renders search, filters and empty state', (t) async {
+    final key = await _render(t, const MessagesScreen());
+    expect(t.takeException(), isNull);
+    expect(find.text('Search chats'), findsOneWidget);
+    await _snap(t, key, 'messages');
+  });
+
+  testWidgets('Incoming call shows both actions', (t) async {
+    var accepted = 0, declined = 0;
+    final key = await _render(
+        t,
+        IncomingCallView(
+            name: 'Chitra',
+            video: true,
+            onAccept: () => accepted++,
+            onDecline: () => declined++));
+    await t.tap(find.text('Accept'));
+    await t.tap(find.text('Decline'));
+    expect([accepted, declined], [1, 1]);
+    await _snap(t, key, 'incoming-call');
+  });
+
+  for (final s in [
+    const FeedScreen(),
+    const DiscoverScreen(),
+    const MessagesScreen(),
+    IncomingCallView(
+        name: 'Venkatalakshmi Ramasubramanian',
+        video: false,
+        onAccept: () {},
+        onDecline: () {}),
+  ]) {
     testWidgets('${s.runtimeType} fits a small phone with large text',
         (t) async {
       await _render(t, s, size: const Size(320, 640), text: 1.6);

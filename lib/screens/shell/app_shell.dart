@@ -6,6 +6,7 @@ import '../../core/auth_provider.dart';
 import '../../core/socket_service.dart';
 import '../../theme/app_colors.dart';
 import '../calls/call_screen.dart';
+import '../calls/incoming_call_view.dart';
 import '../discover/discover_screen.dart';
 import '../feed/feed_screen.dart';
 import '../home/home_screen.dart';
@@ -14,7 +15,6 @@ import '../party/mention_notifier.dart';
 import '../party/party_screen.dart';
 import '../party/persistent_room_audio.dart';
 import '../../theme/insync_icons.dart';
-import '../../widgets/avatar.dart';
 import 'create_sheet.dart';
 import 'liquid_glass_bottom_nav.dart';
 import 'top_bar.dart';
@@ -95,33 +95,11 @@ class _AppShellState extends State<AppShell> {
     // showDialog defaults to useRootNavigator: true, so this shows above
     // whatever screen is currently pushed on top of AppShell, not just
     // AppShell's own body.
-    final accepted = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.surface2,
-        title: Row(children: [
-          Avatar(
-              src: data['fromAvatarUrl'] as String?,
-              name: data['fromName'] as String?,
-              size: AvatarSize.sm),
-          const SizedBox(width: 10),
-          Expanded(child: Text(data['fromName'] as String? ?? 'Someone')),
-        ]),
-        content: Text(data['mode'] == 'video'
-            ? 'Incoming video call…'
-            : 'Incoming audio call…'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Decline')),
-          TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Accept')),
-        ],
-      ),
-    );
-
+    final accepted = await showIncomingCall(context,
+        name: data['fromName'] as String? ?? 'Someone',
+        avatarUrl: data['fromAvatarUrl'] as String?,
+        video: data['mode'] == 'video');
+    if (!mounted) return;
     final channelName = data['channelName'] as String;
     if (accepted == true) {
       try {

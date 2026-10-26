@@ -245,7 +245,7 @@ class BlendsRowState extends State<BlendsRow> {
         );
     return SizedBox(
       // Room for the face plus one line of label at any text size.
-      height: 56 + MediaQuery.textScalerOf(context).scale(11) * 1.4,
+      height: 60 + MediaQuery.textScalerOf(context).scale(11) * 1.4,
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 14),
