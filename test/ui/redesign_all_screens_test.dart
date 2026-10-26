@@ -29,6 +29,11 @@ import 'package:fling/screens/wallet/vip_store_screen.dart';
 import 'package:fling/screens/wallet/wallet_buy_screen.dart';
 import 'package:fling/screens/wallet/wallet_cashout_screen.dart';
 import 'package:fling/screens/wallet/wallet_kyc_screen.dart';
+import 'package:fling/screens/profile/creator_profile_screen.dart';
+import 'package:fling/screens/communities/community_detail_screen.dart';
+import 'package:fling/screens/feed/post_detail_screen.dart';
+import 'package:fling/screens/feed/hashtag_screen.dart';
+import 'package:fling/screens/lobby/invite_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -39,7 +44,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Renders every secondary screen (empty states, no server) at a normal
 /// phone and at a small phone with large text — layout errors fail.
 class _FakeAuth extends AuthProvider {
-  final User _u = User.fromJson({'id': 'me', 'name': 'Test User', 'isVip': false});
+  final User _u =
+      User.fromJson({'id': 'me', 'name': 'Test User', 'isVip': false});
   @override
   User? get user => _u;
 }
@@ -61,7 +67,8 @@ Future<void> _render(WidgetTester t, Widget w, Size size, double text) async {
           child: w),
     ),
   ));
-  await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
+  await t
+      .runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
   await t.pump(const Duration(milliseconds: 50));
   await t.pump(const Duration(seconds: 1));
 }
@@ -82,6 +89,14 @@ void main() {
   });
 
   final cases = <(String, Widget)>[
+    ('CreatorProfileScreen', const CreatorProfileScreen(userId: 'u1')),
+    (
+      'CommunityDetailScreen',
+      const CommunityDetailScreen(communityId: 'c1', name: 'Tamil cinema club')
+    ),
+    ('PostDetailScreen', const PostDetailScreen(postId: 'p1')),
+    ('HashtagScreen', const HashtagScreen(tag: 'movienight')),
+    ('InviteScreen', const InviteScreen(roomId: 'r1')),
     ('NotificationsScreen', const NotificationsScreen()),
     ('SearchScreen', const SearchScreen()),
     ('FriendsScreen', const FriendsScreen()),
@@ -113,7 +128,8 @@ void main() {
     testWidgets('$name renders', (t) async {
       await _render(t, w, const Size(390, 844), 1);
       expect(t.takeException(), isNull);
-      final b = _key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+      final b =
+          _key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
       await t.runAsync(() async {
         final image = await b.toImage(pixelRatio: 1);
         final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
