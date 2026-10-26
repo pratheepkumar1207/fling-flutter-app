@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/insync_icons.dart';
+import '../../widgets/in_icon_button.dart';
 
 const _kLength = 6;
 const _kResendSeconds = 30;
@@ -146,64 +148,44 @@ class _OtpScreenState extends State<OtpScreen> {
               padding: const EdgeInsets.fromLTRB(6, 6, 6, 0),
               child: Row(
                 children: [
-                  IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.arrow_back_rounded,
-                          color: AppColors.text)),
+                  InIconButton(InIcons.back,
+                      tooltip: 'Back',
+                      onPressed: () => Navigator.of(context).pop()),
                 ],
               ),
             ),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
+                padding: const EdgeInsets.symmetric(horizontal: 22),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 20),
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(18),
-                        gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [Color(0xFFB565DE), Color(0xFF7A3B9E)]),
-                        boxShadow: [
-                          BoxShadow(
-                              color: const Color(0xFF9A3F9E)
-                                  .withValues(alpha: 0.5),
-                              blurRadius: 20,
-                              offset: const Offset(0, 8))
-                        ],
-                      ),
-                      alignment: Alignment.center,
-                      child: const Icon(Icons.lock_rounded,
-                          color: Colors.white, size: 24),
-                    ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
                     const Text('Enter the code',
                         style: TextStyle(
-                            color: AppColors.text,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800)),
+                            fontSize: 28,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.6)),
                     const SizedBox(height: 6),
-                    Text.rich(
-                      TextSpan(
-                        style: const TextStyle(
-                            color: AppColors.textFaint,
-                            fontSize: 13,
-                            height: 1.5),
+                    Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          const TextSpan(text: 'We sent a 6-digit code to\n'),
-                          TextSpan(
-                              text: widget.phone,
+                          Text('Sent to ${widget.phone} · ',
                               style: const TextStyle(
-                                  color: AppColors.textDim,
-                                  fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+                                  color: AppColors.textDim, fontSize: 14)),
+                          InkWell(
+                            onTap: () => Navigator.of(context).pop(),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 6),
+                              child: Text('Change',
+                                  style: TextStyle(
+                                      color: AppColors.lilac,
+                                      fontSize: 14,
+                                      decoration: TextDecoration.underline,
+                                      decorationColor: AppColors.lilac)),
+                            ),
+                          ),
+                        ]),
                     if (_error.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 16),
@@ -222,7 +204,7 @@ class _OtpScreenState extends State<OtpScreen> {
                                   color: AppColors.danger, fontSize: 13)),
                         ),
                       ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                     TweenAnimationBuilder<double>(
                       tween: Tween(begin: 0, end: _shakeOffset),
                       duration: const Duration(milliseconds: 500),
@@ -235,15 +217,14 @@ class _OtpScreenState extends State<OtpScreen> {
                             child: child);
                       },
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: List.generate(_kLength, (i) {
                           final active = _focusNodes[i].hasFocus;
-                          return Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 4.5),
+                          return Expanded(
+                              child: Padding(
+                            padding: EdgeInsets.only(
+                                right: i == _kLength - 1 ? 0 : 8),
                             child: SizedBox(
-                              width: 46,
-                              height: 56,
+                              height: 58,
                               child: KeyboardListener(
                                 focusNode: FocusNode(skipTraversal: true),
                                 onKeyEvent: (event) => _onKey(i, event),
@@ -270,7 +251,7 @@ class _OtpScreenState extends State<OtpScreen> {
                                       borderRadius: BorderRadius.circular(14),
                                       borderSide: BorderSide(
                                           color: active
-                                              ? AppColors.accent2
+                                              ? AppColors.purple
                                               : AppColors.border,
                                           width: 1.5),
                                     ),
@@ -278,42 +259,41 @@ class _OtpScreenState extends State<OtpScreen> {
                                       borderRadius: BorderRadius.circular(14),
                                       borderSide: BorderSide(
                                           color: active
-                                              ? AppColors.accent2
+                                              ? AppColors.purple
                                               : AppColors.border,
                                           width: 1.5),
                                     ),
                                     focusedBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(14),
                                       borderSide: const BorderSide(
-                                          color: AppColors.accent2, width: 1.5),
+                                          color: AppColors.purple, width: 1.5),
                                     ),
                                   ),
                                   onChanged: (v) => _onChanged(i, v),
                                 ),
                               ),
                             ),
-                          );
+                          ));
                         }),
                       ),
                     ),
-                    const SizedBox(height: 28),
-                    GestureDetector(
-                      onTap: _resend,
-                      child: Text.rich(
-                        TextSpan(
-                          style: const TextStyle(
-                              color: AppColors.textFaint, fontSize: 12.5),
-                          children: [
-                            const TextSpan(text: "Didn't get a code? "),
-                            TextSpan(
-                              text: _resendSeconds > 0
-                                  ? 'Resend in 0:${_resendSeconds.toString().padLeft(2, '0')}'
-                                  : (_resending ? 'Sending…' : 'Resend code'),
-                              style: const TextStyle(
-                                  color: AppColors.accent2,
-                                  fontWeight: FontWeight.w700),
-                            ),
-                          ],
+                    const SizedBox(height: 16),
+                    InkWell(
+                      onTap: _resendSeconds > 0 ? null : _resend,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Text(
+                          _resendSeconds > 0
+                              ? 'Resend code in 0:${_resendSeconds.toString().padLeft(2, '0')}'
+                              : (_resending ? 'Sending…' : 'Resend code'),
+                          style: TextStyle(
+                              color: _resendSeconds > 0
+                                  ? AppColors.textDim
+                                  : AppColors.lilac,
+                              fontSize: 13,
+                              fontWeight: _resendSeconds > 0
+                                  ? FontWeight.w400
+                                  : FontWeight.w600),
                         ),
                       ),
                     ),
@@ -323,39 +303,12 @@ class _OtpScreenState extends State<OtpScreen> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 34),
-              child: GestureDetector(
-                onTap: (_loading || _code.length != _kLength) ? null : _submit,
-                child: Container(
-                  width: double.infinity,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
-                    gradient: (_loading || _code.length != _kLength)
-                        ? null
-                        : const LinearGradient(colors: AppGradients.brand),
-                    color: (_loading || _code.length != _kLength)
-                        ? AppColors.surface2
-                        : null,
-                    boxShadow: (_loading || _code.length != _kLength)
-                        ? null
-                        : [
-                            BoxShadow(
-                                color: AppColors.accent2.withValues(alpha: 0.5),
-                                blurRadius: 24,
-                                offset: const Offset(0, 10))
-                          ],
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    _loading ? 'Verifying…' : 'Verify & continue',
-                    style: TextStyle(
-                        color: (_loading || _code.length != _kLength)
-                            ? AppColors.textFaint
-                            : Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14.5),
-                  ),
-                ),
+              child: FilledButton(
+                onPressed:
+                    (_loading || _code.length != _kLength) ? null : _submit,
+                style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52)),
+                child: Text(_loading ? 'Verifying…' : 'Verify'),
               ),
             ),
           ],

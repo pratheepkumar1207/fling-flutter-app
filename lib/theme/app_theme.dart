@@ -9,6 +9,14 @@ class AppTheme {
   static ThemeData get dark => _build(Brightness.dark, ClayColors.dark);
   static ThemeData get light => _build(Brightness.light, ClayColors.light);
 
+  /// The dark theme with the platform font instead of Plus Jakarta Sans,
+  /// for widget tests (which can't fetch fonts).
+  @visibleForTesting
+  static ThemeData darkWithoutWebFonts() => _build(
+      Brightness.dark, ClayColors.dark,
+      textTheme: ThemeData.dark().textTheme.apply(
+          bodyColor: ClayColors.dark.text, displayColor: ClayColors.dark.text));
+
   /// Plus Jakarta Sans throughout; headings use the heavier weights.
   static TextTheme _textTheme(Brightness brightness, Color bodyColor) {
     final base = GoogleFonts.plusJakartaSansTextTheme(
@@ -29,8 +37,14 @@ class AppTheme {
     );
   }
 
-  static ThemeData _build(Brightness brightness, ClayColors clay) {
+  static ThemeData _build(Brightness brightness, ClayColors clay,
+      {TextTheme? textTheme}) {
     final base = ThemeData(brightness: brightness, useMaterial3: true);
+    textTheme ??= _textTheme(brightness, clay.text);
+    // Button labels must carry the font family explicitly — a bare
+    // TextStyle here falls back to the platform font.
+    final buttonText = textTheme.labelLarge!
+        .copyWith(fontWeight: FontWeight.w600, fontSize: 15);
     return base.copyWith(
       scaffoldBackgroundColor: clay.bg,
       primaryColor: clay.primary,
@@ -52,7 +66,7 @@ class AppTheme {
         foregroundColor: clay.text,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        titleTextStyle: GoogleFonts.plusJakartaSans(
+        titleTextStyle: textTheme.titleLarge?.copyWith(
           color: clay.text,
           fontWeight: FontWeight.w700,
           fontSize: 19,
@@ -69,9 +83,20 @@ class AppTheme {
               backgroundColor: clay.primary,
               foregroundColor: Colors.white,
               minimumSize: const Size(48, 48),
-              textStyle:
-                  const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+              textStyle: buttonText,
               shape: const StadiumBorder())),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+              foregroundColor: clay.text,
+              backgroundColor: clay.surface,
+              side: BorderSide(color: clay.border),
+              minimumSize: const Size(48, 48),
+              textStyle: buttonText,
+              shape: const StadiumBorder())),
+      textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+              foregroundColor: AppColors.lilac,
+              textStyle: buttonText.copyWith(fontSize: 14))),
       dialogTheme: DialogThemeData(
           backgroundColor: clay.surface,
           shape:
@@ -94,7 +119,7 @@ class AppTheme {
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 20, vertical: 4)),
       dividerColor: clay.border,
-      textTheme: _textTheme(brightness, clay.text),
+      textTheme: textTheme,
       iconTheme: IconThemeData(color: clay.textDim),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -126,7 +151,7 @@ class AppTheme {
           minimumSize: const Size(48, 52),
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
           shape: const StadiumBorder(),
-          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+          textStyle: buttonText,
         ),
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(

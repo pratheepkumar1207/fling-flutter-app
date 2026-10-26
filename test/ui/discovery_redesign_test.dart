@@ -168,8 +168,8 @@ void main() {
             child: const OnboardingScreen())));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    await tester.scrollUntilVisible(find.text('Continue'), 150, scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(find.text('Get started'), 150,
+        scrollable: find.byType(Scrollable).first);
     expect(tester.takeException(), isNull);
   });
 }
-

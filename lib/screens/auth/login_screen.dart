@@ -5,9 +5,11 @@ import '../../core/auth_provider.dart';
 import '../../core/firebase_service.dart';
 import '../../core/google_auth_service.dart';
 import '../../theme/app_colors.dart';
-import '../../theme/glass.dart';
-import '../../widgets/mascot_eyes.dart';
+import '../../theme/insync_icons.dart';
+import '../../widgets/in_icon_button.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'otp_screen.dart';
+import 'safety_guidelines_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   // Carried over from OnboardingScreen's own phone field (the mockup shows
@@ -41,9 +43,14 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
+  // The +91 box is shown; a number typed with its own +code is kept as is.
   String get _normalizedPhone {
-    final trimmed = _phoneController.text.trim();
-    return trimmed.startsWith('+') ? trimmed : '+$trimmed';
+    final trimmed = _phoneController.text.trim().replaceAll(' ', '');
+    if (trimmed.startsWith('+')) return trimmed;
+    final digits = trimmed.replaceAll(RegExp(r'\D'), '');
+    return digits.length > 10 && digits.startsWith('91')
+        ? '+$digits'
+        : '+91$digits';
   }
 
   Future<void> _handleSubmit() async {
@@ -143,247 +150,261 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final canPop = Navigator.of(context).canPop();
+    final submitLabel = _loading
+        ? 'Signing in…'
+        : (_fakeLoginMode
+            ? 'Log in'
+            : (_devMode ? 'Continue (dev login)' : 'Send code'));
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: Stack(
-        children: [
-          Positioned(
-              top: -80,
-              left: -80,
-              child: Blob(color: AppColors.accent, size: 280)),
-          Positioned(
-              right: -96,
-              top: 220,
-              child: Blob(color: AppColors.primary, size: 320)),
-          Positioned(
-              bottom: -64,
-              left: 60,
-              child: Blob(color: AppColors.success, size: 260)),
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 380),
-                  child: GlassSurface(
-                    borderRadius: BorderRadius.circular(24),
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Center(child: MascotEyes(covering: _fieldFocused)),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Insync',
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, box) => SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: box.maxHeight - 32),
+              child: IntrinsicHeight(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      height: 44,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: canPop
+                            ? InIconButton(InIcons.back,
+                                tooltip: 'Back',
+                                onPressed: () => Navigator.of(context).pop())
+                            : Image.asset('assets/icon/insync-symbol.png',
+                                height: 28, semanticLabel: 'Insync'),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text('Sign in',
+                        style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.6)),
+                    const SizedBox(height: 6),
+                    Text(
+                        _fakeLoginMode
+                            ? 'Use the username and password you were given.'
+                            : 'We’ll text you a code to check it’s you.',
+                        style: const TextStyle(
+                            color: AppColors.textDim, fontSize: 14)),
+                    const SizedBox(height: 20),
+                    if (_error.isNotEmpty) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: AppColors.danger.withValues(alpha: 0.1),
+                          border: Border.all(
+                              color: AppColors.danger.withValues(alpha: 0.3)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(_error,
+                            style: const TextStyle(
+                                color: AppColors.danger, fontSize: 13)),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    if (_fakeLoginMode) ...[
+                      _label('Username'),
+                      _authField(
+                          controller: _usernameController,
+                          hint: 'username',
+                          icon: InIcons.user),
+                      const SizedBox(height: 14),
+                      _label('Password'),
+                      _authField(
+                          controller: _passwordController,
+                          hint: 'password',
+                          icon: InIcons.lock,
+                          obscureText: true),
+                    ] else ...[
+                      _label('Phone number'),
+                      Row(children: [
+                        Container(
+                          height: 52,
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: AppColors.border)),
+                          alignment: Alignment.center,
+                          child:
+                              const Text('+91', style: TextStyle(fontSize: 15)),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _authField(
+                              controller: _phoneController,
+                              hint: '98765 43210',
+                              focusNode: _phoneFocus,
+                              keyboardType: TextInputType.phone,
+                              highlight: _fieldFocused),
+                        ),
+                      ]),
+                    ],
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: _loading ? null : _handleSubmit,
+                      style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(52)),
+                      icon: _fakeLoginMode
+                          ? const SizedBox.shrink()
+                          : const InIcon(InIcons.phone,
+                              size: 18, color: Colors.white),
+                      label: Text(submitLabel),
+                    ),
+                    if (!_fakeLoginMode) ...[
+                      const SizedBox(height: 18),
+                      const Row(children: [
+                        Expanded(
+                            child: Divider(color: AppColors.border, height: 1)),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          child: Text('or',
+                              style: TextStyle(
+                                  color: AppColors.textFaint, fontSize: 13)),
+                        ),
+                        Expanded(
+                            child: Divider(color: AppColors.border, height: 1)),
+                      ]),
+                      const SizedBox(height: 18),
+                      FilledButton.icon(
+                        onPressed: _loading ? null : _handleGoogleSignIn,
+                        style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(52),
+                            backgroundColor: Colors.white,
+                            foregroundColor: const Color(0xFF121016)),
+                        icon: const _GoogleMark(),
+                        label: const Text('Continue with Google'),
+                      ),
+                    ],
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: () => setState(() {
+                        _fakeLoginMode = !_fakeLoginMode;
+                        _error = '';
+                      }),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                      ),
+                      icon: InIcon(
+                          _fakeLoginMode ? InIcons.phone : InIcons.user,
+                          size: 18),
+                      label: Text(_fakeLoginMode
+                          ? 'Use phone number instead'
+                          : 'Use username and password'),
+                    ),
+                    if (!_fakeLoginMode && firebaseConfigured)
+                      TextButton(
+                        onPressed: () => setState(() => _devMode = !_devMode),
+                        child: Text(
+                          _devMode
+                              ? 'Use real phone verification'
+                              : 'Use dev login instead',
+                          style: const TextStyle(
+                              color: AppColors.textFaint, fontSize: 12),
+                        ),
+                      )
+                    else if (!_fakeLoginMode)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 10),
+                        child: Text(
+                          'Firebase isn\'t configured yet — using dev login.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                              color: AppColors.primary,
-                              fontSize: 32,
-                              fontWeight: FontWeight.w900),
+                              color: AppColors.textFaint, fontSize: 11),
                         ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Meet people, hang out, vibe together.',
-                          textAlign: TextAlign.center,
-                          style:
-                              TextStyle(color: AppColors.textDim, fontSize: 13),
-                        ),
-                        const SizedBox(height: 24),
-                        if (_error.isNotEmpty)
-                          Container(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: AppColors.danger.withValues(alpha: 0.1),
-                              border: Border.all(
-                                  color:
-                                      AppColors.danger.withValues(alpha: 0.3)),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(_error,
-                                style: const TextStyle(
-                                    color: AppColors.danger, fontSize: 13)),
-                          ),
-                        if (_fakeLoginMode) ...[
-                          const Text('Username',
-                              style: TextStyle(
-                                  color: AppColors.textDim,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500)),
-                          const SizedBox(height: 6),
-                          _authField(
-                              controller: _usernameController,
-                              hint: 'username'),
-                          const SizedBox(height: 12),
-                          const Text('Password',
-                              style: TextStyle(
-                                  color: AppColors.textDim,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500)),
-                          const SizedBox(height: 6),
-                          _authField(
-                              controller: _passwordController,
-                              hint: 'password',
-                              obscureText: true),
-                        ] else ...[
-                          const Text('Phone number',
-                              style: TextStyle(
-                                  color: AppColors.textDim,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500)),
-                          const SizedBox(height: 6),
-                          _authField(
-                              controller: _phoneController,
-                              hint: '+91XXXXXXXXXX',
-                              focusNode: _phoneFocus,
-                              keyboardType: TextInputType.phone),
-                        ],
-                        const SizedBox(height: 16),
-                        GestureDetector(
-                          onTap: _loading ? null : _handleSubmit,
-                          child: Container(
-                            width: double.infinity,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(999),
-                              gradient: _loading
-                                  ? null
-                                  : const LinearGradient(
-                                      colors: AppGradients.brand),
-                              color: _loading ? AppColors.surface2 : null,
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              _loading
-                                  ? 'Signing in…'
-                                  : (_fakeLoginMode
-                                      ? 'Log in'
-                                      : (_devMode
-                                          ? 'Continue (dev login)'
-                                          : 'Send code')),
-                              style: TextStyle(
-                                  color: _loading
-                                      ? AppColors.textFaint
-                                      : Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14),
-                            ),
-                          ),
-                        ),
-                        if (!_fakeLoginMode) ...[
-                          const SizedBox(height: 16),
-                          Row(children: [
+                      ),
+                    const Spacer(),
+                    const SizedBox(height: 16),
+                    Material(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => const SafetyGuidelinesScreen(
+                                    previewOnly: true))),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppColors.border)),
+                          child: const Row(children: [
+                            InIcon(InIcons.shield,
+                                size: 20, color: AppColors.success),
+                            SizedBox(width: 10),
                             Expanded(
-                                child: Divider(
-                                    color: AppColors.border, height: 1)),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 12),
-                              child: Text('or',
-                                  style: TextStyle(
-                                      color: AppColors.textFaint,
-                                      fontSize: 12)),
-                            ),
-                            Expanded(
-                                child: Divider(
-                                    color: AppColors.border, height: 1)),
+                                child: Text('Read our safety guidelines',
+                                    style: TextStyle(fontSize: 13))),
+                            InIcon(InIcons.chev,
+                                size: 18, color: AppColors.textFaint),
                           ]),
-                          const SizedBox(height: 16),
-                          GestureDetector(
-                            onTap: _loading ? null : _handleGoogleSignIn,
-                            child: Container(
-                              width: double.infinity,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(999),
-                                color: AppColors.surface2,
-                                border: Border.all(color: AppColors.border),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                'Continue with Google',
-                                style: TextStyle(
-                                    color: _loading
-                                        ? AppColors.textFaint
-                                        : AppColors.text,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 14),
-                              ),
-                            ),
-                          ),
-                        ],
-                        if (!_fakeLoginMode)
-                          if (firebaseConfigured)
-                            TextButton(
-                              onPressed: () =>
-                                  setState(() => _devMode = !_devMode),
-                              child: Text(
-                                _devMode
-                                    ? 'Use real phone verification'
-                                    : 'Use dev login instead',
-                                style: const TextStyle(
-                                    color: AppColors.textFaint, fontSize: 12),
-                              ),
-                            )
-                          else
-                            const Padding(
-                              padding: EdgeInsets.only(top: 12),
-                              child: Text(
-                                'Firebase isn\'t configured yet — using dev login.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                    color: AppColors.textFaint, fontSize: 11),
-                              ),
-                            ),
-                        TextButton(
-                          onPressed: () => setState(() {
-                            _fakeLoginMode = !_fakeLoginMode;
-                            _error = '';
-                          }),
-                          child: Text(
-                            _fakeLoginMode
-                                ? 'Use phone number instead'
-                                : 'Have a test account? Log in with username',
-                            style: const TextStyle(
-                                color: AppColors.textFaint, fontSize: 12),
-                          ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 
+  Widget _label(String text) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text(text,
+            style: const TextStyle(color: AppColors.textDim, fontSize: 13)),
+      );
+
   Widget _authField(
       {required TextEditingController controller,
       required String hint,
+      InIconData? icon,
       FocusNode? focusNode,
       TextInputType? keyboardType,
-      bool obscureText = false}) {
+      bool obscureText = false,
+      bool highlight = false}) {
     return Container(
+      height: 52,
       decoration: BoxDecoration(
-          color: AppColors.surface2,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border)),
+          border: Border.all(
+              color: highlight ? AppColors.purple : AppColors.border)),
+      alignment: Alignment.center,
       child: TextField(
         controller: controller,
         focusNode: focusNode,
         keyboardType: keyboardType,
         obscureText: obscureText,
-        style: const TextStyle(color: AppColors.text),
+        style: const TextStyle(color: AppColors.text, fontSize: 15),
         decoration: InputDecoration(
             hintText: hint,
+            filled: false,
             border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            prefixIcon: icon == null
+                ? null
+                : Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: InIcon(icon, size: 18, color: AppColors.textDim)),
+            prefixIconConstraints:
+                const BoxConstraints(minWidth: 0, minHeight: 0),
             contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 14)),
       ),
     );
   }
@@ -405,4 +426,19 @@ class _PhoneVerification {
   String verificationId = '';
   int? resendToken;
   bool pushed = false;
+}
+
+/// Google "G" in its brand colours (required by Google's sign-in branding).
+class _GoogleMark extends StatelessWidget {
+  const _GoogleMark();
+
+  @override
+  Widget build(BuildContext context) => SvgPicture.string(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">'
+      '<path fill="#4285F4" d="M22 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.6a4.8 4.8 0 01-2.1 3.1v2.6h3.4c2-1.8 3.1-4.5 3.1-7.5z"/>'
+      '<path fill="#34A853" d="M12 22c2.8 0 5.2-.9 6.9-2.5l-3.4-2.6c-.9.6-2.1 1-3.5 1-2.7 0-5-1.8-5.8-4.3H2.7v2.7A10 10 0 0012 22z"/>'
+      '<path fill="#FBBC05" d="M6.2 13.6a6 6 0 010-3.8V7.1H2.7a10 10 0 000 9z"/>'
+      '<path fill="#EA4335" d="M12 5.9c1.5 0 2.9.5 4 1.5l3-3A10 10 0 002.7 7.1l3.5 2.7C7 7.7 9.3 5.9 12 5.9z"/></svg>',
+      width: 20,
+      height: 20);
 }

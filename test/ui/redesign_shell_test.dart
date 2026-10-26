@@ -4,7 +4,7 @@ import 'dart:ui' as ui;
 import 'package:fling/screens/home/home_room_cards.dart';
 import 'package:fling/screens/shell/liquid_glass_bottom_nav.dart';
 import 'package:fling/theme/app_colors.dart';
-import 'package:fling/theme/clay_colors.dart';
+import 'package:fling/theme/app_theme.dart';
 import 'package:fling/theme/insync_icons.dart';
 import 'package:fling/widgets/animated_logo.dart';
 import 'package:flutter/material.dart';
@@ -39,8 +39,7 @@ Map<String, dynamic> _room(String type, {String theme = 'midnight'}) => {
       'isPlaying': true,
     };
 
-ThemeData _theme() => ThemeData.dark(useMaterial3: true).copyWith(
-    scaffoldBackgroundColor: AppColors.bg, extensions: [ClayColors.dark]);
+ThemeData _theme() => AppTheme.darkWithoutWebFonts();
 
 Future<void> _snap(WidgetTester tester, GlobalKey key, String name) async {
   final boundary =

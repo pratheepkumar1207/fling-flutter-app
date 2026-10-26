@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../../widgets/insync_clay.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
@@ -10,17 +9,18 @@ import '../../core/interest_options.dart';
 import '../../core/language_options.dart';
 import '../../models/photo.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/insync_icons.dart';
 import '../../widgets/interest_picker.dart';
 import '../../widgets/spinner.dart';
 
 const _kMinGalleryPhotos = 5;
 
 const _kLookingForOptions = [
-  ['friends', '🤝 Friends'],
-  ['explore', '✨ Explore'],
-  ['short_term', '💫 Short-term relationship'],
-  ['long_term', '💍 Long-term relationship'],
-  ['not_sure', '🤔 Not sure yet'],
+  ['long_term', 'Long-term'],
+  ['short_term', 'Short-term'],
+  ['friends', 'Friends'],
+  ['explore', 'Explore'],
+  ['not_sure', 'Not sure yet'],
 ];
 
 /// Shown right after login, before anything else — see SplashScreen, which
@@ -143,259 +143,248 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final galleryCount = _gallery.length;
+    // Always at least one empty slot, and enough to reach the minimum.
+    final slots = (galleryCount + 1).clamp(6, 12);
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: Column(children: [
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
               children: [
-                const SizedBox(height: 12),
                 const Text('Complete your profile',
-                    textAlign: TextAlign.center,
                     style: TextStyle(
-                        color: AppColors.text,
                         fontSize: 22,
-                        fontWeight: FontWeight.w800)),
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.4)),
                 const SizedBox(height: 4),
                 const Text('Just a few details before you jump in.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-                const SizedBox(height: 24),
-                const Text('Your age',
-                    style: TextStyle(
-                        color: AppColors.text,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                Container(
-                  decoration: insyncClay(radius: 22),
-                  child: TextField(
-                    controller: _ageController,
-                    keyboardType: TextInputType.number,
-                    onChanged: (_) => setState(() {}),
-                    style: const TextStyle(color: AppColors.text),
-                    decoration: const InputDecoration(
-                        hintText: 'Age',
-                        border: InputBorder.none,
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
-                  ),
-                ),
-                if (_ageController.text.isNotEmpty && !_isAdult)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 4),
-                    child: Text('You must be at least 18 to use Insync.',
-                        style:
-                            TextStyle(color: AppColors.danger, fontSize: 11)),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: GestureDetector(
-                    onTap: _isAdult
-                        ? () =>
-                            setState(() => _ageConfirmed18 = !_ageConfirmed18)
-                        : null,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Checkbox(
-                          value: _ageConfirmed18,
-                          onChanged: _isAdult
-                              ? (v) =>
-                                  setState(() => _ageConfirmed18 = v ?? false)
-                              : null,
-                          activeColor: AppColors.primary,
-                        ),
-                        const Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.only(top: 12),
-                            child: Text(
-                              'I confirm I am 18 years or older and the information I\'ve provided is accurate.',
-                              style: TextStyle(
-                                  color: AppColors.textDim, fontSize: 13),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                const Text('What are you looking for?',
-                    style: TextStyle(
-                        color: AppColors.text,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                for (final o in _kLookingForOptions)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: GestureDetector(
-                      onTap: () => setState(() => _lookingFor = o[0]),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: _lookingFor == o[0]
-                              ? AppColors.accent.withValues(alpha: 0.14)
-                              : AppColors.surface,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                              color: _lookingFor == o[0]
-                                  ? AppColors.accent
-                                  : AppColors.border,
-                              width: _lookingFor == o[0] ? 1.5 : 1),
-                        ),
-                        child: Text(o[1],
-                            style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: _lookingFor == o[0]
-                                    ? AppColors.accent
-                                    : AppColors.textDim)),
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 16),
-                Text('Your interests (${_interests.length}/$kMinInterests min)',
-                    style: const TextStyle(
-                        color: AppColors.text,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                InterestPicker(
-                    selected: _interests,
-                    onChanged: (v) => setState(() => _interests = v),
-                    options: _interestOptions),
-                const SizedBox(height: 4),
-                Text(
-                    'Pick at least $kMinInterests — this helps match you with people who vibe with you.',
-                    style: const TextStyle(
-                        color: AppColors.textFaint, fontSize: 11)),
-                const SizedBox(height: 16),
-                const Text('Languages you speak (optional)',
-                    style: TextStyle(
-                        color: AppColors.text,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                InterestPicker(
-                    selected: _languages,
-                    onChanged: (v) => setState(() => _languages = v),
-                    options: kLanguageOptions),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                        'Gallery photos (${galleryCount.clamp(0, _kMinGalleryPhotos)}/$_kMinGalleryPhotos)',
-                        style: const TextStyle(
-                            color: AppColors.text,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600)),
-                    TextButton(
-                        onPressed: _addPhoto, child: const Text('+ Add photo')),
-                  ],
-                ),
-                const Text(
-                    'Add at least 5 photos so people can get a real sense of you.',
-                    style: TextStyle(color: AppColors.textFaint, fontSize: 11)),
-                const SizedBox(height: 8),
+                    style: TextStyle(color: AppColors.textDim, fontSize: 14)),
+                const SizedBox(height: 18),
+                _sectionLabel(
+                    'Photos · ${galleryCount.clamp(0, _kMinGalleryPhotos)}/$_kMinGalleryPhotos',
+                    hint:
+                        'Add at least $_kMinGalleryPhotos so people get a real sense of you.'),
                 if (_galleryLoading)
-                  const Center(
-                      child: Padding(
-                          padding: EdgeInsets.all(12),
-                          child: Spinner(size: 20)))
-                else if (galleryCount == 0)
-                  const Text('No photos yet.',
-                      style:
-                          TextStyle(color: AppColors.textFaint, fontSize: 13))
+                  const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(child: Spinner(size: 20)))
                 else
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _gallery.length,
+                    itemCount: slots,
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 3,
                             mainAxisSpacing: 8,
-                            crossAxisSpacing: 8),
-                    itemBuilder: (context, i) {
-                      final p = _gallery[i];
-                      return Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Image.memory(
-                              base64Decode(p.imageData.split(',').last),
-                              width: double.infinity,
-                              height: double.infinity,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: GestureDetector(
-                              onTap: () => _deletePhoto(p.id),
-                              child: Container(
-                                width: 22,
-                                height: 22,
-                                decoration: const BoxDecoration(
-                                    color: Colors.black54,
-                                    shape: BoxShape.circle),
-                                alignment: Alignment.center,
-                                child: const Icon(Icons.close,
-                                    size: 13, color: Colors.white),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
+                            crossAxisSpacing: 8,
+                            childAspectRatio: 0.8),
+                    itemBuilder: (context, i) => i < galleryCount
+                        ? _photoTile(_gallery[i], main: i == 0)
+                        : _addTile(),
                   ),
-                const SizedBox(height: 24),
-                GestureDetector(
-                  onTap: (_canContinue && !_saving) ? _continue : null,
-                  child: Container(
-                    width: double.infinity,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      gradient: (_canContinue && !_saving)
-                          ? const LinearGradient(colors: AppGradients.brand)
-                          : null,
-                      color: (_canContinue && !_saving)
-                          ? null
-                          : AppColors.surface2,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      _saving ? 'Saving…' : 'Continue',
-                      style: TextStyle(
-                          color: (_canContinue && !_saving)
-                              ? Colors.white
-                              : AppColors.textFaint,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14),
-                    ),
+                const SizedBox(height: 22),
+                _sectionLabel('Your age'),
+                TextField(
+                  controller: _ageController,
+                  keyboardType: TextInputType.number,
+                  onChanged: (_) => setState(() {}),
+                  style: const TextStyle(color: AppColors.text, fontSize: 15),
+                  decoration: const InputDecoration(hintText: 'Age'),
+                ),
+                const SizedBox(height: 6),
+                Text('You must be at least 18 to use Insync.',
+                    style: TextStyle(
+                        color: _ageController.text.isNotEmpty && !_isAdult
+                            ? AppColors.danger
+                            : AppColors.textFaint,
+                        fontSize: 12)),
+                const SizedBox(height: 6),
+                InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: _isAdult
+                      ? () => setState(() => _ageConfirmed18 = !_ageConfirmed18)
+                      : null,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Checkbox(
+                        value: _ageConfirmed18,
+                        onChanged: _isAdult
+                            ? (v) =>
+                                setState(() => _ageConfirmed18 = v ?? false)
+                            : null,
+                        activeColor: AppColors.primary,
+                      ),
+                      const Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(top: 12),
+                          child: Text(
+                            'I confirm I am 18 or older and what I’ve shared is accurate.',
+                            style: TextStyle(
+                                color: AppColors.textDim, fontSize: 13),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                const SizedBox(height: 18),
+                _sectionLabel('What are you looking for?'),
+                Wrap(spacing: 8, runSpacing: 8, children: [
+                  for (final o in _kLookingForOptions)
+                    ChoiceChip(
+                      label: Text(o[1]),
+                      selected: _lookingFor == o[0],
+                      showCheckmark: false,
+                      labelStyle: TextStyle(
+                          color: _lookingFor == o[0]
+                              ? Colors.white
+                              : AppColors.text,
+                          fontWeight: FontWeight.w500),
+                      onSelected: (_) => setState(() => _lookingFor = o[0]),
+                    ),
+                ]),
+                const SizedBox(height: 22),
+                _sectionLabel(
+                    'Your interests · ${_interests.length}/$kMinInterests',
+                    hint:
+                        'Pick at least $kMinInterests so we can match you with people who vibe with you.'),
+                InterestPicker(
+                    selected: _interests,
+                    onChanged: (v) => setState(() => _interests = v),
+                    options: _interestOptions),
+                const SizedBox(height: 22),
+                _sectionLabel('Languages you speak (optional)'),
+                InterestPicker(
+                    selected: _languages,
+                    onChanged: (v) => setState(() => _languages = v),
+                    options: kLanguageOptions),
               ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+            child: FilledButton(
+              onPressed: (_canContinue && !_saving) ? _continue : null,
+              style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52)),
+              child: Text(_saving ? 'Saving…' : 'Continue'),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _sectionLabel(String text, {String? hint}) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(text,
+              style: const TextStyle(
+                  color: AppColors.text,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600)),
+          if (hint != null) ...[
+            const SizedBox(height: 2),
+            Text(hint,
+                style:
+                    const TextStyle(color: AppColors.textFaint, fontSize: 12)),
+          ],
+        ]),
+      );
+
+  Widget _photoTile(Photo p, {required bool main}) {
+    return Stack(fit: StackFit.expand, children: [
+      ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Image.memory(base64Decode(p.imageData.split(',').last),
+            fit: BoxFit.cover),
+      ),
+      if (main)
+        Positioned(
+          left: 6,
+          top: 6,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(6)),
+            child: const Text('Main',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
+          ),
+        ),
+      Positioned(
+        top: 2,
+        right: 2,
+        child: Semantics(
+          button: true,
+          label: 'Remove photo',
+          child: InkResponse(
+            onTap: () => _deletePhoto(p.id),
+            radius: 20,
+            child: Container(
+              width: 28,
+              height: 28,
+              margin: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                  color: Colors.black54, shape: BoxShape.circle),
+              alignment: Alignment.center,
+              child: const InIcon(InIcons.close, size: 14, color: Colors.white),
             ),
           ),
         ),
       ),
-    );
+    ]);
   }
+
+  Widget _addTile() => Semantics(
+        button: true,
+        label: 'Add photo',
+        child: InkWell(
+          onTap: _addPhoto,
+          borderRadius: BorderRadius.circular(16),
+          child: CustomPaint(
+            painter: _DashedBorder(),
+            child: const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  InIcon(InIcons.plus, size: 22, color: AppColors.textDim),
+                  SizedBox(height: 4),
+                  Text('Add photo',
+                      style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+                ]),
+          ),
+        ),
+      );
 
   @override
   void dispose() {
     _ageController.dispose();
     super.dispose();
   }
+}
+
+/// Dashed rounded outline for empty photo slots.
+class _DashedBorder extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF3A3548)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    final path = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+          Offset.zero & size, const Radius.circular(16)));
+    for (final metric in path.computeMetrics()) {
+      for (var d = 0.0; d < metric.length; d += 10) {
+        canvas.drawPath(metric.extractPath(d, d + 5), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -418,8 +418,6 @@ class _HomeHero extends StatelessWidget {
               backgroundColor: Colors.white.withValues(alpha: 0.1),
               side: BorderSide(color: Colors.white.withValues(alpha: 0.22)),
               shape: const StadiumBorder(),
-              textStyle:
-                  const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
             ),
             icon: const InIcon(InIcons.ticket, size: 17, color: Colors.white),
             label: const Text('Join with code'),
