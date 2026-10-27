@@ -10,6 +10,7 @@ import '../../models/blend.dart';
 import '../../models/message.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
+import '../../widgets/chat_media.dart';
 import '../../widgets/in_icon_button.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/spinner.dart';
@@ -136,6 +137,12 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   }
 
   Widget _messageContent(DirectMessage m, bool mine) {
+    if (m.messageType == 'image' && m.mediaUrl != null) {
+      return ChatPhoto(m.mediaUrl!);
+    }
+    if (m.messageType == 'voice' && m.mediaUrl != null) {
+      return ChatVoiceNote(m.mediaUrl!, mine: mine);
+    }
     if (m.messageType == 'sticker' && m.mediaUrl != null) {
       return Text(m.mediaUrl!, style: const TextStyle(fontSize: 40));
     }
@@ -170,6 +177,12 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final text = _textController.text.trim();
     if (text.isEmpty || _sending) return;
     await _sendBody({'text': text}, clearText: true);
+  }
+
+  Future<void> _sendPhoto() async {
+    final uri = await pickChatPhoto();
+    if (uri == null || !mounted) return;
+    await _sendBody({'messageType': 'image', 'mediaUrl': uri});
   }
 
   Future<void> _sendSticker(String emoji) async {
@@ -357,6 +370,12 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                 padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
                 child: Row(
                   children: [
+                    InIconButton(InIcons.image,
+                        tooltip: 'Send a photo',
+                        size: 38,
+                        iconSize: 21,
+                        onPressed: _sending ? null : _sendPhoto),
+                    const SizedBox(width: 2),
                     Expanded(
                       child: Container(
                         padding: const EdgeInsets.only(left: 14, right: 4),
@@ -399,7 +418,10 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                         ]),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    VoiceRecordButton(
+                        onRecorded: (uri) => _sendBody(
+                            {'messageType': 'voice', 'mediaUrl': uri})),
+                    const SizedBox(width: 4),
                     Semantics(
                       button: true,
                       label: 'Send',

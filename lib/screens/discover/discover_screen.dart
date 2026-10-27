@@ -29,6 +29,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   String? _matchName;
   DiscoverProfile? _lastSwiped;
   bool _undoing = false;
+  bool _boosting = false;
+  DateTime? _boostedUntil;
 
   final _cityController = TextEditingController();
   final _minAgeController = TextEditingController();
@@ -119,6 +121,57 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
   // Coin-gated "reverse swipe" — see POST /swipe/undo. Puts the most
   // recently swiped profile back on top of the deck.
+  // Pay coins to be shown first in other people's Discover for a while.
+  Future<void> _boost() async {
+    setState(() => _boosting = true);
+    try {
+      final info =
+          await ApiClient.get('/discover/boost') as Map<String, dynamic>;
+      final until = DateTime.tryParse('${info['boostedUntil'] ?? ''}');
+      final cost = info['cost'] ?? 100;
+      final minutes = info['minutes'] ?? 30;
+      if (!mounted) return;
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (d) => AlertDialog(
+          title: Text(until != null ? 'Boost again?' : 'Boost your profile'),
+          content: Text(until != null
+              ? 'You’re boosted until ${TimeOfDay.fromDateTime(until.toLocal()).format(d)}. Add $minutes more minutes for $cost coins?'
+              : 'Be shown first in Discover for $minutes minutes, for $cost coins.'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(d).pop(false),
+                child: const Text('Not now')),
+            FilledButton(
+                onPressed: () => Navigator.of(d).pop(true),
+                child: Text('Boost · $cost coins')),
+          ],
+        ),
+      );
+      if (ok != true || !mounted) return;
+      final r = await ApiClient.post('/discover/boost') as Map<String, dynamic>;
+      if (!mounted) return;
+      setState(() => _boostedUntil = DateTime.tryParse('${r['boostedUntil']}'));
+      await context.read<AuthProvider>().refreshUser();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Boosted — you’ll show up first in Discover.')));
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Couldn’t boost right now.')));
+      }
+    } finally {
+      if (mounted) setState(() => _boosting = false);
+    }
+  }
+
   Future<void> _undoLastSwipe() async {
     final lastSwiped = _lastSwiped;
     if (lastSwiped == null || _undoing) return;
@@ -235,21 +288,28 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                             ? _undoLastSwipe
                             : null,
                         size: 48),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     _roundAction(InIcons.close, 'Nope', const Color(0xFFFF6B7F),
                         () => _handleSwipe('pass'),
                         size: 62, iconSize: 28),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     _roundAction(
                         InIcons.star,
                         'Super like',
                         const Color(0xFF6E95FD),
                         () => _handleSwipe('superlike'),
                         size: 48),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     _roundAction(InIcons.heart, 'Like', Colors.white,
                         () => _handleSwipe('like'),
                         size: 62, iconSize: 28, filled: true),
+                    const SizedBox(width: 12),
+                    _roundAction(
+                        InIcons.bolt,
+                        _boostedUntil != null ? 'Boosted' : 'Boost',
+                        const Color(0xFFB97CF8),
+                        _boosting ? null : _boost,
+                        size: 48),
                   ],
                 ),
               ),

@@ -79,5 +79,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Insync uses the microphone for voice notes, calls and talking in rooms.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Insync uses the camera for video calls, going live and photo verification.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Insync lets you share photos from your library in posts and chats.</string>
 </dict>
 </plist>

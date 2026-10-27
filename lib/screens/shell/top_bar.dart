@@ -177,17 +177,24 @@ class _MessagesButtonState extends State<_MessagesButton> {
       if (socket != null) {
         _bound = true;
         socket.on('dm:message', (_) => _load());
+        socket.on('group:message', (_) => _load());
       }
     }
   }
 
   Future<void> _load() async {
     try {
-      final data = await ApiClient.get('/messages/conversations');
-      if (!mounted || data is! List) return;
+      final results = await Future.wait([
+        ApiClient.get('/messages/conversations'),
+        ApiClient.get('/groups').catchError((_) => <dynamic>[]),
+      ]);
+      if (!mounted) return;
       var total = 0;
-      for (final c in data) {
-        if (c is Map) total += (c['unreadCount'] as num?)?.toInt() ?? 0;
+      for (final list in results) {
+        if (list is! List) continue;
+        for (final c in list) {
+          if (c is Map) total += (c['unreadCount'] as num?)?.toInt() ?? 0;
+        }
       }
       setState(() => _unread = total);
     } catch (_) {

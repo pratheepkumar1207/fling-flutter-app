@@ -14,6 +14,7 @@ import '../../widgets/spinner.dart';
 import '../blend/blend_entry.dart';
 import '../discover/discover_matches_screen.dart';
 import '../friends/friends_screen.dart';
+import 'group_thread_screen.dart';
 import 'message_thread_screen.dart';
 
 /// Messages, opened from the top bar: notes, new matches, blends, search,
@@ -30,20 +31,24 @@ class _MessagesScreenState extends State<MessagesScreen> {
   List<ConversationSummary> _conversations = [];
   List<Map<String, dynamic>> _matches = [];
   String _query = '';
-  bool _unreadOnly = false;
+  // 'all' | 'unread' | 'requests' | 'groups'
+  String _filter = 'all';
+  List<Map<String, dynamic>> _groups = [];
 
   @override
   void initState() {
     super.initState();
     _load();
     _loadMatches();
+    _loadGroups();
   }
 
   List<ConversationSummary> get _filtered {
     final q = _query.trim().toLowerCase();
     return _conversations
         .where((c) =>
-            (!_unreadOnly || c.unreadCount > 0) &&
+            (_filter != 'unread' || c.unreadCount > 0) &&
+            (_filter == 'requests' ? c.isRequest : !c.isRequest) &&
             (q.isEmpty || c.name.toLowerCase().contains(q)))
         .toList();
   }
@@ -63,6 +68,35 @@ class _MessagesScreenState extends State<MessagesScreen> {
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _loadGroups() async {
+    try {
+      final data = await ApiClient.get('/groups');
+      if (!mounted) return;
+      setState(() => _groups = (data as List).cast<Map<String, dynamic>>());
+    } catch (_) {
+      // Groups row is optional.
+    }
+  }
+
+  int get _requestCount => _conversations.where((c) => c.isRequest).length;
+
+  Future<void> _newGroup() async {
+    final id = await createGroupChat(context);
+    if (id == null || !mounted) return;
+    await _loadGroups();
+    final g = _groups.firstWhere((x) => x['id'] == id,
+        orElse: () => {'id': id, 'name': 'Group'});
+    _openGroup(g);
+  }
+
+  void _openGroup(Map<String, dynamic> g) {
+    Navigator.of(context)
+        .push(MaterialPageRoute(
+            builder: (_) => GroupThreadScreen(
+                groupId: g['id'] as String, name: g['name'] as String? ?? '')))
+        .then((_) => _loadGroups());
   }
 
   Future<void> _loadMatches() async {
@@ -105,6 +139,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
                         style: TextStyle(
                             fontSize: 22, fontWeight: FontWeight.w700)),
                   ),
+                  InIconButton(InIcons.community,
+                      tooltip: 'New group', onPressed: _newGroup),
                   InIconButton(InIcons.useradd,
                       tooltip: 'Find friends',
                       onPressed: () => Navigator.of(context).push(
@@ -148,28 +184,65 @@ class _MessagesScreenState extends State<MessagesScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(18, 8, 18, 8),
-                child: Row(children: [
-                  _filterChip('All', !_unreadOnly,
-                      () => setState(() => _unreadOnly = false)),
+                child: Wrap(runSpacing: 8, children: [
+                  _filterChip('All', _filter == 'all',
+                      () => setState(() => _filter = 'all')),
                   _filterChip(
                       _unreadChats > 0 ? 'Unread · $_unreadChats' : 'Unread',
-                      _unreadOnly,
-                      () => setState(() => _unreadOnly = true)),
+                      _filter == 'unread',
+                      () => setState(() => _filter = 'unread')),
+                  _filterChip(
+                      _groups.isEmpty ? 'Groups' : 'Groups · ${_groups.length}',
+                      _filter == 'groups',
+                      () => setState(() => _filter = 'groups')),
+                  _filterChip(
+                      _requestCount > 0
+                          ? 'Requests · $_requestCount'
+                          : 'Requests',
+                      _filter == 'requests',
+                      () => setState(() => _filter = 'requests')),
                 ]),
               ),
             ),
-            if (_loading)
+            if (_filter == 'groups')
+              _groups.isEmpty
+                  ? SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                        child:
+                            Column(mainAxisSize: MainAxisSize.min, children: [
+                          const Text('No groups yet.',
+                              style: TextStyle(color: AppColors.textFaint)),
+                          const SizedBox(height: 10),
+                          FilledButton.icon(
+                            onPressed: _newGroup,
+                            icon: const InIcon(InIcons.plus,
+                                size: 18, color: Colors.white),
+                            label: const Text('New group'),
+                          ),
+                        ]),
+                      ),
+                    )
+                  : SliverList.builder(
+                      itemCount: _groups.length,
+                      itemBuilder: (context, i) => _GroupRow(
+                          g: _groups[i], onTap: () => _openGroup(_groups[i])),
+                    )
+            else if (_loading)
               const SliverFillRemaining(
                   hasScrollBody: false, child: Center(child: Spinner(size: 28)))
             else if (_conversations.isEmpty)
               const SliverFillRemaining(
                   hasScrollBody: false, child: _EmptyChats())
             else if (results.isEmpty)
-              const SliverFillRemaining(
+              SliverFillRemaining(
                 hasScrollBody: false,
                 child: Center(
-                    child: Text('No chats here.',
-                        style: TextStyle(color: AppColors.textFaint))),
+                    child: Text(
+                        _filter == 'requests'
+                            ? 'No message requests.'
+                            : 'No chats here.',
+                        style: const TextStyle(color: AppColors.textFaint))),
               )
             else
               SliverList.builder(
@@ -360,6 +433,67 @@ class _EmptyChats extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.textDim, fontSize: 13)),
       ]),
+    );
+  }
+}
+
+class _GroupRow extends StatelessWidget {
+  final Map<String, dynamic> g;
+  final VoidCallback onTap;
+  const _GroupRow({required this.g, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final unread = (g['unreadCount'] as num?)?.toInt() ?? 0;
+    final at = DateTime.tryParse('${g['lastMessageAt'] ?? ''}');
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+        child: Row(children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+                color: const Color(0xFF1C1638),
+                borderRadius: BorderRadius.circular(16)),
+            child: const Center(
+                child: InIcon(InIcons.users, size: 22, color: AppColors.lilac)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(g['name'] as String? ?? 'Group',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontWeight:
+                          unread > 0 ? FontWeight.w700 : FontWeight.w600,
+                      fontSize: 15)),
+              const SizedBox(height: 2),
+              Text(
+                  (g['lastMessage'] as String?)?.isNotEmpty == true
+                      ? g['lastMessage'] as String
+                      : '${g['memberCount'] ?? ''} people',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: unread > 0 ? AppColors.text : AppColors.textDim,
+                      fontSize: 13)),
+            ]),
+          ),
+          const SizedBox(width: 8),
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            if (at != null)
+              Text(formatRelativeTime(at),
+                  style:
+                      const TextStyle(color: AppColors.textDim, fontSize: 12)),
+            const SizedBox(height: 6),
+            if (unread > 0) CountBadge(unread) else const SizedBox(height: 16),
+          ]),
+        ]),
+      ),
     );
   }
 }

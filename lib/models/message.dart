@@ -3,7 +3,7 @@ class DirectMessage {
   final String senderId;
   final String recipientId;
   final String text;
-  final String messageType; // 'text' | 'sticker' | 'gif'
+  final String messageType; // 'text' | 'sticker' | 'gif' | 'image' | 'voice'
   final String? mediaUrl;
   final DateTime createdAt;
   final DateTime? readAt;
@@ -48,6 +48,10 @@ class ConversationSummary {
   final int unreadCount;
   final bool online;
 
+  /// Someone who isn't a friend or match started this and you haven't
+  /// replied yet — shown under Requests.
+  final bool isRequest;
+
   ConversationSummary({
     required this.userId,
     required this.name,
@@ -58,6 +62,7 @@ class ConversationSummary {
     required this.lastMessageIsMine,
     this.unreadCount = 0,
     this.online = false,
+    this.isRequest = false,
   });
 
   factory ConversationSummary.fromJson(Map<String, dynamic> json) {
@@ -73,6 +78,7 @@ class ConversationSummary {
       lastMessageIsMine: json['lastMessageIsMine'] as bool? ?? false,
       online: json['online'] as bool? ?? false,
       unreadCount: json['unreadCount'] as int? ?? 0,
+      isRequest: json['isRequest'] as bool? ?? false,
     );
   }
 }
