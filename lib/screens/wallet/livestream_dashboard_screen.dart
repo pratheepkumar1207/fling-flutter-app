@@ -1,3 +1,4 @@
+import '../../widgets/studio_stats.dart';
 import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
@@ -26,6 +27,8 @@ class LivestreamDashboardScreen extends StatefulWidget {
 
 class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
   Map<String, dynamic>? _dashboard;
+  // This week's stats (GET /studio?days=7).
+  Map<String, dynamic>? _week;
   bool _loading = true;
   bool _applying = false;
   bool _goingLive = false;
@@ -42,6 +45,8 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
       final data = await ApiClient.get('/creators/me/livestream-dashboard')
           as Map<String, dynamic>;
       if (mounted) setState(() => _dashboard = data);
+      final week = await ApiClient.get('/studio?days=7') as Map<String, dynamic>;
+      if (mounted) setState(() => _week = week);
     } catch (_) {
       if (mounted) setState(() => _dashboard = null);
     } finally {
@@ -94,7 +99,7 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const InsyncPageTitle('Livestream')),
+      appBar: AppBar(title: const InsyncPageTitle('Live dashboard')),
       body: _loading
           ? const Center(child: Spinner())
           : d == null
@@ -108,6 +113,10 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
                         padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
                         children: [
                           _statusBanner(status),
+                          if (_week != null) ...[
+                            const SizedBox(height: 18),
+                            StudioStats(studio: _week!),
+                          ],
                           const SizedBox(height: 18),
                           Row(
                             children: [

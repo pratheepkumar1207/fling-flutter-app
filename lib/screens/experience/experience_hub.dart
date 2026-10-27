@@ -1,572 +1,690 @@
-import '../settings/account_centers.dart';
-import '../settings/room_moderation_screen.dart';
-import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
+
+import '../../core/api_client.dart';
+import '../../core/api_exception.dart';
+import '../../core/format.dart';
 import '../../theme/app_colors.dart';
-import '../../widgets/glass.dart';
+import '../../theme/insync_icons.dart';
+import '../../widgets/avatar.dart';
+import '../../widgets/in_icon_button.dart';
+import '../../widgets/live_extras.dart' show compactCount;
+import '../../widgets/spinner.dart';
+import '../../widgets/studio_stats.dart';
+import '../achievements/achievements_screen.dart';
 import '../communities/communities_screen.dart';
 import '../events/events_screen.dart';
-import '../achievements/achievements_screen.dart';
 import '../leaderboards/leaderboards_screen.dart';
+import '../lobby/lobby_create_screen.dart';
+import '../messages/message_thread_screen.dart';
+import '../settings/account_centers.dart';
+import '../settings/room_moderation_screen.dart';
+import '../wallet/livestream_dashboard_screen.dart';
+import '../wallet/wallet_cashout_screen.dart';
 import '../wallet/wallet_screen.dart';
 
-/// A dedicated hub for the newer, not-yet-backend-wired feature surfaces
-/// (ref: the "Fling Premium Product Pass" design shared as
-/// fling-flutter-app-all-features.zip) — Vibe Match, Together, Safety
-/// Center, Privacy, Verification, Creator Studio, Room Moderation, and
-/// Security. Every one of those screens below is intentionally UI-only:
-/// no fabricated server state, no fake persistence — actions show a
-/// "coming soon"-style snackbar instead of pretending to do something
-/// real. Wire each one up to its real backend endpoint as those become
-/// available, same spirit as chat_attachment_sheet.dart's honest
-/// "coming soon" for unbuilt media messages. The bottom "Your Fling"
-/// section links out to screens that already ARE fully real and wired
-/// (Events/Communities/Achievements/Leaderboards/Wallet) — nothing new
-/// there, just gathered under one roof for discoverability.
-class FlingFeatureHubScreen extends StatelessWidget {
+void _push(BuildContext context, Widget screen) =>
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+
+/// The four moods Vibe match understands.
+const _vibes = [
+  ('movie', '🍿', 'Movie'),
+  ('talk', '🎤', 'Talk'),
+  ('play', '🎮', 'Play'),
+  ('music', '🎶', 'Music'),
+];
+
+AppBar _bar(BuildContext context, String title, {List<Widget>? actions}) =>
+    AppBar(
+      backgroundColor: AppColors.bg,
+      leading: InIconButton(InIcons.back,
+          tooltip: 'Back', onPressed: () => Navigator.of(context).maybePop()),
+      title: Text(title),
+      actions: actions,
+    );
+
+class _VibeChips extends StatelessWidget {
+  final String selected;
+  final ValueChanged<String> onPick;
+  const _VibeChips({required this.selected, required this.onPick});
+
+  @override
+  Widget build(BuildContext context) =>
+      Wrap(spacing: 8, runSpacing: 8, children: [
+        for (final (id, emoji, label) in _vibes)
+          ChoiceChip(
+            label: Text('$emoji $label'),
+            selected: selected == id,
+            showCheckmark: false,
+            onSelected: (_) => onPick(id),
+          ),
+      ]);
+}
+
+// ------------------------------------------------------------------- Hub
+
+/// "Together": pick a vibe to find people in the same mood, start
+/// something, and get to the creator and safety tools.
+class FlingFeatureHubScreen extends StatefulWidget {
   const FlingFeatureHubScreen({super.key});
 
   @override
+  State<FlingFeatureHubScreen> createState() => _FlingFeatureHubScreenState();
+}
+
+class _FlingFeatureHubScreenState extends State<FlingFeatureHubScreen> {
+  String _vibe = 'movie';
+
+  @override
   Widget build(BuildContext context) {
-    final items = [
-      _HubItem('Vibe Match', 'Find someone who fits your mood right now',
-          InIcons.spark, const VibeMatchScreen(), true),
-      _HubItem('Together', 'Shared moments, rooms, games and memories',
-          InIcons.heart, const TogetherScreen(), false),
-      _HubItem('Safety Center', 'Report, block, restrict and stay in control',
-          InIcons.shield, const SafetyCenterScreen(), false),
-      _HubItem('Privacy', 'Control discovery, calls, messages and activity',
-          InIcons.lock, const PrivacyCenterScreen(), false),
-      _HubItem('Verification', 'Build trust with profile verification',
-          InIcons.verified, const VerificationScreen(), false),
-      _HubItem('Creator Studio', 'Gifts, subscribers, rooms and earnings',
-          InIcons.chart, const CreatorStudioScreen(), true),
-      _HubItem(
-          'Room Moderation',
-          'Host, co-host, speaker and audience controls',
-          InIcons.gear,
-          const RoomModerationScreen(),
-          false),
-      _HubItem('Security', 'Devices, sessions and account protection',
-          InIcons.shield, const SecurityScreen(), false),
-    ];
+    Widget tile(
+            InIconData icon, String title, String sub, VoidCallback onTap) =>
+        ListTile(
+          onTap: onTap,
+          leading: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+                color: const Color(0xFF1F1A2C),
+                borderRadius: BorderRadius.circular(12)),
+            child:
+                Center(child: InIcon(icon, size: 20, color: AppColors.lilac)),
+          ),
+          title:
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+          subtitle: Text(sub,
+              style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
+          trailing:
+              const InIcon(InIcons.right, size: 16, color: AppColors.textDim),
+        );
+    Widget card(List<Widget> children) => Material(
+          color: AppColors.surface,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+              side: const BorderSide(color: AppColors.border)),
+          clipBehavior: Clip.antiAlias,
+          child: Column(children: children),
+        );
+    Widget label(String t) => Padding(
+          padding: const EdgeInsets.fromLTRB(4, 22, 4, 8),
+          child: Text(t,
+              style: const TextStyle(
+                  color: AppColors.textDim,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5)),
+        );
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Fling')),
+      appBar: _bar(context, 'Together'),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-        children: [
-          const Text('Do something together',
-              style: TextStyle(
-                  color: AppColors.text,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800)),
-          const SizedBox(height: 6),
-          const Text('Meet people, start an experience, and stay connected.',
-              style: TextStyle(color: AppColors.textDim, fontSize: 14)),
-          const SizedBox(height: 20),
-          Wrap(spacing: 10, runSpacing: 10, children: [
-            _QuickAction(InIcons.film, 'Watch',
-                () => _snack(context, 'Open Watch Party from Create')),
-            _QuickAction(InIcons.mic, 'Voice',
-                () => _snack(context, 'Open Voice Room from Create')),
-            _QuickAction(InIcons.game, 'Game',
-                () => _snack(context, 'Open Game Room from Create')),
-            _QuickAction(InIcons.tv, 'Live',
-                () => _snack(context, 'Open Live from Create')),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                  color: const Color(0xFF1A1326),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: const Color(0xFF3B2A55))),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('VIBE MATCH',
+                        style: TextStyle(
+                            color: AppColors.lilac,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.6)),
+                    const SizedBox(height: 6),
+                    const Text('What are you feeling?',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 12),
+                    _VibeChips(
+                        selected: _vibe,
+                        onPick: (v) => setState(() => _vibe = v)),
+                    const SizedBox(height: 14),
+                    FilledButton(
+                      onPressed: () =>
+                          _push(context, VibeMatchScreen(vibe: _vibe)),
+                      style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48)),
+                      child: const Text('Find my vibe'),
+                    ),
+                  ]),
+            ),
+            label('DO SOMETHING TOGETHER'),
+            card([
+              tile(
+                  InIcons.film,
+                  'Watch party',
+                  'Movies and shows',
+                  () => _push(context,
+                      const LobbyCreateScreen(initialRoomType: 'watch'))),
+              tile(
+                  InIcons.game,
+                  'Games',
+                  'Ludo, UNO, Chess',
+                  () => _push(context,
+                      const LobbyCreateScreen(initialRoomType: 'game'))),
+              tile(InIcons.community, 'Communities', 'Groups and interests',
+                  () => _push(context, const CommunitiesScreen())),
+              tile(InIcons.calendar, 'Events', 'Plan ahead',
+                  () => _push(context, const EventsScreen())),
+            ]),
+            label('FOR CREATORS'),
+            card([
+              tile(InIcons.chart, 'Creator Studio', 'Analytics, earnings',
+                  () => _push(context, const CreatorStudioScreen())),
+              tile(InIcons.live, 'Live dashboard', 'Your streams and gifts',
+                  () => _push(context, const LivestreamDashboardScreen())),
+            ]),
+            label('SAFETY AND ACCOUNT'),
+            card([
+              tile(
+                  InIcons.shield,
+                  'Safety Center',
+                  'Report, block, hidden words',
+                  () => _push(context, const SafetyCenterScreen())),
+              tile(
+                  InIcons.mute,
+                  'Room moderation',
+                  'Slow mode, filters, co-hosts',
+                  () => _push(context, const RoomModerationScreen())),
+              tile(InIcons.lock, 'Security', 'Devices',
+                  () => _push(context, const SecurityScreen())),
+              tile(InIcons.verified, 'Verification', 'Phone, photo, ID',
+                  () => _push(context, const VerificationScreen())),
+              tile(
+                  InIcons.eyeoff,
+                  'Privacy centre',
+                  'Who sees you and your data',
+                  () => _push(context, const PrivacyCenterScreen())),
+            ]),
+            label('MORE'),
+            card([
+              tile(InIcons.trophy, 'Achievements', 'Milestones and rewards',
+                  () => _push(context, const AchievementsScreen())),
+              tile(InIcons.crown, 'Leaderboards', 'Top hosts and gifters',
+                  () => _push(context, const LeaderboardsScreen())),
+              tile(InIcons.wallet, 'Wallet', 'Coins, gifts and cash out',
+                  () => _push(context, const WalletScreen())),
+            ]),
           ]),
-          const SizedBox(height: 24),
-          ...items.map((item) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _HubCard(item))),
-          const SizedBox(height: 12),
-          const Text('YOUR FLING',
-              style: TextStyle(
-                  color: AppColors.textFaint,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
-                  fontSize: 11)),
-          const SizedBox(height: 10),
-          _SmallRow(
-              InIcons.calendar,
-              'Events',
-              'Meetups and scheduled experiences',
-              () => _push(context, const EventsScreen())),
-          _SmallRow(
-              InIcons.community,
-              'Communities',
-              'Groups, rooms and shared interests',
-              () => _push(context, const CommunitiesScreen())),
-          _SmallRow(InIcons.trophy, 'Achievements', 'Milestones and rewards',
-              () => _push(context, const AchievementsScreen())),
-          _SmallRow(
-              InIcons.trophy,
-              'Leaderboards',
-              'Seasonal rankings and game stats',
-              () => _push(context, const LeaderboardsScreen())),
-          _SmallRow(InIcons.wallet, 'Wallet', 'Coins, gifts, VIP and earnings',
-              () => _push(context, const WalletScreen())),
-        ],
-      ),
     );
   }
 }
 
-class _HubItem {
-  final String title, subtitle;
-  final InIconData icon;
-  final Widget page;
-  final bool featured;
-  _HubItem(this.title, this.subtitle, this.icon, this.page, this.featured);
-}
+// ------------------------------------------------------------ Vibe match
 
-class _HubCard extends StatelessWidget {
-  final _HubItem item;
-  const _HubCard(this.item);
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: () => _push(context, item.page),
-        child: GlassPanel(
-          borderRadius: BorderRadius.circular(24),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: .12),
-                    borderRadius: BorderRadius.circular(17)),
-                child: InIcon(item.icon,
-                    color: item.featured ? AppColors.primary : AppColors.text,
-                    size: 25),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(item.title,
-                        style: const TextStyle(
-                            color: AppColors.text,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 16)),
-                    const SizedBox(height: 4),
-                    Text(item.subtitle,
-                        style: const TextStyle(
-                            color: AppColors.textDim,
-                            fontSize: 12.5,
-                            height: 1.3)),
-                  ],
-                ),
-              ),
-              const InIcon(InIcons.chev, color: AppColors.textFaint, size: 16),
-            ]),
-          ),
-        ),
-      );
-}
-
-class _QuickAction extends StatelessWidget {
-  final InIconData icon;
-  final String label;
-  final VoidCallback onTap;
-  const _QuickAction(this.icon, this.label, this.onTap);
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: GlassPanel(
-          borderRadius: BorderRadius.circular(18),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              InIcon(icon, color: AppColors.text, size: 18),
-              const SizedBox(width: 7),
-              Text(label,
-                  style: const TextStyle(
-                      color: AppColors.text,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12)),
-            ]),
-          ),
-        ),
-      );
-}
-
-class _SmallRow extends StatelessWidget {
-  final InIconData icon;
-  final String title, subtitle;
-  final VoidCallback onTap;
-  const _SmallRow(this.icon, this.title, this.subtitle, this.onTap);
-  @override
-  Widget build(BuildContext context) => ListTile(
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-        leading: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-              color: AppColors.surface2,
-              borderRadius: BorderRadius.circular(14)),
-          child: InIcon(icon, color: AppColors.textDim, size: 20),
-        ),
-        title: Text(title,
-            style: const TextStyle(
-                color: AppColors.text, fontWeight: FontWeight.w700)),
-        subtitle: Text(subtitle,
-            style: const TextStyle(color: AppColors.textFaint, fontSize: 12)),
-        trailing: const InIcon(InIcons.chev, color: AppColors.textFaint),
-      );
-}
-
+/// People in the same mood right now (GET /discover/vibe), best match
+/// first. Opening it sets your own vibe so others can find you too.
 class VibeMatchScreen extends StatefulWidget {
-  const VibeMatchScreen({super.key});
+  final String vibe;
+  const VibeMatchScreen({super.key, this.vibe = 'movie'});
+
   @override
   State<VibeMatchScreen> createState() => _VibeMatchScreenState();
 }
 
 class _VibeMatchScreenState extends State<VibeMatchScreen> {
-  String mood = 'Talk', activity = 'Now';
-  final moods = ['Talk', 'Watch', 'Game', 'Music', 'Date'];
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        backgroundColor: AppColors.bg,
-        appBar: AppBar(title: const Text('Vibe Match')),
-        body: ListView(padding: const EdgeInsets.all(16), children: [
-          GlassPanel(
-            borderRadius: BorderRadius.circular(28),
-            child: Padding(
-              padding: const EdgeInsets.all(22),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('What are you feeling?',
-                      style: TextStyle(
-                          color: AppColors.text,
-                          fontSize: 25,
-                          fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 7),
-                  const Text(
-                      'Fling prioritizes people available for the same experience.',
-                      style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-                  const SizedBox(height: 20),
-                  Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: moods
-                          .map((m) => ChoiceChip(
-                                label: Text(m),
-                                selected: mood == m,
-                                onSelected: (_) => setState(() => mood = m),
-                                selectedColor: AppColors.primary,
-                                backgroundColor: AppColors.surface2,
-                                labelStyle: Theme.of(context)
-                                    .textTheme
-                                    .labelLarge
-                                    ?.copyWith(
-                                        color: mood == m
-                                            ? Colors.white
-                                            : AppColors.textDim),
-                              ))
-                          .toList()),
-                  const SizedBox(height: 20),
-                  const Text('Availability',
-                      style: TextStyle(
-                          color: AppColors.text, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 8),
-                  Wrap(
-                      spacing: 8,
-                      children: ['Now', 'Tonight', 'This weekend']
-                          .map((a) => ChoiceChip(
-                                label: Text(a),
-                                selected: activity == a,
-                                onSelected: (_) => setState(() => activity = a),
-                                selectedColor: AppColors.surface3,
-                                backgroundColor: AppColors.surface2,
-                                labelStyle:
-                                    const TextStyle(color: AppColors.text),
-                              ))
-                          .toList()),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          const _MatchPreview(
-              'Ananya', 'Movies · Gaming · 2.4 km', '94%', InIcons.blend),
-          const _MatchPreview(
-              'Rahul', 'Gaming · Voice · 4.1 km', '89%', InIcons.game),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 52,
-            child: ElevatedButton.icon(
-              onPressed: () => _snack(context, 'Match request sent'),
-              icon: const InIcon(InIcons.spark),
-              label: const Text('Find my vibe'),
-            ),
-          ),
-        ]),
-      );
-}
+  late String _vibe = widget.vibe;
+  List<Map<String, dynamic>>? _people;
 
-class _MatchPreview extends StatelessWidget {
-  final String name, detail, score;
-  final InIconData icon;
-  const _MatchPreview(this.name, this.detail, this.score, this.icon);
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: GlassPanel(
-          borderRadius: BorderRadius.circular(22),
-          child: ListTile(
-            leading: Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                  color: AppColors.surface3,
-                  borderRadius: BorderRadius.circular(16)),
-              child: InIcon(icon, color: AppColors.primary),
-            ),
-            title: Text(name,
-                style: const TextStyle(
-                    color: AppColors.text, fontWeight: FontWeight.w800)),
-            subtitle: Text(detail,
-                style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
-            trailing: Text(score,
-                style: const TextStyle(
-                    color: AppColors.success, fontWeight: FontWeight.w900)),
-          ),
-        ),
-      );
-}
-
-class TogetherScreen extends StatelessWidget {
-  const TogetherScreen({super.key});
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        backgroundColor: AppColors.bg,
-        appBar: AppBar(title: const Text('Together')),
-        body: ListView(padding: const EdgeInsets.all(16), children: [
-          const Text('You + your people',
-              style: TextStyle(
-                  color: AppColors.text,
-                  fontSize: 27,
-                  fontWeight: FontWeight.w800)),
-          const SizedBox(height: 6),
-          const Text('Turn a match into shared memories.',
-              style: TextStyle(color: AppColors.textDim)),
-          const SizedBox(height: 18),
-          GlassPanel(
-            borderRadius: BorderRadius.circular(26),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Ananya',
-                      style: TextStyle(
-                          color: AppColors.text,
-                          fontSize: 21,
-                          fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 4),
-                  const Text('3 rooms · 2 games · 4 movies · 17 messages',
-                      style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-                  const SizedBox(height: 18),
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _Stat('🎬', '4', 'Watched'),
-                      _Stat('🎮', '2', 'Games'),
-                      _Stat('🎙', '3', 'Rooms'),
-                      _Stat('💬', '17', 'Messages'),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _snack(context, 'Choose an activity'),
-                      icon: const InIcon(InIcons.play, filled: true),
-                      label: const Text('Start something together'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          const _Timeline('Today', 'Started a watch party together',
-              'Movie Night', InIcons.film),
-          const _Timeline('Yesterday', 'Played a game', 'Ludo', InIcons.game),
-          const _Timeline('3 days ago', 'Joined a voice room',
-              'Late Night Talks', InIcons.mic),
-        ]),
-      );
-}
-
-class _Stat extends StatelessWidget {
-  final String a, b, c;
-  const _Stat(this.a, this.b, this.c);
-  @override
-  Widget build(BuildContext context) => Column(children: [
-        Text(a, style: const TextStyle(fontSize: 19)),
-        Text(b,
-            style: const TextStyle(
-                color: AppColors.text,
-                fontWeight: FontWeight.w800,
-                fontSize: 16)),
-        Text(c,
-            style: const TextStyle(color: AppColors.textFaint, fontSize: 10)),
-      ]);
-}
-
-class _Timeline extends StatelessWidget {
-  final String a, b, c;
-  final InIconData icon;
-  const _Timeline(this.a, this.b, this.c, this.icon);
-  @override
-  Widget build(BuildContext context) => ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-              color: AppColors.surface2,
-              borderRadius: BorderRadius.circular(14)),
-          child: InIcon(icon, color: AppColors.textDim),
-        ),
-        title: Text(b,
-            style: const TextStyle(
-                color: AppColors.text, fontWeight: FontWeight.w700)),
-        subtitle: Text('$c · $a',
-            style: const TextStyle(color: AppColors.textFaint, fontSize: 12)),
-      );
-}
-
-class CreatorStudioScreen extends StatelessWidget {
-  const CreatorStudioScreen({super.key});
-  @override
-  Widget build(BuildContext context) =>
-      _SettingsScaffold(title: 'Creator Studio', children: [
-        GlassPanel(
-          borderRadius: BorderRadius.circular(24),
-          child: const Padding(
-            padding: EdgeInsets.all(20),
-            child: Row(children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('₹ 12,480',
-                        style: TextStyle(
-                            color: AppColors.text,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900)),
-                    Text('Available earnings',
-                        style: TextStyle(color: AppColors.textDim)),
-                  ],
-                ),
-              ),
-              InIcon(InIcons.chart, color: AppColors.gold, size: 36),
-            ]),
-          ),
-        ),
-        _SettingTile(
-            InIcons.gift,
-            'Gifts & earnings',
-            'Track gifts, room revenue and withdrawals',
-            () => _snack(context, 'Creator earnings')),
-        _SettingTile(
-            InIcons.users,
-            'Subscribers',
-            'Manage your subscriber community',
-            () => _snack(context, 'Subscribers')),
-        _SettingTile(
-            InIcons.chart,
-            'Analytics',
-            'Views, retention, gifts and room performance',
-            () => _snack(context, 'Creator analytics')),
-        _SettingTile(
-            InIcons.calendar,
-            'Paid events',
-            'Schedule premium experiences',
-            () => _snack(context, 'Paid events')),
-      ]);
-}
-
-class _SettingsScaffold extends StatelessWidget {
-  final String title;
-  final List<Widget> children;
-  const _SettingsScaffold({required this.title, required this.children});
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        backgroundColor: AppColors.bg,
-        appBar: AppBar(title: Text(title)),
-        body: ListView(
-          padding: const EdgeInsets.all(16),
-          children: children
-              .map((e) =>
-                  Padding(padding: const EdgeInsets.only(bottom: 10), child: e))
-              .toList(),
-        ),
-      );
-}
-
-class _SettingTile extends StatelessWidget {
-  final InIconData icon;
-  final String title, subtitle;
-  final VoidCallback onTap;
-  const _SettingTile(this.icon, this.title, this.subtitle, this.onTap);
-  @override
-  Widget build(BuildContext context) => GlassPanel(
-        borderRadius: BorderRadius.circular(20),
-        child: ListTile(
-          onTap: onTap,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-          leading: InIcon(icon, color: AppColors.textDim),
-          title: Text(title,
-              style: const TextStyle(
-                  color: AppColors.text, fontWeight: FontWeight.w700)),
-          subtitle: Text(subtitle,
-              style: const TextStyle(color: AppColors.textFaint, fontSize: 12)),
-          trailing: const InIcon(InIcons.chev, color: AppColors.textFaint),
-        ),
-      );
-}
-
-class _SwitchTile extends StatefulWidget {
-  final String title;
-  final bool initial;
-  const _SwitchTile(this.title, this.initial);
-  @override
-  State<_SwitchTile> createState() => _SwitchTileState();
-}
-
-class _SwitchTileState extends State<_SwitchTile> {
-  late bool value;
   @override
   void initState() {
     super.initState();
-    value = widget.initial;
+    _setVibe(_vibe);
+  }
+
+  Future<void> _setVibe(String v) async {
+    setState(() {
+      _vibe = v;
+      _people = null;
+    });
+    try {
+      await ApiClient.post('/discover/vibe', body: {'vibe': v});
+      final d = await ApiClient.get('/discover/vibe?vibe=$v') as Map;
+      if (!mounted || _vibe != v) return;
+      setState(() => _people = (d['people'] as List)
+          .cast<Map>()
+          .map(Map<String, dynamic>.from)
+          .toList());
+    } catch (_) {
+      if (mounted) setState(() => _people = []);
+    }
+  }
+
+  Future<void> _stop() async {
+    try {
+      await ApiClient.post('/discover/vibe', body: {'vibe': null});
+    } catch (_) {}
+    if (mounted) Navigator.of(context).maybePop();
+  }
+
+  (String, String, String) get _copy => switch (_vibe) {
+        'talk' => ('to talk', 'Say hi', 'voice'),
+        'play' => ('to play a game', 'Invite to play', 'game'),
+        'music' => ('music', 'Invite to listen', 'voice'),
+        _ => ('a movie night', 'Invite to watch', 'watch'),
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final people = _people;
+    final (want, invite, roomType) = _copy;
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      appBar: _bar(context, 'Vibe Match', actions: [
+        TextButton(onPressed: _stop, child: const Text('Stop my vibe')),
+      ]),
+      body: Column(children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: Align(
+              alignment: Alignment.centerLeft,
+              child: _VibeChips(selected: _vibe, onPick: _setVibe)),
+        ),
+        Expanded(
+          child: people == null
+              ? const Center(child: Spinner())
+              : people.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Text(
+                            'Nobody else wants $want right now. You’re on the list — people who pick the same vibe will see you.',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: AppColors.textDim)),
+                      ),
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                      children: [
+                        Text(
+                            people.length == 1
+                                ? '1 person wants $want right now'
+                                : '${people.length} people want $want right now',
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 10),
+                        for (final p in people)
+                          _VibePerson(
+                            p: p,
+                            invite: invite,
+                            onInvite: () => _push(
+                                context,
+                                MessageThreadScreen(
+                                    userId: p['id'] as String,
+                                    name: p['name'] as String? ?? '',
+                                    avatarUrl: p['avatarUrl'] as String?)),
+                          ),
+                      ],
+                    ),
+        ),
+        SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+            child: FilledButton(
+              onPressed: () =>
+                  _push(context, LobbyCreateScreen(initialRoomType: roomType)),
+              style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(50)),
+              child: Text(switch (_vibe) {
+                'talk' => 'Start an open voice room',
+                'play' => 'Start an open game room',
+                'music' => 'Start an open music room',
+                _ => 'Start an open watch party',
+              }),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+class _VibePerson extends StatelessWidget {
+  final Map<String, dynamic> p;
+  final String invite;
+  final VoidCallback onInvite;
+  const _VibePerson(
+      {required this.p, required this.invite, required this.onInvite});
+
+  @override
+  Widget build(BuildContext context) {
+    final details = [
+      ...((p['sharedInterests'] as List?) ?? []).take(1).map((e) => '$e'),
+      ...((p['languages'] as List?) ?? []).map((e) => '$e'),
+      if (p['distanceKm'] != null)
+        '${p['distanceKm']} km'
+      else if ((p['city'] as String?)?.isNotEmpty == true)
+        p['city'] as String,
+    ].join(' · ');
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.border)),
+      child: Row(children: [
+        Avatar(
+            src: p['avatarUrl'] as String?,
+            name: p['name'] as String?,
+            size: AvatarSize.md),
+        const SizedBox(width: 12),
+        Expanded(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(
+                p['age'] == null
+                    ? '${p['name']}'
+                    : '${(p['name'] as String? ?? '').split(' ').first}, ${p['age']}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+            if (details.isNotEmpty)
+              Text(details,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      color: AppColors.textDim, fontSize: 12.5)),
+            const SizedBox(height: 4),
+            Text('${p['vibeScore']}% vibe',
+                style: const TextStyle(
+                    color: AppColors.lilac,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700)),
+          ]),
+        ),
+        const SizedBox(width: 8),
+        FilledButton(
+          onPressed: onInvite,
+          style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 38),
+              padding: const EdgeInsets.symmetric(horizontal: 12)),
+          child: Text(invite, style: const TextStyle(fontSize: 12.5)),
+        ),
+      ]),
+    );
+  }
+}
+
+// --------------------------------------------------------- Creator studio
+
+/// Overview, earnings, co-hosts and availability for creators (GET /studio).
+class CreatorStudioScreen extends StatefulWidget {
+  const CreatorStudioScreen({super.key});
+
+  @override
+  State<CreatorStudioScreen> createState() => _CreatorStudioScreenState();
+}
+
+class _CreatorStudioScreenState extends State<CreatorStudioScreen> {
+  Map<String, dynamic>? _studio;
+  Map<String, dynamic>? _cashout;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final results = await Future.wait([
+        ApiClient.get('/studio'),
+        ApiClient.get('/wallet/cashout-info')
+            .catchError((_) => <String, dynamic>{}),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _studio = Map<String, dynamic>.from(results[0] as Map);
+        _cashout = Map<String, dynamic>.from(results[1] as Map);
+      });
+    } catch (_) {
+      if (mounted) setState(() => _studio = {});
+    }
+  }
+
+  /// Coins you could cash out, in rupees (same rate as the cash out screen).
+  String get _rupees {
+    final coins = (_studio?['coinBalance'] as num?) ?? 0;
+    final perRupee = (_cashout?['coinsPerRupee'] as num?) ?? 0;
+    final fraction = (_cashout?['cashoutFraction'] as num?) ?? 1;
+    if (perRupee <= 0) return '₹ —';
+    return '₹ ${formatNumber((coins * fraction / perRupee).floor())}';
+  }
+
+  Future<void> _editAvailability() async {
+    final c =
+        TextEditingController(text: _studio?['availability'] as String? ?? '');
+    final v = await showDialog<String>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: const Text('When do you usually go live?'),
+        content: TextField(
+            controller: c,
+            autofocus: true,
+            maxLength: 60,
+            decoration:
+                const InputDecoration(hintText: 'e.g. Fri, Sat · 9 PM')),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(d).pop(),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.of(d).pop(c.text.trim()),
+              child: const Text('Save')),
+        ],
+      ),
+    );
+    if (v == null) return;
+    try {
+      await ApiClient.patch('/studio', body: {'availability': v});
+      _load();
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    }
   }
 
   @override
-  Widget build(BuildContext context) => GlassPanel(
-        borderRadius: BorderRadius.circular(20),
-        child: SwitchListTile(
-          value: value,
-          onChanged: (v) => setState(() => value = v),
-          title: Text(widget.title,
-              style: const TextStyle(
-                  color: AppColors.text, fontWeight: FontWeight.w700)),
-          activeThumbColor: AppColors.primary,
+  Widget build(BuildContext context) {
+    final s = _studio;
+    return DefaultTabController(
+      length: 4,
+      child: Scaffold(
+        backgroundColor: AppColors.bg,
+        appBar: AppBar(
+          backgroundColor: AppColors.bg,
+          leading: InIconButton(InIcons.back,
+              tooltip: 'Back',
+              onPressed: () => Navigator.of(context).maybePop()),
+          title: const Text('Creator Studio'),
+          bottom: const TabBar(isScrollable: true, tabs: [
+            Tab(text: 'Overview'),
+            Tab(text: 'Earnings'),
+            Tab(text: 'Co-hosts'),
+            Tab(text: 'Availability'),
+          ]),
         ),
-      );
-}
+        body: s == null
+            ? const Center(child: Spinner())
+            : s.isEmpty
+                ? const Center(
+                    child: Text('Couldn’t load your studio',
+                        style: TextStyle(color: AppColors.textDim)))
+                : TabBarView(children: [
+                    _overview(s),
+                    _earnings(s),
+                    _coHosts(s),
+                    _availability(s),
+                  ]),
+      ),
+    );
+  }
 
-void _push(BuildContext context, Widget page) =>
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
-void _snack(BuildContext context, String text) =>
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  Widget _earningsCard() => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+            color: const Color(0xFF1A1326),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFF3B2A55))),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Available earnings',
+              style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+          const SizedBox(height: 4),
+          Text(_rupees,
+              style:
+                  const TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(
+              child: FilledButton(
+                onPressed: () => _push(context, const WalletCashoutScreen()),
+                child: const Text('Cash out'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => _push(context, const WalletScreen()),
+                child: const Text('History'),
+              ),
+            ),
+          ]),
+        ]),
+      );
+
+  Widget _overview(Map<String, dynamic> s) {
+    final live = Map<String, dynamic>.from(s['live'] as Map);
+    final followers = Map<String, dynamic>.from(s['followers'] as Map);
+    final gifts = Map<String, dynamic>.from(s['gifts'] as Map);
+    String change(num? v) =>
+        v == null || v == 0 ? '—' : '${v > 0 ? '+' : ''}$v%';
+    Widget stat(String label, String value, num? pct) => Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border)),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label,
+                  style:
+                      const TextStyle(color: AppColors.textDim, fontSize: 12)),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(value,
+                    style: const TextStyle(
+                        fontSize: 19, fontWeight: FontWeight.w800)),
+              ),
+              Text(change(pct),
+                  style: TextStyle(
+                      color:
+                          (pct ?? 0) >= 0 ? AppColors.success : AppColors.pink,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700)),
+            ]),
+          ),
+        );
+    return ListView(padding: const EdgeInsets.all(16), children: [
+      _earningsCard(),
+      const SizedBox(height: 12),
+      Row(children: [
+        stat('Room visits', formatNumber(live['roomVisits']), null),
+        const SizedBox(width: 8),
+        stat('Followers', '+${formatNumber(followers['gained'])}',
+            followers['change'] as num?),
+        const SizedBox(width: 8),
+        stat('Gifts', compactCount((gifts['coins'] as num?)?.toInt() ?? 0), gifts['change'] as num?),
+      ]),
+      const SizedBox(height: 18),
+      const Text('Audience · last 28 days',
+          style: TextStyle(fontWeight: FontWeight.w700)),
+      const SizedBox(height: 10),
+      StudioStats(studio: s),
+      const SizedBox(height: 12),
+      ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: const InIcon(InIcons.users, size: 20, color: AppColors.lilac),
+        title: const Text('Co-host manager'),
+        subtitle: Text(
+            s['coHosts'] == 1 ? '1 co-host' : '${s['coHosts']} co-hosts',
+            style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
+        onTap: () => _push(context, const RoomModerationScreen()),
+      ),
+      ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading:
+            const InIcon(InIcons.calendar, size: 20, color: AppColors.lilac),
+        title: const Text('Availability'),
+        subtitle: Text(s['availability'] as String? ?? 'Not set',
+            style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
+        onTap: _editAvailability,
+      ),
+      ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: const InIcon(InIcons.chart, size: 20, color: AppColors.lilac),
+        title: const Text('Creator analytics'),
+        subtitle: const Text('Streams, gifts by day',
+            style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+        onTap: () => _push(context, const LivestreamDashboardScreen()),
+      ),
+    ]);
+  }
+
+  Widget _earnings(Map<String, dynamic> s) =>
+      ListView(padding: const EdgeInsets.all(16), children: [
+        _earningsCard(),
+        const SizedBox(height: 12),
+        StudioStats(studio: s),
+        const SizedBox(height: 12),
+        OutlinedButton(
+          onPressed: () => _push(context, const LivestreamDashboardScreen()),
+          child: const Text('Gifts & earnings by stream'),
+        ),
+      ]);
+
+  Widget _coHosts(Map<String, dynamic> s) =>
+      ListView(padding: const EdgeInsets.all(16), children: [
+        Text(
+            s['coHosts'] == 0
+                ? 'No co-hosts yet. Co-hosts help run your rooms: approving mics, muting and removing people.'
+                : 'You have ${s['coHosts']} co-host${s['coHosts'] == 1 ? '' : 's'}.',
+            style: const TextStyle(color: AppColors.textDim)),
+        const SizedBox(height: 14),
+        FilledButton(
+          onPressed: () => Navigator.of(context)
+              .push(MaterialPageRoute(
+                  builder: (_) => const RoomModerationScreen()))
+              .then((_) => _load()),
+          child: const Text('Manage co-hosts'),
+        ),
+      ]);
+
+  Widget _availability(Map<String, dynamic> s) =>
+      ListView(padding: const EdgeInsets.all(16), children: [
+        const Text('Let followers know when to catch you live.',
+            style: TextStyle(color: AppColors.textDim)),
+        const SizedBox(height: 12),
+        ListTile(
+          tileColor: AppColors.surface,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          leading:
+              const InIcon(InIcons.calendar, size: 20, color: AppColors.lilac),
+          title: Text(s['availability'] as String? ?? 'Not set',
+              style: const TextStyle(fontWeight: FontWeight.w700)),
+          trailing: TextButton(
+              onPressed: _editAvailability, child: const Text('Edit')),
+        ),
+      ]);
+}
