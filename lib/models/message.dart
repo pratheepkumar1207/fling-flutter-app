@@ -101,6 +101,9 @@ class ConversationSummary {
   /// Who a message request is from (requests only).
   final RequestInfo? requestInfo;
 
+  /// A request containing one of your hidden words (Safety centre).
+  final bool hiddenRequest;
+
   /// My own settings for this chat (long-press menu).
   final bool pinned;
   final DateTime? mutedUntil;
@@ -126,6 +129,7 @@ class ConversationSummary {
     this.lastMessageSeen = false,
     this.activity,
     this.requestInfo,
+    this.hiddenRequest = false,
     this.pinned = false,
     this.mutedUntil,
     this.markedUnread = false,
@@ -151,6 +155,7 @@ class ConversationSummary {
         lastMessageSeen: lastMessageSeen,
         activity: activity,
         requestInfo: requestInfo,
+        hiddenRequest: hiddenRequest,
         pinned: pinned ?? this.pinned,
         mutedUntil: clearMute ? null : (mutedUntil ?? this.mutedUntil),
         markedUnread: markedUnread ?? this.markedUnread,
@@ -177,6 +182,7 @@ class ConversationSummary {
               Map<String, dynamic>.from(json['activity'] as Map))
           : null,
       pinned: json['pinned'] as bool? ?? false,
+      hiddenRequest: json['hiddenRequest'] as bool? ?? false,
       mutedUntil: DateTime.tryParse('${json['mutedUntil'] ?? ''}'),
       markedUnread: json['markedUnread'] as bool? ?? false,
       requestInfo: json['requestInfo'] is Map

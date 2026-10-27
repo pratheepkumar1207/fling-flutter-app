@@ -1,3 +1,4 @@
+import '../settings/account_centers.dart';
 import '../settings/room_moderation_screen.dart';
 import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
@@ -443,98 +444,6 @@ class _Timeline extends StatelessWidget {
       );
 }
 
-class SafetyCenterScreen extends StatelessWidget {
-  const SafetyCenterScreen({super.key});
-  @override
-  Widget build(BuildContext context) =>
-      _SettingsScaffold(title: 'Safety Center', children: [
-        _SettingTile(
-            InIcons.flame,
-            'Report someone',
-            'Flag a profile, message, room or post',
-            () => _snack(context, 'Report flow ready')),
-        _SettingTile(
-            InIcons.block,
-            'Blocked accounts',
-            'Manage people you have blocked',
-            () => _snack(context, 'Open blocked accounts')),
-        _SettingTile(
-            InIcons.block,
-            'Restrict messages',
-            'Limit who can contact you',
-            () => _snack(context, 'Restriction settings')),
-        _SettingTile(
-            InIcons.shield,
-            'Safety tips',
-            'Practical guidance for meeting people online',
-            () => _snack(context, 'Safety guide')),
-        _SettingTile(
-            InIcons.help,
-            'Get help',
-            'Contact support about an urgent issue',
-            () => _snack(context, 'Support request')),
-      ]);
-}
-
-class PrivacyCenterScreen extends StatelessWidget {
-  const PrivacyCenterScreen({super.key});
-  @override
-  Widget build(BuildContext context) =>
-      _SettingsScaffold(title: 'Privacy', children: const [
-        _SwitchTile('Show online status', true),
-        _SwitchTile('Show last active', false),
-        _SwitchTile('Show distance', true),
-        _SwitchTile('Appear in Discover', true),
-        _SwitchTile('Allow calls from connections', true),
-        _SwitchTile('Allow message requests', true),
-      ]);
-}
-
-class VerificationScreen extends StatelessWidget {
-  const VerificationScreen({super.key});
-  @override
-  Widget build(BuildContext context) =>
-      _SettingsScaffold(title: 'Verification', children: [
-        GlassPanel(
-          borderRadius: BorderRadius.circular(24),
-          child: const Padding(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                InIcon(InIcons.verified, color: AppColors.primary, size: 36),
-                SizedBox(height: 12),
-                Text('Build trust',
-                    style: TextStyle(
-                        color: AppColors.text,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800)),
-                SizedBox(height: 6),
-                Text(
-                    'Verify your phone, selfie and optional identity details. Verified profiles receive a trust badge.',
-                    style: TextStyle(color: AppColors.textDim, height: 1.4)),
-              ],
-            ),
-          ),
-        ),
-        _SettingTile(
-            InIcons.remote,
-            'Phone verified',
-            'Required for a secure account',
-            () => _snack(context, 'Phone verification')),
-        _SettingTile(
-            InIcons.spark,
-            'Selfie verification',
-            'Confirm you are the person in your profile',
-            () => _snack(context, 'Selfie verification')),
-        _SettingTile(
-            InIcons.badge,
-            'Identity verification',
-            'Optional KYC for advanced creator features',
-            () => _snack(context, 'Identity verification')),
-      ]);
-}
-
 class CreatorStudioScreen extends StatelessWidget {
   const CreatorStudioScreen({super.key});
   @override
@@ -583,27 +492,6 @@ class CreatorStudioScreen extends StatelessWidget {
             'Paid events',
             'Schedule premium experiences',
             () => _snack(context, 'Paid events')),
-      ]);
-}
-
-class SecurityScreen extends StatelessWidget {
-  const SecurityScreen({super.key});
-  @override
-  Widget build(BuildContext context) =>
-      _SettingsScaffold(title: 'Security', children: [
-        _SettingTile(
-            InIcons.remote,
-            'Active devices',
-            'Review and sign out sessions',
-            () => _snack(context, 'Device manager')),
-        _SettingTile(InIcons.undo, 'Login history', 'See recent sign-ins',
-            () => _snack(context, 'Login history')),
-        const _SwitchTile('Two-step verification', false),
-        _SettingTile(
-            InIcons.logout,
-            'Sign out everywhere',
-            'End all other sessions',
-            () => _snack(context, 'All other sessions signed out')),
       ]);
 }
 

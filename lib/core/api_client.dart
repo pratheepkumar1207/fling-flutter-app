@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:http/http.dart' as http;
 import 'api_exception.dart';
 
@@ -7,6 +8,17 @@ import 'api_exception.dart';
 /// the two clients behave identically against the shared backend.
 class ApiClient {
   ApiClient._();
+
+  /// Shown on Settings → Security's list of signed-in devices.
+  static String get deviceName {
+    try {
+      if (Platform.isAndroid) return 'Android phone';
+      if (Platform.isIOS) return 'iPhone';
+      return Platform.operatingSystem;
+    } catch (_) {
+      return 'Web';
+    }
+  }
 
   /// Same deployed backend the web app talks to. Moved from Railway to
   /// Render (Singapore) in 2026-10 — see the backend's render.yaml. Local
@@ -44,7 +56,10 @@ class ApiClient {
     dynamic body,
     bool skipAuth = false,
   }) async {
-    final headers = <String, String>{'Content-Type': 'application/json'};
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      'X-Device-Name': deviceName,
+    };
     if (!skipAuth) {
       final token = tokenGetter?.call();
       if (token != null && token.isNotEmpty) {

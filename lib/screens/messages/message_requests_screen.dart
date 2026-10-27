@@ -30,6 +30,12 @@ class _MessageRequestsScreenState extends State<MessageRequestsScreen> {
   List<ConversationSummary> _requests = [];
   bool _loading = true;
   final Set<String> _busy = {};
+  bool _showHidden = false;
+
+  List<ConversationSummary> get _visible =>
+      _requests.where((r) => !r.hiddenRequest).toList();
+  List<ConversationSummary> get _hidden =>
+      _requests.where((r) => r.hiddenRequest).toList();
 
   @override
   void initState() {
@@ -201,9 +207,11 @@ class _MessageRequestsScreenState extends State<MessageRequestsScreen> {
               ),
             ),
             SliverList.builder(
-              itemCount: _requests.length,
+              itemCount: _visible.length + (_showHidden ? _hidden.length : 0),
               itemBuilder: (context, i) {
-                final c = _requests[i];
+                final c = i < _visible.length
+                    ? _visible[i]
+                    : _hidden[i - _visible.length];
                 return _RequestCard(
                   c: c,
                   busy: _busy.contains(c.userId),
@@ -215,6 +223,22 @@ class _MessageRequestsScreenState extends State<MessageRequestsScreen> {
               },
             ),
           ],
+          if (_hidden.isNotEmpty && !_loading)
+            SliverToBoxAdapter(
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                leading: const InIcon(InIcons.eyeoff,
+                    size: 20, color: AppColors.textDim),
+                title: Text(
+                    _showHidden
+                        ? 'Hide filtered requests'
+                        : 'Hidden requests (${_hidden.length})',
+                    style: const TextStyle(color: AppColors.textDim)),
+                subtitle: const Text('They have words you’ve hidden',
+                    style: TextStyle(color: AppColors.textFaint, fontSize: 12)),
+                onTap: () => setState(() => _showHidden = !_showHidden),
+              ),
+            ),
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
         ]),
       ),
