@@ -22,7 +22,9 @@ const _kGameTypes = [
 ///   Boost      100 coins for a day of top placement (POST /boost)
 ///   Type       Voice · Game           (voice/game rooms only — PATCH /type)
 ///   Join       Public · Friends · Subs · Private
-///   Mics       on/off
+///   Name       the room's title
+///   Mics       on/off, and whether anyone can take a mic without asking
+///   Chat       on/off (off = only the host can post)
 ///   Music      Everyone · Host        (who can add songs AND play one now)
 ///   Next song  Auto · Vote · Off      (nextTrackMode + autoPlay)
 ///
@@ -33,14 +35,22 @@ const _kGameTypes = [
 Future<void> showRoomSettingsSheet(BuildContext context,
     {required Map<String, dynamic> room,
     required VoidCallback onChanged,
-    VoidCallback? onMySettings}) {
+    VoidCallback? onMySettings,
+    VoidCallback? onStartPoll,
+    VoidCallback? onModeration,
+    VoidCallback? onEndRoom}) {
   return showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
     showDragHandle: false,
     builder: (_) => _RoomSettingsSheet(
-        room: room, onChanged: onChanged, onMySettings: onMySettings),
+        room: room,
+        onChanged: onChanged,
+        onMySettings: onMySettings,
+        onStartPoll: onStartPoll,
+        onModeration: onModeration,
+        onEndRoom: onEndRoom),
   );
 }
 
@@ -50,8 +60,16 @@ class _RoomSettingsSheet extends StatefulWidget {
 
   /// Opens the host's own push-to-talk / balance / picture-in-picture sheet.
   final VoidCallback? onMySettings;
+  final VoidCallback? onStartPoll;
+  final VoidCallback? onModeration;
+  final VoidCallback? onEndRoom;
   const _RoomSettingsSheet(
-      {required this.room, required this.onChanged, this.onMySettings});
+      {required this.room,
+      required this.onChanged,
+      this.onMySettings,
+      this.onStartPoll,
+      this.onModeration,
+      this.onEndRoom});
 
   @override
   State<_RoomSettingsSheet> createState() => _RoomSettingsSheetState();
@@ -73,6 +91,73 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
   late String _nextTrackMode =
       widget.room['nextTrackMode'] as String? ?? 'justPlay';
   late String _theme = widget.room['theme'] as String? ?? 'midnight';
+  late bool _openMics = widget.room['micApproval'] == 'everyone';
+  late bool _chatOn = widget.room['chatEnabled'] != false;
+  late final _name =
+      TextEditingController(text: widget.room['title'] as String? ?? '');
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  void _saveName() {
+    final v = _name.text.trim();
+    if (v.isEmpty || v == widget.room['title']) return;
+    _patch('/settings', {'title': v});
+  }
+
+  void _setOpenMics(bool v) => _saveSettings(
+      {'micApproval': v ? 'everyone' : 'host'},
+      () => _openMics = v,
+      () => _openMics = !v);
+
+  void _setChat(bool v) =>
+      _saveSettings({'chatEnabled': v}, () => _chatOn = v, () => _chatOn = !v);
+
+  /// A tappable row that runs an action (poll, moderation, end room).
+  Widget _actionRow(InIconData icon, String label, VoidCallback onTap,
+      {String? sub, Color? color}) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: () {
+        Navigator.of(context).pop();
+        onTap();
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+                color: const Color(0xFF1F1A2C),
+                borderRadius: BorderRadius.circular(10)),
+            child: Center(
+                child: InIcon(icon, size: 17, color: color ?? AppColors.lilac)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label,
+                  style: TextStyle(
+                      color: color ?? AppColors.text,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600)),
+              if (sub != null)
+                Text(sub,
+                    style: const TextStyle(
+                        color: AppColors.textDim, fontSize: 11.5)),
+            ]),
+          ),
+          if (color == null)
+            const InIcon(InIcons.right, size: 16, color: AppColors.textDim),
+        ]),
+      ),
+    );
+  }
 
   bool _saving = false;
   bool _savedOnce = false;
@@ -435,131 +520,176 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
         child: GlassPanel(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           tintAlpha: 0.8,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                      width: 36,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                          color: AppColors.border,
-                          borderRadius: BorderRadius.circular(999))),
-                ),
-                Row(
-                  children: [
-                    const Text('Room settings',
-                        style: TextStyle(
-                            color: AppColors.text,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold)),
-                    const Spacer(),
-                    if (_saving)
-                      const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2))
-                    else if (_savedOnce)
-                      const Row(
-                        children: [
-                          InIcon(InIcons.check,
-                              size: 14, color: AppColors.success),
-                          SizedBox(width: 3),
-                          Text('Saved',
-                              style: TextStyle(
-                                  color: AppColors.success, fontSize: 12)),
-                        ],
-                      ),
-                  ],
-                ),
-                if (widget.onMySettings != null)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        widget.onMySettings!();
-                      },
-                      icon: const InIcon(InIcons.tune,
-                          size: 16, color: AppColors.lilac),
-                      label:
-                          const Text('Your settings: push to talk, sound, PiP'),
-                    ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.85),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                        width: 36,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                            color: AppColors.border,
+                            borderRadius: BorderRadius.circular(999))),
                   ),
-                const SizedBox(height: 10),
-                _boostRow(),
-                if (canSwitchType)
+                  Row(
+                    children: [
+                      const Text('Room settings',
+                          style: TextStyle(
+                              color: AppColors.text,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold)),
+                      const Spacer(),
+                      if (_saving)
+                        const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                      else if (_savedOnce)
+                        const Row(
+                          children: [
+                            InIcon(InIcons.check,
+                                size: 14, color: AppColors.success),
+                            SizedBox(width: 3),
+                            Text('Saved',
+                                style: TextStyle(
+                                    color: AppColors.success, fontSize: 12)),
+                          ],
+                        ),
+                    ],
+                  ),
+                  if (widget.onMySettings != null)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          widget.onMySettings!();
+                        },
+                        icon: const InIcon(InIcons.tune,
+                            size: 16, color: AppColors.lilac),
+                        label: const Text(
+                            'Your settings: push to talk, sound, PiP'),
+                      ),
+                    ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _name,
+                    maxLength: 60,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _saveName(),
+                    onTapOutside: (_) => _saveName(),
+                    decoration: const InputDecoration(
+                        labelText: 'Room name', counterText: ''),
+                  ),
+                  const SizedBox(height: 8),
+                  _boostRow(),
+                  if (canSwitchType)
+                    _row(
+                      InIcons.tv,
+                      'Type',
+                      _segments(
+                        options: const [
+                          ('voice', Text('Voice')),
+                          ('game', Text('Game')),
+                        ],
+                        value: _roomType,
+                        onChanged: _setType,
+                      ),
+                    ),
+                  if (pendingPick && _roomType == 'game') _gamePicker(),
                   _row(
-                    InIcons.tv,
-                    'Type',
+                    InIcons.globe,
+                    'Join',
                     _segments(
                       options: const [
-                        ('voice', Text('Voice')),
-                        ('game', Text('Game')),
+                        ('public', Text('Public')),
+                        ('friends', Text('Friends')),
+                        ('subscribers', Text('Subs')),
+                        (
+                          'private',
+                          InIcon(InIcons.lock,
+                              size: 16, semanticLabel: 'Private (link only)')
+                        ),
                       ],
-                      value: _roomType,
-                      onChanged: _setType,
+                      value: _visibility,
+                      onChanged: _setVisibility,
                     ),
                   ),
-                if (pendingPick && _roomType == 'game') _gamePicker(),
-                _row(
-                  InIcons.globe,
-                  'Join',
-                  _segments(
-                    options: const [
-                      ('public', Text('Public')),
-                      ('friends', Text('Friends')),
-                      ('subscribers', Text('Subs')),
-                      (
-                        'private',
-                        InIcon(InIcons.lock,
-                            size: 16, semanticLabel: 'Private (link only)')
+                  _row(InIcons.spark, 'Theme', _themePicker()),
+                  _row(
+                    InIcons.mic,
+                    'Mics',
+                    Switch(
+                      value: _micEnabled,
+                      onChanged: _saving ? null : _setMics,
+                      activeThumbColor: AppColors.accent,
+                    ),
+                  ),
+                  if (_micEnabled)
+                    _row(
+                      InIcons.users,
+                      'Everyone can use mic',
+                      Switch(
+                        value: _openMics,
+                        onChanged: _saving ? null : _setOpenMics,
+                        activeThumbColor: AppColors.accent,
                       ),
-                    ],
-                    value: _visibility,
-                    onChanged: _setVisibility,
+                    ),
+                  _row(
+                    InIcons.chat,
+                    'Chat on',
+                    Switch(
+                      value: _chatOn,
+                      onChanged: _saving ? null : _setChat,
+                      activeThumbColor: AppColors.accent,
+                    ),
                   ),
-                ),
-                _row(InIcons.spark, 'Theme', _themePicker()),
-                _row(
-                  InIcons.mic,
-                  'Mics',
-                  Switch(
-                    value: _micEnabled,
-                    onChanged: _saving ? null : _setMics,
-                    activeThumbColor: AppColors.accent,
+                  _row(
+                    InIcons.music,
+                    'Music',
+                    _segments(
+                      options: const [
+                        ('everyone', Text('Everyone')),
+                        ('host', Text('Host')),
+                      ],
+                      value: _musicValue,
+                      onChanged: _setMusic,
+                    ),
                   ),
-                ),
-                _row(
-                  InIcons.music,
-                  'Music',
-                  _segments(
-                    options: const [
-                      ('everyone', Text('Everyone')),
-                      ('host', Text('Host')),
-                    ],
-                    value: _musicValue,
-                    onChanged: _setMusic,
+                  _row(
+                    InIcons.skipNext,
+                    'Next song',
+                    _segments(
+                      options: const [
+                        ('auto', Text('Auto')),
+                        ('vote', Text('Vote')),
+                        ('off', Text('Off')),
+                      ],
+                      value: _nextValue,
+                      onChanged: _setNext,
+                    ),
                   ),
-                ),
-                _row(
-                  InIcons.skipNext,
-                  'Next song',
-                  _segments(
-                    options: const [
-                      ('auto', Text('Auto')),
-                      ('vote', Text('Vote')),
-                      ('off', Text('Off')),
-                    ],
-                    value: _nextValue,
-                    onChanged: _setNext,
-                  ),
-                ),
-              ],
+                  const Divider(height: 20, color: AppColors.border),
+                  if (widget.onStartPoll != null)
+                    _actionRow(
+                        InIcons.poll, 'Start a poll', widget.onStartPoll!),
+                  if (widget.onModeration != null)
+                    _actionRow(
+                        InIcons.shield, 'Moderation', widget.onModeration!,
+                        sub: 'Slow mode, filters'),
+                  if (widget.onEndRoom != null)
+                    _actionRow(InIcons.close, 'End room for everyone',
+                        widget.onEndRoom!,
+                        color: const Color(0xFFFF8A9F)),
+                ],
+              ),
             ),
           ),
         ),

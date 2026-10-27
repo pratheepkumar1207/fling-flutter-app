@@ -60,6 +60,12 @@ class RoomSocketController extends ChangeNotifier {
     'nextTrackMode': 'justPlay',
   };
   String? queueDenied;
+
+  /// Set when the host ends the room for everyone (their name).
+  String? endedBy;
+
+  /// Why your chat message was refused (chat turned off by the host).
+  String? chatDenied;
   // Bumped (not just true/false — a screen already showing the prompt needs
   // to notice a *second* one after dismissing the first) every time the
   // server says the queue just ran dry with nothing pinned — see
@@ -312,6 +318,15 @@ class RoomSocketController extends ChangeNotifier {
       queueDenied = data['reason'] as String?;
       notifyListeners();
     });
+    s.on('room:ended', (data) {
+      endedBy = (data is Map ? data['by'] : null) as String? ?? 'The host';
+      notifyListeners();
+    });
+    s.on('chat:denied', (data) {
+      chatDenied =
+          (data is Map ? data['reason'] : null) as String? ?? 'Chat is off';
+      notifyListeners();
+    });
     s.on('chat:mentioned', (data) {
       mention = Map<String, dynamic>.from(data);
       notifyListeners();
@@ -361,6 +376,8 @@ class RoomSocketController extends ChangeNotifier {
     socket?.off('room:typeChanged');
     socket?.off('room:settingsChanged');
     socket?.off('queue:denied');
+    socket?.off('room:ended');
+    socket?.off('chat:denied');
     socket?.off('chat:mentioned');
   }
 
@@ -522,6 +539,11 @@ class RoomSocketController extends ChangeNotifier {
 
   void micOn() {
     if (isHost) socket?.emit('call:micOn', {'roomId': roomId});
+  }
+
+  /// Host only: closes the room for everyone in it.
+  void endRoom() {
+    if (isHost) socket?.emit('room:end', {'roomId': roomId});
   }
 
   void micOff() => socket?.emit('call:micOff', {'roomId': roomId});

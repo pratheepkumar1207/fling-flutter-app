@@ -5,6 +5,8 @@ import '../../core/api_client.dart';
 import '../../core/auth_provider.dart';
 import '../../core/pip_service.dart';
 import '../../core/room_prefs.dart';
+import '../../core/api_exception.dart';
+import '../../widgets/report_user_sheet.dart';
 import '../../widgets/guest_settings_sheet.dart';
 import '../../core/room_source_types.dart';
 import '../../core/socket_service.dart';
@@ -25,6 +27,7 @@ import '../../widgets/live_video_view.dart';
 import '../../widgets/participant_avatar_row.dart';
 import '../../widgets/poll_bottom_sheet.dart';
 import '../../widgets/poll_creator_bottom_sheet.dart';
+import '../experience/experience_hub.dart' show RoomModerationScreen;
 import '../../widgets/room_settings_sheet.dart';
 import '../../widgets/share_bottom_sheet.dart';
 import '../../widgets/spinner.dart';
@@ -293,6 +296,18 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           true; // A real removal, not a minimize — tear the connection down too.
       Navigator.of(context).pop();
       return;
+    }
+    if (rs.endedBy != null && !rs.isHost) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${rs.endedBy} ended the room')));
+      _didLeaveRoom = true;
+      Navigator.of(context).pop();
+      return;
+    }
+    if (rs.chatDenied != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(rs.chatDenied!)));
+      rs.chatDenied = null;
     }
     if (rs.joinError != null) {
       ScaffoldMessenger.of(context)
@@ -777,14 +792,14 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       } else if (rs.isHost) {
         rs.micOn();
       } else if (myMicRequested) {
-        rs.cancelMicRequest();
+        _showRaiseHand(rs, place: pendingRequests.indexOf(myId) + 1);
       } else if (rs.settings['micEnabled'] == false) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('The host has disabled mics for now')));
+      } else if (rs.settings['micApproval'] == 'everyone') {
+        rs.requestMic(); // goes straight onto the stage
       } else {
-        rs.requestMic();
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Request sent to the host')));
+        _showRaiseHand(rs);
       }
     }
 
@@ -1031,11 +1046,21 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                 MediaQuery.orientationOf(context) == Orientation.landscape) {
               return Scaffold(
                 backgroundColor: Colors.black,
-                body: Center(
-                  child: player(
-                      mediaMode:
-                          currentItem?['mediaMode'] as String? ?? 'video'),
-                ),
+                body: Stack(children: [
+                  Center(
+                    child: player(
+                        mediaMode:
+                            currentItem?['mediaMode'] as String? ?? 'video'),
+                  ),
+                  if (RoomPrefs.instance.chatOverVideo)
+                    Positioned(
+                      left: 16,
+                      bottom: 16,
+                      width: 300,
+                      child: IgnorePointer(
+                          child: _ChatOverVideo(messages: rs.messages)),
+                    ),
+                ]),
               );
             }
             // _chatFocused alone isn't enough — dismissing the keyboard via
@@ -1352,17 +1377,22 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                 onPressed: () => showRoomSettingsSheet(context,
                                     room: room,
                                     onChanged: _refreshRoom,
-                                    onMySettings: () => showGuestSettingsSheet(
-                                        context,
-                                        hasVideo: isWatch)))
+                                    onMySettings: () => showGuestSettingsSheet(context,
+                                        hasVideo: isWatch),
+                                    onStartPoll: () =>
+                                        showPollCreatorBottomSheet(context,
+                                            onCreate: rs.createPoll),
+                                    onModeration: () => Navigator.of(context)
+                                        .push(MaterialPageRoute(
+                                            builder: (_) =>
+                                                const RoomModerationScreen())),
+                                    onEndRoom: _confirmEndRoom))
                           else if (room['roomType'] != 'live')
                             InIconButton(InIcons.gear,
                                 tooltip: 'Your settings',
                                 color: roomTextDim,
-                                onPressed: () => showGuestSettingsSheet(context,
-                                    onStage: myMicOn || myMicForceMuted,
-                                    onLeaveMic: rs.micOff,
-                                    hasVideo: isWatch)),
+                                onPressed: () =>
+                                    showGuestSettingsSheet(context, onStage: myMicOn || myMicForceMuted, onLeaveMic: rs.micOff, hasVideo: isWatch, roomTitle: room['title'] as String?, hostName: (rs.hostId == null ? null : rs.roster.where((r) => r.userId == rs.hostId).firstOrNull?.name)?.split(' ').first, onReport: () => _reportRoom(room))),
                         ],
                       ),
                       // Who's on mic, lit while talking. _hostKey stays on this
@@ -2038,6 +2068,131 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     extras.load();
   }
 
+  /// Guest: "Ask to speak?" with Raise hand / Not now; once asked, shows
+  /// your place in line and lets you lower your hand.
+  void _showRaiseHand(RoomSocketController rs, {int place = 0}) {
+    final host = rs.roster.where((r) => r.userId == rs.hostId).firstOrNull;
+    final hostName = host?.name.split(' ').first ?? 'The host';
+    final asked = place > 0;
+    String ordinal(int n) => n == 1
+        ? '1st'
+        : n == 2
+            ? '2nd'
+            : n == 3
+                ? '3rd'
+                : '${n}th';
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      builder: (sheet) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 8, 22, 20),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                  color: const Color(0xFF2B1640),
+                  borderRadius: BorderRadius.circular(20)),
+              child: const Center(
+                  child: InIcon(InIcons.mic, size: 28, color: AppColors.lilac)),
+            ),
+            const SizedBox(height: 14),
+            Text(asked ? 'Your hand is up' : 'Ask to speak?',
+                style:
+                    const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            Text(
+                asked
+                    ? 'You’re ${ordinal(place)} in line. You’ll join a mic seat when $hostName allows it.'
+                    : '$hostName will get your request. You’ll join a mic seat when they allow it.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.textDim, fontSize: 14)),
+            const SizedBox(height: 18),
+            if (!asked)
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.of(sheet).pop();
+                  rs.requestMic();
+                },
+                style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50)),
+                icon: const Text('✋', style: TextStyle(fontSize: 18)),
+                label: const Text('Raise hand'),
+              )
+            else
+              OutlinedButton(
+                onPressed: () {
+                  Navigator.of(sheet).pop();
+                  rs.cancelMicRequest();
+                },
+                style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50)),
+                child: const Text('Lower hand'),
+              ),
+            const SizedBox(height: 6),
+            TextButton(
+              onPressed: () => Navigator.of(sheet).pop(),
+              child: Text(asked ? 'Keep waiting' : 'Not now'),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  /// Guest settings → Report this room (reported against the host).
+  void _reportRoom(Map<String, dynamic> room) {
+    final hostId = _rs?.hostId ?? room['hostId'] as String?;
+    if (hostId == null) return;
+    showReportReasonSheet(
+      context,
+      userName: 'this room',
+      onSubmit: (reason) async {
+        try {
+          await ApiClient.post('/social/report/$hostId', body: {
+            'reason': 'Room ${room['id']} (${room['title']}): $reason'
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Text('Thanks — we’ll review this room')));
+          }
+        } on ApiException catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context)
+                .showSnackBar(SnackBar(content: Text(e.message)));
+          }
+        }
+      },
+    );
+  }
+
+  /// From Room settings: confirm, then close the room for everyone.
+  Future<void> _confirmEndRoom() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: const Text('End room for everyone?'),
+        content: const Text(
+            'Everyone is taken out of the room and it closes. This can’t be undone.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(d).pop(false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.of(d).pop(true),
+              child: const Text('End room',
+                  style: TextStyle(color: AppColors.pink))),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    _rs?.endRoom();
+    _didLeaveRoom = true;
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    if (mounted) Navigator.of(context).pop();
+  }
+
   Future<void> _leaveRoom() async {
     final rs = _rs;
     final others = rs == null || !rs.isHost
@@ -2116,6 +2271,17 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis),
                 ),
+              if (others.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  onPressed: () => Navigator.of(dialog).pop('end'),
+                  style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(50),
+                      foregroundColor: const Color(0xFFFF8AA0),
+                      side: const BorderSide(color: Color(0xFF5A2030))),
+                  child: const Text('End room for everyone'),
+                ),
+              ],
               if (others.isNotEmpty) const SizedBox(height: 8),
               FilledButton(
                 onPressed: () => Navigator.of(dialog).pop('leave'),
@@ -2141,6 +2307,11 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       ),
     );
     if (result == null || result == 'stay' || !mounted) return;
+    if (result == 'end') {
+      rs?.endRoom();
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
+    }
     if (result.startsWith('handover:')) {
       rs?.makeHost(result.substring('handover:'.length));
       // Give the server a moment to hand over before we disconnect.
@@ -2249,6 +2420,47 @@ class _LiveViewers extends StatelessWidget {
           ),
         ]),
       ),
+    );
+  }
+}
+
+/// Landscape watch: the last few messages, fading up over the video.
+class _ChatOverVideo extends StatelessWidget {
+  final List<Map<String, dynamic>> messages;
+  const _ChatOverVideo({required this.messages});
+
+  @override
+  Widget build(BuildContext context) {
+    final recent = messages
+        .where((m) => m['system'] != true && '${m['text'] ?? ''}'.isNotEmpty)
+        .toList();
+    final shown =
+        recent.length > 4 ? recent.sublist(recent.length - 4) : recent;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final m in shown)
+          Container(
+            margin: const EdgeInsets.only(top: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.45),
+                borderRadius: BorderRadius.circular(14)),
+            child: Text.rich(
+              TextSpan(children: [
+                TextSpan(
+                    text: '${m['name'] ?? 'Someone'}  ',
+                    style: const TextStyle(
+                        color: AppColors.lilac, fontWeight: FontWeight.w700)),
+                TextSpan(text: '${m['text']}'),
+              ]),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+            ),
+          ),
+      ],
     );
   }
 }

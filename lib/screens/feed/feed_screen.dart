@@ -599,7 +599,9 @@ class _FeedScreenState extends State<FeedScreen> {
                                 '/social/report/${post.author.id}',
                                 body: {'reason': 'Post ${post.id}: $reason'}),
                             'Report submitted',
-                            reload: false)),
+                            reload: false),
+                        onAlsoBlock: () =>
+                            ApiClient.post('/social/block/${post.author.id}')),
                     danger: true),
               ],
               const SizedBox(height: 8),

@@ -17,11 +17,15 @@ import '../party/party_screen.dart';
 class WatchRoomOptions {
   final String? title;
   final bool micEnabled;
+
+  /// true = the host approves each mic request; false = anyone can hop on.
+  final bool hostApprovesMics;
   final bool anyoneCanAddSongs;
   final String? theme;
   const WatchRoomOptions(
       {this.title,
       this.micEnabled = true,
+      this.hostApprovesMics = true,
       this.anyoneCanAddSongs = true,
       this.theme});
 }
@@ -57,6 +61,7 @@ Future<void> createWatchRoomAndEnter(
     if (options != null) {
       await ApiClient.patch('/rooms/${room['id']}/settings', body: {
         'micEnabled': options.micEnabled,
+        'micApproval': options.hostApprovesMics ? 'host' : 'everyone',
         'songPermission': options.anyoneCanAddSongs ? 'anyone' : 'host',
         if (options.theme != null) 'theme': options.theme,
       }).catchError((_) => null);

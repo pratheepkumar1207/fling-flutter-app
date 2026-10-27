@@ -110,6 +110,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
   // watch_room_creator.dart via WatchRoomOptions (carried through the
   // source picker), along with the room name.
   bool _micEnabled = true;
+  bool _hostApprovesMics = true;
   bool _songPermission = true;
   String _theme = RoomTheme.midnight.id;
   bool _saving = false;
@@ -130,6 +131,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
       final roomId = room['id'] as String;
       await ApiClient.patch('/rooms/$roomId/settings', body: {
         'micEnabled': _micEnabled,
+        'micApproval': _hostApprovesMics ? 'host' : 'everyone',
         'songPermission': _songPermission ? 'anyone' : 'host',
         'theme': _theme,
       }).catchError((_) => null);
@@ -204,6 +206,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
                   ? null
                   : _nameController.text.trim(),
               micEnabled: _micEnabled,
+              hostApprovesMics: _hostApprovesMics,
               anyoneCanAddSongs: _songPermission,
               theme: _theme,
             )),
@@ -305,6 +308,14 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
                             'Mics on for everyone',
                             _micEnabled,
                             (v) => setState(() => _micEnabled = v)),
+                        if (_micEnabled) ...[
+                          const Divider(height: 1, color: Color(0xFF221F2C)),
+                          _toggleRow(
+                              InIcons.shield,
+                              'Host approves mics',
+                              _hostApprovesMics,
+                              (v) => setState(() => _hostApprovesMics = v)),
+                        ],
                         const Divider(height: 1, color: Color(0xFF221F2C)),
                         _toggleRow(
                             InIcons.music,

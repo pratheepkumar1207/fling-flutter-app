@@ -222,6 +222,8 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                   context,
                   userName: p['name'] as String? ?? '',
                   onSubmit: _report,
+                  onAlsoBlock: () =>
+                      ApiClient.post('/social/block/${widget.userId}'),
                 ),
                 onBlock: () => _confirmDialog(
                   title: 'Block ${p['name']}?',

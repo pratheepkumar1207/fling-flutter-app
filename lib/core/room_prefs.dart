@@ -11,6 +11,8 @@ class RoomPrefs extends ChangeNotifier {
   static const _kPtt = 'room.pushToTalk';
   static const _kBalance = 'room.voiceVideoBalance';
   static const _kPip = 'room.autoPip';
+  static const _kChatOver = 'room.chatOverVideo';
+  static const _kMuteAlerts = 'room.muteAlerts';
 
   bool _loaded = false;
   bool pushToTalk = false;
@@ -18,6 +20,12 @@ class RoomPrefs extends ChangeNotifier {
   /// 0 = only voices, 1 = only the video, 0.5 = both at full volume.
   double balance = 0.5;
   bool autoPip = true;
+
+  /// Landscape: recent chat floats over the video.
+  bool chatOverVideo = true;
+
+  /// No sound for @mentions and other room alerts.
+  bool muteAlerts = false;
 
   /// True while the mic button is held down with push to talk on.
   final talking = ValueNotifier<bool>(false);
@@ -36,6 +44,8 @@ class RoomPrefs extends ChangeNotifier {
       pushToTalk = p.getBool(_kPtt) ?? false;
       balance = (p.getDouble(_kBalance) ?? 0.5).clamp(0.0, 1.0);
       autoPip = p.getBool(_kPip) ?? true;
+      chatOverVideo = p.getBool(_kChatOver) ?? true;
+      muteAlerts = p.getBool(_kMuteAlerts) ?? false;
       notifyListeners();
     } catch (_) {
       // Defaults are fine.
@@ -62,5 +72,15 @@ class RoomPrefs extends ChangeNotifier {
   void setAutoPip(bool v) {
     autoPip = v;
     _save((p) => p.setBool(_kPip, v));
+  }
+
+  void setChatOverVideo(bool v) {
+    chatOverVideo = v;
+    _save((p) => p.setBool(_kChatOver, v));
+  }
+
+  void setMuteAlerts(bool v) {
+    muteAlerts = v;
+    _save((p) => p.setBool(_kMuteAlerts, v));
   }
 }

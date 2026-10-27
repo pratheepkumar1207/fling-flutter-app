@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import '../../core/room_prefs.dart';
 import '../../core/active_room_holder.dart';
 import '../../core/app_messenger.dart';
 import 'room_socket_controller.dart';
@@ -47,7 +49,7 @@ class _MentionNotifierState extends State<MentionNotifier> {
     if (rs == null || rs.mention == null) return;
     final fromName = rs.mention!['fromName'] as String? ?? 'Someone';
     rs.clearMention();
-    SystemSound.play(SystemSoundType.alert);
+    if (!RoomPrefs.instance.muteAlerts) SystemSound.play(SystemSoundType.alert);
     scaffoldMessengerKey.currentState?.showSnackBar(SnackBar(
       content: Text('$fromName mentioned you'),
       behavior: SnackBarBehavior.floating,

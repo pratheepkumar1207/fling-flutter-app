@@ -12,6 +12,9 @@ Future<void> showGuestSettingsSheet(
   bool onStage = false,
   VoidCallback? onLeaveMic,
   bool hasVideo = true,
+  String? roomTitle,
+  String? hostName,
+  VoidCallback? onReport,
 }) {
   RoomPrefs.instance.load();
   return showModalBottomSheet(
@@ -56,8 +59,22 @@ Future<void> showGuestSettingsSheet(
                         .titleLarge
                         ?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 2),
+                if (roomTitle != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 2),
+                    child: Text(
+                        hostName == null
+                            ? roomTitle
+                            : '$roomTitle · hosted by $hostName',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: AppColors.lilac,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600)),
+                  ),
                 const Text(
-                    'Only for you — the room stays the same for everyone else.',
+                    'Only the host can change the room. These are just for you.',
                     style: TextStyle(color: AppColors.textDim, fontSize: 13)),
                 const SizedBox(height: 16),
                 _Card(children: [
@@ -67,6 +84,14 @@ Future<void> showGuestSettingsSheet(
                     subtitle: 'On the mic, hold the mic button to speak.',
                     value: prefs.pushToTalk,
                     onChanged: prefs.setPushToTalk,
+                  ),
+                  const Divider(height: 1, color: AppColors.border),
+                  _SwitchRow(
+                    icon: InIcons.mute,
+                    title: 'Mute room alerts',
+                    subtitle: 'No sound for new messages',
+                    value: prefs.muteAlerts,
+                    onChanged: prefs.setMuteAlerts,
                   ),
                   if (onStage && onLeaveMic != null) ...[
                     const Divider(height: 1, color: AppColors.border),
@@ -139,6 +164,32 @@ Future<void> showGuestSettingsSheet(
                           'Keep watching in a small window when you leave the app.',
                       value: prefs.autoPip,
                       onChanged: prefs.setAutoPip,
+                    ),
+                    const Divider(height: 1, color: AppColors.border),
+                    _SwitchRow(
+                      icon: InIcons.chat,
+                      title: 'Show chat over video',
+                      subtitle:
+                          'In landscape, recent messages float on the video.',
+                      value: prefs.chatOverVideo,
+                      onChanged: prefs.setChatOverVideo,
+                    ),
+                  ]),
+                ],
+                if (onReport != null) ...[
+                  const SizedBox(height: 12),
+                  _Card(children: [
+                    ListTile(
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 14),
+                      leading: const InIcon(InIcons.shield,
+                          size: 20, color: AppColors.pink),
+                      title: const Text('Report this room',
+                          style: TextStyle(color: AppColors.pink)),
+                      onTap: () {
+                        Navigator.of(sheetContext).pop();
+                        onReport();
+                      },
                     ),
                   ]),
                 ],
