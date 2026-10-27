@@ -94,7 +94,7 @@ dependencies:
   # icon here and use a colored letter-badge instead (see source_picker_screen.dart).
   font_awesome_flutter: ^11.0.0
   flutter_svg: ^2.0.10+1
-  record: ^5.1.2
+  record: ^6.1.1
   path_provider: ^2.1.4
   # Keeps the socket connection (and thus room presence/playback sync) alive
   # while the app is backgrounded — without a real foreground service,
