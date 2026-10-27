@@ -8,6 +8,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
 import '../../core/pip_service.dart';
+import '../../core/room_prefs.dart';
 import '../../core/youtube_util.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/room_play_pause_button.dart';
@@ -198,6 +199,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     PipService.isInPip.addListener(_onPipChanged);
+    RoomPrefs.instance.addListener(_applyVolume);
     _currentVideoId = extractYouTubeId(widget.videoUrl);
     if (_currentVideoId != null) _loadAspectRatio(_currentVideoId!);
     // Host too, not just viewers: this widget is rebuilt from scratch when
@@ -258,7 +260,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     switch (type) {
       case 'Ready':
         _ready = true;
-        _controller?.evaluateJavascript(source: 'ytSetVolume($_volume);');
+        _applyVolume();
         // Commands sent before the page reported ready (e.g. the initial
         // _applyRemotePlaybackIfNeeded call from initState) were no-ops on
         // the JS side — retry now that they'll actually land.
@@ -319,7 +321,15 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
   void _handleVolumeChange(int next) {
     final clamped = next.clamp(0, 100);
     setState(() => _volume = clamped);
-    _controller?.evaluateJavascript(source: 'ytSetVolume($clamped);');
+    _applyVolume();
+  }
+
+  // The player's own slider, scaled by the voices-vs-video balance.
+  int get _effectiveVolume =>
+      (_volume * RoomPrefs.instance.videoFactor).round();
+
+  void _applyVolume() {
+    _controller?.evaluateJavascript(source: 'ytSetVolume($_effectiveVolume);');
   }
 
   void _applyRemotePlaybackIfNeeded() {
@@ -1046,6 +1056,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     PipService.isInPip.removeListener(_onPipChanged);
+    RoomPrefs.instance.removeListener(_applyVolume);
     _justResumedFallback?.cancel();
     _initialSyncFallback?.cancel();
     _hideControlsTimer?.cancel();

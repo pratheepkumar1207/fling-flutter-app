@@ -145,6 +145,9 @@ class VoiceChatController extends ChangeNotifier {
         ),
       );
       _joined = true;
+      if (_playbackVolume != 100) {
+        await engine.adjustPlaybackSignalVolume(_playbackVolume);
+      }
       _setStatus(VoiceChatStatus.connected);
     } catch (_) {
       // Still a real possibility even with the lazy-init deferral above
@@ -160,6 +163,15 @@ class VoiceChatController extends ChangeNotifier {
     if (_status == next) return;
     _status = next;
     notifyListeners();
+  }
+
+  int _playbackVolume = 100;
+
+  /// Other people's voices, 0–100 (the guest settings balance).
+  Future<void> setPlaybackVolume(int volume) async {
+    if (volume == _playbackVolume) return;
+    _playbackVolume = volume;
+    if (_joined) await _engine?.adjustPlaybackSignalVolume(volume);
   }
 
   Future<void> setMicEnabled(bool enabled) async {

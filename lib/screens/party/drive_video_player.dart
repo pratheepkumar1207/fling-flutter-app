@@ -7,6 +7,7 @@ import '../../core/api_client.dart';
 import '../../core/background_audio_handler.dart';
 import '../../core/format.dart';
 import '../../core/pip_service.dart';
+import '../../core/room_prefs.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/room_play_pause_button.dart';
 import '../../widgets/room_seek_ten_button.dart';
@@ -122,6 +123,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     PipService.isInPip.addListener(_onPipChanged);
+    RoomPrefs.instance.addListener(_applyVolume);
     _rebuildControllerIfNeeded();
     // See the matching comment in sync_video_player.dart: playback:state
     // can already be sitting on widget.playback by this first build (the
@@ -159,7 +161,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
     _controller = controller;
     _endFired = false;
     controller
-      ..setVolume(_volume / 100)
+      ..setVolume(_effectiveVolume)
       ..addListener(_onTick)
       ..initialize().then((_) {
         if (!mounted) return;
@@ -230,8 +232,13 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
   void _handleVolumeChange(int next) {
     final clamped = next.clamp(0, 100);
     setState(() => _volume = clamped);
-    _controller?.setVolume(clamped / 100);
+    _applyVolume();
   }
+
+  // The player's own slider, scaled by the voices-vs-video balance.
+  double get _effectiveVolume => _volume / 100 * RoomPrefs.instance.videoFactor;
+
+  void _applyVolume() => _controller?.setVolume(_effectiveVolume);
 
   void _applyRemotePlaybackIfNeeded() {
     final p = widget.playback;
@@ -740,6 +747,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     PipService.isInPip.removeListener(_onPipChanged);
+    RoomPrefs.instance.removeListener(_applyVolume);
     _pendingBackgroundHandoff?.cancel();
     _hideControlsTimer?.cancel();
     if (_handedOffToBackground) {

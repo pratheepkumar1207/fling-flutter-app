@@ -31,20 +31,27 @@ const _kGameTypes = [
 /// game), shown inline right under the Type row. Watch rooms have no Type row:
 /// what plays there is changed through the source picker (Search & queue).
 Future<void> showRoomSettingsSheet(BuildContext context,
-    {required Map<String, dynamic> room, required VoidCallback onChanged}) {
+    {required Map<String, dynamic> room,
+    required VoidCallback onChanged,
+    VoidCallback? onMySettings}) {
   return showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
     showDragHandle: false,
-    builder: (_) => _RoomSettingsSheet(room: room, onChanged: onChanged),
+    builder: (_) => _RoomSettingsSheet(
+        room: room, onChanged: onChanged, onMySettings: onMySettings),
   );
 }
 
 class _RoomSettingsSheet extends StatefulWidget {
   final Map<String, dynamic> room;
   final VoidCallback onChanged;
-  const _RoomSettingsSheet({required this.room, required this.onChanged});
+
+  /// Opens the host's own push-to-talk / balance / picture-in-picture sheet.
+  final VoidCallback? onMySettings;
+  const _RoomSettingsSheet(
+      {required this.room, required this.onChanged, this.onMySettings});
 
   @override
   State<_RoomSettingsSheet> createState() => _RoomSettingsSheetState();
@@ -469,6 +476,20 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
                       ),
                   ],
                 ),
+                if (widget.onMySettings != null)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        widget.onMySettings!();
+                      },
+                      icon: const InIcon(InIcons.tune,
+                          size: 16, color: AppColors.lilac),
+                      label:
+                          const Text('Your settings: push to talk, sound, PiP'),
+                    ),
+                  ),
                 const SizedBox(height: 10),
                 _boostRow(),
                 if (canSwitchType)

@@ -4,6 +4,8 @@ import '../../core/active_room_holder.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_provider.dart';
 import '../../core/pip_service.dart';
+import '../../core/room_prefs.dart';
+import '../../widgets/guest_settings_sheet.dart';
 import '../../core/room_source_types.dart';
 import '../../core/socket_service.dart';
 import '../../models/room_models.dart';
@@ -192,6 +194,9 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    RoomPrefs.instance.load();
+    RoomPrefs.instance.addListener(_onPrefs);
+    RoomPrefs.instance.talking.addListener(_onPrefs);
     _watchScrollController.addListener(_onWatchScroll);
     _partyEngine = PartyEngineImpl(
       socketService: context.read<SocketService>(),
@@ -440,6 +445,10 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       showIncomingPkDialog(context, invite: invite, extras: e)
           .whenComplete(() => _pkDialogOpen = false);
     }
+  }
+
+  void _onPrefs() {
+    if (mounted) setState(() {});
   }
 
   void _openRoster() {
@@ -708,7 +717,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     // Auto-PIP only while there's actually a watch-party video up — pressing
     // home from Home/Feed/chat/etc. shouldn't pop a PIP window with nothing
     // worth watching in it.
-    _syncAutoPip(isWatch && currentItem != null);
+    _syncAutoPip(isWatch && currentItem != null && RoomPrefs.instance.autoPip);
     // Watch/Voice/Game all share Watch Party's Vola reskin now — same
     // background gradient, same text/accent colors — instead of Voice
     // having its own separate ClubRoomColors look. Only room types outside
@@ -747,10 +756,14 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     _voice?.onLocalSpeakingChanged = rs.setSpeaking;
     // Live guests publish video through the live engine, not a second
     // voice engine on the same channel.
+    final prefs = RoomPrefs.instance;
+    _voice?.setPlaybackVolume(prefs.voiceVolume);
     if (room['roomType'] == 'live') {
       _live?.setGuest(myMicOn && !rs.isHost);
     } else if (myMicOn) {
-      _voice?.ensureInitialized().then((_) => _voice?.setMicEnabled(true));
+      // Push to talk: on stage, but only sending while the mic is held.
+      final talk = !prefs.pushToTalk || prefs.talking.value;
+      _voice?.ensureInitialized().then((_) => _voice?.setMicEnabled(talk));
     } else {
       _voice?.setMicEnabled(false);
     }
@@ -1324,8 +1337,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                       // always-visible way to actually leave.
                       // Leave first, settings (host) right beside it — the
                       // two "room" controls together on the left.
-                      leadingWidth:
-                          rs.isHost && room['roomType'] != 'live' ? 96 : 56,
+                      leadingWidth: room['roomType'] != 'live' ? 96 : 56,
                       leading: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -1338,7 +1350,19 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                 tooltip: 'Room settings',
                                 color: roomTextDim,
                                 onPressed: () => showRoomSettingsSheet(context,
-                                    room: room, onChanged: _refreshRoom)),
+                                    room: room,
+                                    onChanged: _refreshRoom,
+                                    onMySettings: () => showGuestSettingsSheet(
+                                        context,
+                                        hasVideo: isWatch)))
+                          else if (room['roomType'] != 'live')
+                            InIconButton(InIcons.gear,
+                                tooltip: 'Your settings',
+                                color: roomTextDim,
+                                onPressed: () => showGuestSettingsSheet(context,
+                                    onStage: myMicOn || myMicForceMuted,
+                                    onLeaveMic: rs.micOff,
+                                    hasVideo: isWatch)),
                         ],
                       ),
                       // Who's on mic, lit while talking. _hostKey stays on this
@@ -1980,6 +2004,9 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    RoomPrefs.instance.removeListener(_onPrefs);
+    RoomPrefs.instance.talking.removeListener(_onPrefs);
+    RoomPrefs.instance.talking.value = false;
     _extras?.removeListener(_onExtras);
     _extras?.dispose();
     _watchScrollController.dispose();

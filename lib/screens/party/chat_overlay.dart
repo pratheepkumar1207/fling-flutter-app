@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/profile_nav.dart';
+import '../../core/room_prefs.dart';
 import '../../core/room_source_types.dart';
 import '../../models/room_models.dart';
 import '../../theme/insync_icons.dart';
@@ -332,16 +333,48 @@ class _ChatOverlayState extends State<ChatOverlay> {
           children: [
             Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: GlassCircleButton(
-                size: 42,
-                onTap: widget.onMicTap,
-                color: widget.myMicOn
-                    ? AppColors.primary
-                    : (widget.myMicRequested
-                        ? widget.primaryColor.withValues(alpha: 0.6)
-                        : null),
-                child: InIcon(widget.myMicOn ? InIcons.mic : InIcons.micoff,
-                    color: Colors.white, size: 20),
+              child: AnimatedBuilder(
+                animation: Listenable.merge(
+                    [RoomPrefs.instance, RoomPrefs.instance.talking]),
+                builder: (context, _) {
+                  final prefs = RoomPrefs.instance;
+                  final ptt = prefs.pushToTalk && widget.myMicOn;
+                  final talking = ptt && prefs.talking.value;
+                  final button = GlassCircleButton(
+                    size: 42,
+                    onTap: ptt
+                        ? () => ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text(
+                                    'Push to talk is on — hold the mic to speak.')))
+                        : widget.onMicTap,
+                    color: talking
+                        ? AppColors.pink
+                        : ptt
+                            ? AppColors.primary.withValues(alpha: 0.55)
+                            : widget.myMicOn
+                                ? AppColors.primary
+                                : (widget.myMicRequested
+                                    ? widget.primaryColor.withValues(alpha: 0.6)
+                                    : null),
+                    child: InIcon(
+                        widget.myMicOn && (!ptt || talking)
+                            ? InIcons.mic
+                            : InIcons.micoff,
+                        color: Colors.white,
+                        size: 20),
+                  );
+                  if (!ptt) return button;
+                  return Semantics(
+                    label: 'Hold to talk',
+                    child: Listener(
+                      onPointerDown: (_) => prefs.talking.value = true,
+                      onPointerUp: (_) => prefs.talking.value = false,
+                      onPointerCancel: (_) => prefs.talking.value = false,
+                      child: button,
+                    ),
+                  );
+                },
               ),
             ),
             Expanded(
