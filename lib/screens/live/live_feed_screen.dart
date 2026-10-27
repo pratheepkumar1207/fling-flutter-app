@@ -20,7 +20,7 @@ class LiveFeedScreen extends StatefulWidget {
   State<LiveFeedScreen> createState() => _LiveFeedScreenState();
 }
 
-enum _LiveSort { forYou, newest }
+enum _LiveSort { forYou, following, nearby, pk, newest }
 
 class _LiveFeedScreenState extends State<LiveFeedScreen> {
   bool _loading = true;
@@ -51,7 +51,18 @@ class _LiveFeedScreenState extends State<LiveFeedScreen> {
   }
 
   List<Map<String, dynamic>> get _sorted {
-    final list = [..._rooms];
+    final list = switch (_sort) {
+      _LiveSort.following =>
+        _rooms.where((r) => r['hostFollowed'] == true).toList(),
+      _LiveSort.nearby => _rooms
+          .where((r) => r['hostDistanceKm'] != null)
+          .toList()
+        ..sort((a, b) =>
+            (a['hostDistanceKm'] as num).compareTo(b['hostDistanceKm'] as num)),
+      _LiveSort.pk => _rooms.where((r) => r['inPk'] == true).toList(),
+      _ => [..._rooms],
+    };
+    if (_sort == _LiveSort.nearby) return list;
     if (_sort == _LiveSort.newest) {
       list.sort((a, b) => (b['createdAt'] as String? ?? '')
           .compareTo(a['createdAt'] as String? ?? ''));
@@ -122,10 +133,14 @@ class _LiveFeedScreenState extends State<LiveFeedScreen> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.fromLTRB(18, 6, 18, 10),
             child: Row(children: [
-              _SortChip('For you', _sort == _LiveSort.forYou,
-                  () => setState(() => _sort = _LiveSort.forYou)),
-              _SortChip('New', _sort == _LiveSort.newest,
-                  () => setState(() => _sort = _LiveSort.newest)),
+              for (final (s, label) in const [
+                (_LiveSort.forYou, 'For you'),
+                (_LiveSort.following, 'Following'),
+                (_LiveSort.nearby, 'Nearby'),
+                (_LiveSort.pk, 'PK'),
+                (_LiveSort.newest, 'New'),
+              ])
+                _SortChip(label, _sort == s, () => setState(() => _sort = s)),
             ]),
           ),
         ),
@@ -149,7 +164,24 @@ class _LiveFeedScreenState extends State<LiveFeedScreen> {
         else if (rooms.isEmpty)
           SliverFillRemaining(
             hasScrollBody: false,
-            child: _EmptyLive(onGoLive: _goLive),
+            child: _rooms.isNotEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Text(
+                          switch (_sort) {
+                            _LiveSort.following =>
+                              'Nobody you follow is live right now.',
+                            _LiveSort.nearby =>
+                              'No one nearby is live. Turn on location to see lives near you.',
+                            _LiveSort.pk => 'No PK battles right now.',
+                            _ => 'Nothing here right now.',
+                          },
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: AppColors.textDim)),
+                    ),
+                  )
+                : _EmptyLive(onGoLive: _goLive),
           )
         else
           SliverPadding(
@@ -313,6 +345,7 @@ class LiveCover extends StatelessWidget {
     final title = room['title'] as String? ?? '';
     final thumb = room['nowPlayingThumbnail'] as String?;
     final count = room['memberCount'] as int? ?? 0;
+    final guests = room['guestCount'] as int? ?? 0;
     return Semantics(
       button: true,
       label: '$host live, $count watching',
@@ -338,6 +371,16 @@ class LiveCover extends StatelessWidget {
               right: 8,
               child: Row(children: [
                 const LiveTag(),
+                if (room['inPk'] == true) ...[
+                  const SizedBox(width: 6),
+                  const _GlassPill(children: [
+                    Text('PK',
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFFFFC93C))),
+                  ]),
+                ],
                 const Spacer(),
                 _GlassPill(children: [
                   const InIcon(InIcons.user, size: 11, color: Colors.white),
@@ -363,10 +406,18 @@ class LiveCover extends StatelessWidget {
                       colors: [Colors.transparent, Color(0xCC000000)]),
                 ),
                 child: Row(children: [
-                  Avatar(name: host, size: AvatarSize.sm),
+                  Avatar(
+                      src: room['hostAvatarUrl'] as String?,
+                      name: host,
+                      size: AvatarSize.sm),
                   const SizedBox(width: 6),
                   Expanded(
-                    child: Text(title.isEmpty ? host : '$host · $title',
+                    child: Text(
+                        guests > 0
+                            ? '$host · $guests guest${guests == 1 ? '' : 's'}'
+                            : title.isEmpty
+                                ? host
+                                : '$host · $title',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
