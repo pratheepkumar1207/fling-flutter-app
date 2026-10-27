@@ -80,7 +80,10 @@ class PartySessionController extends ChangeNotifier {
     final controller = _roomController;
     if (roomId == null || room == null || controller == null) return;
     if (room['roomType'] != 'live' || _live != null) return;
-    _live = LiveBroadcastController(roomId: roomId, isHost: controller.isHost);
+    _live = LiveBroadcastController(
+        roomId: roomId,
+        isHost: controller.isHost,
+        myUserId: controller.myUserId);
     _publishSnapshot();
   }
 

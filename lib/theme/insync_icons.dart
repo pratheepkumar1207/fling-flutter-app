@@ -218,6 +218,10 @@ class InIcons {
       '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v4a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4"/>');
   static const bank = InIconData('bank',
       '<path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>');
+  static const diamond = InIconData('diamond',
+      '<path d="M7 4h10l4 5.5L12 20 3 9.5z"/><path d="M3 9.5h18M9.5 4L8 9.5l4 10.5 4-10.5L14.5 4"/>');
+  static const swords = InIconData('swords',
+      '<path d="M4 4l10 10M4 4h4M4 4v4M20 4L10 14M20 4h-4M20 4v4"/><path d="M12.5 15.5l-4 4M7 13l4 4M11.5 15.5l4 4M17 13l-4 4"/>');
 
   /// Icons that render solid when [InIcon.filled] is set.
   static const filledNames = {
@@ -228,7 +232,8 @@ class InIcons {
     'star',
     'skipNext',
     'skipPrev',
-    'bolt'
+    'bolt',
+    'diamond'
   };
 }
 

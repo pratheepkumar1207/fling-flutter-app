@@ -59,6 +59,9 @@ class ChatOverlay extends StatefulWidget {
   final Set<String> likedUrls;
   final void Function(Map<String, dynamic> item)? onToggleLike;
 
+  /// Live: the host's fan club members, shown with a heart badge.
+  final Set<String> fanIds;
+
   const ChatOverlay({
     super.key,
     required this.messages,
@@ -77,6 +80,7 @@ class ChatOverlay extends StatefulWidget {
     this.onFocusChanged,
     this.likedUrls = const {},
     this.onToggleLike,
+    this.fanIds = const {},
   });
 
   @override
@@ -260,6 +264,18 @@ class _ChatOverlayState extends State<ChatOverlay> {
                                     style: const TextStyle(
                                         fontSize: 12.5, color: Colors.white),
                                     children: [
+                                      if (widget.fanIds.contains(senderId))
+                                        const WidgetSpan(
+                                          alignment:
+                                              PlaceholderAlignment.middle,
+                                          child: Padding(
+                                            padding: EdgeInsets.only(right: 4),
+                                            child: InIcon(InIcons.heart,
+                                                size: 12,
+                                                color: AppColors.pink,
+                                                filled: true),
+                                          ),
+                                        ),
                                       TextSpan(
                                           text: '$name  ',
                                           style: TextStyle(

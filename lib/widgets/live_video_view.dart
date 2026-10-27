@@ -13,11 +13,15 @@ class LiveVideoView extends StatelessWidget {
   /// Full-bleed (the live screen) instead of a rounded 16:9 card.
   final bool fill;
 
+  /// Whose video to show — stage guests broadcast in the same channel.
+  final String? hostUserId;
+
   const LiveVideoView(
       {super.key,
       required this.controller,
       required this.isHost,
-      this.fill = false});
+      this.fill = false,
+      this.hostUserId});
 
   @override
   Widget build(BuildContext context) {
@@ -32,10 +36,15 @@ class LiveVideoView extends StatelessWidget {
                 controller: VideoViewController(
                     rtcEngine: engine, canvas: const VideoCanvas(uid: 0)));
           } else if (controller.remoteUid != null) {
+            final hostUid = hostUserId == null ? null : liveUidFor(hostUserId!);
+            final uid =
+                hostUid != null && controller.remoteUids.contains(hostUid)
+                    ? hostUid
+                    : controller.remoteUid;
             surface = AgoraVideoView(
               controller: VideoViewController.remote(
                 rtcEngine: engine,
-                canvas: VideoCanvas(uid: controller.remoteUid),
+                canvas: VideoCanvas(uid: uid),
                 connection: RtcConnection(channelId: controller.roomId),
               ),
             );

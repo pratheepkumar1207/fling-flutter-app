@@ -6,7 +6,7 @@ import '../../widgets/app_image.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/in_icon_button.dart';
 import '../../widgets/spinner.dart';
-import '../leaderboards/leaderboards_screen.dart';
+import 'live_rankings_screen.dart';
 import '../lobby/lobby_create_screen.dart';
 import '../party/party_screen.dart';
 import '../search/search_screen.dart';
@@ -106,7 +106,7 @@ class _LiveFeedScreenState extends State<LiveFeedScreen> {
               InIconButton(InIcons.trophy,
                   tooltip: 'Rankings',
                   onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => const LeaderboardsScreen()))),
+                      builder: (_) => const LiveRankingsScreen()))),
               const SizedBox(width: 4),
               Flexible(
                 child: FittedBox(
