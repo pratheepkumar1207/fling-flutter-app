@@ -140,33 +140,43 @@ class _ChatVoiceNoteState extends State<ChatVoiceNote> {
         ? 0.0
         : (_pos.inMilliseconds / len.inMilliseconds).clamp(0.0, 1.0);
     final fg = widget.mine ? Colors.white : AppColors.text;
+    // Played part of the waveform in the accent, the rest dimmed.
+    final played = widget.mine ? Colors.white : AppColors.lilac;
+    final rest = widget.mine
+        ? Colors.white.withValues(alpha: 0.35)
+        : const Color(0xFF5A5568);
     return SizedBox(
-      width: 200,
+      width: 214,
       child: Row(children: [
         Semantics(
           button: true,
           label: _playing ? 'Pause voice message' : 'Play voice message',
           child: InkResponse(
             onTap: _toggle,
-            radius: 22,
-            child: CircleAvatar(
-              radius: 17,
-              backgroundColor: widget.mine ? Colors.white24 : AppColors.primary,
+            radius: 24,
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: const BoxDecoration(
+                  color: Colors.white, shape: BoxShape.circle),
+              alignment: Alignment.center,
               child: InIcon(_playing ? InIcons.pause : InIcons.play,
-                  size: 15, color: Colors.white, filled: true),
+                  size: 15,
+                  color: widget.mine ? AppColors.primary : AppColors.bg,
+                  filled: true),
             ),
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(2),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 3,
-              backgroundColor: fg.withValues(alpha: 0.25),
-              color: fg,
-            ),
+          child: SizedBox(
+            height: 26,
+            child: CustomPaint(
+                painter: _WavePainter(
+                    seed: widget.dataUri.hashCode,
+                    progress: progress,
+                    played: played,
+                    rest: rest)),
           ),
         ),
         const SizedBox(width: 8),
@@ -177,12 +187,56 @@ class _ChatVoiceNoteState extends State<ChatVoiceNote> {
   }
 }
 
+/// Bar waveform for a voice note. Heights come from the note itself so a
+/// note always looks the same; it's a visual, not real audio levels.
+class _WavePainter extends CustomPainter {
+  final int seed;
+  final double progress;
+  final Color played;
+  final Color rest;
+  _WavePainter(
+      {required this.seed,
+      required this.progress,
+      required this.played,
+      required this.rest});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const bar = 3.0, gap = 3.0;
+    final n = ((size.width + gap) / (bar + gap)).floor();
+    var h = seed & 0x7fffffff;
+    final paint = Paint()..strokeCap = StrokeCap.round;
+    for (var i = 0; i < n; i++) {
+      h = (h * 1103515245 + 12345) & 0x7fffffff;
+      final level = 0.25 + (h % 1000) / 1000 * 0.75;
+      final barH = size.height * level;
+      final x = i * (bar + gap);
+      paint.color = (i + 0.5) / n <= progress ? played : rest;
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              Rect.fromLTWH(x, (size.height - barH) / 2, bar, barH),
+              const Radius.circular(1.5)),
+          paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_WavePainter old) =>
+      old.progress != progress || old.seed != seed;
+}
+
 /// Hold to record a voice note, release to send, slide away to cancel.
 class VoiceRecordButton extends StatefulWidget {
   final void Function(String dataUri) onRecorded;
   final double size;
+
+  /// A filled purple circle (the chat composer) instead of a bare icon.
+  final bool filled;
   const VoiceRecordButton(
-      {super.key, required this.onRecorded, this.size = 38});
+      {super.key,
+      required this.onRecorded,
+      this.size = 38,
+      this.filled = false});
 
   @override
   State<VoiceRecordButton> createState() => _VoiceRecordButtonState();
@@ -307,10 +361,17 @@ class _VoiceRecordButtonState extends State<VoiceRecordButton> {
           height: widget.size,
           decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: _recording ? AppColors.pink : Colors.transparent),
+              color: _recording
+                  ? AppColors.pink
+                  : widget.filled
+                      ? AppColors.primary
+                      : Colors.transparent),
           child: Center(
               child: InIcon(InIcons.mic,
-                  size: 21, color: _recording ? Colors.white : AppColors.text)),
+                  size: 21,
+                  color: _recording || widget.filled
+                      ? Colors.white
+                      : AppColors.text)),
         ),
       ),
     );

@@ -28,8 +28,7 @@ void main() {
     (const Size(390, 844), 1.0),
     (const Size(320, 640), 1.6),
   ]) {
-    testWidgets('guest settings sheet ${size.width.toInt()}@$scale',
-        (t) async {
+    testWidgets('guest settings sheet ${size.width.toInt()}@$scale', (t) async {
       t.view.physicalSize = size;
       t.view.devicePixelRatio = 1;
       addTearDown(t.view.resetPhysicalSize);

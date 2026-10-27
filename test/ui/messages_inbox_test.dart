@@ -22,6 +22,8 @@ ConversationSummary _c(String id, String name, String last,
         bool seen = false,
         String type = 'text',
         Map<String, dynamic>? activity,
+        bool pinned = false,
+        bool muted = false,
         int minutesAgo = 5}) =>
     ConversationSummary.fromJson({
       'userId': id,
@@ -36,6 +38,9 @@ ConversationSummary _c(String id, String name, String last,
       'lastMessageType': type,
       'online': unread > 0,
       'activity': activity,
+      'pinned': pinned,
+      'mutedUntil':
+          muted ? _now.add(const Duration(days: 7)).toIso8601String() : null,
     });
 
 final _chats = [
@@ -59,7 +64,8 @@ final _chats = [
         'gameType': 'ludo',
         'canJoin': false,
       }),
-  _c('c', 'Chitra C', 'See you in the watch room', mine: true, minutesAgo: 200),
+  _c('c', 'Chitra C', 'See you in the watch room',
+      mine: true, minutesAgo: 200, pinned: true, muted: true),
   _c('x', 'Stranger', 'hi there', unread: 1, request: true),
 ];
 
@@ -76,7 +82,24 @@ Future<void> _render(WidgetTester t, Size size, double scale) async {
           data: MediaQuery.of(context)
               .copyWith(textScaler: TextScaler.linear(scale)),
           child: w!),
-      home: MessagesScreen(initialConversations: _chats),
+      home: MessagesScreen(
+        initialConversations: _chats,
+        initialGroups: [
+          {
+            'id': 'g1',
+            'name': 'Movie night crew',
+            'lastMessage': 'Aditya: popcorn',
+            'lastMessageAt':
+                _now.subtract(const Duration(minutes: 50)).toIso8601String(),
+            'unreadCount': 3,
+          }
+        ],
+        initialMatches: [
+          {'userId': 'm1', 'name': 'Riya'},
+          {'userId': 'n', 'name': 'Naina'},
+        ],
+        initialLikes: 12,
+      ),
     ),
   ));
   await t.pump(const Duration(milliseconds: 300));
@@ -96,6 +119,12 @@ Future<void> _top(WidgetTester t) async {
 }
 
 void main() {
+  test('request line prefers distance over city', () {
+    expect(const RequestInfo(age: 24, city: 'Chennai', distanceKm: 3).line,
+        '24 · 3 km away');
+    expect(const RequestInfo(age: 24, city: 'Chennai').line, '24 · Chennai');
+  });
+
   for (final (size, scale) in [
     (const Size(390, 844), 1.0),
     (const Size(320, 640), 1.6),
@@ -140,9 +169,37 @@ void main() {
       await t.tap(find.text('Unread'));
       await t.pump();
       expect(find.text('Your turn'), findsNothing); // plain list here
-      await _scrollTo(t, find.text('Naina'));
-      expect(find.text('Naina'), findsOneWidget);
+      // Naina's name is also on her match tile up top.
+      await _scrollTo(t, find.text('Haha same! Tonight at 9?'));
+      expect(find.text('Haha same! Tonight at 9?'), findsOneWidget);
       expect(find.text('Chitra C'), findsNothing);
+      expect(t.takeException(), isNull);
+    });
+
+    testWidgets('strip, groups, pinned first, long-press menu $tag', (t) async {
+      await _render(t, size, scale);
+      expect(t.takeException(), isNull);
+      expect(find.text('Your note'), findsOneWidget);
+      expect(find.bySemanticsLabel('12 people like you'), findsOneWidget);
+      expect(find.bySemanticsLabel('New match Riya'), findsOneWidget);
+      // Naina already has a chat, so no NEW badge.
+      expect(find.bySemanticsLabel('Message Naina'), findsOneWidget);
+
+      await _scrollTo(t, find.text('Movie night crew'));
+      expect(find.text('Movie night crew'), findsOneWidget); // group mixed in
+      await _scrollTo(t, find.text('Chitra C'));
+      expect(find.bySemanticsLabel('Pinned'), findsOneWidget);
+      expect(find.bySemanticsLabel('Muted'), findsOneWidget);
+      // Pinned Chitra is above the newer group in Recent.
+      expect(t.getTopLeft(find.text('Chitra C')).dy,
+          lessThan(t.getTopLeft(find.text('Movie night crew')).dy));
+
+      await t.longPress(find.text('Chitra C'));
+      await t.pumpAndSettle();
+      expect(find.text('Unpin chat'), findsOneWidget);
+      expect(find.text('Unmute'), findsOneWidget);
+      expect(find.text('1 week'), findsOneWidget);
+      expect(find.text('Delete chat'), findsOneWidget);
       expect(t.takeException(), isNull);
     });
   }

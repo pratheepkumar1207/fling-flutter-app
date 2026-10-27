@@ -222,55 +222,90 @@ class BlendsRowState extends State<BlendsRow> {
   @override
   Widget build(BuildContext context) {
     final myId = context.watch<AuthProvider>().user?.id;
-    Widget tile(
+    // Pill cards: a dashed New Blend, then each Blend with its faces, name
+    // and a status line (green while someone's watching).
+    Widget pill(
             {required Widget face,
-            required String label,
+            required String title,
+            String? sub,
+            Color subColor = AppColors.lilac,
             required VoidCallback onTap,
-            bool live = false}) =>
-        GestureDetector(
-          onTap: onTap,
-          child: SizedBox(
-            width: 72,
-            child: Column(children: [
-              SizedBox(height: 48, child: Center(child: face)),
-              const SizedBox(height: 4),
-              Text(label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: live ? AppColors.success : AppColors.textDim,
-                      fontSize: 11)),
-            ]),
-          ),
+            bool dashed = false}) =>
+        Padding(
+          padding: const EdgeInsets.only(right: 10),
+          // Centered so the pill keeps its own height inside the strip.
+          child: Center(
+              child: CustomPaint(
+            foregroundPainter: dashed ? _DashedBorderPainter() : null,
+            child: Material(
+              color: dashed ? Colors.transparent : AppColors.surface,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: dashed
+                      ? BorderSide.none
+                      : const BorderSide(color: AppColors.border)),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: onTap,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 8, 14, 8),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    face,
+                    const SizedBox(width: 10),
+                    Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(title,
+                              style: TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: dashed
+                                      ? const Color(0xFFE2CCFF)
+                                      : AppColors.text)),
+                          if (sub != null)
+                            Text(sub,
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: subColor)),
+                        ]),
+                  ]),
+                ),
+              ),
+            ),
+          )),
         );
     return SizedBox(
-      // Room for the face plus one line of label at any text size.
-      height: 60 + MediaQuery.textScalerOf(context).scale(11) * 1.4,
+      height: 60 + MediaQuery.textScalerOf(context).scale(13) * 1.4,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
-          tile(
+          pill(
+            dashed: true,
             face: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.border)),
-              child: const InIcon(InIcons.blend,
-                  color: AppColors.accent, size: 22),
+              width: 38,
+              height: 38,
+              decoration: const BoxDecoration(
+                  color: Color(0xFF2B1640), shape: BoxShape.circle),
+              child: const Center(
+                  child:
+                      InIcon(InIcons.plus, color: Color(0xFFE2CCFF), size: 18)),
             ),
-            label: 'New Blend',
+            title: 'New Blend',
             onTap: () => startNewBlend(context, onCreated: reload),
           ),
           for (final b in _blends)
-            tile(
-              face: _Faces(people: b.others(myId), size: 36),
-              label: b.watching.any((id) => id != myId)
+            pill(
+              face: _Faces(people: b.others(myId), size: 38),
+              title: '${b.title(myId)} · Blend',
+              sub: b.watching.any((id) => id != myId)
                   ? 'Watching now'
-                  : b.title(myId),
-              live: b.watching.any((id) => id != myId),
+                  : 'Reels for you',
+              subColor: b.watching.any((id) => id != myId)
+                  ? AppColors.success
+                  : AppColors.lilac,
               onTap: () => Navigator.of(context)
                   .push(MaterialPageRoute(
                       builder: (_) => BlendScreen(blendId: b.id)))
@@ -280,4 +315,26 @@ class BlendsRowState extends State<BlendsRow> {
       ),
     );
   }
+}
+
+/// The dashed outline on "New Blend".
+class _DashedBorderPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF5A4A78)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    final path = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+          Offset.zero & size, const Radius.circular(16)));
+    for (final metric in path.computeMetrics()) {
+      for (double d = 0; d < metric.length; d += 9) {
+        canvas.drawPath(metric.extractPath(d, d + 5), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedBorderPainter old) => false;
 }

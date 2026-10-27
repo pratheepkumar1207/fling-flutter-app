@@ -18,6 +18,7 @@ import '../../theme/insync_icons.dart';
 import '../../widgets/chat_media.dart';
 import '../../widgets/gift_bottom_sheet.dart';
 import '../../widgets/in_icon_button.dart';
+import '../../widgets/read_ticks.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/spinner.dart';
 import '../blend/blend_entry.dart';
@@ -282,76 +283,146 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   }
 
   /// Long-press: react, reply, copy, delete.
+  /// Long-press: the reaction bar above the message and a small menu under
+  /// it (Reply, Copy, Delete for both), over a dimmed chat.
   void _openMessageActions(DirectMessage m, bool mine, String? myId) {
-    showModalBottomSheet(
+    showGeneralDialog<void>(
       context: context,
-      backgroundColor: AppColors.surface2,
-      builder: (sheet) => SafeArea(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 14, 12, 6),
-            child: Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final e in kChatReactions)
-                  Semantics(
-                    button: true,
-                    selected: m.reactions[myId] == e,
-                    label: 'React $e',
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(999),
-                      onTap: () {
-                        Navigator.of(sheet).pop();
-                        _react(m, e);
-                      },
-                      child: Container(
-                        width: 48,
-                        height: 48,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: m.reactions[myId] == e
-                                ? AppColors.primary.withValues(alpha: 0.35)
-                                : AppColors.surface3),
-                        child: Text(e, style: const TextStyle(fontSize: 24)),
+      barrierDismissible: true,
+      barrierLabel: 'Close',
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      transitionDuration: const Duration(milliseconds: 150),
+      pageBuilder: (dialog, _, __) {
+        void close() => Navigator.of(dialog).pop();
+        Widget action(InIconData icon, String label, VoidCallback onTap,
+                {Color? color, bool first = false}) =>
+            InkWell(
+              onTap: () {
+                close();
+                onTap();
+              },
+              child: Container(
+                height: 50,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: first
+                    ? null
+                    : const BoxDecoration(
+                        border:
+                            Border(top: BorderSide(color: AppColors.border))),
+                child: Row(children: [
+                  InIcon(icon, size: 19, color: color ?? AppColors.lilac),
+                  const SizedBox(width: 12),
+                  Text(label,
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: color ?? AppColors.text)),
+                ]),
+              ),
+            );
+        // Transparent Material so text gets the app's font and theme.
+        return Material(
+          type: MaterialType.transparency,
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment:
+                    mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                children: [
+                  Material(
+                    color: AppColors.surface2,
+                    shape: const StadiumBorder(
+                        side: BorderSide(color: AppColors.border)),
+                    elevation: 8,
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      // One line always: shrinks on narrow phones.
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          for (final e in kChatReactions)
+                            Semantics(
+                              button: true,
+                              selected: m.reactions[myId] == e,
+                              label: 'React $e',
+                              child: InkWell(
+                                customBorder: const CircleBorder(),
+                                onTap: () {
+                                  close();
+                                  _react(m, e);
+                                },
+                                child: Container(
+                                  width: 44,
+                                  height: 44,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: m.reactions[myId] == e
+                                          ? const Color(0xFF3B2A55)
+                                          : Colors.transparent),
+                                  child: Text(e,
+                                      style: const TextStyle(fontSize: 24)),
+                                ),
+                              ),
+                            ),
+                        ]),
                       ),
                     ),
                   ),
-              ],
+                  const SizedBox(height: 10),
+                  Container(
+                    constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(dialog).size.width * 0.76),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: mine ? AppColors.primary : const Color(0xFF1F1C29),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(m.summary,
+                        maxLines: 6,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: mine ? Colors.white : AppColors.text,
+                            fontSize: 15,
+                            height: 1.35,
+                            decoration: TextDecoration.none)),
+                  ),
+                  const SizedBox(height: 10),
+                  Material(
+                    color: AppColors.surface2,
+                    elevation: 8,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                        side: const BorderSide(color: AppColors.border)),
+                    clipBehavior: Clip.antiAlias,
+                    child: SizedBox(
+                      width: 220,
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        action(InIcons.undo, 'Reply',
+                            () => setState(() => _replyTo = m),
+                            first: true),
+                        if (m.messageType == 'text')
+                          action(
+                              InIcons.copy,
+                              'Copy',
+                              () => Clipboard.setData(
+                                  ClipboardData(text: m.text))),
+                        if (mine)
+                          action(InIcons.close, 'Delete for both',
+                              () => _deleteMessage(m),
+                              color: const Color(0xFFFF8A9F)),
+                      ]),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          ListTile(
-            leading: const InIcon(InIcons.undo, size: 20),
-            title: const Text('Reply'),
-            onTap: () {
-              Navigator.of(sheet).pop();
-              setState(() => _replyTo = m);
-            },
-          ),
-          if (m.messageType == 'text')
-            ListTile(
-              leading: const InIcon(InIcons.copy, size: 20),
-              title: const Text('Copy'),
-              onTap: () {
-                Navigator.of(sheet).pop();
-                Clipboard.setData(ClipboardData(text: m.text));
-              },
-            ),
-          if (mine)
-            ListTile(
-              leading:
-                  const InIcon(InIcons.close, size: 20, color: AppColors.pink),
-              title:
-                  const Text('Delete', style: TextStyle(color: AppColors.pink)),
-              onTap: () {
-                Navigator.of(sheet).pop();
-                _deleteMessage(m);
-              },
-            ),
-        ]),
-      ),
+        );
+      },
     );
   }
 
@@ -822,6 +893,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
             else
               VoiceRecordButton(
                   size: 44,
+                  filled: true,
                   onRecorded: (uri) =>
                       _sendBody({'messageType': 'voice', 'mediaUrl': uri})),
           ],
@@ -1124,7 +1196,7 @@ class _Meta extends StatelessWidget {
               style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
           if (seen) ...[
             const SizedBox(width: 4),
-            const InIcon(InIcons.check, size: 13, color: AppColors.lilac),
+            const ReadTicks(seen: true, color: AppColors.lilac, size: 15),
           ],
         ],
       ),

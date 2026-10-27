@@ -24,6 +24,10 @@ import 'top_bar.dart';
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
 
+  /// Set to a tab index (3 = Discover) from a pushed screen to switch the
+  /// bottom tab once you're back on the shell.
+  static final tabRequest = ValueNotifier<int?>(null);
+
   @override
   State<AppShell> createState() => _AppShellState();
 }
@@ -53,9 +57,23 @@ class _AppShellState extends State<AppShell> {
   // matches the call the user is currently being asked about.
   String? _activeIncomingChannelName;
 
+  void _onTabRequest() {
+    final i = AppShell.tabRequest.value;
+    if (i == null || !mounted) return;
+    AppShell.tabRequest.value = null;
+    setState(() => _index = i);
+  }
+
+  @override
+  void dispose() {
+    AppShell.tabRequest.removeListener(_onTabRequest);
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
+    AppShell.tabRequest.addListener(_onTabRequest);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = context.read<AuthProvider>();
       final socket = context.read<SocketService>();

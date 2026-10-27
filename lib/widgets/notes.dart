@@ -41,7 +41,16 @@ class NotesRow extends StatefulWidget {
   final String? myUserId;
   final String? myName;
   final String? myAvatar;
-  const NotesRow({super.key, this.myUserId, this.myName, this.myAvatar});
+
+  /// Tiles shown right after "Your note" in the same strip (the inbox puts
+  /// Likes and new matches here), before other people's notes.
+  final List<Widget> after;
+  const NotesRow(
+      {super.key,
+      this.myUserId,
+      this.myName,
+      this.myAvatar,
+      this.after = const []});
 
   @override
   State<NotesRow> createState() => _NotesRowState();
@@ -158,6 +167,7 @@ class _NotesRowState extends State<NotesRow> {
               note: _mine,
               onTap: _editMine,
               mine: true),
+          ...widget.after,
           for (final n in others)
             _person(
               name: (n['user'] as Map?)?['name'] as String?,

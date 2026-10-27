@@ -101,6 +101,16 @@ class ConversationSummary {
   /// Who a message request is from (requests only).
   final RequestInfo? requestInfo;
 
+  /// My own settings for this chat (long-press menu).
+  final bool pinned;
+  final DateTime? mutedUntil;
+  final bool markedUnread;
+
+  bool get muted => mutedUntil != null && mutedUntil!.isAfter(DateTime.now());
+
+  /// Counts as unread: real unread messages, or marked unread by hand.
+  bool get isUnread => unreadCount > 0 || markedUnread;
+
   ConversationSummary({
     required this.userId,
     required this.name,
@@ -116,7 +126,35 @@ class ConversationSummary {
     this.lastMessageSeen = false,
     this.activity,
     this.requestInfo,
+    this.pinned = false,
+    this.mutedUntil,
+    this.markedUnread = false,
   });
+
+  ConversationSummary copyWith(
+          {bool? pinned,
+          DateTime? mutedUntil,
+          bool clearMute = false,
+          bool? markedUnread}) =>
+      ConversationSummary(
+        userId: userId,
+        name: name,
+        username: username,
+        avatarUrl: avatarUrl,
+        lastMessage: lastMessage,
+        lastMessageAt: lastMessageAt,
+        lastMessageIsMine: lastMessageIsMine,
+        unreadCount: unreadCount,
+        online: online,
+        isRequest: isRequest,
+        lastMessageType: lastMessageType,
+        lastMessageSeen: lastMessageSeen,
+        activity: activity,
+        requestInfo: requestInfo,
+        pinned: pinned ?? this.pinned,
+        mutedUntil: clearMute ? null : (mutedUntil ?? this.mutedUntil),
+        markedUnread: markedUnread ?? this.markedUnread,
+      );
 
   factory ConversationSummary.fromJson(Map<String, dynamic> json) {
     return ConversationSummary(
@@ -138,6 +176,9 @@ class ConversationSummary {
           ? ConversationActivity.fromJson(
               Map<String, dynamic>.from(json['activity'] as Map))
           : null,
+      pinned: json['pinned'] as bool? ?? false,
+      mutedUntil: DateTime.tryParse('${json['mutedUntil'] ?? ''}'),
+      markedUnread: json['markedUnread'] as bool? ?? false,
       requestInfo: json['requestInfo'] is Map
           ? RequestInfo.fromJson(
               Map<String, dynamic>.from(json['requestInfo'] as Map))
@@ -149,6 +190,7 @@ class ConversationSummary {
 class RequestInfo {
   final int? age;
   final String? city;
+  final int? distanceKm;
   final bool isVerified;
   final int sharedInterests;
   final bool followsYou;
@@ -156,6 +198,7 @@ class RequestInfo {
   const RequestInfo(
       {this.age,
       this.city,
+      this.distanceKm,
       this.isVerified = false,
       this.sharedInterests = 0,
       this.followsYou = false});
@@ -163,15 +206,20 @@ class RequestInfo {
   factory RequestInfo.fromJson(Map<String, dynamic> json) => RequestInfo(
         age: (json['age'] as num?)?.toInt(),
         city: json['city'] as String?,
+        distanceKm: (json['distanceKm'] as num?)?.toInt(),
         isVerified: json['isVerified'] as bool? ?? false,
         sharedInterests: (json['sharedInterests'] as num?)?.toInt() ?? 0,
         followsYou: json['followsYou'] as bool? ?? false,
       );
 
-  /// "24 · Chennai · 2 shared interests · Follows you"
+  /// "24 · 3 km away · 2 shared interests · Follows you" (the city when
+  /// either of you doesn't share location).
   String get line => [
         if (age != null) '$age',
-        if (city != null && city!.isNotEmpty) city!,
+        if (distanceKm != null)
+          '$distanceKm km away'
+        else if (city != null && city!.isNotEmpty)
+          city!,
         if (sharedInterests > 0)
           sharedInterests == 1
               ? '1 shared interest'
