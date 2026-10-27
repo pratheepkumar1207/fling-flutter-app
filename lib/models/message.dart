@@ -52,6 +52,15 @@ class ConversationSummary {
   /// replied yet — shown under Requests.
   final bool isRequest;
 
+  /// 'text' | 'image' | 'voice' | 'sticker' | 'gif'.
+  final String lastMessageType;
+
+  /// My last message has been read by them.
+  final bool lastMessageSeen;
+
+  /// The room they're in right now, when their privacy settings allow.
+  final ConversationActivity? activity;
+
   ConversationSummary({
     required this.userId,
     required this.name,
@@ -63,6 +72,9 @@ class ConversationSummary {
     this.unreadCount = 0,
     this.online = false,
     this.isRequest = false,
+    this.lastMessageType = 'text',
+    this.lastMessageSeen = false,
+    this.activity,
   });
 
   factory ConversationSummary.fromJson(Map<String, dynamic> json) {
@@ -79,6 +91,44 @@ class ConversationSummary {
       online: json['online'] as bool? ?? false,
       unreadCount: json['unreadCount'] as int? ?? 0,
       isRequest: json['isRequest'] as bool? ?? false,
+      lastMessageType: json['lastMessageType'] as String? ?? 'text',
+      lastMessageSeen: json['lastMessageSeen'] as bool? ?? false,
+      activity: json['activity'] is Map
+          ? ConversationActivity.fromJson(
+              Map<String, dynamic>.from(json['activity'] as Map))
+          : null,
     );
   }
+}
+
+/// What someone in your inbox is doing now: the public room they're in.
+class ConversationActivity {
+  final String roomId;
+  final String title;
+  final String roomType; // watch | voice | live | game
+  final String? gameType;
+  final int memberCount;
+  final String? nowPlayingTitle;
+  final bool canJoin;
+
+  const ConversationActivity({
+    required this.roomId,
+    required this.title,
+    required this.roomType,
+    this.gameType,
+    this.memberCount = 0,
+    this.nowPlayingTitle,
+    this.canJoin = true,
+  });
+
+  factory ConversationActivity.fromJson(Map<String, dynamic> json) =>
+      ConversationActivity(
+        roomId: json['roomId'] as String,
+        title: json['title'] as String? ?? 'a room',
+        roomType: json['roomType'] as String? ?? 'voice',
+        gameType: json['gameType'] as String?,
+        memberCount: (json['memberCount'] as num?)?.toInt() ?? 0,
+        nowPlayingTitle: json['nowPlayingTitle'] as String?,
+        canJoin: json['canJoin'] as bool? ?? true,
+      );
 }

@@ -14,13 +14,20 @@ import '../../widgets/spinner.dart';
 import '../blend/blend_entry.dart';
 import '../discover/discover_matches_screen.dart';
 import '../friends/friends_screen.dart';
+import '../party/party_screen.dart';
 import 'group_thread_screen.dart';
 import 'message_thread_screen.dart';
 
-/// Messages, opened from the top bar: notes, new matches, blends, search,
-/// All / Unread and the conversation list.
+/// Messages, opened from the top bar: search, notes, new matches, blends,
+/// All / Unread / Groups / Requests, then "Your turn" (people waiting on a
+/// reply) above the rest. Rows show what a friend is doing right now
+/// (a live chip with Join) when their privacy settings allow it.
 class MessagesScreen extends StatefulWidget {
-  const MessagesScreen({super.key});
+  const MessagesScreen({super.key, this.initialConversations});
+
+  /// Shown instead of loading from the server (widget tests).
+  @visibleForTesting
+  final List<ConversationSummary>? initialConversations;
 
   @override
   State<MessagesScreen> createState() => _MessagesScreenState();
@@ -35,10 +42,19 @@ class _MessagesScreenState extends State<MessagesScreen> {
   String _filter = 'all';
   List<Map<String, dynamic>> _groups = [];
 
+  /// How many "your turn" chats get a card before the rest of the list.
+  static const _yourTurnMax = 3;
+
   @override
   void initState() {
     super.initState();
-    _load();
+    final initial = widget.initialConversations;
+    if (initial != null) {
+      _conversations = initial;
+      _loading = false;
+    } else {
+      _load();
+    }
     _loadMatches();
     _loadGroups();
   }
@@ -53,7 +69,12 @@ class _MessagesScreenState extends State<MessagesScreen> {
         .toList();
   }
 
-  int get _unreadChats => _conversations.where((c) => c.unreadCount > 0).length;
+  /// They sent the last message and you haven't read it yet.
+  static bool _isYourTurn(ConversationSummary c) =>
+      !c.isRequest && !c.lastMessageIsMine && c.unreadCount > 0;
+
+  int get _unreadChats =>
+      _conversations.where((c) => !c.isRequest && c.unreadCount > 0).length;
 
   Future<void> _load() async {
     try {
@@ -117,9 +138,26 @@ class _MessagesScreenState extends State<MessagesScreen> {
         .then((_) => _load());
   }
 
+  void _joinRoom(String roomId) {
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId)))
+        .then((_) => _load());
+  }
+
+  void _setFilter(String f) => setState(() => _filter = f);
+
   @override
   Widget build(BuildContext context) {
     final results = _filtered;
+    // Split "your turn" out only on the plain All view.
+    final splitTurns = _filter == 'all' && _query.trim().isEmpty;
+    final yourTurn = splitTurns
+        ? results.where(_isYourTurn).take(_yourTurnMax).toList()
+        : const <ConversationSummary>[];
+    final rest = yourTurn.isEmpty
+        ? results
+        : results.where((c) => !yourTurn.contains(c)).toList();
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
@@ -128,42 +166,57 @@ class _MessagesScreenState extends State<MessagesScreen> {
           child: CustomScrollView(slivers: [
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 6, 8, 4),
+                padding: const EdgeInsets.fromLTRB(8, 6, 12, 4),
                 child: Row(children: [
                   InIconButton(InIcons.back,
                       tooltip: 'Back',
                       onPressed: () => Navigator.of(context).maybePop()),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 2),
                   const Expanded(
                     child: Text('Messages',
                         style: TextStyle(
-                            fontSize: 22, fontWeight: FontWeight.w700)),
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.5)),
                   ),
-                  InIconButton(InIcons.community,
-                      tooltip: 'New group', onPressed: _newGroup),
-                  InIconButton(InIcons.useradd,
-                      tooltip: 'Find friends',
-                      onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                              builder: (_) => const FriendsScreen()))),
+                  _CircleButton(
+                      icon: InIcons.community,
+                      tooltip: 'New group',
+                      onTap: _newGroup),
+                  const SizedBox(width: 8),
+                  _CircleButton(
+                      icon: InIcons.edit,
+                      tooltip: 'New message',
+                      filled: true,
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => const FriendsScreen()))),
                 ]),
               ),
             ),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(18, 6, 18, 8),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                 child: TextField(
                   onChanged: (v) => setState(() => _query = v),
                   style: const TextStyle(fontSize: 14),
-                  decoration: const InputDecoration(
-                    hintText: 'Search chats',
+                  decoration: InputDecoration(
+                    hintText: 'Search people and messages',
                     isDense: true,
-                    prefixIcon: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
+                    filled: true,
+                    fillColor: AppColors.surface,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(999),
+                        borderSide: const BorderSide(color: AppColors.border)),
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(999),
+                        borderSide: const BorderSide(color: AppColors.border)),
+                    prefixIcon: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 14),
                         child: InIcon(InIcons.search,
-                            size: 18, color: AppColors.textFaint)),
+                            size: 18, color: AppColors.textDim)),
                     prefixIconConstraints:
-                        BoxConstraints(minWidth: 0, minHeight: 0),
+                        const BoxConstraints(minWidth: 0, minHeight: 0),
                   ),
                 ),
               ),
@@ -180,30 +233,40 @@ class _MessagesScreenState extends State<MessagesScreen> {
             ),
             if (_matches.isNotEmpty) SliverToBoxAdapter(child: _matchesRow()),
             // Reels Blends: New Blend, then yours.
+            const SliverToBoxAdapter(
+                child: _SectionHeader(title: 'Blends', top: 10)),
             const SliverToBoxAdapter(child: BlendsRow()),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(18, 8, 18, 8),
-                child: Wrap(runSpacing: 8, children: [
-                  _filterChip('All', _filter == 'all',
-                      () => setState(() => _filter = 'all')),
-                  _filterChip(
-                      _unreadChats > 0 ? 'Unread · $_unreadChats' : 'Unread',
-                      _filter == 'unread',
-                      () => setState(() => _filter = 'unread')),
-                  _filterChip(
-                      _groups.isEmpty ? 'Groups' : 'Groups · ${_groups.length}',
-                      _filter == 'groups',
-                      () => setState(() => _filter = 'groups')),
-                  _filterChip(
-                      _requestCount > 0
-                          ? 'Requests · $_requestCount'
-                          : 'Requests',
-                      _filter == 'requests',
-                      () => setState(() => _filter = 'requests')),
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+                child: Wrap(spacing: 8, runSpacing: 8, children: [
+                  _FilterPill(
+                      label: 'All',
+                      selected: _filter == 'all',
+                      onTap: () => _setFilter('all')),
+                  _FilterPill(
+                      label: 'Unread',
+                      count: _unreadChats,
+                      selected: _filter == 'unread',
+                      onTap: () => _setFilter('unread')),
+                  _FilterPill(
+                      label: 'Groups',
+                      selected: _filter == 'groups',
+                      onTap: () => _setFilter('groups')),
+                  _FilterPill(
+                      label: 'Requests',
+                      count: _requestCount,
+                      alert: true,
+                      selected: _filter == 'requests',
+                      onTap: () => _setFilter('requests')),
                 ]),
               ),
             ),
+            if (_filter == 'all' && _requestCount > 0)
+              SliverToBoxAdapter(
+                child: _RequestsBanner(
+                    count: _requestCount, onTap: () => _setFilter('requests')),
+              ),
             if (_filter == 'groups')
               _groups.isEmpty
                   ? SliverFillRemaining(
@@ -241,18 +304,44 @@ class _MessagesScreenState extends State<MessagesScreen> {
                     child: Text(
                         _filter == 'requests'
                             ? 'No message requests.'
-                            : 'No chats here.',
+                            : _filter == 'unread'
+                                ? 'You’re all caught up.'
+                                : 'No chats here.',
                         style: const TextStyle(color: AppColors.textFaint))),
               )
-            else
+            else ...[
+              if (yourTurn.isNotEmpty) ...[
+                SliverToBoxAdapter(
+                  child: _SectionHeader(
+                    title: 'Your turn',
+                    count: yourTurn.length,
+                    trailing: 'They’re waiting on you',
+                    top: 12,
+                  ),
+                ),
+                SliverList.builder(
+                  itemCount: yourTurn.length,
+                  itemBuilder: (context, i) => _YourTurnCard(
+                    c: yourTurn[i],
+                    onOpen: () => _openChat(yourTurn[i].userId,
+                        yourTurn[i].name, yourTurn[i].avatarUrl),
+                    onJoin: _joinRoom,
+                  ),
+                ),
+                if (rest.isNotEmpty)
+                  const SliverToBoxAdapter(
+                      child: _SectionHeader(title: 'Recent', top: 14)),
+              ],
               SliverList.builder(
-                itemCount: results.length,
+                itemCount: rest.length,
                 itemBuilder: (context, i) => _ConversationRow(
-                  c: results[i],
+                  c: rest[i],
                   onTap: () => _openChat(
-                      results[i].userId, results[i].name, results[i].avatarUrl),
+                      rest[i].userId, rest[i].name, rest[i].avatarUrl),
+                  onJoin: _joinRoom,
                 ),
               ),
+            ],
             const SliverToBoxAdapter(child: SizedBox(height: 24)),
           ]),
         ),
@@ -260,53 +349,22 @@ class _MessagesScreenState extends State<MessagesScreen> {
     );
   }
 
-  Widget _filterChip(String label, bool selected, VoidCallback onTap) =>
-      Padding(
-        padding: const EdgeInsets.only(right: 8),
-        child: ChoiceChip(
-          label: Text(label),
-          selected: selected,
-          showCheckmark: false,
-          labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: selected ? Colors.white : AppColors.text,
-              fontWeight: FontWeight.w500),
-          onSelected: (_) => onTap(),
-        ),
-      );
-
   Widget _matchesRow() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(18, 8, 18, 8),
-        child: Row(children: [
-          const Expanded(
-            child: Text('New matches',
-                style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textDim,
-                    fontWeight: FontWeight.w600)),
-          ),
-          InkWell(
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => const DiscoverMatchesScreen())),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: Text('See all',
-                  style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.lilac,
-                      fontWeight: FontWeight.w600)),
-            ),
-          ),
-        ]),
+      _SectionHeader(
+        title: 'New matches',
+        top: 12,
+        action: 'See all',
+        onAction: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const DiscoverMatchesScreen())),
       ),
       SizedBox(
-        height: 84,
+        height: 64 + MediaQuery.textScalerOf(context).scale(12) * 1.5,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 18),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           itemCount: _matches.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 12),
+          separatorBuilder: (_, __) => const SizedBox(width: 14),
           itemBuilder: (_, i) {
             final m = _matches[i];
             final name = m['name'] as String? ?? '';
@@ -317,7 +375,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 onTap: () => _openChat(
                     m['userId'] as String, name, m['avatarUrl'] as String?),
                 child: SizedBox(
-                  width: 60,
+                  width: 62,
                   child: Column(children: [
                     Avatar(
                         src: m['avatarUrl'] as String?,
@@ -328,7 +386,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
                     Text(name.split(' ').first,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 11)),
+                        style: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w600)),
                   ]),
                 ),
               ),
@@ -340,10 +399,373 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 }
 
+class _CircleButton extends StatelessWidget {
+  final InIconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+  final bool filled;
+  const _CircleButton(
+      {required this.icon,
+      required this.tooltip,
+      required this.onTap,
+      this.filled = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: filled ? AppColors.primary : AppColors.surface,
+        shape: CircleBorder(
+            side: filled
+                ? BorderSide.none
+                : const BorderSide(color: AppColors.border)),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: Center(
+                child: InIcon(icon,
+                    size: 20, color: filled ? Colors.white : AppColors.text)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final int? count;
+  final String? trailing;
+  final String? action;
+  final VoidCallback? onAction;
+  final double top;
+  const _SectionHeader(
+      {required this.title,
+      this.count,
+      this.trailing,
+      this.action,
+      this.onAction,
+      this.top = 8});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, top, 16, 8),
+      child: Row(children: [
+        Text(title,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+        if (count != null) ...[
+          const SizedBox(width: 8),
+          CountBadge(count!),
+        ],
+        const SizedBox(width: 8),
+        if (trailing != null)
+          Expanded(
+            child: Text(trailing!,
+                textAlign: TextAlign.end,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
+          )
+        else
+          const Spacer(),
+        if (action != null)
+          InkWell(
+            onTap: onAction,
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+              child: Text(action!,
+                  style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.lilac,
+                      fontWeight: FontWeight.w600)),
+            ),
+          ),
+      ]),
+    );
+  }
+}
+
+class _FilterPill extends StatelessWidget {
+  final String label;
+  final int count;
+  final bool selected;
+  final bool alert;
+  final VoidCallback onTap;
+  const _FilterPill(
+      {required this.label,
+      required this.selected,
+      required this.onTap,
+      this.count = 0,
+      this.alert = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      selected: selected,
+      button: true,
+      child: Material(
+        color: selected ? AppColors.text : AppColors.surface,
+        shape: StadiumBorder(
+            side: selected
+                ? BorderSide.none
+                : const BorderSide(color: AppColors.border)),
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: onTap,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 38),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Text(label,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                      color:
+                          selected ? AppColors.bg : const Color(0xFFD9D6E2))),
+              if (count > 0) ...[
+                const SizedBox(width: 6),
+                Container(
+                  constraints: const BoxConstraints(minWidth: 18),
+                  height: 18,
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                      color: alert && !selected
+                          ? AppColors.pink
+                          : AppColors.primary,
+                      borderRadius: BorderRadius.circular(999)),
+                  child: Text(count > 99 ? '99+' : '$count',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          height: 1)),
+                ),
+              ],
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RequestsBanner extends StatelessWidget {
+  final int count;
+  final VoidCallback onTap;
+  const _RequestsBanner({required this.count, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
+      child: Material(
+        color: AppColors.surface,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: AppColors.border)),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                    color: Color(0xFF2B1640), shape: BoxShape.circle),
+                child: const Center(
+                    child:
+                        InIcon(InIcons.chat, size: 20, color: AppColors.lilac)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                          count == 1
+                              ? '1 message request'
+                              : '$count message requests',
+                          style: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 2),
+                      const Text('From people you haven’t matched with',
+                          style: TextStyle(
+                              fontSize: 12.5, color: AppColors.textDim)),
+                    ]),
+              ),
+              const InIcon(InIcons.right, size: 18, color: AppColors.textDim),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Avatar with the green online dot.
+class _ChatAvatar extends StatelessWidget {
+  final ConversationSummary c;
+  const _ChatAvatar(this.c);
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => openProfile(context, c.userId),
+      child: Stack(children: [
+        Avatar(src: c.avatarUrl, name: c.name, size: AvatarSize.md),
+        if (c.online)
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Semantics(
+              label: 'Online',
+              child: Container(
+                width: 14,
+                height: 14,
+                decoration: BoxDecoration(
+                    color: AppColors.success,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.bg, width: 2.5)),
+              ),
+            ),
+          ),
+      ]),
+    );
+  }
+}
+
+/// Last-message line: seen tick on mine, an icon for photos and voice
+/// notes, bold while unread.
+class _Preview extends StatelessWidget {
+  final ConversationSummary c;
+  const _Preview(this.c);
+
+  @override
+  Widget build(BuildContext context) {
+    final unread = c.unreadCount > 0;
+    final color = unread ? AppColors.text : AppColors.textDim;
+    final mediaIcon = switch (c.lastMessageType) {
+      'image' => InIcons.image,
+      'voice' => InIcons.mic,
+      'gif' => InIcons.gif,
+      'sticker' => InIcons.sticker,
+      _ => null,
+    };
+    return Row(children: [
+      if (c.lastMessageIsMine) ...[
+        Semantics(
+          label: c.lastMessageSeen ? 'Seen' : 'Sent',
+          child: InIcon(InIcons.check,
+              size: 15,
+              color: c.lastMessageSeen ? AppColors.lilac : AppColors.textFaint),
+        ),
+        const SizedBox(width: 4),
+      ],
+      if (mediaIcon != null) ...[
+        InIcon(mediaIcon, size: 15, color: color),
+        const SizedBox(width: 4),
+      ],
+      Expanded(
+        child: Text('${c.lastMessageIsMine ? 'You: ' : ''}${c.lastMessage}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+                color: color,
+                fontWeight: unread ? FontWeight.w600 : FontWeight.w400,
+                fontSize: 13.5)),
+      ),
+    ]);
+  }
+}
+
+/// "In Movie night · Join" — what they're doing right now.
+class _ActivityChip extends StatelessWidget {
+  final ConversationActivity a;
+  final void Function(String roomId) onJoin;
+  const _ActivityChip(this.a, {required this.onJoin});
+
+  static String _gameName(String? g) => switch (g) {
+        'tictactoe' => 'Tic-tac-toe',
+        'ludo' => 'Ludo',
+        'truth_or_dare' => 'Truth or dare',
+        'chess' => 'Chess',
+        'uno' => 'Uno',
+        _ => 'a game',
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, color, text) = switch (a.roomType) {
+      'watch' => (
+          InIcons.play,
+          AppColors.lilac,
+          'Watching ${a.nowPlayingTitle ?? a.title}'
+        ),
+      'game' => (
+          InIcons.game,
+          AppColors.diamond,
+          'Playing ${_gameName(a.gameType)}'
+        ),
+      'live' => (
+          InIcons.live,
+          const Color(0xFFFF8A9F),
+          'Live now · ${a.title}'
+        ),
+      _ => (InIcons.mic, AppColors.lilac, 'In ${a.title}'),
+    };
+    final label = a.canJoin ? '$text · Join' : text;
+    final chip = Container(
+      padding: const EdgeInsets.fromLTRB(8, 5, 10, 5),
+      decoration: BoxDecoration(
+          color: const Color(0xFF1A1326),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: const Color(0xFF3B2A55))),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        InIcon(icon, size: 13, color: color),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFFE2CCFF))),
+        ),
+        // Join stays visible however long the room name is.
+        if (a.canJoin)
+          const Text(' · Join',
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white)),
+      ]),
+    );
+    if (!a.canJoin) return chip;
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: GestureDetector(onTap: () => onJoin(a.roomId), child: chip),
+    );
+  }
+}
+
 class _ConversationRow extends StatelessWidget {
   final ConversationSummary c;
   final VoidCallback onTap;
-  const _ConversationRow({required this.c, required this.onTap});
+  final void Function(String roomId) onJoin;
+  const _ConversationRow(
+      {required this.c, required this.onTap, required this.onJoin});
 
   @override
   Widget build(BuildContext context) {
@@ -351,58 +773,148 @@ class _ConversationRow extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
-        child: Row(children: [
-          GestureDetector(
-            onTap: () => openProfile(context, c.userId),
-            child: Stack(children: [
-              Avatar(src: c.avatarUrl, name: c.name, size: AvatarSize.md),
-              if (c.online)
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    width: 13,
-                    height: 13,
-                    decoration: BoxDecoration(
-                        color: AppColors.success,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.bg, width: 2.5)),
-                  ),
-                ),
-            ]),
-          ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _ChatAvatar(c),
           const SizedBox(width: 12),
           Expanded(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(c.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontWeight: unread ? FontWeight.w700 : FontWeight.w600,
-                      fontSize: 15)),
-              const SizedBox(height: 2),
-              Text('${c.lastMessageIsMine ? 'You: ' : ''}${c.lastMessage}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: unread ? AppColors.text : AppColors.textDim,
-                      fontWeight: unread ? FontWeight.w500 : FontWeight.w400,
-                      fontSize: 13)),
+              const SizedBox(height: 3),
+              Row(children: [
+                Expanded(
+                  child: Text(c.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontWeight:
+                              unread ? FontWeight.w800 : FontWeight.w600,
+                          fontSize: 15)),
+                ),
+                const SizedBox(width: 8),
+                Text(formatRelativeTime(c.lastMessageAt),
+                    style: TextStyle(
+                        color: unread ? AppColors.lilac : AppColors.textDim,
+                        fontWeight: unread ? FontWeight.w700 : FontWeight.w500,
+                        fontSize: 12)),
+              ]),
+              const SizedBox(height: 4),
+              Row(children: [
+                Expanded(child: _Preview(c)),
+                if (unread) ...[
+                  const SizedBox(width: 8),
+                  _UnreadBadge(c.unreadCount),
+                ],
+              ]),
+              if (c.activity != null) ...[
+                const SizedBox(height: 7),
+                _ActivityChip(c.activity!, onJoin: onJoin),
+              ],
             ]),
           ),
-          const SizedBox(width: 8),
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text(formatRelativeTime(c.lastMessageAt),
-                style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
-            const SizedBox(height: 6),
-            if (unread)
-              CountBadge(c.unreadCount)
-            else
-              const SizedBox(height: 16),
-          ]),
         ]),
+      ),
+    );
+  }
+}
+
+/// Someone waiting on your reply: a card with its own Reply button.
+class _YourTurnCard extends StatelessWidget {
+  final ConversationSummary c;
+  final VoidCallback onOpen;
+  final void Function(String roomId) onJoin;
+  const _YourTurnCard(
+      {required this.c, required this.onOpen, required this.onJoin});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Material(
+        color: AppColors.surface,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: const BorderSide(color: AppColors.border)),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onOpen,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                _ChatAvatar(c),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [
+                          Flexible(
+                            child: Text(c.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontSize: 15, fontWeight: FontWeight.w800)),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(formatRelativeTime(c.lastMessageAt),
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.lilac,
+                                  fontWeight: FontWeight.w700)),
+                        ]),
+                        const SizedBox(height: 3),
+                        _Preview(c),
+                      ]),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: onOpen,
+                  style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 38),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      textStyle: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w700)),
+                  child: const Text('Reply'),
+                ),
+              ]),
+              // Under the whole row so it has room next to Reply.
+              if (c.activity != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 60, top: 8),
+                  child: _ActivityChip(c.activity!, onJoin: onJoin),
+                ),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _UnreadBadge extends StatelessWidget {
+  final int count;
+  const _UnreadBadge(this.count);
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: '$count unread',
+      excludeSemantics: true,
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 22),
+        height: 22,
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+            color: AppColors.primary, borderRadius: BorderRadius.circular(999)),
+        child: Text(count > 99 ? '99+' : '$count',
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                height: 1)),
       ),
     );
   }
@@ -449,7 +961,7 @@ class _GroupRow extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
         child: Row(children: [
           Container(
             width: 48,
@@ -469,7 +981,7 @@ class _GroupRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                       fontWeight:
-                          unread > 0 ? FontWeight.w700 : FontWeight.w600,
+                          unread > 0 ? FontWeight.w800 : FontWeight.w600,
                       fontSize: 15)),
               const SizedBox(height: 2),
               Text(
@@ -487,10 +999,14 @@ class _GroupRow extends StatelessWidget {
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
             if (at != null)
               Text(formatRelativeTime(at),
-                  style:
-                      const TextStyle(color: AppColors.textDim, fontSize: 12)),
+                  style: TextStyle(
+                      color: unread > 0 ? AppColors.lilac : AppColors.textDim,
+                      fontSize: 12)),
             const SizedBox(height: 6),
-            if (unread > 0) CountBadge(unread) else const SizedBox(height: 16),
+            if (unread > 0)
+              _UnreadBadge(unread)
+            else
+              const SizedBox(height: 16),
           ]),
         ]),
       ),
