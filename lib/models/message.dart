@@ -8,6 +8,12 @@ class DirectMessage {
   final DateTime createdAt;
   final DateTime? readAt;
 
+  /// The message this one replies to, if any.
+  final String? replyToId;
+
+  /// userId → emoji.
+  final Map<String, String> reactions;
+
   DirectMessage({
     required this.id,
     required this.senderId,
@@ -17,7 +23,36 @@ class DirectMessage {
     this.mediaUrl,
     required this.createdAt,
     this.readAt,
+    this.replyToId,
+    this.reactions = const {},
   });
+
+  DirectMessage copyWith({DateTime? readAt, Map<String, String>? reactions}) =>
+      DirectMessage(
+        id: id,
+        senderId: senderId,
+        recipientId: recipientId,
+        text: text,
+        messageType: messageType,
+        mediaUrl: mediaUrl,
+        createdAt: createdAt,
+        readAt: readAt ?? this.readAt,
+        replyToId: replyToId,
+        reactions: reactions ?? this.reactions,
+      );
+
+  /// One line for a reply quote or a preview.
+  String get summary => switch (messageType) {
+        'image' => 'Photo',
+        'voice' => 'Voice message',
+        'gif' => 'GIF',
+        'sticker' => 'Sticker',
+        _ => text,
+      };
+
+  static Map<String, String> reactionsFrom(dynamic raw) => raw is Map
+      ? {for (final e in raw.entries) '${e.key}': '${e.value}'}
+      : const {};
 
   factory DirectMessage.fromJson(Map<String, dynamic> json) {
     return DirectMessage(
@@ -32,6 +67,8 @@ class DirectMessage {
       readAt: json['readAt'] != null
           ? DateTime.tryParse(json['readAt'].toString())
           : null,
+      replyToId: json['replyToId'] as String?,
+      reactions: reactionsFrom(json['reactions']),
     );
   }
 }
@@ -61,6 +98,9 @@ class ConversationSummary {
   /// The room they're in right now, when their privacy settings allow.
   final ConversationActivity? activity;
 
+  /// Who a message request is from (requests only).
+  final RequestInfo? requestInfo;
+
   ConversationSummary({
     required this.userId,
     required this.name,
@@ -75,6 +115,7 @@ class ConversationSummary {
     this.lastMessageType = 'text',
     this.lastMessageSeen = false,
     this.activity,
+    this.requestInfo,
   });
 
   factory ConversationSummary.fromJson(Map<String, dynamic> json) {
@@ -97,8 +138,46 @@ class ConversationSummary {
           ? ConversationActivity.fromJson(
               Map<String, dynamic>.from(json['activity'] as Map))
           : null,
+      requestInfo: json['requestInfo'] is Map
+          ? RequestInfo.fromJson(
+              Map<String, dynamic>.from(json['requestInfo'] as Map))
+          : null,
     );
   }
+}
+
+class RequestInfo {
+  final int? age;
+  final String? city;
+  final bool isVerified;
+  final int sharedInterests;
+  final bool followsYou;
+
+  const RequestInfo(
+      {this.age,
+      this.city,
+      this.isVerified = false,
+      this.sharedInterests = 0,
+      this.followsYou = false});
+
+  factory RequestInfo.fromJson(Map<String, dynamic> json) => RequestInfo(
+        age: (json['age'] as num?)?.toInt(),
+        city: json['city'] as String?,
+        isVerified: json['isVerified'] as bool? ?? false,
+        sharedInterests: (json['sharedInterests'] as num?)?.toInt() ?? 0,
+        followsYou: json['followsYou'] as bool? ?? false,
+      );
+
+  /// "24 · Chennai · 2 shared interests · Follows you"
+  String get line => [
+        if (age != null) '$age',
+        if (city != null && city!.isNotEmpty) city!,
+        if (sharedInterests > 0)
+          sharedInterests == 1
+              ? '1 shared interest'
+              : '$sharedInterests shared interests',
+        if (followsYou) 'Follows you',
+      ].join(' · ');
 }
 
 /// What someone in your inbox is doing now: the public room they're in.

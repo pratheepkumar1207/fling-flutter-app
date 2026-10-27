@@ -16,6 +16,7 @@ import '../discover/discover_matches_screen.dart';
 import '../friends/friends_screen.dart';
 import '../party/party_screen.dart';
 import 'group_thread_screen.dart';
+import 'message_requests_screen.dart';
 import 'message_thread_screen.dart';
 
 /// Messages, opened from the top bar: search, notes, new matches, blends,
@@ -146,6 +147,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
   void _setFilter(String f) => setState(() => _filter = f);
 
+  void _openRequests() => Navigator.of(context)
+      .push(MaterialPageRoute(builder: (_) => const MessageRequestsScreen()))
+      .then((_) => _load());
+
   @override
   Widget build(BuildContext context) {
     final results = _filtered;
@@ -257,15 +262,15 @@ class _MessagesScreenState extends State<MessagesScreen> {
                       label: 'Requests',
                       count: _requestCount,
                       alert: true,
-                      selected: _filter == 'requests',
-                      onTap: () => _setFilter('requests')),
+                      selected: false,
+                      onTap: () => _openRequests()),
                 ]),
               ),
             ),
             if (_filter == 'all' && _requestCount > 0)
               SliverToBoxAdapter(
                 child: _RequestsBanner(
-                    count: _requestCount, onTap: () => _setFilter('requests')),
+                    count: _requestCount, onTap: () => _openRequests()),
               ),
             if (_filter == 'groups')
               _groups.isEmpty

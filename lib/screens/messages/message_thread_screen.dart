@@ -1,5 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
@@ -11,19 +16,34 @@ import '../../models/message.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
 import '../../widgets/chat_media.dart';
+import '../../widgets/gift_bottom_sheet.dart';
 import '../../widgets/in_icon_button.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/spinner.dart';
 import '../blend/blend_entry.dart';
 import '../calls/call_screen.dart';
+import '../lobby/lobby_create_screen.dart';
 
+/// The reactions offered on long-press, same list the backend accepts.
+const kChatReactions = ['❤️', '😂', '😮', '😢', '🔥', '👍'];
+
+/// A 1:1 chat: day separators, grouped bubbles, reply quotes, reactions,
+/// "Seen", typing, quick actions (watch, game, gift) and the composer.
 class MessageThreadScreen extends StatefulWidget {
   final String userId;
   final String name;
   final String? avatarUrl;
 
+  /// Shown instead of loading from the server (widget tests).
+  @visibleForTesting
+  final List<DirectMessage>? initialMessages;
+
   const MessageThreadScreen(
-      {super.key, required this.userId, required this.name, this.avatarUrl});
+      {super.key,
+      required this.userId,
+      required this.name,
+      this.avatarUrl,
+      this.initialMessages});
 
   @override
   State<MessageThreadScreen> createState() => _MessageThreadScreenState();
@@ -40,14 +60,43 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   // The Reels Blend with this person, once one exists — shown as a card
   // above the message box.
   Blend? _blend;
+  DateTime? _matchedAt;
+  DirectMessage? _replyTo;
+  bool _hasText = false;
+
+  // "typing…" from them, cleared a few seconds after the last ping.
+  bool _theyTyping = false;
+  Timer? _typingTimer;
+  DateTime _lastTypingSent = DateTime(2000);
 
   @override
   void initState() {
     super.initState();
+    _textController.addListener(_onTextChanged);
+    final initial = widget.initialMessages;
+    if (initial != null) {
+      _messages = initial;
+      _loading = false;
+      _scrollToBottom();
+      return;
+    }
     _load();
     _loadOnlineStatus();
     _loadBlend();
+    _loadMatch();
     WidgetsBinding.instance.addPostFrameCallback((_) => _bindSocket());
+  }
+
+  String get _firstName => widget.name.split(' ').first;
+
+  void _onTextChanged() {
+    final has = _textController.text.trim().isNotEmpty;
+    if (has != _hasText) setState(() => _hasText = has);
+    if (!has) return;
+    final now = DateTime.now();
+    if (now.difference(_lastTypingSent).inSeconds < 3) return;
+    _lastTypingSent = now;
+    _socket?.emit('dm:typing', {'toUserId': widget.userId});
   }
 
   Future<void> _loadOnlineStatus() async {
@@ -64,6 +113,19 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       if (mounted && data is Map) {
         setState(
             () => _blend = Blend.fromJson(Map<String, dynamic>.from(data)));
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _loadMatch() async {
+    try {
+      final data = await ApiClient.get('/swipe/matches');
+      for (final m in (data as List).cast<Map>()) {
+        if (m['userId'] == widget.userId) {
+          final at = DateTime.tryParse('${m['matchedAt'] ?? ''}');
+          if (mounted && at != null) setState(() => _matchedAt = at);
+          return;
+        }
       }
     } catch (_) {}
   }
@@ -89,21 +151,104 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     }
   }
 
-  void _bindSocket() {
-    final socket = context.read<SocketService>().socket;
-    socket?.on('dm:message', (data) {
-      if (!mounted || data is! Map) return;
-      final msg = DirectMessage.fromJson(Map<String, dynamic>.from(data));
-      if (msg.senderId != widget.userId) return;
-      setState(() => _messages = [..._messages, msg]);
+  void _onDm(dynamic data) {
+    if (!mounted || data is! Map) return;
+    final msg = DirectMessage.fromJson(Map<String, dynamic>.from(data));
+    if (msg.senderId != widget.userId) return;
+    _typingTimer?.cancel();
+    setState(() {
+      _messages = [..._messages, msg];
+      _theyTyping = false;
+    });
+    _scrollToBottom();
+  }
+
+  void _onDeleted(dynamic data) {
+    if (!mounted || data is! Map) return;
+    if (data['otherUserId'] != widget.userId) return;
+    setState(
+        () => _messages = _messages.where((m) => m.id != data['id']).toList());
+  }
+
+  void _onRead(dynamic data) {
+    if (!mounted || data is! Map || data['otherUserId'] != widget.userId) {
+      return;
+    }
+    final at = DateTime.tryParse('${data['readAt']}') ?? DateTime.now();
+    setState(() => _messages = [
+          for (final m in _messages)
+            m.recipientId == widget.userId && m.readAt == null
+                ? m.copyWith(readAt: at)
+                : m
+        ]);
+  }
+
+  void _onReaction(dynamic data) {
+    if (!mounted || data is! Map || data['otherUserId'] != widget.userId) {
+      return;
+    }
+    _setReactions(
+        '${data['id']}', DirectMessage.reactionsFrom(data['reactions']));
+  }
+
+  void _onTyping(dynamic data) {
+    if (!mounted || data is! Map || data['fromUserId'] != widget.userId) {
+      return;
+    }
+    _typingTimer?.cancel();
+    _typingTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) setState(() => _theyTyping = false);
+    });
+    if (!_theyTyping) {
+      setState(() => _theyTyping = true);
       _scrollToBottom();
-    });
-    socket?.on('dm:deleted', (data) {
-      if (!mounted || data is! Map) return;
-      if (data['otherUserId'] != widget.userId) return;
-      setState(() =>
-          _messages = _messages.where((m) => m.id != data['id']).toList());
-    });
+    }
+  }
+
+  late final _handlers = <String, void Function(dynamic)>{
+    'dm:message': _onDm,
+    'dm:deleted': _onDeleted,
+    'dm:read': _onRead,
+    'dm:reaction': _onReaction,
+    'dm:typing': _onTyping,
+  };
+
+  io.Socket? _socket;
+
+  void _bindSocket() {
+    _socket = context.read<SocketService>().socket;
+    _handlers.forEach((e, h) => _socket?.on(e, h));
+  }
+
+  void _setReactions(String id, Map<String, String> reactions) {
+    setState(() => _messages = [
+          for (final m in _messages)
+            m.id == id ? m.copyWith(reactions: reactions) : m
+        ]);
+  }
+
+  Future<void> _react(DirectMessage m, String emoji) async {
+    final myId = context.read<AuthProvider>().user?.id ?? '';
+    final before = m.reactions;
+    final next = Map<String, String>.from(before);
+    if (next[myId] == emoji) {
+      next.remove(myId);
+    } else {
+      next[myId] = emoji;
+    }
+    _setReactions(m.id, next);
+    try {
+      final data = await ApiClient.post('/messages/${m.id}/react',
+          body: {'emoji': emoji}) as Map<String, dynamic>;
+      if (mounted) {
+        _setReactions(m.id, DirectMessage.reactionsFrom(data['reactions']));
+      }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      _setReactions(m.id, before);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    }
   }
 
   Future<void> _deleteMessage(DirectMessage message) async {
@@ -136,6 +281,80 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     }
   }
 
+  /// Long-press: react, reply, copy, delete.
+  void _openMessageActions(DirectMessage m, bool mine, String? myId) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface2,
+      builder: (sheet) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 14, 12, 6),
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final e in kChatReactions)
+                  Semantics(
+                    button: true,
+                    selected: m.reactions[myId] == e,
+                    label: 'React $e',
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(999),
+                      onTap: () {
+                        Navigator.of(sheet).pop();
+                        _react(m, e);
+                      },
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: m.reactions[myId] == e
+                                ? AppColors.primary.withValues(alpha: 0.35)
+                                : AppColors.surface3),
+                        child: Text(e, style: const TextStyle(fontSize: 24)),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          ListTile(
+            leading: const InIcon(InIcons.undo, size: 20),
+            title: const Text('Reply'),
+            onTap: () {
+              Navigator.of(sheet).pop();
+              setState(() => _replyTo = m);
+            },
+          ),
+          if (m.messageType == 'text')
+            ListTile(
+              leading: const InIcon(InIcons.copy, size: 20),
+              title: const Text('Copy'),
+              onTap: () {
+                Navigator.of(sheet).pop();
+                Clipboard.setData(ClipboardData(text: m.text));
+              },
+            ),
+          if (mine)
+            ListTile(
+              leading:
+                  const InIcon(InIcons.close, size: 20, color: AppColors.pink),
+              title:
+                  const Text('Delete', style: TextStyle(color: AppColors.pink)),
+              onTap: () {
+                Navigator.of(sheet).pop();
+                _deleteMessage(m);
+              },
+            ),
+        ]),
+      ),
+    );
+  }
+
   Widget _messageContent(DirectMessage m, bool mine) {
     if (m.messageType == 'image' && m.mediaUrl != null) {
       return ChatPhoto(m.mediaUrl!);
@@ -162,13 +381,17 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       );
     }
     return Text(m.text,
-        style: TextStyle(color: mine ? Colors.white : AppColors.text));
+        style: TextStyle(
+            color: mine ? Colors.white : AppColors.text,
+            fontSize: 15,
+            height: 1.35));
   }
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        // The list is reversed, so offset 0 is the newest message.
+        _scrollController.jumpTo(0);
       }
     });
   }
@@ -245,16 +468,18 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   Future<void> _sendBody(Map<String, dynamic> body,
       {bool clearText = false}) async {
     if (_sending) return;
+    final replyTo = _replyTo;
     setState(() {
       _sending = true;
       _error = null;
     });
     try {
-      final data =
-          await ApiClient.post('/messages/${widget.userId}', body: body);
+      final data = await ApiClient.post('/messages/${widget.userId}',
+          body: {...body, if (replyTo != null) 'replyToId': replyTo.id});
       final msg = DirectMessage.fromJson(data as Map<String, dynamic>);
       setState(() {
         _messages = [..._messages, msg];
+        _replyTo = null;
         if (clearText) _textController.clear();
       });
       _scrollToBottom();
@@ -287,9 +512,50 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     );
   }
 
+  /// The + button: photo, sticker or GIF.
+  void _openAttach() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface2,
+      builder: (sheet) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: const InIcon(InIcons.image, size: 20),
+            title: const Text('Photo'),
+            onTap: () {
+              Navigator.of(sheet).pop();
+              _sendPhoto();
+            },
+          ),
+          ListTile(
+            leading: const InIcon(InIcons.smile, size: 20),
+            title: const Text('Sticker'),
+            onTap: () {
+              Navigator.of(sheet).pop();
+              _openStickerPicker();
+            },
+          ),
+          ListTile(
+            leading: const InIcon(InIcons.gif, size: 20),
+            title: const Text('GIF'),
+            onTap: () {
+              Navigator.of(sheet).pop();
+              _pasteGifLink();
+            },
+          ),
+        ]),
+      ),
+    );
+  }
+
+  void _openRoomCreate(String type) =>
+      Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => LobbyCreateScreen(initialRoomType: type)));
+
   @override
   Widget build(BuildContext context) {
     final myId = context.watch<AuthProvider>().user?.id;
+    final entries = _entries(myId);
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
@@ -301,54 +567,14 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
             Expanded(
               child: _loading
                   ? const Center(child: Spinner())
-                  : _messages.isEmpty
-                      ? const Center(
-                          child: Text('No messages yet — say hi!',
-                              style: TextStyle(color: AppColors.textFaint)))
-                      : ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.all(12),
-                          itemCount: _messages.length,
-                          itemBuilder: (context, i) {
-                            final m = _messages[i];
-                            final mine = m.senderId == myId;
-                            return Align(
-                              alignment: mine
-                                  ? Alignment.centerRight
-                                  : Alignment.centerLeft,
-                              child: GestureDetector(
-                                onLongPress:
-                                    mine ? () => _deleteMessage(m) : null,
-                                child: Container(
-                                  margin:
-                                      const EdgeInsets.symmetric(vertical: 3),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 10),
-                                  constraints: BoxConstraints(
-                                      maxWidth:
-                                          MediaQuery.of(context).size.width *
-                                              0.7),
-                                  decoration: BoxDecoration(
-                                    color: mine
-                                        ? AppColors.primary
-                                        : const Color(0xFF1F1C29),
-                                    // Flat corner on the "tail" side (bottom-right for mine, bottom-left
-                                    // for theirs) — matches ChatDark.dc.html's speech-bubble shape.
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: const Radius.circular(20),
-                                      topRight: const Radius.circular(20),
-                                      bottomLeft:
-                                          Radius.circular(mine ? 20 : 6),
-                                      bottomRight:
-                                          Radius.circular(mine ? 6 : 20),
-                                    ),
-                                  ),
-                                  child: _messageContent(m, mine),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                  : ListView.builder(
+                      controller: _scrollController,
+                      reverse: true,
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                      itemCount: entries.length,
+                      itemBuilder: (context, i) =>
+                          entries[entries.length - 1 - i],
+                    ),
             ),
             if (_blend != null)
               Padding(
@@ -362,89 +588,242 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                     style:
                         const TextStyle(color: AppColors.danger, fontSize: 12)),
               ),
-            SafeArea(
-              top: false,
-              child: Container(
-                decoration: const BoxDecoration(
-                    border: Border(top: BorderSide(color: Color(0xFF1E1B27)))),
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                child: Row(
-                  children: [
-                    InIconButton(InIcons.image,
-                        tooltip: 'Send a photo',
-                        size: 38,
-                        iconSize: 21,
-                        onPressed: _sending ? null : _sendPhoto),
-                    const SizedBox(width: 2),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.only(left: 14, right: 4),
-                        decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            border: Border.all(color: AppColors.border),
-                            borderRadius: BorderRadius.circular(999)),
-                        child: Row(children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _textController,
-                              minLines: 1,
-                              maxLines: 4,
-                              style: const TextStyle(
-                                  color: AppColors.text, fontSize: 15),
-                              decoration: const InputDecoration(
-                                  hintText: 'Message…',
-                                  filled: false,
-                                  isDense: true,
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  contentPadding:
-                                      EdgeInsets.symmetric(vertical: 12)),
-                              onSubmitted: (_) => _send(),
-                            ),
-                          ),
-                          InIconButton(InIcons.smile,
-                              tooltip: 'Sticker',
-                              size: 36,
-                              iconSize: 20,
-                              color: AppColors.textDim,
-                              onPressed: _sending ? null : _openStickerPicker),
-                          InIconButton(InIcons.gif,
-                              tooltip: 'GIF',
-                              size: 36,
-                              iconSize: 20,
-                              color: AppColors.textDim,
-                              onPressed: _sending ? null : _pasteGifLink),
-                        ]),
-                      ),
-                    ),
-                    VoiceRecordButton(
-                        onRecorded: (uri) => _sendBody(
-                            {'messageType': 'voice', 'mediaUrl': uri})),
-                    const SizedBox(width: 4),
-                    Semantics(
-                      button: true,
-                      label: 'Send',
-                      child: InkResponse(
-                        onTap: _sending ? null : _send,
-                        radius: 26,
-                        child: Container(
-                          width: 46,
-                          height: 46,
-                          decoration: const BoxDecoration(
-                              color: AppColors.primary, shape: BoxShape.circle),
-                          alignment: Alignment.center,
-                          child: _sending
-                              ? const Spinner(size: 16)
-                              : const InIcon(InIcons.send,
-                                  size: 20, color: Colors.white),
-                        ),
-                      ),
-                    ),
-                  ],
+            _quickActions(),
+            if (_replyTo != null) _replyBar(myId),
+            _composer(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Match note, day separators, bubbles with their group's time, Seen,
+  /// and the typing bubble.
+  List<Widget> _entries(String? myId) {
+    final out = <Widget>[];
+    if (_matchedAt != null) {
+      out.add(_MatchNote(name: _firstName, matchedAt: _matchedAt!));
+    }
+    if (_messages.isEmpty) {
+      out.add(Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        child: Center(
+          child: Text('Say hi to $_firstName',
+              style: const TextStyle(color: AppColors.textFaint)),
+        ),
+      ));
+    }
+    final byId = {for (final m in _messages) m.id: m};
+    final lastMine =
+        _messages.lastIndexWhere((m) => m.senderId == myId); // for "Seen"
+    for (var i = 0; i < _messages.length; i++) {
+      final m = _messages[i];
+      final prev = i > 0 ? _messages[i - 1] : null;
+      final next = i + 1 < _messages.length ? _messages[i + 1] : null;
+      final local = m.createdAt.toLocal();
+      if (prev == null || !_sameDay(prev.createdAt.toLocal(), local)) {
+        out.add(_DaySeparator(local));
+      }
+      bool together(DirectMessage? a, DirectMessage b) =>
+          a != null &&
+          a.senderId == b.senderId &&
+          _sameDay(a.createdAt.toLocal(), b.createdAt.toLocal()) &&
+          b.createdAt.difference(a.createdAt).inMinutes.abs() < 5;
+      final first = !together(prev, m);
+      final last = next == null || !together(m, next);
+      final mine = m.senderId == myId;
+      final quoted = m.replyToId == null ? null : byId[m.replyToId];
+      out.add(_Bubble(
+        key: ValueKey(m.id),
+        mine: mine,
+        first: first,
+        last: last,
+        quoteName: quoted == null
+            ? null
+            : quoted.senderId == myId
+                ? 'You'
+                : _firstName,
+        quoteText:
+            quoted?.summary ?? (m.replyToId != null ? 'Message deleted' : null),
+        reactions: m.reactions.values.toList(),
+        onLongPress: () => _openMessageActions(m, mine, myId),
+        child: _messageContent(m, mine),
+      ));
+      if (last) {
+        final time = DateFormat.jm().format(local);
+        final seen = mine && i == lastMine;
+        out.add(_Meta(
+          mine: mine,
+          text: seen
+              ? (m.readAt != null
+                  ? 'Seen ${DateFormat.jm().format(m.readAt!.toLocal())}'
+                  : 'Sent $time')
+              : time,
+          seen: seen && m.readAt != null,
+        ));
+      }
+    }
+    if (_theyTyping) out.add(_TypingBubble(name: _firstName));
+    return out;
+  }
+
+  Widget _quickActions() {
+    return SizedBox(
+      height: 48,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+        children: [
+          _QuickAction(
+              icon: InIcons.tv,
+              label: 'Invite to watch',
+              onTap: () => _openRoomCreate('watch')),
+          _QuickAction(
+              icon: InIcons.game,
+              label: 'Play a game',
+              onTap: () => _openRoomCreate('game')),
+          _QuickAction(
+              icon: InIcons.gift,
+              label: 'Gift',
+              iconColor: AppColors.gold,
+              onTap: () =>
+                  showGiftBottomSheet(context, toUserId: widget.userId)),
+        ],
+      ),
+    );
+  }
+
+  Widget _replyBar(String? myId) {
+    final r = _replyTo!;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+      padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border:
+            const Border(left: BorderSide(color: AppColors.lilac, width: 3)),
+      ),
+      child: Row(children: [
+        Expanded(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(
+                r.senderId == myId
+                    ? 'Replying to yourself'
+                    : 'Replying to $_firstName',
+                style: const TextStyle(
+                    color: AppColors.lilac,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: 2),
+            Text(r.summary,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: AppColors.textDim, fontSize: 13)),
+          ]),
+        ),
+        InIconButton(InIcons.close,
+            tooltip: 'Cancel reply',
+            size: 40,
+            iconSize: 18,
+            color: AppColors.textDim,
+            onPressed: () => setState(() => _replyTo = null)),
+      ]),
+    );
+  }
+
+  Widget _composer() {
+    return SafeArea(
+      top: false,
+      child: Container(
+        decoration: const BoxDecoration(
+            border: Border(top: BorderSide(color: Color(0xFF1E1B27)))),
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Tooltip(
+              message: 'Photo, sticker or GIF',
+              child: Material(
+                color: AppColors.surface2,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: _sending ? null : _openAttach,
+                  child: const SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: Center(child: InIcon(InIcons.plus, size: 20))),
                 ),
               ),
             ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 44),
+                padding: const EdgeInsets.only(left: 16, right: 4),
+                decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    border: Border.all(color: AppColors.border),
+                    borderRadius: BorderRadius.circular(22)),
+                child: Row(children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _textController,
+                      minLines: 1,
+                      maxLines: 4,
+                      style:
+                          const TextStyle(color: AppColors.text, fontSize: 15),
+                      decoration: InputDecoration(
+                          hintText: 'Message $_firstName…',
+                          filled: false,
+                          isDense: true,
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding:
+                              const EdgeInsets.symmetric(vertical: 12)),
+                      onSubmitted: (_) => _send(),
+                    ),
+                  ),
+                  if (!_hasText)
+                    InIconButton(InIcons.camera,
+                        tooltip: 'Send a photo',
+                        size: 36,
+                        iconSize: 20,
+                        color: AppColors.textDim,
+                        onPressed: _sending ? null : _sendPhoto),
+                ]),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Mic while the box is empty, Send once there's text.
+            if (_hasText)
+              Semantics(
+                button: true,
+                label: 'Send',
+                child: InkResponse(
+                  onTap: _sending ? null : _send,
+                  radius: 26,
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: const BoxDecoration(
+                        color: AppColors.primary, shape: BoxShape.circle),
+                    alignment: Alignment.center,
+                    child: _sending
+                        ? const Spinner(size: 16)
+                        : const InIcon(InIcons.send,
+                            size: 20, color: Colors.white),
+                  ),
+                ),
+              )
+            else
+              VoiceRecordButton(
+                  size: 44,
+                  onRecorded: (uri) =>
+                      _sendBody({'messageType': 'voice', 'mediaUrl': uri})),
           ],
         ),
       ),
@@ -477,8 +856,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                         right: 0,
                         bottom: 0,
                         child: Container(
-                          width: 11,
-                          height: 11,
+                          width: 12,
+                          height: 12,
                           decoration: BoxDecoration(
                               color: AppColors.success,
                               shape: BoxShape.circle,
@@ -496,11 +875,19 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                                fontSize: 15, fontWeight: FontWeight.w600)),
-                        if (_online)
+                                fontSize: 16, fontWeight: FontWeight.w700)),
+                        if (_theyTyping)
+                          const Text('typing…',
+                              style: TextStyle(
+                                  color: AppColors.lilac,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600))
+                        else if (_online)
                           const Text('Active now',
                               style: TextStyle(
-                                  color: AppColors.success, fontSize: 12)),
+                                  color: AppColors.success,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),
@@ -523,8 +910,303 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
   @override
   void dispose() {
+    _handlers.forEach((e, h) => _socket?.off(e, h));
+    _typingTimer?.cancel();
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+}
+
+bool _sameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
+class _MatchNote extends StatelessWidget {
+  final String name;
+  final DateTime matchedAt;
+  const _MatchNote({required this.name, required this.matchedAt});
+
+  @override
+  Widget build(BuildContext context) {
+    final days = DateTime.now().difference(matchedAt).inDays;
+    final when = days <= 0
+        ? 'today'
+        : days == 1
+            ? 'yesterday'
+            : '$days days ago';
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          const InIcon(InIcons.heart, size: 14, color: AppColors.pink),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text('You matched with $name $when',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+class _DaySeparator extends StatelessWidget {
+  final DateTime day;
+  const _DaySeparator(this.day);
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final label = _sameDay(day, now)
+        ? 'TODAY'
+        : _sameDay(day, now.subtract(const Duration(days: 1)))
+            ? 'YESTERDAY'
+            : DateFormat(day.year == now.year ? 'EEE, d MMM' : 'd MMM y')
+                .format(day)
+                .toUpperCase();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Center(
+        child: Text(label,
+            style: const TextStyle(
+                color: AppColors.textDim,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.4)),
+      ),
+    );
+  }
+}
+
+class _Bubble extends StatelessWidget {
+  final bool mine;
+  final bool first;
+  final bool last;
+  final String? quoteName;
+  final String? quoteText;
+  final List<String> reactions;
+  final VoidCallback onLongPress;
+  final Widget child;
+  const _Bubble(
+      {super.key,
+      required this.mine,
+      required this.first,
+      required this.last,
+      required this.reactions,
+      required this.onLongPress,
+      required this.child,
+      this.quoteName,
+      this.quoteText});
+
+  @override
+  Widget build(BuildContext context) {
+    // Grouped bubbles: the corner on the sender's side is tight except at
+    // the very top of the group.
+    const big = Radius.circular(20);
+    const small = Radius.circular(6);
+    final radius = BorderRadius.only(
+      topLeft: mine || first ? big : small,
+      topRight: !mine || first ? big : small,
+      bottomLeft: mine ? big : small,
+      bottomRight: mine ? small : big,
+    );
+    final bubble = Container(
+      padding: quoteText != null
+          ? const EdgeInsets.fromLTRB(8, 8, 8, 10)
+          : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      constraints:
+          BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.76),
+      decoration: BoxDecoration(
+        color: mine ? AppColors.primary : const Color(0xFF1F1C29),
+        borderRadius: radius,
+      ),
+      child: quoteText == null
+          ? child
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
+                    decoration: BoxDecoration(
+                      color: mine
+                          ? Colors.black.withValues(alpha: 0.18)
+                          : AppColors.surface,
+                      borderRadius: BorderRadius.circular(8),
+                      border: const Border(
+                          left: BorderSide(color: AppColors.lilac, width: 3)),
+                    ),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (quoteName != null)
+                            Text(quoteName!,
+                                style: TextStyle(
+                                    color: mine
+                                        ? const Color(0xFFE2CCFF)
+                                        : AppColors.lilac,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700)),
+                          Text(quoteText!,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: mine
+                                      ? Colors.white.withValues(alpha: 0.8)
+                                      : AppColors.textDim,
+                                  fontSize: 12.5)),
+                        ]),
+                  ),
+                  const SizedBox(height: 6),
+                  Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      child: child),
+                ]),
+    );
+    return Padding(
+      padding: EdgeInsets.only(
+          top: first ? 6 : 2, bottom: reactions.isEmpty ? 0 : 12),
+      child: Align(
+        alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+        child: GestureDetector(
+          onLongPress: onLongPress,
+          child: Stack(clipBehavior: Clip.none, children: [
+            bubble,
+            if (reactions.isNotEmpty)
+              Positioned(
+                bottom: -14,
+                right: mine ? 10 : null,
+                left: mine ? null : 10,
+                child: Semantics(
+                  label: 'Reactions ${reactions.join(' ')}',
+                  excludeSemantics: true,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    decoration: BoxDecoration(
+                        color: const Color(0xFF1F1C29),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.bg, width: 2)),
+                    child: Text(reactions.toSet().join(),
+                        style: const TextStyle(fontSize: 13)),
+                  ),
+                ),
+              ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+/// Time under a group, or "Seen 8:53 PM" under my last message.
+class _Meta extends StatelessWidget {
+  final bool mine;
+  final String text;
+  final bool seen;
+  const _Meta({required this.mine, required this.text, required this.seen});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(6, 3, 6, 6),
+      child: Row(
+        mainAxisAlignment:
+            mine ? MainAxisAlignment.end : MainAxisAlignment.start,
+        children: [
+          Text(text,
+              style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
+          if (seen) ...[
+            const SizedBox(width: 4),
+            const InIcon(InIcons.check, size: 13, color: AppColors.lilac),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TypingBubble extends StatelessWidget {
+  final String name;
+  const _TypingBubble({required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: '$name is typing',
+      excludeSemantics: true,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Container(
+          margin: const EdgeInsets.only(top: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          decoration: const BoxDecoration(
+            color: Color(0xFF1F1C29),
+            borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+                bottomRight: Radius.circular(20),
+                bottomLeft: Radius.circular(6)),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            for (final o in [1.0, 0.7, 0.4]) ...[
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                    color: AppColors.textDim.withValues(alpha: o),
+                    shape: BoxShape.circle),
+              ),
+              if (o != 0.4) const SizedBox(width: 5),
+            ],
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickAction extends StatelessWidget {
+  final InIconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color iconColor;
+  const _QuickAction(
+      {required this.icon,
+      required this.label,
+      required this.onTap,
+      this.iconColor = const Color(0xFFE2CCFF)});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Material(
+        color: const Color(0xFF1A1326),
+        shape: const StadiumBorder(side: BorderSide(color: Color(0xFF3B2A55))),
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              InIcon(icon, size: 16, color: iconColor),
+              const SizedBox(width: 7),
+              Text(label,
+                  style: const TextStyle(
+                      color: Color(0xFFE2CCFF),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600)),
+            ]),
+          ),
+        ),
+      ),
+    );
   }
 }

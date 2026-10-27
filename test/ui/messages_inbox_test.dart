@@ -39,16 +39,14 @@ ConversationSummary _c(String id, String name, String last,
     });
 
 final _chats = [
-  _c('n', 'Naina', 'Haha same! Tonight at 9?',
-      unread: 2,
-      activity: {
-        'roomId': 'r1',
-        'title': 'Movie night',
-        'roomType': 'watch',
-        'memberCount': 4,
-        'nowPlayingTitle': 'A really long film title that has to be cut off',
-        'canJoin': true,
-      }),
+  _c('n', 'Naina', 'Haha same! Tonight at 9?', unread: 2, activity: {
+    'roomId': 'r1',
+    'title': 'Movie night',
+    'roomType': 'watch',
+    'memberCount': 4,
+    'nowPlayingTitle': 'A really long film title that has to be cut off',
+    'canJoin': true,
+  }),
   _c('b', 'Bala B', 'Voice message', unread: 1, type: 'voice', minutesAgo: 90),
   _c('v', 'Vikram', 'Sure, send me the link',
       mine: true,
@@ -129,10 +127,11 @@ void main() {
       await t.pumpAndSettle();
       await t.tap(find.text('1 message request'));
       await t.pump();
-      await _top(t);
-      await _scrollTo(t, find.text('Stranger'));
-      expect(find.text('Stranger'), findsOneWidget);
-      expect(find.text('Naina'), findsNothing);
+      await t.pump(const Duration(milliseconds: 500));
+      expect(find.text('Message requests'), findsOneWidget);
+      Navigator.of(t.element(find.text('Message requests'))).pop();
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 500));
 
       await _top(t);
       await _scrollTo(t, find.text('Unread'));
