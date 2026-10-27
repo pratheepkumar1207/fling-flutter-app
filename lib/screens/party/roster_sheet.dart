@@ -22,6 +22,8 @@ const _kAvatarGradients = [
 ];
 
 enum _Action {
+  coHost,
+  ban,
   follow,
   profile,
   message,
@@ -400,8 +402,10 @@ class _RosterSheetState extends State<RosterSheet> {
           if (voice && onMic && !muted && widget.onForceMute != null)
             _item(_Action.mute, InIcons.micoff, 'Mute mic'),
           _item(_Action.makeHost, InIcons.crown, 'Make host'),
+          _item(_Action.coHost, InIcons.shield, 'Make co-host'),
           _item(_Action.remove, InIcons.logout, 'Remove from room',
               danger: true),
+          _item(_Action.ban, InIcons.block, 'Ban from my rooms', danger: true),
         ],
       ],
     );
@@ -464,6 +468,52 @@ class _RosterSheetState extends State<RosterSheet> {
           ),
         );
         if (ok == true) widget.onKick(r.userId);
+      case _Action.coHost:
+        await _moderate(
+            context,
+            () => ApiClient.put('/moderation/cohosts/${r.userId}',
+                body: {'role': 'mics'}),
+            '${r.name} can now approve mics');
+      case _Action.ban:
+        final ok = await showDialog<bool>(
+          context: context,
+          builder: (d) => AlertDialog(
+            title: Text('Ban ${r.name}?'),
+            content: const Text(
+                'They’re taken out now and can’t join any room you host. Unban them from Room moderation.'),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.of(d).pop(false),
+                  child: const Text('Cancel')),
+              TextButton(
+                  onPressed: () => Navigator.of(d).pop(true),
+                  child: const Text('Ban',
+                      style: TextStyle(color: AppColors.danger))),
+            ],
+          ),
+        );
+        if (ok == true && context.mounted) {
+          await _moderate(
+              context,
+              () => ApiClient.post('/moderation/bans/${r.userId}'),
+              '${r.name} is banned from your rooms');
+        }
+    }
+  }
+
+  Future<void> _moderate(BuildContext context, Future<dynamic> Function() call,
+      String done) async {
+    try {
+      await call();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(done)));
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Action failed')));
+      }
     }
   }
 }

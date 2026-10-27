@@ -88,6 +88,12 @@ class RoomSocketController extends ChangeNotifier {
   bool reconnecting = false;
 
   bool get isHost => hostId != null && myUserId != null && hostId == myUserId;
+
+  /// 'full' or 'mics' when the room's owner made you a co-host.
+  String? coHostRole;
+
+  /// Host, or a co-host allowed to approve mic requests.
+  bool get canApproveMics => isHost || coHostRole != null;
   bool get canPin => isHost || settings['pinPermission'] == 'anyone';
 
   // How far ahead (+) or behind (-) the server's clock is from this
@@ -318,6 +324,10 @@ class RoomSocketController extends ChangeNotifier {
       queueDenied = data['reason'] as String?;
       notifyListeners();
     });
+    s.on('room:myRole', (data) {
+      coHostRole = (data is Map ? data['coHost'] : null) as String?;
+      notifyListeners();
+    });
     s.on('room:ended', (data) {
       endedBy = (data is Map ? data['by'] : null) as String? ?? 'The host';
       notifyListeners();
@@ -377,6 +387,7 @@ class RoomSocketController extends ChangeNotifier {
     socket?.off('room:settingsChanged');
     socket?.off('queue:denied');
     socket?.off('room:ended');
+    socket?.off('room:myRole');
     socket?.off('chat:denied');
     socket?.off('chat:mentioned');
   }
@@ -552,14 +563,14 @@ class RoomSocketController extends ChangeNotifier {
       socket?.emit('call:cancelMicRequest', {'roomId': roomId});
 
   void approveMic(String targetUserId) {
-    if (isHost) {
+    if (canApproveMics) {
       socket?.emit(
           'call:approveMic', {'roomId': roomId, 'targetUserId': targetUserId});
     }
   }
 
   void denyMic(String targetUserId) {
-    if (isHost) {
+    if (canApproveMics) {
       socket?.emit(
           'call:denyMic', {'roomId': roomId, 'targetUserId': targetUserId});
     }

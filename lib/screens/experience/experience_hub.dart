@@ -1,3 +1,4 @@
+import '../settings/room_moderation_screen.dart';
 import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
@@ -582,36 +583,6 @@ class CreatorStudioScreen extends StatelessWidget {
             'Paid events',
             'Schedule premium experiences',
             () => _snack(context, 'Paid events')),
-      ]);
-}
-
-class RoomModerationScreen extends StatelessWidget {
-  const RoomModerationScreen({super.key});
-  @override
-  Widget build(BuildContext context) =>
-      _SettingsScaffold(title: 'Room Moderation', children: [
-        _SettingTile(
-            InIcons.useradd,
-            'Co-hosts',
-            'Give trusted people room controls',
-            () => _snack(context, 'Co-host manager')),
-        _SettingTile(
-            InIcons.mic,
-            'Speaker queue',
-            'Approve and manage speakers',
-            () => _snack(context, 'Speaker queue')),
-        _SettingTile(InIcons.mute, 'Mute all', 'Quiet the room instantly',
-            () => _snack(context, 'Mute-all control')),
-        _SettingTile(
-            InIcons.doc,
-            'Moderation',
-            'Kick, ban, slow mode and keyword filters',
-            () => _snack(context, 'Moderation controls')),
-        _SettingTile(
-            InIcons.flame,
-            'Report queue',
-            'Review reports from your room',
-            () => _snack(context, 'Report queue')),
       ]);
 }
 

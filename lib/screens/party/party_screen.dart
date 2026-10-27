@@ -27,7 +27,7 @@ import '../../widgets/live_video_view.dart';
 import '../../widgets/participant_avatar_row.dart';
 import '../../widgets/poll_bottom_sheet.dart';
 import '../../widgets/poll_creator_bottom_sheet.dart';
-import '../experience/experience_hub.dart' show RoomModerationScreen;
+import '../settings/room_moderation_screen.dart';
 import '../../widgets/room_settings_sheet.dart';
 import '../../widgets/share_bottom_sheet.dart';
 import '../../widgets/spinner.dart';
@@ -1579,7 +1579,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                                   maxSlots: maxSlots,
                                                   hostId: rs.hostId,
                                                   myUserId: myId,
-                                                  isHost: rs.isHost,
+                                                  isHost: rs.canApproveMics,
                                                   onApprove: rs.approveMic,
                                                   onDeny: rs.denyMic,
                                                   onRemove: rs.removeMic,
