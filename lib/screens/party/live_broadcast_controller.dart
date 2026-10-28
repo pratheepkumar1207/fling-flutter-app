@@ -70,8 +70,8 @@ class LiveBroadcastController extends ChangeNotifier {
     // Only the host is asked up front (they publish straight away); a
     // viewer is asked in setGuest once they join the stage.
     if (isHost) {
-      final camStatus = await Permission.camera.request();
-      final micStatus = await Permission.microphone.request();
+      final camStatus = await Permission.camera.status;
+      final micStatus = await Permission.microphone.status;
       if (!camStatus.isGranted || !micStatus.isGranted) {
         _setStatus(VoiceChatStatus.permissionDenied);
         return;
@@ -143,8 +143,8 @@ class LiveBroadcastController extends ChangeNotifier {
     _guest = on;
     notifyListeners();
     if (on) {
-      final cam = await Permission.camera.request();
-      final mic = await Permission.microphone.request();
+      final cam = await Permission.camera.status;
+      final mic = await Permission.microphone.status;
       if (!cam.isGranted || !mic.isGranted) {
         _guest = false;
         notifyListeners();

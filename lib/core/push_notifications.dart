@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'api_client.dart';
 import 'app_navigator.dart';
 
@@ -36,12 +37,12 @@ Future<void> setupNotificationTapHandling() async {
 /// Settings' "Notifications" toggle.
 Future<PushRequestResult> requestPushPermissionAndRegister() async {
   try {
+    // Checks only — the startup permissions sheet is the one place that
+    // asks.
+    if (!await Permission.notification.isGranted) {
+      return PushRequestResult.denied;
+    }
     final messaging = FirebaseMessaging.instance;
-    final settings = await messaging.requestPermission();
-    final granted =
-        settings.authorizationStatus == AuthorizationStatus.authorized ||
-            settings.authorizationStatus == AuthorizationStatus.provisional;
-    if (!granted) return PushRequestResult.denied;
 
     final token = await messaging.getToken();
     if (token == null) return PushRequestResult.error;

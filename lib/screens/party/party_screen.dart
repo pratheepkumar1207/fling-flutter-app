@@ -791,7 +791,14 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
 
     Future<void> handleMicTap() async {
       final messenger = ScaffoldMessenger.of(context);
-      await ensurePermissionPrimer(context);
+      // Turning the mic on (or joining a live on camera) needs it allowed;
+      // turning it off never does.
+      if (!myMicOn &&
+          !myMicForceMuted &&
+          !await checkPermissionsOrExplain(context,
+              camera: room['roomType'] == 'live')) {
+        return;
+      }
       if (!mounted) return;
       if (myMicForceMuted) {
         messenger.showSnackBar(

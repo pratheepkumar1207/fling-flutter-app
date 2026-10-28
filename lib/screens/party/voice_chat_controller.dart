@@ -98,7 +98,7 @@ class VoiceChatController extends ChangeNotifier {
 
   Future<void> _init() async {
     _setStatus(VoiceChatStatus.connecting);
-    final micStatus = await Permission.microphone.request();
+    final micStatus = await Permission.microphone.status;
     if (!micStatus.isGranted) {
       _setStatus(VoiceChatStatus.permissionDenied);
       return;

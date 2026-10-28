@@ -51,10 +51,34 @@ Future<void> ensureStartupPermissions(BuildContext context,
   }
 }
 
-/// Before a call, live or mic: if the startup sheet never ran, explain and
-/// ask then. A no-op once it has been shown.
-Future<void> ensurePermissionPrimer(BuildContext context) =>
-    ensureStartupPermissions(context, registerPush: false);
+/// Before a call, going live or taking the mic: the app never shows a
+/// permission popup after the startup sheet. If something is missing, say
+/// so with a button to the phone's settings and return false.
+Future<bool> checkPermissionsOrExplain(BuildContext context,
+    {bool camera = false, bool mic = true}) async {
+  final needed = [
+    if (camera) Permission.camera,
+    if (mic) Permission.microphone,
+  ];
+  final List<PermissionStatus> statuses;
+  try {
+    statuses = await Future.wait(needed.map((p) => p.status));
+  } catch (_) {
+    return true; // No permission plugin (tests, unsupported platform).
+  }
+  if (statuses.every((s) => s.isGranted)) return true;
+  if (!context.mounted) return false;
+  final what = camera && mic
+      ? 'camera and microphone'
+      : camera
+          ? 'camera'
+          : 'microphone';
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    content: Text('Allow $what for Insync in your phone settings.'),
+    action: SnackBarAction(label: 'Settings', onPressed: openAppSettings),
+  ));
+  return false;
+}
 
 class _PrimerSheet extends StatelessWidget {
   const _PrimerSheet();

@@ -511,8 +511,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   }
 
   Future<void> _startCall(bool video) async {
-    await ensurePermissionPrimer(context);
-    if (!mounted) return;
+    if (!await checkPermissionsOrExplain(context, camera: video) || !mounted) {
+      return;
+    }
     try {
       final data = await ApiClient.post('/calls/direct-invite', body: {
         'toUserId': widget.userId,

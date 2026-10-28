@@ -1,6 +1,5 @@
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/foundation.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../party/voice_chat_controller.dart' show kAgoraAppId;
 
 /// Agora engine for a direct (non-room) 1:1 call — see calls.js's
@@ -46,9 +45,6 @@ class DirectCallController extends ChangeNotifier {
 
   Future<void> _init() async {
     try {
-      await Permission.microphone.request();
-      if (video) await Permission.camera.request();
-
       final engine = createAgoraRtcEngine();
       await engine.initialize(RtcEngineContext(appId: kAgoraAppId));
       await engine

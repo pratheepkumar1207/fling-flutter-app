@@ -173,8 +173,9 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
   }
 
   Future<void> _goLive() async {
-    await ensurePermissionPrimer(context);
-    if (!mounted) return;
+    if (!await checkPermissionsOrExplain(context, camera: true) || !mounted) {
+      return;
+    }
     setState(() => _saving = true);
     try {
       final room = await ApiClient.post('/rooms', body: {

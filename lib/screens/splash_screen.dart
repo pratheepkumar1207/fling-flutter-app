@@ -46,7 +46,7 @@ class _SplashScreenState extends State<SplashScreen> {
     if (_locationPinged) return;
     if (auth.user?.locationSharingEnabled != true) return;
     _locationPinged = true;
-    LocationService.requestPermissionAndPing(prompt: false);
+    LocationService.requestPermissionAndPing();
   }
 
   @override
