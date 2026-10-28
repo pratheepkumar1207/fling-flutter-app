@@ -3,11 +3,14 @@ import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
 import '../../widgets/avatar.dart';
 
-/// Full-screen incoming call. Pops `true` for Accept, `false` for Decline
-/// (and `null` when the caller hangs up first — see AppShell).
-Future<bool?> showIncomingCall(BuildContext context,
+/// What the person chose on the incoming call screen.
+enum CallAnswer { accept, decline, message, remind }
+
+/// Full-screen incoming call. Pops a [CallAnswer] (and `null` when the
+/// caller hangs up first — see AppShell).
+Future<CallAnswer?> showIncomingCall(BuildContext context,
     {required String name, String? avatarUrl, required bool video}) {
-  return showGeneralDialog<bool>(
+  return showGeneralDialog<CallAnswer>(
     context: context,
     barrierDismissible: false,
     barrierColor: Colors.black,
@@ -15,8 +18,10 @@ Future<bool?> showIncomingCall(BuildContext context,
       name: name,
       avatarUrl: avatarUrl,
       video: video,
-      onAccept: () => Navigator.of(dialog).pop(true),
-      onDecline: () => Navigator.of(dialog).pop(false),
+      onAccept: () => Navigator.of(dialog).pop(CallAnswer.accept),
+      onDecline: () => Navigator.of(dialog).pop(CallAnswer.decline),
+      onMessage: () => Navigator.of(dialog).pop(CallAnswer.message),
+      onRemind: () => Navigator.of(dialog).pop(CallAnswer.remind),
     ),
   );
 }
@@ -27,13 +32,19 @@ class IncomingCallView extends StatelessWidget {
   final bool video;
   final VoidCallback onAccept;
   final VoidCallback onDecline;
+
+  /// Decline and open the chat / decline and get reminded later.
+  final VoidCallback? onMessage;
+  final VoidCallback? onRemind;
   const IncomingCallView(
       {super.key,
       required this.name,
       this.avatarUrl,
       required this.video,
       required this.onAccept,
-      required this.onDecline});
+      required this.onDecline,
+      this.onMessage,
+      this.onRemind});
 
   @override
   Widget build(BuildContext context) {
@@ -101,6 +112,18 @@ class IncomingCallView extends StatelessWidget {
               const Text('is calling you…',
                   style: TextStyle(color: AppColors.textDim, fontSize: 14)),
               const Spacer(flex: 2),
+              if (onMessage != null || onRemind != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(40, 0, 40, 28),
+                  child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        if (onMessage != null)
+                          _small('Message', InIcons.chat, onMessage!),
+                        if (onRemind != null)
+                          _small('Remind me', InIcons.bell, onRemind!),
+                      ]),
+                ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(40, 0, 40, 40),
                 child: Row(
@@ -115,6 +138,31 @@ class IncomingCallView extends StatelessWidget {
             ]),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _small(String label, InIconData icon, VoidCallback onTap) {
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: InkResponse(
+        onTap: onTap,
+        radius: 34,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: const BoxDecoration(
+                color: AppColors.surface2, shape: BoxShape.circle),
+            alignment: Alignment.center,
+            child: InIcon(icon, size: 22, color: AppColors.text),
+          ),
+          const SizedBox(height: 6),
+          Text(label,
+              style: const TextStyle(fontSize: 12, color: AppColors.textDim)),
+        ]),
       ),
     );
   }

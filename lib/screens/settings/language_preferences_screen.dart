@@ -42,6 +42,7 @@ class LanguagePreferencesScreen extends StatefulWidget {
 class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
   late List<String> _languages;
   bool _saving = false;
+  String _query = '';
 
   @override
   void initState() {
@@ -84,11 +85,53 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
       ),
       body: ListView(
         children: [
-          for (var i = 0; i < kLanguageOptions.length; i++) _row(i),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: TextField(
+              onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
+              decoration: const InputDecoration(
+                  hintText: 'Search languages',
+                  prefixIcon: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: InIcon(InIcons.search,
+                          size: 18, color: AppColors.textDim)),
+                  prefixIconConstraints: BoxConstraints(minWidth: 0)),
+            ),
+          ),
+          _label('APP LANGUAGE'),
+          const ListTile(
+            title: Text('English'),
+            subtitle: Text('The app is in English for now.',
+                style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+            trailing: InIcon(InIcons.check, size: 20, color: AppColors.primary),
+          ),
+          _label('CONTENT LANGUAGES'),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 0, 20, 6),
+            child: Text('Used to suggest rooms, reels and people.',
+                style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+          ),
+          for (var i = 0; i < kLanguageOptions.length; i++)
+            if (_query.isEmpty ||
+                kLanguageOptions[i][1].toLowerCase().contains(_query) ||
+                (_kNativeLabels[kLanguageOptions[i][0]] ?? '')
+                    .toLowerCase()
+                    .contains(_query))
+              _row(i),
         ],
       ),
     );
   }
+
+  Widget _label(String t) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
+        child: Text(t,
+            style: const TextStyle(
+                color: AppColors.textDim,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5)),
+      );
 
   Widget _row(int i) {
     final code = kLanguageOptions[i][0];

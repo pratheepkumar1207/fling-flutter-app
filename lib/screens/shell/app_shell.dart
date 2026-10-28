@@ -1,3 +1,6 @@
+import '../messages/message_thread_screen.dart';
+import '../../core/app_messenger.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/active_room_holder.dart';
@@ -113,13 +116,15 @@ class _AppShellState extends State<AppShell> {
     // showDialog defaults to useRootNavigator: true, so this shows above
     // whatever screen is currently pushed on top of AppShell, not just
     // AppShell's own body.
-    final accepted = await showIncomingCall(context,
+    final answer = await showIncomingCall(context,
         name: data['fromName'] as String? ?? 'Someone',
         avatarUrl: data['fromAvatarUrl'] as String?,
         video: data['mode'] == 'video');
     if (!mounted) return;
     final channelName = data['channelName'] as String;
-    if (accepted == true) {
+    final fromId = data['fromUserId'] as String?;
+    final fromName = data['fromName'] as String? ?? 'Someone';
+    if (answer == CallAnswer.accept) {
       try {
         final response = await ApiClient.post('/calls/direct-accept',
             body: {'channelName': channelName}) as Map<String, dynamic>;
@@ -140,11 +145,37 @@ class _AppShellState extends State<AppShell> {
       } catch (_) {
         // Couldn't connect — nothing more to do than let it drop.
       }
-    } else if (accepted == false) {
+    } else if (answer != null) {
       ApiClient.post('/calls/direct-decline',
           body: {'channelName': channelName}).catchError((_) => null);
+      if (answer == CallAnswer.message && fromId != null) {
+        Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(
+            builder: (_) => MessageThreadScreen(
+                userId: fromId,
+                name: fromName,
+                avatarUrl: data['fromAvatarUrl'] as String?)));
+      } else if (answer == CallAnswer.remind && fromId != null) {
+        scaffoldMessengerKey.currentState?.showSnackBar(SnackBar(
+            content: Text('We’ll remind you to call $fromName in 10 minutes')));
+        Timer(const Duration(minutes: 10), () {
+          if (!mounted) return;
+          scaffoldMessengerKey.currentState?.showSnackBar(SnackBar(
+            duration: const Duration(seconds: 12),
+            content: Text('Call $fromName back?'),
+            action: SnackBarAction(
+              label: 'Open chat',
+              onPressed: () => Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(
+                      builder: (_) => MessageThreadScreen(
+                          userId: fromId,
+                          name: fromName,
+                          avatarUrl: data['fromAvatarUrl'] as String?))),
+            ),
+          ));
+        });
+      }
     }
-    // accepted == null: dialog was auto-dismissed by dismissIfStale above
+    // answer == null: dialog was auto-dismissed by dismissIfStale above
     // because the call was already cancelled/ended — nothing more to send.
     _handlingIncomingCall = false;
     _activeIncomingChannelName = null;

@@ -30,13 +30,27 @@ class _VipStoreScreenState extends State<VipStoreScreen> {
   List<AdmissionCar>? _cars;
   String? _busyId;
   bool _buyingVip = false;
+  // Plans from GET /wallet/vip-plans: [{months, coins}].
+  List<Map<String, dynamic>> _plans = const [
+    {'months': 1, 'coins': 500},
+    {'months': 3, 'coins': 1250},
+  ];
+  int _months = 1;
 
-  static const _vipCostCoins = 500;
+  /// What VIP really unlocks today.
+  static const _perks = [
+    (InIcons.heart, 'See who likes you'),
+    (InIcons.chat, 'Message anyone without matching'),
+    (InIcons.undo, 'Free rewinds in Discover'),
+    (InIcons.live, 'See which room anyone is in'),
+    (InIcons.music, 'More than one playlist'),
+    (InIcons.crown, 'VIP badge on your profile'),
+  ];
 
   Future<void> _buyVip() async {
     setState(() => _buyingVip = true);
     try {
-      await ApiClient.post('/wallet/buy-vip');
+      await ApiClient.post('/wallet/buy-vip', body: {'months': _months});
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('VIP activated!')));
@@ -59,6 +73,13 @@ class _VipStoreScreenState extends State<VipStoreScreen> {
   }
 
   Future<void> _load() async {
+    try {
+      final plans = await ApiClient.get('/wallet/vip-plans') as List;
+      if (mounted && plans.isNotEmpty) {
+        setState(() =>
+            _plans = plans.cast<Map>().map(Map<String, dynamic>.from).toList());
+      }
+    } catch (_) {}
     try {
       final data = await ApiClient.get('/store/avatar-frames');
       if (!mounted) return;
@@ -147,61 +168,115 @@ class _VipStoreScreenState extends State<VipStoreScreen> {
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-            child: Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
-                gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF4D3319), Color(0xFF2E1F14)]),
-              ),
-              child: Row(
-                children: [
-                  InIcon(InIcons.star,
-                      filled: true, color: AppColors.gold, size: 30),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(isVip ? 'VIP active' : 'Not VIP yet',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15)),
-                        Text(
-                          isVip
-                              ? 'Enjoy priority in Discover and exclusive frames'
-                              : '$_vipCostCoins coins — priority in Discover, exclusive frames',
-                          style: const TextStyle(
-                              color: Colors.white60, fontSize: 11),
+          // Capped and scrollable so the store below always has room.
+          ConstrainedBox(
+            constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.5),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF4D3319), Color(0xFF2E1F14)]),
+                ),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(children: [
+                        const InIcon(InIcons.crown,
+                            filled: true, color: AppColors.gold, size: 26),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                              isVip
+                                  ? 'VIP active${user?.vipExpiresAt != null ? ' until ${user!.vipExpiresAt!.toLocal().day}/${user.vipExpiresAt!.toLocal().month}' : ''}'
+                                  : 'Go VIP',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 17)),
                         ),
-                      ],
-                    ),
-                  ),
-                  if (!isVip)
-                    GestureDetector(
-                      onTap: _buyingVip ? null : _buyVip,
-                      child: Container(
-                        height: 34,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
-                          gradient: const LinearGradient(
-                              colors: [Color(0xFFE0B15E), Color(0xFFC98F3A)]),
+                      ]),
+                      const SizedBox(height: 10),
+                      for (final (icon, label) in _perks)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 3),
+                          child: Row(children: [
+                            InIcon(icon, size: 16, color: AppColors.gold),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(label,
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 13)),
+                            ),
+                          ]),
                         ),
-                        alignment: Alignment.center,
-                        child: Text(_buyingVip ? '…' : 'Go VIP',
-                            style: const TextStyle(
-                                color: Color(0xFF33200A),
-                                fontWeight: FontWeight.w700,
-                                fontSize: 12)),
+                      const SizedBox(height: 12),
+                      Row(children: [
+                        for (final p in _plans)
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: Semantics(
+                                selected: _months == p['months'],
+                                button: true,
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(14),
+                                  onTap: () => setState(
+                                      () => _months = p['months'] as int),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10, horizontal: 8),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                          color: _months == p['months']
+                                              ? AppColors.gold
+                                              : Colors.white24,
+                                          width:
+                                              _months == p['months'] ? 2 : 1),
+                                    ),
+                                    child: Column(children: [
+                                      Text(
+                                          p['months'] == 1
+                                              ? '1 month'
+                                              : '${p['months']} months',
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w700)),
+                                      Text('🪙 ${p['coins']}',
+                                          style: const TextStyle(
+                                              color: AppColors.gold,
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.w700)),
+                                    ]),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ]),
+                      const SizedBox(height: 12),
+                      FilledButton(
+                        onPressed: _buyingVip ? null : _buyVip,
+                        style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.gold,
+                            foregroundColor: const Color(0xFF33200A),
+                            minimumSize: const Size.fromHeight(46)),
+                        child: Text(
+                            _buyingVip
+                                ? '…'
+                                : isVip
+                                    ? 'Extend VIP'
+                                    : 'Get VIP',
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w800)),
                       ),
-                    ),
-                ],
+                    ]),
               ),
             ),
           ),

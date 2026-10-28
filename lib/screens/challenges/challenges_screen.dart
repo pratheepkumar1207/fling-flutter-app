@@ -35,6 +35,24 @@ class ChallengesScreen extends StatefulWidget {
 class _ChallengesScreenState extends State<ChallengesScreen> {
   bool _loading = true;
   List<Map<String, dynamic>> _challenges = [];
+  // Daily / Weekly / Special (monthly).
+  String _scope = 'daily';
+
+  List<Map<String, dynamic>> get _shown =>
+      _challenges.where((c) => c['scope'] == _scope).toList();
+
+  String? get _resetsIn {
+    final first = _shown.isEmpty ? null : _shown.first['resetsAt'];
+    final at = DateTime.tryParse('${first ?? ''}');
+    if (at == null) return null;
+    final left = at.difference(DateTime.now());
+    if (left.isNegative) return null;
+    if (left.inDays >= 1) {
+      return 'Resets in ${left.inDays}d ${left.inHours % 24}h';
+    }
+    return 'Resets in ${left.inHours}h ${left.inMinutes % 60}m';
+  }
+
   String? _claiming;
 
   @override
@@ -114,9 +132,37 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
           ? const Center(child: Spinner())
           : ListView.builder(
               padding: const EdgeInsets.fromLTRB(18, 6, 18, 16),
-              itemCount: _challenges.length,
+              itemCount: _shown.length + 1,
               itemBuilder: (context, i) {
-                final c = _challenges[i];
+                if (i == 0) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Wrap(spacing: 8, children: [
+                            for (final (id, label) in const [
+                              ('daily', 'Daily'),
+                              ('weekly', 'Weekly'),
+                              ('monthly', 'Special'),
+                            ])
+                              ChoiceChip(
+                                label: Text(label),
+                                selected: _scope == id,
+                                showCheckmark: false,
+                                onSelected: (_) => setState(() => _scope = id),
+                              ),
+                          ]),
+                          if (_resetsIn != null) ...[
+                            const SizedBox(height: 8),
+                            Text(_resetsIn!,
+                                style: const TextStyle(
+                                    color: AppColors.textDim, fontSize: 12.5)),
+                          ],
+                        ]),
+                  );
+                }
+                final c = _shown[i - 1];
                 final progress = asNum(c['progress']).toDouble();
                 final target = asNum(c['target']).toDouble();
                 final ratio =
