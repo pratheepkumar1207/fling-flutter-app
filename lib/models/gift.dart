@@ -1,6 +1,6 @@
-/// Mirrors Gift.js — an admin-managed gift catalog entry. `type` is the
-/// stable key sent to POST /wallet/gift; coin cost is enforced server-side
-/// from this catalog, not trusted from the client.
+/// One entry in the admin-managed gift catalog (GET /wallet/gifts) — the
+/// price is decided server-side by `type`, the client only ever sends the
+/// type back.
 class Gift {
   final String id;
   final String type;
@@ -8,12 +8,20 @@ class Gift {
   final String name;
   final int coins;
 
+  /// Gift sheet tab: popular | lucky | love | fan (fan club members only).
+  final String category;
+
+  /// Optional corner tag: HOT, NEW or LUCKY.
+  final String? tag;
+
   Gift(
       {required this.id,
       required this.type,
       required this.emoji,
       required this.name,
-      required this.coins});
+      required this.coins,
+      this.category = 'popular',
+      this.tag});
 
   factory Gift.fromJson(Map<String, dynamic> json) {
     return Gift(
@@ -22,6 +30,8 @@ class Gift {
       emoji: json['emoji'] as String? ?? '🎁',
       name: json['name'] as String? ?? '',
       coins: json['coins'] as int? ?? 0,
+      category: json['category'] as String? ?? 'popular',
+      tag: json['tag'] as String?,
     );
   }
 }

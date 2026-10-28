@@ -61,6 +61,13 @@ class RoomSocketController extends ChangeNotifier {
   };
   String? queueDenied;
 
+  /// Gifts worth at least this many coins play full-screen.
+  static const bigGiftCoins = 499;
+
+  /// The latest big gift, for the full-screen animation (cleared by the
+  /// room screen once shown).
+  Map<String, dynamic>? bigGift;
+
   /// Set when the host ends the room for everyone (their name).
   String? endedBy;
 
@@ -188,6 +195,25 @@ class RoomSocketController extends ChangeNotifier {
     });
     s.on('chat:message', (data) {
       messages = [...messages, Map<String, dynamic>.from(data)];
+      notifyListeners();
+    });
+    // Gifts show in chat for everyone; big ones play full-screen.
+    s.on('gift:received', (data) {
+      if (data is! Map) return;
+      final g = Map<String, dynamic>.from(data);
+      final qty = (g['quantity'] as num?)?.toInt() ?? 1;
+      final to = g['toName'] as String?;
+      messages = [
+        ...messages,
+        {
+          'system': true,
+          'gift': true,
+          'text':
+              '${g['fromName'] ?? 'Someone'} sent ${to == null ? '' : '$to '}${g['emoji'] ?? '🎁'} ${g['name'] ?? 'a gift'}${qty > 1 ? ' ×$qty' : ''}',
+          'ts': DateTime.now().millisecondsSinceEpoch,
+        }
+      ];
+      if (((g['coins'] as num?) ?? 0) >= bigGiftCoins) bigGift = g;
       notifyListeners();
     });
     s.on('queue:state', (data) {
@@ -387,6 +413,7 @@ class RoomSocketController extends ChangeNotifier {
     socket?.off('room:settingsChanged');
     socket?.off('queue:denied');
     socket?.off('room:ended');
+    socket?.off('gift:received');
     socket?.off('room:myRole');
     socket?.off('chat:denied');
     socket?.off('chat:mentioned');

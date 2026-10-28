@@ -304,6 +304,11 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       Navigator.of(context).pop();
       return;
     }
+    if (rs.bigGift != null) {
+      final g = rs.bigGift!;
+      rs.bigGift = null;
+      _showBigGift(g);
+    }
     if (rs.chatDenied != null) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(rs.chatDenied!)));
@@ -1285,6 +1290,63 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                 id == myId ? rs.micOff() : rs.removeMic(id),
                           ),
                         ),
+                      // Viewers: ask to join the host on camera.
+                      if (!rs.isHost && rs.settings['micEnabled'] != false)
+                        Positioned(
+                          right: 12,
+                          bottom: MediaQuery.paddingOf(context).bottom +
+                              (inPk ? 230 : 300) +
+                              16,
+                          child: Material(
+                            color: myMicOn
+                                ? Colors.black54
+                                : myMicRequested
+                                    ? Colors.black54
+                                    : AppColors.primary,
+                            shape: const StadiumBorder(),
+                            child: InkWell(
+                              customBorder: const StadiumBorder(),
+                              onTap: () {
+                                if (myMicOn) {
+                                  rs.micOff();
+                                } else if (myMicRequested) {
+                                  rs.cancelMicRequest();
+                                } else {
+                                  rs.requestMic();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content: Text(
+                                              'Asked $hostName to join the live')));
+                                }
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 9),
+                                child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      InIcon(
+                                          myMicOn
+                                              ? InIcons.logout
+                                              : InIcons.video,
+                                          size: 16,
+                                          color: Colors.white),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                          myMicOn
+                                              ? 'Leave stage'
+                                              : myMicRequested
+                                                  ? 'Requested · tap to cancel'
+                                                  : 'Ask to join',
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w700)),
+                                    ]),
+                              ),
+                            ),
+                          ),
+                        ),
                       Positioned(
                         left: 0,
                         right: 0,
@@ -2165,6 +2227,53 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
         }
       },
     );
+  }
+
+  /// A big gift plays over the whole room for a couple of seconds.
+  void _showBigGift(Map<String, dynamic> g) {
+    final overlay = Overlay.maybeOf(context, rootOverlay: true);
+    if (overlay == null) return;
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (_) => IgnorePointer(
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: 1),
+          duration: const Duration(milliseconds: 2600),
+          onEnd: () => entry.remove(),
+          builder: (_, t, __) {
+            final scale = t < 0.25 ? 0.4 + 2.4 * t : 1.0 + 0.08 * (t - 0.25);
+            final opacity =
+                t < 0.8 ? 1.0 : (1 - (t - 0.8) / 0.2).clamp(0.0, 1.0);
+            return Opacity(
+              opacity: opacity,
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.35 * opacity),
+                alignment: Alignment.center,
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Transform.scale(
+                    scale: scale,
+                    child: Text('${g['emoji'] ?? '🎁'}',
+                        style: const TextStyle(
+                            fontSize: 120, decoration: TextDecoration.none)),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                      '${g['fromName'] ?? 'Someone'} sent ${g['name'] ?? 'a gift'}${((g['quantity'] as num?) ?? 1) > 1 ? ' ×${g['quantity']}' : ''}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          decoration: TextDecoration.none,
+                          shadows: [Shadow(blurRadius: 12)])),
+                ]),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    overlay.insert(entry);
   }
 
   /// From Room settings: confirm, then close the room for everyone.

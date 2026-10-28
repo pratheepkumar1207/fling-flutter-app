@@ -711,30 +711,100 @@ Future<void> showLiveFansSheet(
                         .titleSmall
                         ?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
-                if (extras.topFans.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 18),
-                    child: Text('No gifts yet — the first one tops the list.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: AppColors.textFaint)),
-                  )
-                else
-                  for (final (i, f) in extras.topFans.indexed)
-                    LiveRankRow(
-                      rank: i + 1,
-                      name: f['name'] as String? ?? '',
-                      avatarUrl: f['avatarUrl'] as String?,
-                      isFan: extras.fanIds.contains(f['id']),
-                      value: (f['coins'] as num?)?.toInt() ?? 0,
-                      icon: InIcons.gift,
-                      iconColor: AppColors.gold,
-                    ),
+                _FansTabs(extras: extras, hostId: hostId),
               ],
               scroll: true),
         );
       },
     ),
   );
+}
+
+/// This live / Daily / Weekly / Fan club — this live comes from the
+/// controller; the rest from GET /live/fans/:hostId.
+class _FansTabs extends StatefulWidget {
+  final LiveExtrasController extras;
+  final String hostId;
+  const _FansTabs({required this.extras, required this.hostId});
+
+  @override
+  State<_FansTabs> createState() => _FansTabsState();
+}
+
+class _FansTabsState extends State<_FansTabs> {
+  String _tab = 'live';
+  final Map<String, List<Map<String, dynamic>>> _lists = {};
+
+  static const _tabs = [
+    ('live', 'This live'),
+    ('day', 'Daily'),
+    ('week', 'Weekly'),
+    ('club', 'Fan club'),
+  ];
+
+  Future<void> _pick(String t) async {
+    setState(() => _tab = t);
+    if (t == 'live' || _lists.containsKey(t)) return;
+    try {
+      final d = await ApiClient.get('/live/fans/${widget.hostId}?period=$t');
+      if (!mounted) return;
+      setState(() => _lists[t] =
+          (d as List).cast<Map>().map(Map<String, dynamic>.from).toList());
+    } catch (_) {
+      if (mounted) setState(() => _lists[t] = []);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final list = _tab == 'live'
+        ? widget.extras.topFans.cast<Map<String, dynamic>>()
+        : _lists[_tab];
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(children: [
+          for (final (id, label) in _tabs)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text(label),
+                selected: _tab == id,
+                showCheckmark: false,
+                onSelected: (_) => _pick(id),
+              ),
+            ),
+        ]),
+      ),
+      const SizedBox(height: 6),
+      if (list == null)
+        const Padding(
+            padding: EdgeInsets.symmetric(vertical: 18),
+            child: Center(child: Spinner(size: 20)))
+      else if (list.isEmpty)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          child: Text(
+              _tab == 'club'
+                  ? 'No fan club members yet.'
+                  : 'No gifts yet — the first one tops the list.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textFaint)),
+        )
+      else
+        for (final (i, f) in list.indexed)
+          LiveRankRow(
+            rank: i + 1,
+            name: f['name'] as String? ?? '',
+            avatarUrl: f['avatarUrl'] as String?,
+            isFan: _tab == 'club' || widget.extras.fanIds.contains(f['id']),
+            level: (f['level'] as num?)?.toInt(),
+            value: (f['coins'] as num?)?.toInt() ?? 0,
+            icon: _tab == 'club' ? InIcons.heart : InIcons.gift,
+            iconColor: _tab == 'club' ? AppColors.pink : AppColors.gold,
+          ),
+    ]);
+  }
 }
 
 class _JoinClubButton extends StatefulWidget {
@@ -790,7 +860,11 @@ class LiveRankRow extends StatelessWidget {
       required this.icon,
       required this.iconColor,
       this.onTap,
-      this.trailing});
+      this.trailing,
+      this.level});
+
+  /// Shown as "Lv 12" next to the name when known.
+  final int? level;
 
   @override
   Widget build(BuildContext context) {
@@ -829,6 +903,21 @@ class LiveRankRow extends StatelessWidget {
                 const SizedBox(width: 4),
                 const InIcon(InIcons.heart,
                     size: 12, color: AppColors.pink, filled: true),
+              ],
+              if (level != null && level! > 0) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  decoration: BoxDecoration(
+                      color: const Color(0xFF2B1640),
+                      borderRadius: BorderRadius.circular(6)),
+                  child: Text('Lv $level',
+                      style: const TextStyle(
+                          color: AppColors.lilac,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800)),
+                ),
               ],
             ]),
           ),

@@ -10,6 +10,7 @@ import '../models/gift.dart';
 import '../theme/app_colors.dart';
 import '../theme/glass.dart';
 import 'spinner.dart';
+import '../screens/wallet/wallet_buy_screen.dart';
 
 const _kAnimDuration = Duration(milliseconds: 1000);
 const _kCoinCount = 10;
@@ -57,6 +58,19 @@ class _GiftSheetState extends State<_GiftSheet> {
   String? _sending;
   List<Gift>? _gifts;
   Gift? _selected;
+  String _tab = 'popular';
+  int _qty = 1;
+  // Same gift sent again within a few seconds builds a combo.
+  String? _comboType;
+  int _combo = 0;
+  DateTime _comboAt = DateTime(2000);
+
+  static const _tabs = [
+    ('popular', 'Popular'),
+    ('lucky', 'Lucky'),
+    ('love', 'Love'),
+    ('fan', 'Fan club'),
+  ];
   // Kept alive across rebuilds (not recreated per-build) so a tile's
   // GlobalKey still resolves to its live Element after selecting it
   // triggers a setState — matches GiftSheetDark.dc.html's select-then-
@@ -119,16 +133,29 @@ class _GiftSheetState extends State<_GiftSheet> {
       await ApiClient.post('/wallet/gift', body: {
         'roomId': widget.roomId,
         'toUserId': widget.toUserId,
-        'giftType': gift.type
+        'giftType': gift.type,
+        'quantity': _qty,
       });
       widget.onSent?.call();
+      if (mounted) context.read<AuthProvider>().refreshUser();
+      final now = DateTime.now();
+      final again =
+          _comboType == gift.type && now.difference(_comboAt).inSeconds < 6;
+      _combo = again ? _combo + 1 : 1;
+      _comboType = gift.type;
+      _comboAt = now;
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(SnackBar(
+          duration: const Duration(seconds: 2),
+          content: Text(_combo >= 3
+              ? 'Combo ×$_combo! ${gift.emoji}'
+              : 'Sent ${gift.name}${_qty > 1 ? ' ×$_qty' : ''}')));
     } on ApiException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
     }
-
-    await Future.delayed(_kAnimDuration + const Duration(milliseconds: 100));
-    if (mounted) Navigator.of(context).pop();
-    messenger.showSnackBar(SnackBar(content: Text('Sent a ${gift.name}!')));
+    // The sheet stays open so you can keep sending (and build a combo).
+    await Future.delayed(const Duration(milliseconds: 350));
+    if (mounted) setState(() => _sending = null);
   }
 
   // Deterministic per-gift glossy gradient (matches GiftSheetDark.dc.html's
@@ -190,8 +217,35 @@ class _GiftSheetState extends State<_GiftSheet> {
                               fontWeight: FontWeight.w700)),
                     ]),
                   ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                            builder: (_) => const WalletBuyScreen())),
+                    style: TextButton.styleFrom(
+                        minimumSize: const Size(44, 36),
+                        padding: const EdgeInsets.symmetric(horizontal: 8)),
+                    child: const Text('Top up',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
+                  ),
                 ],
               ),
+              if (_combo >= 2 && _comboType != null)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                        color: AppColors.pink,
+                        borderRadius: BorderRadius.circular(999)),
+                    child: Text('Combo ×$_combo',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800)),
+                  ),
+                ),
               const SizedBox(height: 16),
               if (_gifts == null)
                 const Padding(
@@ -204,6 +258,23 @@ class _GiftSheetState extends State<_GiftSheet> {
                         child: Text('No gifts available right now.',
                             style: TextStyle(color: AppColors.textFaint))))
               else ...[
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(children: [
+                    for (final (id, label) in _tabs)
+                      if (_gifts!.any((g) => g.category == id))
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text(label),
+                            selected: _tab == id,
+                            showCheckmark: false,
+                            onSelected: (_) => setState(() => _tab = id),
+                          ),
+                        ),
+                  ]),
+                ),
+                const SizedBox(height: 12),
                 GridView.count(
                   crossAxisCount: 4,
                   shrinkWrap: true,
@@ -211,7 +282,12 @@ class _GiftSheetState extends State<_GiftSheet> {
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 8,
                   childAspectRatio: 0.8,
-                  children: _gifts!.asMap().entries.map((entry) {
+                  children: (_gifts!.any((g) => g.category == _tab)
+                          ? _gifts!.where((g) => g.category == _tab).toList()
+                          : _gifts!)
+                      .asMap()
+                      .entries
+                      .map((entry) {
                     final gift = entry.value;
                     final tileKey = _tileKeys[gift.id] ??= GlobalKey();
                     final disabled = _sending != null;
@@ -228,30 +304,54 @@ class _GiftSheetState extends State<_GiftSheet> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Container(
-                              width: 52,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: gradient),
-                                border: selected
-                                    ? Border.all(
-                                        color: AppColors.accent, width: 2)
-                                    : null,
-                                boxShadow: [
-                                  BoxShadow(
-                                      color: gradient[1].withValues(alpha: 0.4),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 6))
-                                ],
+                            Stack(clipBehavior: Clip.none, children: [
+                              Container(
+                                width: 52,
+                                height: 52,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: gradient),
+                                  border: selected
+                                      ? Border.all(
+                                          color: AppColors.accent, width: 2)
+                                      : null,
+                                  boxShadow: [
+                                    BoxShadow(
+                                        color:
+                                            gradient[1].withValues(alpha: 0.4),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 6))
+                                  ],
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(gift.emoji,
+                                    style: const TextStyle(fontSize: 22)),
                               ),
-                              alignment: Alignment.center,
-                              child: Text(gift.emoji,
-                                  style: const TextStyle(fontSize: 22)),
-                            ),
+                              if (gift.tag != null)
+                                Positioned(
+                                  top: -4,
+                                  right: -10,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 4, vertical: 1),
+                                    decoration: BoxDecoration(
+                                        color: gift.tag == 'LUCKY'
+                                            ? AppColors.success
+                                            : gift.tag == 'NEW'
+                                                ? AppColors.blue
+                                                : AppColors.pink,
+                                        borderRadius: BorderRadius.circular(6)),
+                                    child: Text(gift.tag!,
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 8,
+                                            fontWeight: FontWeight.w900)),
+                                  ),
+                                ),
+                            ]),
                             const SizedBox(height: 4),
                             Text(gift.name,
                                 maxLines: 1,
@@ -273,7 +373,25 @@ class _GiftSheetState extends State<_GiftSheet> {
                     );
                   }).toList(),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
+                const Text(
+                    'Send 3 in a row for a combo. Big gifts play full-screen for everyone.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textDim, fontSize: 11.5)),
+                const SizedBox(height: 10),
+                Row(children: [
+                  for (final q in const [1, 10, 99])
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: ChoiceChip(
+                        label: Text('×$q'),
+                        selected: _qty == q,
+                        showCheckmark: false,
+                        onSelected: (_) => setState(() => _qty = q),
+                      ),
+                    ),
+                ]),
+                const SizedBox(height: 10),
                 GestureDetector(
                   onTap: (_selected == null || _sending != null)
                       ? null
@@ -294,7 +412,7 @@ class _GiftSheetState extends State<_GiftSheet> {
                     child: Text(
                       _selected == null
                           ? 'Pick a gift'
-                          : 'Send ${_selected!.name} — ${_selected!.coins} coins',
+                          : 'Send ${_selected!.name}${_qty > 1 ? ' ×$_qty' : ''} — ${_selected!.coins * _qty} coins',
                       style: TextStyle(
                           color: (_selected == null || _sending != null)
                               ? AppColors.textFaint
