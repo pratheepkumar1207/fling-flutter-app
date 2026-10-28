@@ -45,7 +45,8 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
       final data = await ApiClient.get('/creators/me/livestream-dashboard')
           as Map<String, dynamic>;
       if (mounted) setState(() => _dashboard = data);
-      final week = await ApiClient.get('/studio?days=7') as Map<String, dynamic>;
+      final week =
+          await ApiClient.get('/studio?days=7') as Map<String, dynamic>;
       if (mounted) setState(() => _week = week);
     } catch (_) {
       if (mounted) setState(() => _dashboard = null);

@@ -99,7 +99,8 @@ class _RoomModerationScreenState extends State<RoomModerationScreen> {
         child: friends.isEmpty
             ? const Padding(
                 padding: EdgeInsets.all(28),
-                child: Text('Add friends first — co-hosts are picked from them.',
+                child: Text(
+                    'Add friends first — co-hosts are picked from them.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: AppColors.textDim)),
               )
@@ -210,8 +211,7 @@ class _RoomModerationScreenState extends State<RoomModerationScreen> {
                   for (final w in _words)
                     InputChip(
                       label: Text(w),
-                      onDeleted: () =>
-                          _save('words', [..._words]..remove(w)),
+                      onDeleted: () => _save('words', [..._words]..remove(w)),
                       deleteButtonTooltipMessage: 'Remove $w',
                     ),
                   ActionChip(
@@ -237,7 +237,8 @@ class _RoomModerationScreenState extends State<RoomModerationScreen> {
                           style: const TextStyle(
                               color: AppColors.textDim, fontSize: 12)),
                       onTap: () async {
-                        final role = await _pickRole(c['name'] as String? ?? '');
+                        final role =
+                            await _pickRole(c['name'] as String? ?? '');
                         if (role != null) _setRole(c['id'] as String, role);
                       },
                       trailing: TextButton(
@@ -325,7 +326,8 @@ class _Switch extends StatelessWidget {
         onChanged: onChanged,
         activeThumbColor: AppColors.primary,
         title: Text(title,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5)),
+            style:
+                const TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5)),
         subtitle: subtitle == null
             ? null
             : Text(subtitle!,

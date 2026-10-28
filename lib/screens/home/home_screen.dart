@@ -15,6 +15,9 @@ import '../lobby/lobby_create_screen.dart';
 import '../../theme/insync_icons.dart';
 import '../shell/create_sheet.dart';
 import 'home_room_cards.dart';
+import '../../core/api_exception.dart';
+import '../../core/auth_provider.dart';
+import '../blend/blend_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,6 +33,10 @@ class _HomeScreenState extends State<HomeScreen> {
   List<RoomSummary> _invited = [];
   List<Map<String, dynamic>> _scheduledEvents = [];
   List<Map<String, dynamic>> _likedPlaylists = [];
+  // The room you're still connected to (another device or a call), and
+  // Reels Blends someone is watching right now.
+  Map<String, dynamic>? _myRoom;
+  List<Map<String, dynamic>> _liveBlends = [];
   String? _typeFilter;
   Timer? _refreshTimer;
   Timer? _activityDebounce;
@@ -135,6 +142,52 @@ class _HomeScreenState extends State<HomeScreen> {
           ((results[2] as List?) ?? []).cast<Map<String, dynamic>>();
       _loading = false;
     });
+    _loadExtras();
+  }
+
+  Future<void> _loadExtras() async {
+    try {
+      final r = await Future.wait([
+        ApiClient.get('/rooms/mine/active').catchError((_) => null),
+        ApiClient.get('/blends').catchError((_) => null),
+      ]);
+      if (!mounted) return;
+      final mine = r[0] is Map ? Map<String, dynamic>.from(r[0] as Map) : null;
+      setState(() {
+        _myRoom = mine?['roomId'] == null ? null : mine;
+        _liveBlends = [
+          for (final b in (r[1] as List?) ?? const [])
+            if (b is Map && ((b['watching'] as List?) ?? const []).isNotEmpty)
+              Map<String, dynamic>.from(b)
+        ];
+      });
+    } catch (_) {}
+  }
+
+  Future<bool?> _toggleRemind(String id) async {
+    try {
+      final r = await ApiClient.post('/rooms/$id/remind');
+      return (r as Map)['remindMe'] == true;
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+      return null;
+    }
+  }
+
+  String _blendTitle(Map<String, dynamic> b) {
+    final myId = context.read<AuthProvider>().user?.id;
+    final others = [
+      for (final m in (b['members'] as List? ?? const []))
+        if (m is Map && m['id'] != myId)
+          (m['name'] as String? ?? 'Someone').split(' ').first
+    ];
+    final name = b['name'] as String?;
+    if (name != null && name.isNotEmpty) return name;
+    if (others.isEmpty) return 'Your Blend';
+    return 'You + ${others.take(2).join(', ')}${others.length > 2 ? ' +${others.length - 2}' : ''}';
   }
 
   Future<void> _loadLikedPlaylists() async {
@@ -223,6 +276,16 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           _HomeHero(onCreate: _createRoom, onJoin: _showJoinSheet),
           const SizedBox(height: 14),
+          if (_myRoom != null) ...[
+            HomeInRoomBanner(
+                title: _myRoom!['title'] as String? ?? 'Your room',
+                speakingName: _rooms
+                    .where((r) => r['id'] == _myRoom!['roomId'])
+                    .map((r) => r['speakingName'] as String?)
+                    .firstOrNull,
+                onOpen: () => _openRoom(_myRoom!['roomId'] as String)),
+            const SizedBox(height: 14),
+          ],
           _QuickStart(onPick: _startType),
           for (final r in _invited) ...[
             const SizedBox(height: 10),
@@ -285,15 +348,28 @@ class _HomeScreenState extends State<HomeScreen> {
               HomeRoomCard(room: r, onTap: () => _openRoom(r['id'] as String)),
               const SizedBox(height: 12),
             ],
+          for (final b in _liveBlends) ...[
+            HomeBlendCard(
+                title: _blendTitle(b),
+                members: [
+                  for (final m in (b['members'] as List? ?? const []))
+                    if (m is Map) Map<String, dynamic>.from(m)
+                ],
+                watching: (b['watching'] as List).length,
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => BlendScreen(
+                        blendId: b['id'] as String, together: true)))),
+            const SizedBox(height: 12),
+          ],
           if (_scheduledEvents.isNotEmpty) ...[
             const SizedBox(height: 12),
             _heading('Coming up'),
             const SizedBox(height: 12),
             for (final ev in _scheduledEvents) ...[
-              HomeInviteCard(
-                  upcoming: true,
-                  title: ev['title'] as String? ?? 'Upcoming room',
-                  subtitle: ev['hostName'] as String? ?? 'Scheduled room',
+              HomeEventCard(
+                  key: ValueKey('event-${ev['id']}'),
+                  event: ev,
+                  onRemind: () => _toggleRemind(ev['id'] as String),
                   onTap: () => _openRoom(ev['id'] as String)),
               const SizedBox(height: 10),
             ],

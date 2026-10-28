@@ -33,12 +33,12 @@ class StudioStats extends StatelessWidget {
       ),
       const SizedBox(height: 10),
       Row(children: [
-        Expanded(
-            child: _Tile(label: 'Hours live', value: '${live['hours']}h')),
+        Expanded(child: _Tile(label: 'Hours live', value: '${live['hours']}h')),
         const SizedBox(width: 10),
         Expanded(
             child: _Tile(
-                label: 'Peak viewers', value: formatNumber(live['peakViewers']))),
+                label: 'Peak viewers',
+                value: formatNumber(live['peakViewers']))),
         const SizedBox(width: 10),
         Expanded(
             child: _Tile(
@@ -115,7 +115,9 @@ class _Bars extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final values = [for (final d in days) ((d['coins'] as num?) ?? 0).toDouble()];
+    final values = [
+      for (final d in days) ((d['coins'] as num?) ?? 0).toDouble()
+    ];
     final top = values.fold<double>(0, (m, v) => v > m ? v : m);
     return Semantics(
       label: 'Gifts by day: ${values.map((v) => v.round()).join(', ')}',
@@ -127,7 +129,8 @@ class _Bars extends StatelessWidget {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                child:
+                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
                   Container(
                     height: top == 0 ? 3 : 3 + 66 * (values[i] / top),
                     decoration: BoxDecoration(
