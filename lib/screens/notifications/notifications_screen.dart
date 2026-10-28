@@ -77,10 +77,108 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     openNotificationTarget(context, n);
   }
 
+  // All / Rooms / Matches / Social / Coins.
+  String _filter = 'all';
+  final Set<String> _followedBack = {};
+
+  static const _filters = [
+    ('all', 'All'),
+    ('rooms', 'Rooms'),
+    ('matches', 'Matches'),
+    ('social', 'Social'),
+    ('coins', 'Coins'),
+  ];
+
+  static String _group(String type) => switch (type) {
+        'room_invite' ||
+        'event_reminder' ||
+        'blend_invite' ||
+        'blend_watch' ||
+        'friend_online' =>
+          'rooms',
+        'match' => 'matches',
+        'gift' ||
+        'gift_received' ||
+        'cashout_requested' ||
+        'cashout' ||
+        'reward' =>
+          'coins',
+        _ => 'social',
+      };
+
+  Future<void> _followBack(NotificationItem n) async {
+    final id = n.data?['fromUserId'] as String?;
+    if (id == null) return;
+    setState(() => _followedBack.add(id));
+    try {
+      await ApiClient.post('/social/follow/$id');
+    } catch (_) {
+      if (mounted) setState(() => _followedBack.remove(id));
+    }
+  }
+
+  /// The one-tap action on a row, when the type has one.
+  Widget? _action(NotificationItem n) {
+    Widget pill(String label, VoidCallback onTap, {bool filled = true}) =>
+        filled
+            ? FilledButton(
+                onPressed: onTap,
+                style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 34),
+                    padding: const EdgeInsets.symmetric(horizontal: 14)),
+                child: Text(label, style: const TextStyle(fontSize: 12.5)),
+              )
+            : OutlinedButton(
+                onPressed: onTap,
+                style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 34),
+                    padding: const EdgeInsets.symmetric(horizontal: 12)),
+                child: Text(label, style: const TextStyle(fontSize: 12.5)),
+              );
+    switch (n.type) {
+      case 'room_invite' || 'blend_invite' || 'blend_watch':
+        return pill('Join', () => _open(n));
+      case 'match':
+        return pill('Say hi', () => _open(n));
+      case 'follow':
+        final id = n.data?['fromUserId'] as String?;
+        if (id == null) return null;
+        return _followedBack.contains(id)
+            ? pill('Following', () {}, filled: false)
+            : pill('Follow back', () => _followBack(n));
+      case 'friend_request':
+        return pill('View', () => _open(n), filled: false);
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final unread = _items.where((n) => !n.isRead).toList();
-    final read = _items.where((n) => n.isRead).toList();
+    final shown = _filter == 'all'
+        ? _items
+        : _items.where((n) => _group(n.type) == _filter).toList();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final weekAgo = today.subtract(const Duration(days: 7));
+    final sections = <(String, List<NotificationItem>)>[
+      (
+        'TODAY',
+        shown.where((n) => !n.createdAt.toLocal().isBefore(today)).toList()
+      ),
+      (
+        'THIS WEEK',
+        shown
+            .where((n) =>
+                n.createdAt.toLocal().isBefore(today) &&
+                !n.createdAt.toLocal().isBefore(weekAgo))
+            .toList()
+      ),
+      (
+        'EARLIER',
+        shown.where((n) => n.createdAt.toLocal().isBefore(weekAgo)).toList()
+      ),
+    ];
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -97,19 +195,44 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ? const Center(child: Spinner())
           : _items.isEmpty
               ? const Center(
-                  child: Text('No notifications yet.',
-                      style: TextStyle(color: AppColors.textFaint)))
+                  child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Text(
+                      'No notifications yet. Invites, likes and gifts will show up here.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppColors.textFaint)),
+                ))
               : ListView(
-                  padding: const EdgeInsets.only(top: 8, bottom: 24),
+                  padding: const EdgeInsets.only(top: 4, bottom: 24),
                   children: [
-                    if (unread.isNotEmpty) ...[
-                      _sectionLabel('New'),
-                      ...unread.map(_row)
-                    ],
-                    if (read.isNotEmpty) ...[
-                      _sectionLabel('Earlier'),
-                      ...read.map(_row)
-                    ],
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                      child: Row(children: [
+                        for (final (id, label) in _filters)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ChoiceChip(
+                              label: Text(label),
+                              selected: _filter == id,
+                              showCheckmark: false,
+                              onSelected: (_) => setState(() => _filter = id),
+                            ),
+                          ),
+                      ]),
+                    ),
+                    if (shown.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.all(40),
+                        child: Text('Nothing here yet.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: AppColors.textFaint)),
+                      ),
+                    for (final (label, list) in sections)
+                      if (list.isNotEmpty) ...[
+                        _sectionLabel(label),
+                        ...list.map(_row),
+                      ],
                   ],
                 ),
     );
@@ -126,12 +249,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       );
 
   Widget _row(NotificationItem n) {
+    final action = _action(n);
     return GestureDetector(
       onTap: () => _open(n),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
         decoration: insyncClay(radius: 20),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
             Container(
@@ -168,12 +292,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ],
               ),
             ),
-            if (!n.isRead)
+            if (action != null) ...[const SizedBox(width: 8), action],
+            if (!n.isRead) ...[
+              const SizedBox(width: 8),
               Container(
                   width: 8,
                   height: 8,
                   decoration: const BoxDecoration(
                       shape: BoxShape.circle, color: AppColors.accent)),
+            ],
           ],
         ),
       ),
