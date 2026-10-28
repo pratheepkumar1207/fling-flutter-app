@@ -43,6 +43,9 @@ class User {
   final int level;
   final bool isVip;
   final DateTime? vipExpiresAt;
+
+  /// { title, videoUrl, thumbnail } shown on the profile.
+  final Map<String, dynamic>? profileSong;
   final bool isVerified;
   final bool isFake;
   final String? equippedFrameId;
@@ -95,6 +98,7 @@ class User {
     this.level = 1,
     this.isVip = false,
     this.vipExpiresAt,
+    this.profileSong,
     this.isVerified = false,
     this.isFake = false,
     this.equippedFrameId,
@@ -164,6 +168,9 @@ class User {
       xp: json['xp'] as int? ?? 0,
       level: json['level'] as int? ?? 1,
       isVip: json['isVip'] as bool? ?? false,
+      profileSong: json['profileSong'] is Map
+          ? Map<String, dynamic>.from(json['profileSong'] as Map)
+          : null,
       vipExpiresAt: json['vipExpiresAt'] != null
           ? DateTime.tryParse(json['vipExpiresAt'])
           : null,

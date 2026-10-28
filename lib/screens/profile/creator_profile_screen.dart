@@ -1,3 +1,4 @@
+import '../../widgets/profile_song_chip.dart';
 import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
@@ -662,6 +663,11 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
             style: const TextStyle(
                 color: AppColors.textDim, fontSize: 12.5, height: 1.5)),
       ],
+      if (p['profileSong'] is Map)
+        Align(
+            alignment: Alignment.centerLeft,
+            child: ProfileSongChip(
+                song: Map<String, dynamic>.from(p['profileSong'] as Map))),
     ];
     for (final id in layout.visibleSections()) {
       if (id == 'highlights') {

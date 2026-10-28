@@ -1,3 +1,4 @@
+import '../../widgets/profile_song_chip.dart';
 import '../../theme/insync_icons.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -843,6 +844,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: AppColors.textDim, fontSize: 13, height: 1.4),
             ),
           ),
+        ProfileSongChip(song: user?.profileSong),
         Padding(
           padding: const EdgeInsets.only(top: 6),
           child: Wrap(spacing: 6, runSpacing: 6, children: [
@@ -1295,8 +1297,82 @@ class EditProfileSheetState extends State<EditProfileSheet> {
   bool _safeModeEnabled = false;
   bool _locationSharingEnabled = false;
   DateTime? _usernameChangedAt;
+  Map<String, dynamic>? _profileSong;
+  bool _songChanged = false;
 
   static const _usernameCooldown = Duration(days: 30);
+
+  /// Pick the profile song from your liked songs (or history).
+  Future<void> _pickSong() async {
+    List songs = [];
+    try {
+      songs = await ApiClient.get('/liked-songs') as List;
+      if (songs.isEmpty) songs = await ApiClient.get('/song-history') as List;
+    } catch (_) {}
+    if (!mounted) return;
+    final yt = songs
+        .cast<Map>()
+        .where((s) => '${s['videoUrl'] ?? ''}'.contains('youtu'))
+        .toList();
+    final pick = await showModalBottomSheet<Map>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      builder: (sheet) => SafeArea(
+        child: yt.isEmpty
+            ? const Padding(
+                padding: EdgeInsets.all(28),
+                child: Text(
+                    'Like a song in a room first — your liked songs show up here.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textDim)),
+              )
+            : ListView(shrinkWrap: true, children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(20, 16, 20, 6),
+                  child: Text('Profile song',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                ),
+                for (final s in yt)
+                  ListTile(
+                    leading: const InIcon(InIcons.music,
+                        size: 20, color: AppColors.lilac),
+                    title: Text('${s['title'] ?? 'Song'}',
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    onTap: () => Navigator.of(sheet).pop(s),
+                  ),
+                if (_profileSong != null)
+                  ListTile(
+                    leading: const InIcon(InIcons.close,
+                        size: 20, color: AppColors.textDim),
+                    title: const Text('Remove profile song'),
+                    onTap: () => Navigator.of(sheet).pop(const {}),
+                  ),
+              ]),
+      ),
+    );
+    if (pick == null || !mounted) return;
+    setState(() {
+      _songChanged = true;
+      _profileSong = pick.isEmpty
+          ? null
+          : {
+              'title': pick['title'] ?? 'Song',
+              'videoUrl': pick['videoUrl'],
+              'thumbnail': pick['thumbnail'],
+            };
+    });
+  }
+
+  Widget _section(String t) => Padding(
+        padding: const EdgeInsets.only(top: 18, bottom: 6),
+        child: Text(t,
+            style: const TextStyle(
+                color: AppColors.textDim,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5)),
+      );
 
   DateTime? get _canChangeFreeAt => _usernameChangedAt?.add(_usernameCooldown);
   bool get _inCooldown =>
@@ -1328,6 +1404,7 @@ class EditProfileSheetState extends State<EditProfileSheet> {
     _safeModeEnabled = user?.safeModeEnabled ?? false;
     _locationSharingEnabled = user?.locationSharingEnabled ?? false;
     _usernameChangedAt = user?.usernameChangedAt;
+    _profileSong = user?.profileSong;
     InterestOptionsCache.load().then((options) {
       if (mounted) setState(() => _interestOptions = options);
     });
@@ -1346,6 +1423,7 @@ class EditProfileSheetState extends State<EditProfileSheet> {
   }
 
   Map<String, dynamic> _buildPatch({bool payToChangeNow = false}) => {
+        if (_songChanged) 'profileSong': _profileSong,
         'name': _name.text.trim(),
         'username': _username.text.trim(),
         'bio': _bio.text,
@@ -1470,7 +1548,7 @@ class EditProfileSheetState extends State<EditProfileSheet> {
           _field('Bio', _bio, maxLines: 2),
           _field('City', _city),
           _field('Age', _age, keyboardType: TextInputType.number),
-          const SizedBox(height: 4),
+          _section('ABOUT YOU'),
           const Text('Gender',
               style: TextStyle(color: AppColors.textDim, fontSize: 13)),
           DropdownButton<String?>(
@@ -1528,7 +1606,7 @@ class EditProfileSheetState extends State<EditProfileSheet> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          _section('INTERESTS AND PROMPTS'),
           const Text('Interests',
               style: TextStyle(color: AppColors.textDim, fontSize: 13)),
           const SizedBox(height: 6),
@@ -1551,7 +1629,7 @@ class EditProfileSheetState extends State<EditProfileSheet> {
           PromptEditor(
               prompts: _prompts,
               onChanged: (v) => setState(() => _prompts = v)),
-          const SizedBox(height: 12),
+          _section('LIFESTYLE'),
           Row(
             children: [
               Expanded(
@@ -1650,7 +1728,24 @@ class EditProfileSheetState extends State<EditProfileSheet> {
               Expanded(child: _field('Religion', _religion)),
             ],
           ),
-          const SizedBox(height: 12),
+          _section('MORE'),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading:
+                const InIcon(InIcons.music, size: 20, color: AppColors.lilac),
+            title: const Text('Profile song'),
+            subtitle: Text(
+                _profileSong == null
+                    ? 'Pick from your liked songs'
+                    : '${_profileSong!['title']}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style:
+                    const TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+            trailing:
+                const InIcon(InIcons.right, size: 16, color: AppColors.textDim),
+            onTap: _pickSong,
+          ),
           CheckboxListTile(
             value: _hideOnlineStatus,
             onChanged: (v) => setState(() => _hideOnlineStatus = v ?? false),
