@@ -40,6 +40,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   String? _lookingFor;
   List<String> _languages = [];
   bool _onlineOnly = false;
+  bool _verifiedOnly = false;
 
   @override
   void initState() {
@@ -66,6 +67,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     }
     if (_languages.isNotEmpty) params['languages'] = _languages.join(',');
     if (_onlineOnly) params['onlineOnly'] = 'true';
+    if (_verifiedOnly) params['verifiedOnly'] = 'true';
     final query = params.entries
         .map((e) => '${e.key}=${Uri.encodeQueryComponent(e.value)}')
         .join('&');
@@ -338,6 +340,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         _religionController.text.trim().isNotEmpty,
         _languages.isNotEmpty,
         _onlineOnly,
+        _verifiedOnly,
       ].where((x) => x).length;
 
   Future<void> _openFilters() async {
@@ -453,6 +456,13 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     contentPadding: EdgeInsets.zero,
                     activeTrackColor: AppColors.primary,
                   ),
+                  SwitchListTile(
+                    value: _verifiedOnly,
+                    onChanged: (v) => set(() => _verifiedOnly = v),
+                    title: const Text('Verified profiles only'),
+                    contentPadding: EdgeInsets.zero,
+                    activeTrackColor: AppColors.primary,
+                  ),
                   const SizedBox(height: 12),
                   Row(children: [
                     Expanded(
@@ -467,6 +477,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                           _lookingFor = null;
                           _languages = [];
                           _onlineOnly = false;
+                          _verifiedOnly = false;
                         }),
                         style: OutlinedButton.styleFrom(
                             minimumSize: const Size.fromHeight(50)),

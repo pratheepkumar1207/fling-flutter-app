@@ -597,6 +597,20 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
           ),
         ],
       ),
+      if (p['followedBy'] is Map) ...[
+        const SizedBox(height: 10),
+        Builder(builder: (_) {
+          final f = p['followedBy'] as Map;
+          final names = (f['names'] as List? ?? []).cast<String>();
+          final others = ((f['count'] as num?) ?? 0).toInt() - names.length;
+          final who = names.map((n) => n.split(' ').first).join(', ');
+          return Text(
+              others > 0
+                  ? 'Followed by $who and $others ${others == 1 ? 'other' : 'others'}'
+                  : 'Followed by $who',
+              style: const TextStyle(color: AppColors.textDim, fontSize: 12.5));
+        }),
+      ],
       const SizedBox(height: 12),
       Row(
         children: [

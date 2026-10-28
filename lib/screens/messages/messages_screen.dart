@@ -21,7 +21,7 @@ import '../blend/blend_entry.dart';
 import '../discover/discover_matches_screen.dart';
 import '../friends/friends_screen.dart';
 import '../party/party_screen.dart';
-import '../shell/app_shell.dart';
+import '../discover/liked_me_screen.dart';
 import 'group_thread_screen.dart';
 import 'message_requests_screen.dart';
 import 'message_thread_screen.dart';
@@ -255,11 +255,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
       .push(MaterialPageRoute(builder: (_) => const MessageRequestsScreen()))
       .then((_) => _load());
 
-  /// Likes circle → back to the shell's Discover tab to swipe on them.
-  void _openLikes() {
-    AppShell.tabRequest.value = 3;
-    Navigator.of(context).popUntil((r) => r.isFirst);
-  }
+  /// Likes circle → who liked you (VIP sees everyone).
+  void _openLikes() => Navigator.of(context)
+      .push(MaterialPageRoute(builder: (_) => const LikedMeScreen()))
+      .then((_) => _loadLikes());
 
   void _replace(ConversationSummary c) => setState(() => _conversations = [
         for (final x in _conversations) x.userId == c.userId ? c : x

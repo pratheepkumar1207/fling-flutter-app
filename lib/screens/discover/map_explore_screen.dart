@@ -1,3 +1,4 @@
+import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../core/format.dart';
 import '../../widgets/insync_clay.dart';
@@ -32,13 +33,20 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
     _load();
   }
 
-  Future<void> _load() async {
+  // Where the map is looking, once moved; "Search this area" uses it.
+  LatLng? _center;
+  bool _moved = false;
+
+  Future<void> _load({LatLng? area}) async {
     setState(() {
       _loading = true;
       _error = null;
+      _moved = false;
     });
     try {
-      final data = await ApiClient.get('/discover/map');
+      final data = await ApiClient.get(area == null
+          ? '/discover/map'
+          : '/discover/map?lat=${area.latitude}&lng=${area.longitude}');
       if (!mounted) return;
       setState(() {
         _nearby = data as List;
@@ -97,45 +105,67 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
         : const LatLng(
             20.5937, 78.9629); // India, as a reasonable fallback center
 
-    return FlutterMap(
-      options: MapOptions(
-          initialCenter: center, initialZoom: nearby.isNotEmpty ? 11 : 4),
-      children: [
-        TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.insync.app',
-        ),
-        MarkerLayer(
-          markers: nearby.map((u) {
-            final lat = asNum(u['latitude']).toDouble();
-            final lng = asNum(u['longitude']).toDouble();
-            return Marker(
-              point: LatLng(lat, lng),
-              width: 46,
-              height: 46,
-              child: GestureDetector(
-                onTap: () => _showProfileCard(u),
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.primary, width: 2),
-                    color: AppColors.surface,
+    return Stack(children: [
+      FlutterMap(
+        options: MapOptions(
+            initialCenter: center,
+            initialZoom: nearby.isNotEmpty ? 11 : 4,
+            onPositionChanged: (camera, hasGesture) {
+              if (!hasGesture) return;
+              _center = camera.center;
+              if (!_moved) setState(() => _moved = true);
+            }),
+        children: [
+          TileLayer(
+            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            userAgentPackageName: 'com.insync.app',
+          ),
+          MarkerLayer(
+            markers: nearby.map((u) {
+              final lat = asNum(u['latitude']).toDouble();
+              final lng = asNum(u['longitude']).toDouble();
+              return Marker(
+                point: LatLng(lat, lng),
+                width: 46,
+                height: 46,
+                child: GestureDetector(
+                  onTap: () => _showProfileCard(u),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.primary, width: 2),
+                      color: AppColors.surface,
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: u['avatarUrl'] != null
+                        ? AppImage(
+                            source: u['avatarUrl'] as String?,
+                            fit: BoxFit.cover)
+                        : Center(
+                            child: Text(_initial(u['name'] as String?),
+                                style:
+                                    const TextStyle(color: AppColors.textDim))),
                   ),
-                  clipBehavior: Clip.antiAlias,
-                  child: u['avatarUrl'] != null
-                      ? AppImage(
-                          source: u['avatarUrl'] as String?, fit: BoxFit.cover)
-                      : Center(
-                          child: Text(_initial(u['name'] as String?),
-                              style:
-                                  const TextStyle(color: AppColors.textDim))),
                 ),
-              ),
-            );
-          }).toList(),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+      if (_moved && _center != null)
+        Positioned(
+          top: 12,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: FilledButton.icon(
+              onPressed: () => _load(area: _center),
+              icon: const InIcon(InIcons.search, size: 16, color: Colors.white),
+              label: const Text('Search this area'),
+            ),
+          ),
         ),
-      ],
-    );
+    ]);
   }
 
   String _initial(String? name) => (name != null && name.isNotEmpty)

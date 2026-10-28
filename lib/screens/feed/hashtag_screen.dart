@@ -23,6 +23,7 @@ class _HashtagScreenState extends State<HashtagScreen> {
   String _tab = 'top';
   final Map<String, List<Post>> _posts = {};
   int _total = 0;
+  int _roomsLive = 0;
   bool _following = false;
   bool _loading = true;
 
@@ -46,6 +47,7 @@ class _HashtagScreenState extends State<HashtagScreen> {
             .map((e) => Post.fromJson(e as Map<String, dynamic>))
             .toList();
         _total = data['total'] as int? ?? 0;
+        _roomsLive = data['roomsLive'] as int? ?? 0;
         _following = data['following'] == true;
         _loading = false;
       });
@@ -96,7 +98,8 @@ class _HashtagScreenState extends State<HashtagScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('$_total ${_total == 1 ? 'post' : 'posts'}',
+                      Text(
+                          '$_total ${_total == 1 ? 'post' : 'posts'}${_roomsLive > 0 ? ' · $_roomsLive ${_roomsLive == 1 ? 'room' : 'rooms'} live' : ''}',
                           style: const TextStyle(color: AppColors.textDim)),
                       const SizedBox(height: 8),
                       SizedBox(
