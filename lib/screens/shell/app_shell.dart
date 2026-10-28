@@ -21,6 +21,7 @@ import '../../theme/insync_icons.dart';
 import 'create_sheet.dart';
 import 'liquid_glass_bottom_nav.dart';
 import 'top_bar.dart';
+import '../../widgets/permission_primer.dart';
 
 /// Bottom tabs Home, Feed, Live and Discover with the "+" Create sheet in
 /// the middle; Messages lives in the top bar (see FlingTopBar).
@@ -82,6 +83,9 @@ class _AppShellState extends State<AppShell> {
       final socket = context.read<SocketService>();
       if (auth.token != null) socket.connect(auth.token!);
       _bindIncomingCalls(socket);
+      // Camera, mic, location and notifications in one go, first open only.
+      ensureStartupPermissions(context,
+          registerPush: auth.user?.pushNotificationsEnabled != false);
     });
   }
 

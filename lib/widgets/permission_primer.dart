@@ -2,20 +2,35 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/push_notifications.dart';
 import '../theme/app_colors.dart';
 import '../theme/insync_icons.dart';
 
-const _kSeenKey = 'permissionPrimerSeen';
+// New key so people who saw the old camera-and-mic sheet get this once too.
+const _kSeenKey = 'startupPermissionsSeen';
 
-/// Before the first call, live or mic: explain why Insync wants the camera,
-/// microphone and (optionally) location, then ask. Shown once; after that
-/// the system prompts (if any are still needed) appear on their own.
-Future<void> ensurePermissionPrimer(BuildContext context) async {
+const _all = [
+  Permission.camera,
+  Permission.microphone,
+  Permission.locationWhenInUse,
+  Permission.notification,
+];
+
+/// First open after signing in: one sheet that explains every permission
+/// Insync uses, and "Allow all" asks for them in a single request (Android
+/// shows its dialogs back to back). Shown once; anything still missing is
+/// asked again only when a feature actually needs it.
+Future<void> ensureStartupPermissions(BuildContext context,
+    {bool registerPush = true}) async {
   final prefs = await SharedPreferences.getInstance();
   if (prefs.getBool(_kSeenKey) == true || !context.mounted) return;
-  final cam = await Permission.camera.status;
-  final mic = await Permission.microphone.status;
-  if (cam.isGranted && mic.isGranted) {
+  final List<PermissionStatus> statuses;
+  try {
+    statuses = await Future.wait(_all.map((p) => p.status));
+  } catch (_) {
+    return; // No permission plugin (tests, unsupported platform).
+  }
+  if (statuses.every((s) => s.isGranted)) {
     await prefs.setBool(_kSeenKey, true);
     return;
   }
@@ -23,14 +38,23 @@ Future<void> ensurePermissionPrimer(BuildContext context) async {
   final go = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
+    isDismissible: false,
     backgroundColor: AppColors.surface,
     builder: (sheet) => const _PrimerSheet(),
   );
   await prefs.setBool(_kSeenKey, true);
-  if (go == true) {
-    await [Permission.camera, Permission.microphone].request();
+  if (go != true) return;
+  final result = await _all.request();
+  if (registerPush && result[Permission.notification]?.isGranted == true) {
+    // Registers this device for pushes now that it's allowed.
+    requestPushPermissionAndRegister();
   }
 }
+
+/// Before a call, live or mic: if the startup sheet never ran, explain and
+/// ask then. A no-op once it has been shown.
+Future<void> ensurePermissionPrimer(BuildContext context) =>
+    ensureStartupPermissions(context, registerPush: false);
 
 class _PrimerSheet extends StatelessWidget {
   const _PrimerSheet();
@@ -38,7 +62,7 @@ class _PrimerSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget row(InIconData icon, String title, String sub) => Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 7),
           child: Row(children: [
             Container(
               width: 42,
@@ -65,28 +89,31 @@ class _PrimerSheet extends StatelessWidget {
         );
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(22, 8, 22, 18),
+        padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
         child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Let Insync use your camera and mic',
+              const Text('Allow Insync to work fully',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
               const SizedBox(height: 6),
               const Text(
-                  'Needed for video calls, going live and talking in rooms. Location is optional and only used for Nearby and the map.',
+                  'Tap Allow all once and you won’t be asked again. You can change any of these later in your phone settings.',
                   style: TextStyle(color: AppColors.textDim, fontSize: 13.5)),
-              const SizedBox(height: 12),
-              row(InIcons.camera, 'Camera', 'Calls, live, photo verification'),
+              const SizedBox(height: 10),
+              row(InIcons.camera, 'Camera',
+                  'Video calls, going live, photo verification'),
               row(InIcons.mic, 'Microphone', 'Rooms, calls, voice notes'),
               row(InIcons.map, 'Location',
-                  'Nearby and Explore map (asked separately)'),
+                  'Nearby and the Explore map — only shared if you turn it on'),
+              row(InIcons.bell, 'Notifications',
+                  'Messages, matches, calls and rooms starting'),
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: () => Navigator.of(context).pop(true),
                 style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(50)),
-                child: const Text('Continue'),
+                child: const Text('Allow all'),
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),

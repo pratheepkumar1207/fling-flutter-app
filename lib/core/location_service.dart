@@ -10,10 +10,12 @@ import 'api_client.dart';
 class LocationService {
   LocationService._();
 
-  static Future<bool> requestPermissionAndPing() async {
+  /// With [prompt] false (app launch) it never shows a permission dialog:
+  /// that is asked once by the startup permissions sheet instead.
+  static Future<bool> requestPermissionAndPing({bool prompt = true}) async {
     try {
       var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
+      if (permission == LocationPermission.denied && prompt) {
         permission = await Geolocator.requestPermission();
       }
       if (permission == LocationPermission.denied ||
