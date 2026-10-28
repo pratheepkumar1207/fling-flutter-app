@@ -1136,7 +1136,10 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                     final inPk = battle != null;
                     final topInset = MediaQuery.of(context).padding.top;
                     final width = MediaQuery.of(context).size.width;
-                    return Stack(children: [
+                    // Every child is positioned, so the Stack takes the whole
+                    // screen; one unpositioned child would shrink it to that
+                    // child's height and pull the bottom bar up to the top.
+                    return Stack(fit: StackFit.expand, children: [
                       if (inPk)
                         Positioned(
                           left: 0,
@@ -1189,89 +1192,97 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                               ])),
                         ),
                       ),
-                      SafeArea(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 8, 8, 0),
-                          child: Row(children: [
-                            Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                KeyedSubtree(
-                                  key: _hostKey,
-                                  child: _LiveHostChip(
-                                    name: hostName,
-                                    avatarUrl: host?.avatarUrl,
-                                    isMe: rs.isHost,
-                                    onTap: host == null || rs.isHost
-                                        ? null
-                                        : () =>
-                                            openProfile(context, host.userId),
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: 0,
+                        child: SafeArea(
+                          bottom: false,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 8, 8, 0),
+                            child: Row(children: [
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  KeyedSubtree(
+                                    key: _hostKey,
+                                    child: _LiveHostChip(
+                                      name: hostName,
+                                      avatarUrl: host?.avatarUrl,
+                                      isMe: rs.isHost,
+                                      onTap: host == null || rs.isHost
+                                          ? null
+                                          : () =>
+                                              openProfile(context, host.userId),
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 6),
-                                LiveDiamondsPill(
-                                  diamonds: extras.diamonds,
-                                  onTap: () => showLiveFansSheet(context,
-                                      extras: extras,
-                                      hostId: hostId,
-                                      hostName: hostName,
-                                      isHost: rs.isHost),
-                                ),
-                              ],
-                            ),
-                            const Spacer(),
-                            _LiveViewers(viewers: viewers, onTap: _openRoster),
-                            const SizedBox(width: 4),
-                            if (rs.isHost && !inPk)
-                              InIconButton(InIcons.swords,
-                                  tooltip: extras.pendingInvite != null
-                                      ? 'Cancel the PK challenge'
-                                      : 'Start a PK battle',
-                                  size: 36,
-                                  iconSize: 18,
-                                  background: extras.pendingInvite != null
-                                      ? AppColors.pink
-                                      : Colors.black38,
-                                  color: Colors.white,
-                                  onPressed: () => extras.pendingInvite != null
-                                      ? _cancelPk(extras)
-                                      : showPkInviteSheet(context,
-                                          extras: extras)),
-                            if (!rs.isHost)
-                              InIconButton(InIcons.heart,
-                                  tooltip: extras.fanClub['joined'] == true
-                                      ? 'Fan club member'
-                                      : 'Join the fan club',
-                                  size: 36,
-                                  iconSize: 18,
-                                  background: Colors.black38,
-                                  color: AppColors.pink,
-                                  onPressed: () => showLiveFansSheet(context,
-                                      extras: extras,
-                                      hostId: hostId,
-                                      hostName: hostName,
-                                      isHost: false)),
-                            const SizedBox(width: 4),
-                            if (rs.isHost)
-                              FilledButton(
-                                onPressed: _leaveRoom,
-                                style: FilledButton.styleFrom(
-                                    backgroundColor: AppColors.danger,
-                                    minimumSize: const Size(0, 34),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 14)),
-                                child: const Text('End'),
-                              )
-                            else
-                              InIconButton(InIcons.close,
-                                  tooltip: 'Leave live',
-                                  size: 36,
-                                  iconSize: 18,
-                                  background: Colors.black38,
-                                  color: Colors.white,
-                                  onPressed: _leaveRoom),
-                          ]),
+                                  const SizedBox(height: 6),
+                                  LiveDiamondsPill(
+                                    diamonds: extras.diamonds,
+                                    onTap: () => showLiveFansSheet(context,
+                                        extras: extras,
+                                        hostId: hostId,
+                                        hostName: hostName,
+                                        isHost: rs.isHost),
+                                  ),
+                                ],
+                              ),
+                              const Spacer(),
+                              _LiveViewers(
+                                  viewers: viewers, onTap: _openRoster),
+                              const SizedBox(width: 4),
+                              if (rs.isHost && !inPk)
+                                InIconButton(InIcons.swords,
+                                    tooltip: extras.pendingInvite != null
+                                        ? 'Cancel the PK challenge'
+                                        : 'Start a PK battle',
+                                    size: 36,
+                                    iconSize: 18,
+                                    background: extras.pendingInvite != null
+                                        ? AppColors.pink
+                                        : Colors.black38,
+                                    color: Colors.white,
+                                    onPressed: () =>
+                                        extras.pendingInvite != null
+                                            ? _cancelPk(extras)
+                                            : showPkInviteSheet(context,
+                                                extras: extras)),
+                              if (!rs.isHost)
+                                InIconButton(InIcons.heart,
+                                    tooltip: extras.fanClub['joined'] == true
+                                        ? 'Fan club member'
+                                        : 'Join the fan club',
+                                    size: 36,
+                                    iconSize: 18,
+                                    background: Colors.black38,
+                                    color: AppColors.pink,
+                                    onPressed: () => showLiveFansSheet(context,
+                                        extras: extras,
+                                        hostId: hostId,
+                                        hostName: hostName,
+                                        isHost: false)),
+                              const SizedBox(width: 4),
+                              if (rs.isHost)
+                                FilledButton(
+                                  onPressed: _leaveRoom,
+                                  style: FilledButton.styleFrom(
+                                      backgroundColor: AppColors.danger,
+                                      minimumSize: const Size(0, 34),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 14)),
+                                  child: const Text('End'),
+                                )
+                              else
+                                InIconButton(InIcons.close,
+                                    tooltip: 'Leave live',
+                                    size: 36,
+                                    iconSize: 18,
+                                    background: Colors.black38,
+                                    color: Colors.white,
+                                    onPressed: _leaveRoom),
+                            ]),
+                          ),
                         ),
                       ),
                       if (inPk)

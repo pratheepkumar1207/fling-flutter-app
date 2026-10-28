@@ -67,13 +67,15 @@ class LiveBroadcastController extends ChangeNotifier {
 
   Future<void> _init() async {
     _setStatus(VoiceChatStatus.connecting);
-    final camStatus = await Permission.camera.request();
-    final micStatus = await Permission.microphone.request();
-    // Only the host has to grant both up front (they publish straight
-    // away); a viewer only needs them once they join the stage.
-    if (isHost && (!camStatus.isGranted || !micStatus.isGranted)) {
-      _setStatus(VoiceChatStatus.permissionDenied);
-      return;
+    // Only the host is asked up front (they publish straight away); a
+    // viewer is asked in setGuest once they join the stage.
+    if (isHost) {
+      final camStatus = await Permission.camera.request();
+      final micStatus = await Permission.microphone.request();
+      if (!camStatus.isGranted || !micStatus.isGranted) {
+        _setStatus(VoiceChatStatus.permissionDenied);
+        return;
+      }
     }
     try {
       final engine = createAgoraRtcEngineEx();

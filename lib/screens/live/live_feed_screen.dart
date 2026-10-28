@@ -344,6 +344,7 @@ class LiveCover extends StatelessWidget {
     final host = room['hostName'] as String? ?? '';
     final title = room['title'] as String? ?? '';
     final thumb = room['nowPlayingThumbnail'] as String?;
+    final hostPhoto = room['hostAvatarUrl'] as String?;
     final count = room['memberCount'] as int? ?? 0;
     final guests = room['guestCount'] as int? ?? 0;
     return Semantics(
@@ -354,15 +355,31 @@ class LiveCover extends StatelessWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(18),
           child: Stack(fit: StackFit.expand, children: [
+            // Stream preview, else the host's photo, else a big avatar —
+            // never an empty box.
             if (thumb != null && thumb.isNotEmpty)
               AppImage(source: thumb, fit: BoxFit.cover)
+            else if (hostPhoto != null && hostPhoto.isNotEmpty)
+              AppImage(source: hostPhoto, fit: BoxFit.cover)
             else
-              const DecoratedBox(
-                decoration: BoxDecoration(
+              DecoratedBox(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [Color(0xFF3A1430), Color(0xFF0E0C14)]),
+                ),
+                child: Align(
+                  alignment: const Alignment(0, -0.25),
+                  child: FractionallySizedBox(
+                    widthFactor: 0.5,
+                    child: AspectRatio(
+                      aspectRatio: 1,
+                      child: FittedBox(
+                          child: Avatar(
+                              name: host, size: AvatarSize.lg, ring: true)),
+                    ),
+                  ),
                 ),
               ),
             Positioned(
@@ -406,24 +423,30 @@ class LiveCover extends StatelessWidget {
                       colors: [Colors.transparent, Color(0xCC000000)]),
                 ),
                 child: Row(children: [
-                  Avatar(
-                      src: room['hostAvatarUrl'] as String?,
-                      name: host,
-                      size: AvatarSize.sm),
+                  Avatar(src: hostPhoto, name: host, size: AvatarSize.sm),
                   const SizedBox(width: 6),
                   Expanded(
-                    child: Text(
-                        guests > 0
-                            ? '$host · $guests guest${guests == 1 ? '' : 's'}'
-                            : title.isEmpty
-                                ? host
-                                : '$host · $title',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white)),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(host,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white)),
+                          if (guests > 0 || title.isNotEmpty)
+                            Text(
+                                guests > 0
+                                    ? '$guests guest${guests == 1 ? '' : 's'} on stage'
+                                    : title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontSize: 11, color: Color(0xCCFFFFFF))),
+                        ]),
                   ),
                 ]),
               ),
