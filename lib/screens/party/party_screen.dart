@@ -1,3 +1,4 @@
+import '../../widgets/permission_primer.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/active_room_holder.dart';
@@ -788,9 +789,12 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       _voice?.setMicEnabled(false);
     }
 
-    void handleMicTap() {
+    Future<void> handleMicTap() async {
+      final messenger = ScaffoldMessenger.of(context);
+      await ensurePermissionPrimer(context);
+      if (!mounted) return;
       if (myMicForceMuted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
             const SnackBar(content: Text('The host has muted you')));
       } else if (myMicOn) {
         rs.micOff();
@@ -799,7 +803,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       } else if (myMicRequested) {
         _showRaiseHand(rs, place: pendingRequests.indexOf(myId) + 1);
       } else if (rs.settings['micEnabled'] == false) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        messenger.showSnackBar(const SnackBar(
             content: Text('The host has disabled mics for now')));
       } else if (rs.settings['micApproval'] == 'everyone') {
         rs.requestMic(); // goes straight onto the stage

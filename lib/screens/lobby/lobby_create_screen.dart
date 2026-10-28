@@ -1,3 +1,4 @@
+import '../../widgets/permission_primer.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
@@ -172,6 +173,8 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
   }
 
   Future<void> _goLive() async {
+    await ensurePermissionPrimer(context);
+    if (!mounted) return;
     setState(() => _saving = true);
     try {
       final room = await ApiClient.post('/rooms', body: {

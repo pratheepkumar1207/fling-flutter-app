@@ -1,3 +1,4 @@
+import '../../widgets/permission_primer.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -510,6 +511,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   }
 
   Future<void> _startCall(bool video) async {
+    await ensurePermissionPrimer(context);
+    if (!mounted) return;
     try {
       final data = await ApiClient.post('/calls/direct-invite', body: {
         'toUserId': widget.userId,

@@ -461,6 +461,13 @@ class SourcePickerBody extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
       children: [
+        _PasteLink(
+            onLink: (sourceType, url, title) => _handleAppSongPick(context,
+                videoUrl: url,
+                title: title,
+                mediaMode: 'video',
+                sourceType: sourceType)),
+        const SizedBox(height: 18),
         section('FREE', ['YouTube', 'YouTube Surf', 'Drive', 'X']),
         section('YOUR SUBSCRIPTIONS · EACH PERSON SIGNS IN', [
           'Netflix',
@@ -712,6 +719,93 @@ class _MusicSourceRowState extends State<_MusicSourceRow> {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// "Paste a video link": YouTube (watch, youtu.be, Shorts) or a Google
+/// Drive file link.
+class _PasteLink extends StatefulWidget {
+  final void Function(String sourceType, String url, String title) onLink;
+  const _PasteLink({required this.onLink});
+
+  @override
+  State<_PasteLink> createState() => _PasteLinkState();
+}
+
+class _PasteLinkState extends State<_PasteLink> {
+  final _c = TextEditingController();
+  String? _error;
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  static String? youtubeId(String url) {
+    final u = Uri.tryParse(url.trim());
+    if (u == null) return null;
+    final host = u.host.replaceFirst('www.', '').replaceFirst('m.', '');
+    if (host == 'youtu.be' && u.pathSegments.isNotEmpty) {
+      return u.pathSegments.first;
+    }
+    if (host == 'youtube.com' || host == 'music.youtube.com') {
+      if (u.queryParameters['v'] != null) return u.queryParameters['v'];
+      final seg = u.pathSegments;
+      if (seg.length >= 2 &&
+          (seg[0] == 'shorts' || seg[0] == 'live' || seg[0] == 'embed')) {
+        return seg[1];
+      }
+    }
+    return null;
+  }
+
+  static String? driveId(String url) {
+    final m = RegExp(r'drive\.google\.com/(?:file/d/|open\?id=)([\w-]{10,})')
+        .firstMatch(url);
+    return m?.group(1);
+  }
+
+  void _go() {
+    final text = _c.text.trim();
+    if (text.isEmpty) return;
+    final yt = youtubeId(text);
+    if (yt != null) {
+      setState(() => _error = null);
+      widget.onLink(
+          'youtube', 'https://www.youtube.com/watch?v=$yt', 'YouTube video');
+      return;
+    }
+    final drive = driveId(text);
+    if (drive != null) {
+      setState(() => _error = null);
+      widget.onLink('drive', drive, 'Drive video');
+      return;
+    }
+    setState(() => _error = 'Paste a YouTube or Google Drive link');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: _c,
+      keyboardType: TextInputType.url,
+      textInputAction: TextInputAction.go,
+      onSubmitted: (_) => _go(),
+      decoration: InputDecoration(
+        hintText: 'Paste a video link',
+        errorText: _error,
+        prefixIcon: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12),
+            child: InIcon(InIcons.link, size: 18, color: AppColors.textDim)),
+        prefixIconConstraints: const BoxConstraints(minWidth: 0),
+        suffixIcon: IconButton(
+            tooltip: 'Use this link',
+            onPressed: _go,
+            icon:
+                const InIcon(InIcons.right, size: 18, color: AppColors.lilac)),
       ),
     );
   }
