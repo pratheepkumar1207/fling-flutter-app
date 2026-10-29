@@ -103,12 +103,6 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     if (_chatFocused != v) setState(() => _chatFocused = v);
   }
 
-  // OTT rooms (Netflix/Prime/etc., via WebviewRoomPlayer) get an immersive
-  // full-screen player instead of the usual 16:9 box + always-visible chat
-  // below — chat becomes an on-demand slide-up panel instead, toggled by
-  // this. Irrelevant (and left false) for every other source type.
-  bool _ottChatOpen = false;
-
   // Right-to-left swipe ON THE PLAYER ITSELF shrinks it into a corner and
   // shows a "pin something to play next" suggestion grid — a different
   // gesture target than the existing right-to-left-anywhere-else swipe that
@@ -636,11 +630,6 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     final isWatch = room['roomType'] == 'watch';
     final isGame = room['roomType'] == 'game';
     final isVoice = room['roomType'] == 'voice';
-    // OTT sources (Netflix/Prime/etc.) get the immersive full-screen
-    // treatment — see _ottChatOpen and the player block below. Only makes
-    // sense for a real watch party, not a compact/voice/game bar.
-    final ottImmersive =
-        isWatch && webviewSourceTypes.contains(playerSourceType);
     // The queue just ran dry with nothing pinned — see
     // syncHandler.js's queue:promptPin. Reacting here (not via a separate
     // listener) means it's applied before this same build renders, same
@@ -684,8 +673,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           videoUrl: playerVideoUrl,
           title: currentItem?['title'] as String? ?? room['title'] as String?,
           compact: compact,
-          // Always the standard 16:9 box, positioned at the top of the
-          // ottImmersive Expanded slot below — not full-bleed. Full-bleed
+          // Always the standard 16:9 box, same as YouTube — not full-bleed. Full-bleed
           // stretched the video across however tall the screen is (often
           // much taller than 16:9), which just leaves visible blank
           // letterbox space around the actual video instead of the tight
@@ -1653,6 +1641,96 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                               ),
                             ),
                           )
+                        else if (isVoice)
+                          // Same layout as Watch Party: chat owns the rest of
+                          // the screen under the stage. Scrolling the chat up
+                          // slides the stage away (NestedScrollView), and the
+                          // down-arrow brings it back.
+                          Expanded(
+                            child: Stack(
+                              children: [
+                                NestedScrollView(
+                                  controller: _watchScrollController,
+                                  headerSliverBuilder: (context, _) => [
+                                    SliverToBoxAdapter(
+                                      child: Padding(
+                                        padding: const EdgeInsets.fromLTRB(
+                                            12, 12, 12, 4),
+                                        child: VoiceStageView(
+                                          roster: rs.roster,
+                                          activeMics: activeMics,
+                                          pendingRequests: pendingRequests,
+                                          maxSlots: maxSlots,
+                                          hostId: rs.hostId,
+                                          myUserId: myId,
+                                          isHost: rs.canApproveMics,
+                                          onApprove: rs.approveMic,
+                                          onDeny: rs.denyMic,
+                                          onRemove: rs.removeMic,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  body: Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                        12, 4, 12, 12),
+                                    child: ChatOverlay(
+                                      messages: rs.messages,
+                                      onSend: (text, mentionedUserIds) =>
+                                          rs.sendMessage(text,
+                                              mentionedUserIds:
+                                                  mentionedUserIds),
+                                      myUserId: myId,
+                                      primaryColor: roomPrimary,
+                                      textColor: roomText,
+                                      roster: rs.roster,
+                                      myMicOn: myMicOn,
+                                      myMicRequested: myMicRequested,
+                                      onMicTap: handleMicTap,
+                                      onPoll: () {
+                                        if (rs.isHost) {
+                                          showPollCreatorBottomSheet(context,
+                                              onCreate: rs.createPoll);
+                                        } else if (rs.poll['active'] == true) {
+                                          showPollBottomSheet(context,
+                                              poll: rs.poll,
+                                              myUserId: myId ?? '',
+                                              isHost: rs.isHost,
+                                              roster: rs.roster,
+                                              onVote: rs.votePoll,
+                                              onReset: rs.resetPoll);
+                                        }
+                                      },
+                                      onGift: () => showGiftBottomSheet(context,
+                                          toUserId:
+                                              room['hostId'] as String? ?? '',
+                                          roomId: widget.roomId,
+                                          targetKey: _hostKey),
+                                      onShare: _shareRoom,
+                                      onInvite: _openInvite,
+                                      onFocusChanged: _setChatFocused,
+                                      onViewOncePhoto: _shareViewOncePhoto,
+                                      onOpenViewOnce: _openRoomViewOnce,
+                                      likedUrls: _likedUrls,
+                                      onToggleLike: _toggleLike,
+                                    ),
+                                  ),
+                                ),
+                                if (_playerCollapsed)
+                                  Positioned(
+                                    top: 8,
+                                    right: 12,
+                                    child: GlassCircleButton(
+                                      onTap: _scrollWatchHeaderToTop,
+                                      child: const Icon(
+                                          Icons.keyboard_arrow_down_rounded,
+                                          color: Colors.white,
+                                          size: 20),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          )
                         else if (!isWatch)
                           // Chat now gets its own dedicated, un-obscured space
                           // below the stage — same "chat owns the rest of the
@@ -1821,129 +1899,6 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                             onRestore: () =>
                                 setState(() => _suggestionsMode = false),
                           )
-                        else if (isWatch && ottImmersive)
-                          // Video stays a normal 16:9 box pinned to the top of
-                          // this Expanded slot (not full-bleed — see the
-                          // player() closure above) instead of stretching down
-                          // the whole screen. Chat still moves from "always
-                          // visible below" to an on-demand slide-up panel so it
-                          // doesn't eat into that space, toggled by the
-                          // floating button here.
-                          Expanded(
-                            key: _playerAreaKey,
-                            child: LayoutBuilder(builder: (context, area) {
-                              // An explicit height: a Positioned with only a
-                              // bottom edge gives its child no height limit,
-                              // which left a FractionallySizedBox panel at zero
-                              // size (chat never appeared).
-                              final panelHeight = area.maxHeight * 0.55;
-                              return Stack(
-                                children: [
-                                  Positioned(
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    child: player(
-                                      mediaMode: currentItem?['mediaMode']
-                                              as String? ??
-                                          'video',
-                                      compact: false,
-                                    ),
-                                  ),
-                                  if (_ottChatOpen)
-                                    Positioned(
-                                      left: 0,
-                                      right: 0,
-                                      bottom: 0,
-                                      height: panelHeight,
-                                      child: SizedBox.expand(
-                                        child: ClipRRect(
-                                          borderRadius:
-                                              const BorderRadius.vertical(
-                                                  top: Radius.circular(16)),
-                                          child: ColoredBox(
-                                            color: AppColors.bg
-                                                .withValues(alpha: 0.92),
-                                            child: Padding(
-                                              padding:
-                                                  const EdgeInsets.fromLTRB(
-                                                      12, 12, 12, 12),
-                                              child: ChatOverlay(
-                                                messages: rs.messages,
-                                                onSend: (text,
-                                                        mentionedUserIds) =>
-                                                    rs.sendMessage(text,
-                                                        mentionedUserIds:
-                                                            mentionedUserIds),
-                                                myUserId: myId,
-                                                primaryColor: roomPrimary,
-                                                textColor: roomText,
-                                                roster: rs.roster,
-                                                myMicOn: myMicOn,
-                                                myMicRequested: myMicRequested,
-                                                onMicTap: handleMicTap,
-                                                onPoll: () {
-                                                  if (rs.isHost) {
-                                                    showPollCreatorBottomSheet(
-                                                        context,
-                                                        onCreate:
-                                                            rs.createPoll);
-                                                  } else if (rs
-                                                          .poll['active'] ==
-                                                      true) {
-                                                    showPollBottomSheet(context,
-                                                        poll: rs.poll,
-                                                        myUserId: myId ?? '',
-                                                        isHost: rs.isHost,
-                                                        roster: rs.roster,
-                                                        onVote: rs.votePoll,
-                                                        onReset: rs.resetPoll);
-                                                  }
-                                                },
-                                                onGift: () =>
-                                                    showGiftBottomSheet(context,
-                                                        toUserId: room['hostId']
-                                                                as String? ??
-                                                            '',
-                                                        roomId: widget.roomId,
-                                                        targetKey: _hostKey),
-                                                onShare: _shareRoom,
-                                                onInvite: _openInvite,
-                                                onFocusChanged: _setChatFocused,
-                                                onViewOncePhoto:
-                                                    _shareViewOncePhoto,
-                                                onOpenViewOnce:
-                                                    _openRoomViewOnce,
-                                                likedUrls: _likedUrls,
-                                                onToggleLike: _toggleLike,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  // After the panel, and lifted above it while
-                                  // open, so it can always close the chat.
-                                  Positioned(
-                                    right: 12,
-                                    bottom:
-                                        _ottChatOpen ? panelHeight + 12 : 12,
-                                    child: GlassCircleButton(
-                                      onTap: () => setState(
-                                          () => _ottChatOpen = !_ottChatOpen),
-                                      child: InIcon(
-                                        _ottChatOpen
-                                            ? InIcons.down
-                                            : InIcons.chat,
-                                        color: Colors.white,
-                                        size: 20,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            }),
-                          )
                         else if (isWatch)
                           // Video is pinned right under the app bar; scrolling
                           // the chat below it up scrolls the header under it
@@ -2088,16 +2043,13 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                         // is untouched here.
                         // Only the suggestions-grid case still needs this —
                         // plain isWatch now has chat built into the collapsing
-                        // header above instead (see the NestedScrollView), and
-                        // ottImmersive keeps its own slide-up chat.
-                        if (isWatch && !ottImmersive && _suggestionsMode)
+                        // header above instead (see the NestedScrollView).
+                        if (isWatch && _suggestionsMode)
                           // Chat floats over an open "stage" instead of living in
                           // its own boxed panel — matches WatchPartyDark.dc.html.
                           // No more floating icon rail alongside it (mic/boost/
                           // gift/poll/share/invite all now live inside the chat
-                          // bar itself — see ChatOverlay). ottImmersive rooms get
-                          // their own slide-up ChatOverlay instead (see the
-                          // player block above) instead of this always-visible one.
+                          // bar itself — see ChatOverlay).
                           Expanded(
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
