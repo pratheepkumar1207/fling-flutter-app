@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'insync_attach_sheet.dart';
 import '../core/api_client.dart';
 import '../theme/app_colors.dart';
 import '../theme/glass.dart';
@@ -83,10 +84,23 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
     _isStory = widget.initialIsStory;
   }
 
+  /// Gallery or camera, from the same attach sheet chats and rooms use.
+  Future<ImageSource?> _askSource({required bool video}) async {
+    final kind = await showInsyncAttachSheet(context,
+        title: video ? 'Add a video' : 'Add a photo',
+        options: const [AttachKind.gallery, AttachKind.camera]);
+    return switch (kind) {
+      AttachKind.gallery => ImageSource.gallery,
+      AttachKind.camera => ImageSource.camera,
+      _ => null,
+    };
+  }
+
   Future<void> _pickImage() async {
+    final source = await _askSource(video: false);
+    if (source == null) return;
     final picker = ImagePicker();
-    final file =
-        await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    final file = await picker.pickImage(source: source, imageQuality: 80);
     if (file == null || !mounted) return;
     final bytes = await file.readAsBytes();
     final ext = file.name.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
@@ -105,9 +119,11 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
   }
 
   Future<void> _pickVideo() async {
+    final source = await _askSource(video: true);
+    if (source == null) return;
     final picker = ImagePicker();
     final file = await picker.pickVideo(
-        source: ImageSource.gallery, maxDuration: const Duration(seconds: 20));
+        source: source, maxDuration: const Duration(seconds: 20));
     if (file == null || !mounted) return;
     final bytes = await file.readAsBytes();
     if (!mounted) return;

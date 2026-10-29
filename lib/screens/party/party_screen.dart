@@ -2,6 +2,7 @@ import '../../widgets/chat_media.dart' show pickChatPhoto;
 import '../../widgets/view_once.dart';
 import '../../widgets/permission_primer.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart' show ImageSource;
 import 'package:provider/provider.dart';
 import '../../core/active_room_holder.dart';
 import '../../core/api_client.dart';
@@ -423,8 +424,9 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _shareViewOncePhoto() async {
-    final uri = await pickChatPhoto();
+  Future<void> _shareViewOncePhoto({required bool camera}) async {
+    final uri = await pickChatPhoto(
+        source: camera ? ImageSource.camera : ImageSource.gallery);
     if (uri == null || !mounted) return;
     try {
       await ApiClient.post('/rooms/${widget.roomId}/view-once',
@@ -437,8 +439,12 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _openRoomViewOnce(String id) =>
-      openViewOncePhoto(context, '/rooms/${widget.roomId}/view-once/$id/open');
+  Future<void> _openRoomViewOnce(String id, String senderName) =>
+      openViewOncePhoto(context, '/rooms/${widget.roomId}/view-once/$id/open',
+          title: '${senderName.split(' ').first}’s photo');
+
+  void _showViewOnceSeen(String id) =>
+      showRoomViewOnceSeen(context, roomId: widget.roomId, photoId: id);
 
   Future<void> _shareRoom() async {
     // The room's own control-bar share action — was a plain clipboard copy,
@@ -1422,6 +1428,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                 onFocusChanged: _setChatFocused,
                                 onViewOncePhoto: _shareViewOncePhoto,
                                 onOpenViewOnce: _openRoomViewOnce,
+                                onViewOnceSeen: _showViewOnceSeen,
                                 likedUrls: _likedUrls,
                                 onToggleLike: _toggleLike,
                               ),
@@ -1638,6 +1645,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                 onFocusChanged: _setChatFocused,
                                 onViewOncePhoto: _shareViewOncePhoto,
                                 onOpenViewOnce: _openRoomViewOnce,
+                                onViewOnceSeen: _showViewOnceSeen,
                               ),
                             ),
                           )
@@ -1645,91 +1653,108 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                           // Same layout as Watch Party: chat owns the rest of
                           // the screen under the stage. Scrolling the chat up
                           // slides the stage away (NestedScrollView), and the
-                          // down-arrow brings it back.
+                          // down-arrow brings it back. The slim music bar sits
+                          // right under the app bar.
                           Expanded(
-                            child: Stack(
-                              children: [
-                                NestedScrollView(
-                                  controller: _watchScrollController,
-                                  headerSliverBuilder: (context, _) => [
-                                    SliverToBoxAdapter(
-                                      child: Padding(
+                            child: Column(children: [
+                              if (currentItem != null)
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(12, 6, 12, 0),
+                                  child:
+                                      player(mediaMode: 'audio', compact: true),
+                                ),
+                              Expanded(
+                                child: Stack(
+                                  children: [
+                                    NestedScrollView(
+                                      controller: _watchScrollController,
+                                      headerSliverBuilder: (context, _) => [
+                                        SliverToBoxAdapter(
+                                          child: Padding(
+                                            padding: const EdgeInsets.fromLTRB(
+                                                12, 12, 12, 4),
+                                            child: VoiceStageView(
+                                              roster: rs.roster,
+                                              activeMics: activeMics,
+                                              pendingRequests: pendingRequests,
+                                              maxSlots: maxSlots,
+                                              hostId: rs.hostId,
+                                              myUserId: myId,
+                                              isHost: rs.canApproveMics,
+                                              onApprove: rs.approveMic,
+                                              onDeny: rs.denyMic,
+                                              onRemove: rs.removeMic,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                      body: Padding(
                                         padding: const EdgeInsets.fromLTRB(
-                                            12, 12, 12, 4),
-                                        child: VoiceStageView(
-                                          roster: rs.roster,
-                                          activeMics: activeMics,
-                                          pendingRequests: pendingRequests,
-                                          maxSlots: maxSlots,
-                                          hostId: rs.hostId,
+                                            12, 4, 12, 12),
+                                        child: ChatOverlay(
+                                          messages: rs.messages,
+                                          onSend: (text, mentionedUserIds) =>
+                                              rs.sendMessage(text,
+                                                  mentionedUserIds:
+                                                      mentionedUserIds),
                                           myUserId: myId,
-                                          isHost: rs.canApproveMics,
-                                          onApprove: rs.approveMic,
-                                          onDeny: rs.denyMic,
-                                          onRemove: rs.removeMic,
+                                          primaryColor: roomPrimary,
+                                          textColor: roomText,
+                                          roster: rs.roster,
+                                          myMicOn: myMicOn,
+                                          myMicRequested: myMicRequested,
+                                          onMicTap: handleMicTap,
+                                          onPoll: () {
+                                            if (rs.isHost) {
+                                              showPollCreatorBottomSheet(
+                                                  context,
+                                                  onCreate: rs.createPoll);
+                                            } else if (rs.poll['active'] ==
+                                                true) {
+                                              showPollBottomSheet(context,
+                                                  poll: rs.poll,
+                                                  myUserId: myId ?? '',
+                                                  isHost: rs.isHost,
+                                                  roster: rs.roster,
+                                                  onVote: rs.votePoll,
+                                                  onReset: rs.resetPoll);
+                                            }
+                                          },
+                                          onGift: () => showGiftBottomSheet(
+                                              context,
+                                              toUserId:
+                                                  room['hostId'] as String? ??
+                                                      '',
+                                              roomId: widget.roomId,
+                                              targetKey: _hostKey),
+                                          onShare: _shareRoom,
+                                          onInvite: _openInvite,
+                                          onFocusChanged: _setChatFocused,
+                                          onViewOncePhoto: _shareViewOncePhoto,
+                                          onOpenViewOnce: _openRoomViewOnce,
+                                          onViewOnceSeen: _showViewOnceSeen,
+                                          likedUrls: _likedUrls,
+                                          onToggleLike: _toggleLike,
                                         ),
                                       ),
                                     ),
+                                    if (_playerCollapsed)
+                                      Positioned(
+                                        top: 8,
+                                        right: 12,
+                                        child: GlassCircleButton(
+                                          onTap: _scrollWatchHeaderToTop,
+                                          child: const Icon(
+                                              Icons.keyboard_arrow_down_rounded,
+                                              color: Colors.white,
+                                              size: 20),
+                                        ),
+                                      ),
                                   ],
-                                  body: Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                        12, 4, 12, 12),
-                                    child: ChatOverlay(
-                                      messages: rs.messages,
-                                      onSend: (text, mentionedUserIds) =>
-                                          rs.sendMessage(text,
-                                              mentionedUserIds:
-                                                  mentionedUserIds),
-                                      myUserId: myId,
-                                      primaryColor: roomPrimary,
-                                      textColor: roomText,
-                                      roster: rs.roster,
-                                      myMicOn: myMicOn,
-                                      myMicRequested: myMicRequested,
-                                      onMicTap: handleMicTap,
-                                      onPoll: () {
-                                        if (rs.isHost) {
-                                          showPollCreatorBottomSheet(context,
-                                              onCreate: rs.createPoll);
-                                        } else if (rs.poll['active'] == true) {
-                                          showPollBottomSheet(context,
-                                              poll: rs.poll,
-                                              myUserId: myId ?? '',
-                                              isHost: rs.isHost,
-                                              roster: rs.roster,
-                                              onVote: rs.votePoll,
-                                              onReset: rs.resetPoll);
-                                        }
-                                      },
-                                      onGift: () => showGiftBottomSheet(context,
-                                          toUserId:
-                                              room['hostId'] as String? ?? '',
-                                          roomId: widget.roomId,
-                                          targetKey: _hostKey),
-                                      onShare: _shareRoom,
-                                      onInvite: _openInvite,
-                                      onFocusChanged: _setChatFocused,
-                                      onViewOncePhoto: _shareViewOncePhoto,
-                                      onOpenViewOnce: _openRoomViewOnce,
-                                      likedUrls: _likedUrls,
-                                      onToggleLike: _toggleLike,
-                                    ),
-                                  ),
                                 ),
-                                if (_playerCollapsed)
-                                  Positioned(
-                                    top: 8,
-                                    right: 12,
-                                    child: GlassCircleButton(
-                                      onTap: _scrollWatchHeaderToTop,
-                                      child: const Icon(
-                                          Icons.keyboard_arrow_down_rounded,
-                                          color: Colors.white,
-                                          size: 20),
-                                    ),
-                                  ),
-                              ],
-                            ),
+                              ),
+                            ]),
                           )
                         else if (!isWatch)
                           // Chat now gets its own dedicated, un-obscured space
@@ -1829,6 +1854,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                       onFocusChanged: _setChatFocused,
                                       onViewOncePhoto: _shareViewOncePhoto,
                                       onOpenViewOnce: _openRoomViewOnce,
+                                      onViewOnceSeen: _showViewOnceSeen,
                                       likedUrls: _likedUrls,
                                       onToggleLike: _toggleLike,
                                     ),
@@ -1989,6 +2015,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                             onViewOncePhoto:
                                                 _shareViewOncePhoto,
                                             onOpenViewOnce: _openRoomViewOnce,
+                                            onViewOnceSeen: _showViewOnceSeen,
                                             likedUrls: _likedUrls,
                                             onToggleLike: _toggleLike,
                                           ),
@@ -2013,7 +2040,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                               ],
                             ),
                           )
-                        else if (currentItem != null && !isGame)
+                        else if (currentItem != null && !isGame && !isVoice)
                           Padding(
                             padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
                             // Compact bar for every non-watch type (voice, game, live) —
@@ -2088,6 +2115,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                 onFocusChanged: _setChatFocused,
                                 onViewOncePhoto: _shareViewOncePhoto,
                                 onOpenViewOnce: _openRoomViewOnce,
+                                onViewOnceSeen: _showViewOnceSeen,
                               ),
                             ),
                           ),

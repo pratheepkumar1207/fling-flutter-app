@@ -1025,8 +1025,13 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
         final position =
             _dragging ? _dragPosition : positionDuration.inSeconds.toDouble();
         return Stack(
+          // The bar sets the height; the hidden player stays full size
+          // behind it (clipped), so the WebView keeps playing.
+          clipBehavior: Clip.hardEdge,
           children: [
-            SizedBox(
+            Positioned(
+                left: 0,
+                top: 0,
                 width: 100,
                 height: 100,
                 child: IgnorePointer(child: videoTree)),
@@ -1045,6 +1050,9 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
               compact: widget.compact,
               onSkip: widget.isHost ? widget.onSkip : null,
               onSkipPrevious: widget.isHost ? widget.onSkipPrevious : null,
+              liked: widget.liked,
+              onToggleLike: widget.onToggleLike,
+              onVoteSkip: widget.isHost ? null : widget.onVoteSkip,
             ),
           ],
         );

@@ -6,7 +6,7 @@ import 'package:fling/models/room_models.dart';
 import 'package:fling/models/user.dart';
 import 'package:fling/screens/party/roster_sheet.dart';
 import 'package:fling/theme/app_theme.dart';
-import 'package:fling/widgets/chat_attachment_sheet.dart';
+import 'package:fling/widgets/insync_attach_sheet.dart';
 import 'package:fling/widgets/room_settings_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -96,7 +96,8 @@ void main() {
   });
 
   testWidgets('Attach sheet', (t) async {
-    await _pump(t, _opener((c) => showChatAttachmentSheet(c, onPoll: () {})));
+    await _pump(t,
+        _opener((c) => showInsyncAttachSheet(c, options: AttachKind.values)));
     await t.tap(find.text('open'));
     await _snap(t, 'pop-attach');
   });

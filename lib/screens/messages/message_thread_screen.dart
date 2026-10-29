@@ -1,6 +1,15 @@
 import '../../widgets/view_once.dart';
 import '../../widgets/permission_primer.dart';
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:image_picker/image_picker.dart' show ImageSource;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../widgets/insync_attach_sheet.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -221,15 +230,20 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     if (!mounted || data is! Map || data['otherUserId'] != widget.userId) {
       return;
     }
-    _markViewed(data['id'] as String?);
+    _markViewed(data['id'] as String?,
+        at: DateTime.tryParse('${data['viewedAt']}'));
   }
 
-  void _markViewed(String? id) => setState(() => _messages = [
-        for (final m in _messages) m.id == id ? m.copyWith(viewed: true) : m
+  void _markViewed(String? id, {DateTime? at}) => setState(() => _messages = [
+        for (final m in _messages)
+          m.id == id
+              ? m.copyWith(viewed: true, viewedAt: at ?? DateTime.now())
+              : m
       ]);
 
   Future<void> _openViewOnce(DirectMessage m) async {
-    await openViewOncePhoto(context, '/messages/view-once/${m.id}/open');
+    await openViewOncePhoto(context, '/messages/view-once/${m.id}/open',
+        title: '$_firstName\'s photo');
     // Opened now, or already opened before — either way it's gone.
     if (mounted) _markViewed(m.id);
   }
@@ -448,10 +462,14 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
   Widget _messageContent(DirectMessage m, bool mine) {
     if (m.viewOnce) {
-      return ViewOnceChip(
-          mine: mine,
-          opened: m.viewed,
-          onOpen: mine || m.viewed ? null : () => _openViewOnce(m));
+      return ViewOnceCard(
+          mine: mine, onOpen: mine || m.viewed ? null : () => _openViewOnce(m));
+    }
+    if (m.messageType == 'file' && m.mediaUrl != null) {
+      return _FileBubble(name: m.text, dataUri: m.mediaUrl!, mine: mine);
+    }
+    if (m.messageType == 'location' && m.mediaUrl != null) {
+      return _LocationBubble(geo: m.mediaUrl!, mine: mine);
     }
     if (m.messageType == 'image' && m.mediaUrl != null) {
       return ChatPhoto(m.mediaUrl!);
@@ -499,14 +517,113 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     await _sendBody({'text': text}, clearText: true);
   }
 
-  Future<void> _sendPhoto({bool viewOnce = false}) async {
-    final uri = await pickChatPhoto();
+  /// Pick or take a photo, look at it with the "View once" switch, send.
+  Future<void> _sendPhoto(
+      {bool viewOnce = false, ImageSource source = ImageSource.gallery}) async {
+    final uri = await pickChatPhoto(source: source);
     if (uri == null || !mounted) return;
+    final once = await showPhotoSendPreview(context, uri, viewOnce: viewOnce);
+    if (once == null || !mounted) return;
     await _sendBody({
       'messageType': 'image',
       'mediaUrl': uri,
-      if (viewOnce) 'viewOnce': true,
+      if (once) 'viewOnce': true,
     });
+  }
+
+  static const _maxFile = 6 * 1024 * 1024;
+
+  Future<void> _sendAudio() async {
+    final r = await FilePicker.platform
+        .pickFiles(type: FileType.audio, withData: true);
+    final f = r?.files.firstOrNull;
+    if (f?.bytes == null || !mounted) return;
+    if (f!.bytes!.length > _maxFile) return _tooBig();
+    final ext = (f.extension ?? 'mpeg').toLowerCase();
+    await _sendBody({
+      'messageType': 'voice',
+      'mediaUrl':
+          'data:audio/${ext == 'mp3' ? 'mpeg' : ext};base64,${base64Encode(f.bytes!)}',
+    });
+  }
+
+  Future<void> _sendDocument() async {
+    final r = await FilePicker.platform.pickFiles(withData: true);
+    final f = r?.files.firstOrNull;
+    if (f?.bytes == null || !mounted) return;
+    if (f!.bytes!.length > _maxFile) return _tooBig();
+    await _sendBody({
+      'messageType': 'file',
+      'text': f.name,
+      'mediaUrl':
+          'data:${_mimeFor(f.extension)};base64,${base64Encode(f.bytes!)}',
+    });
+  }
+
+  void _tooBig() => ScaffoldMessenger.of(context)
+      .showSnackBar(const SnackBar(content: Text('Files can be up to 6 MB')));
+
+  static String _mimeFor(String? ext) => switch ((ext ?? '').toLowerCase()) {
+        'pdf' => 'application/pdf',
+        'doc' => 'application/msword',
+        'docx' =>
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'xls' => 'application/vnd.ms-excel',
+        'xlsx' =>
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'ppt' || 'pptx' => 'application/vnd.ms-powerpoint',
+        'txt' => 'text/plain',
+        'zip' => 'application/zip',
+        'png' => 'image/png',
+        'jpg' || 'jpeg' => 'image/jpeg',
+        _ => 'application/octet-stream',
+      };
+
+  Future<void> _sendLocation() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: const Text('Send your location?'),
+        content: Text('$_firstName will see where you are right now.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(d).pop(false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.of(d).pop(true),
+              child: const Text('Send')),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: const Text('Allow location for Insync to share it.'),
+            action: SnackBarAction(
+                label: 'Settings', onPressed: Geolocator.openAppSettings),
+          ));
+        }
+        return;
+      }
+      final p = await Geolocator.getCurrentPosition();
+      await _sendBody({
+        'messageType': 'location',
+        'mediaUrl':
+            'geo:${p.latitude.toStringAsFixed(5)},${p.longitude.toStringAsFixed(5)}',
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Couldn’t get your location')));
+      }
+    }
   }
 
   Future<void> _sendSticker(String emoji) async {
@@ -616,50 +733,39 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     );
   }
 
-  /// The + button: photo, sticker or GIF.
-  void _openAttach() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surface2,
-      builder: (sheet) => SafeArea(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          ListTile(
-            leading: const InIcon(InIcons.image, size: 20),
-            title: const Text('Photo'),
-            onTap: () {
-              Navigator.of(sheet).pop();
-              _sendPhoto();
-            },
-          ),
-          ListTile(
-            leading: const InIcon(InIcons.hourglass, size: 20),
-            title: const Text('View once photo'),
-            subtitle: const Text('They can open it one time, for 10 seconds',
-                style: TextStyle(color: AppColors.textDim, fontSize: 12)),
-            onTap: () {
-              Navigator.of(sheet).pop();
-              _sendPhoto(viewOnce: true);
-            },
-          ),
-          ListTile(
-            leading: const InIcon(InIcons.smile, size: 20),
-            title: const Text('Sticker'),
-            onTap: () {
-              Navigator.of(sheet).pop();
-              _openStickerPicker();
-            },
-          ),
-          ListTile(
-            leading: const InIcon(InIcons.gif, size: 20),
-            title: const Text('GIF'),
-            onTap: () {
-              Navigator.of(sheet).pop();
-              _pasteGifLink();
-            },
-          ),
-        ]),
-      ),
-    );
+  /// The + button: one sheet with everything you can send.
+  Future<void> _openAttach() async {
+    final kind = await showInsyncAttachSheet(context, options: const [
+      AttachKind.gallery,
+      AttachKind.camera,
+      AttachKind.viewOnce,
+      AttachKind.audio,
+      AttachKind.document,
+      AttachKind.gif,
+      AttachKind.sticker,
+      AttachKind.location,
+    ]);
+    if (!mounted || kind == null) return;
+    switch (kind) {
+      case AttachKind.gallery:
+        await _sendPhoto();
+      case AttachKind.camera:
+        await _sendPhoto(source: ImageSource.camera);
+      case AttachKind.viewOnce:
+        await _sendPhoto(viewOnce: true);
+      case AttachKind.audio:
+        await _sendAudio();
+      case AttachKind.document:
+        await _sendDocument();
+      case AttachKind.gif:
+        await _pasteGifLink();
+      case AttachKind.sticker:
+        _openStickerPicker();
+      case AttachKind.location:
+        await _sendLocation();
+      case AttachKind.poll:
+        break;
+    }
   }
 
   void _openRoomCreate(String type) =>
@@ -747,7 +853,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       final last = next == null || !together(m, next);
       final mine = m.senderId == myId;
       final quoted = m.replyToId == null ? null : byId[m.replyToId];
-      out.add(_Bubble(
+      final bubble = _Bubble(
         key: ValueKey(m.id),
         mine: mine,
         first: first,
@@ -762,7 +868,17 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         reactions: m.reactions.values.toList(),
         onLongPress: () => _openMessageActions(m, mine, myId),
         child: _messageContent(m, mine),
-      ));
+      );
+      out.add(m.viewOnce
+          ? VanishOnce(
+              key: ValueKey('vo-${m.id}'),
+              gone: m.viewed,
+              color: mine ? AppColors.lilac : AppColors.primary,
+              after: ViewOnceGoneNote(ViewOnceGoneNote.label(
+                  mine: mine, name: _firstName, at: m.viewedAt)),
+              child: bubble,
+            )
+          : bubble);
       if (last) {
         final time = DateFormat.jm().format(local);
         final seen = mine && i == lastMine;
@@ -907,7 +1023,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                         size: 36,
                         iconSize: 20,
                         color: AppColors.textDim,
-                        onPressed: _sending ? null : _sendPhoto),
+                        onPressed: _sending
+                            ? null
+                            : () => _sendPhoto(source: ImageSource.camera)),
                 ]),
               ),
             ),
@@ -1321,6 +1439,144 @@ class _QuickAction extends StatelessWidget {
             ]),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// A document in chat: tap to open it in another app.
+class _FileBubble extends StatelessWidget {
+  final String name;
+  final String dataUri;
+  final bool mine;
+  const _FileBubble(
+      {required this.name, required this.dataUri, required this.mine});
+
+  int get _bytes {
+    final comma = dataUri.indexOf(',');
+    return comma < 0 ? 0 : ((dataUri.length - comma - 1) * 3 / 4).round();
+  }
+
+  String get _size {
+    final b = _bytes;
+    if (b >= 1024 * 1024) return '${(b / 1024 / 1024).toStringAsFixed(1)} MB';
+    return '${(b / 1024).ceil()} KB';
+  }
+
+  Future<void> _open() async {
+    final comma = dataUri.indexOf(',');
+    if (comma < 0) return;
+    final dir = await getTemporaryDirectory();
+    final safe = name.replaceAll(RegExp(r'[^\w.\- ]'), '_');
+    final f = File('${dir.path}/$safe');
+    await f.writeAsBytes(base64Decode(dataUri.substring(comma + 1)));
+    await Share.shareXFiles([XFile(f.path)]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = mine ? Colors.white : AppColors.text;
+    return Semantics(
+      button: true,
+      label: 'Document $name, $_size',
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: _open,
+        borderRadius: BorderRadius.circular(12),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+                color: mine
+                    ? Colors.white.withValues(alpha: 0.18)
+                    : const Color(0xFF1A2A40),
+                borderRadius: BorderRadius.circular(10)),
+            child: Center(
+                child: InIcon(InIcons.doc,
+                    size: 19, color: mine ? Colors.white : AppColors.diamond)),
+          ),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: fg,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14)),
+                  Text('$_size · Tap to open',
+                      style: TextStyle(
+                          color: mine
+                              ? const Color(0xFFE7DDF5)
+                              : AppColors.textDim,
+                          fontSize: 12)),
+                ]),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+/// A shared location: tap to open it in Maps.
+class _LocationBubble extends StatelessWidget {
+  final String geo;
+  final bool mine;
+  const _LocationBubble({required this.geo, required this.mine});
+
+  @override
+  Widget build(BuildContext context) {
+    final coords = geo.replaceFirst('geo:', '');
+    final fg = mine ? Colors.white : AppColors.text;
+    return Semantics(
+      button: true,
+      label: 'Location, open in Maps',
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: () => launchUrl(
+            Uri.parse(
+                'https://www.google.com/maps/search/?api=1&query=$coords'),
+            mode: LaunchMode.externalApplication),
+        borderRadius: BorderRadius.circular(12),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+                color: mine
+                    ? Colors.white.withValues(alpha: 0.18)
+                    : const Color(0xFF1E2E2E),
+                shape: BoxShape.circle),
+            child: Center(
+                child: InIcon(InIcons.map,
+                    size: 19,
+                    color: mine ? Colors.white : const Color(0xFF5DCAA5))),
+          ),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Location',
+                      style: TextStyle(
+                          color: fg,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14)),
+                  Text('Open in Maps',
+                      style: TextStyle(
+                          color: mine
+                              ? const Color(0xFFE7DDF5)
+                              : AppColors.textDim,
+                          fontSize: 12)),
+                ]),
+          ),
+        ]),
       ),
     );
   }

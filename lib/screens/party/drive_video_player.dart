@@ -720,9 +720,16 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
     // rather than being force-stretched (that stretch previously caused a
     // layout overflow).
     return Stack(
+      // The bar sets the height; the hidden player stays full size
+      // behind it (clipped), so the WebView keeps playing.
+      clipBehavior: Clip.hardEdge,
       children: [
-        SizedBox(
-            width: 100, height: 100, child: IgnorePointer(child: videoTree)),
+        Positioned(
+            left: 0,
+            top: 0,
+            width: 100,
+            height: 100,
+            child: IgnorePointer(child: videoTree)),
         StaticBloomPlayer(
           playing: controller.value.isPlaying,
           title: widget.title,
@@ -738,6 +745,9 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
           compact: widget.compact,
           onSkip: widget.isHost ? widget.onSkip : null,
           onSkipPrevious: widget.isHost ? widget.onSkipPrevious : null,
+          liked: widget.liked,
+          onToggleLike: widget.onToggleLike,
+          onVoteSkip: widget.isHost ? null : widget.onVoteSkip,
         ),
       ],
     );

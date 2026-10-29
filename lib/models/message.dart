@@ -18,6 +18,7 @@ class DirectMessage {
   /// once. [viewed] once they have.
   final bool viewOnce;
   final bool viewed;
+  final DateTime? viewedAt;
 
   DirectMessage({
     required this.id,
@@ -32,10 +33,14 @@ class DirectMessage {
     this.reactions = const {},
     this.viewOnce = false,
     this.viewed = false,
+    this.viewedAt,
   });
 
   DirectMessage copyWith(
-          {DateTime? readAt, Map<String, String>? reactions, bool? viewed}) =>
+          {DateTime? readAt,
+          Map<String, String>? reactions,
+          bool? viewed,
+          DateTime? viewedAt}) =>
       DirectMessage(
         id: id,
         senderId: senderId,
@@ -49,11 +54,14 @@ class DirectMessage {
         reactions: reactions ?? this.reactions,
         viewOnce: viewOnce,
         viewed: viewed ?? this.viewed,
+        viewedAt: viewedAt ?? this.viewedAt,
       );
 
   /// One line for a reply quote or a preview.
   String get summary => switch (messageType) {
         'image' when viewOnce => 'View once photo',
+        'file' => 'Document',
+        'location' => 'Location',
         'image' => 'Photo',
         'voice' => 'Voice message',
         'gif' => 'GIF',
@@ -82,6 +90,9 @@ class DirectMessage {
       reactions: reactionsFrom(json['reactions']),
       viewOnce: json['viewOnce'] == true,
       viewed: json['viewed'] == true || json['viewedAt'] != null,
+      viewedAt: json['viewedAt'] != null
+          ? DateTime.tryParse(json['viewedAt'].toString())
+          : null,
     );
   }
 }

@@ -6,7 +6,8 @@ import '../../models/room_models.dart';
 import '../../theme/insync_icons.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/avatar.dart';
-import '../../widgets/chat_attachment_sheet.dart';
+import '../../widgets/insync_attach_sheet.dart';
+import '../../widgets/view_once.dart';
 import '../../widgets/glass.dart';
 
 // Deterministic per-sender name color, cycling through a small palette —
@@ -63,9 +64,11 @@ class ChatOverlay extends StatefulWidget {
   /// Live: the host's fan club members, shown with a heart badge.
   final Set<String> fanIds;
 
-  /// View-once photos: share one, and open one (once, for 10 seconds).
-  final VoidCallback? onViewOncePhoto;
-  final Future<void> Function(String id)? onOpenViewOnce;
+  /// View-once photos: share one (from the camera or the gallery), open
+  /// one (once, for 10 seconds), and — for your own — see who saw it.
+  final void Function({required bool camera})? onViewOncePhoto;
+  final Future<void> Function(String id, String senderName)? onOpenViewOnce;
+  final void Function(String id)? onViewOnceSeen;
 
   const ChatOverlay({
     super.key,
@@ -88,6 +91,7 @@ class ChatOverlay extends StatefulWidget {
     this.fanIds = const {},
     this.onViewOncePhoto,
     this.onOpenViewOnce,
+    this.onViewOnceSeen,
   });
 
   @override
@@ -176,6 +180,137 @@ class _ChatOverlayState extends State<ChatOverlay> {
     setState(() => _mentionQuery = null);
   }
 
+  Future<void> _openAttach() async {
+    final kind = await showInsyncAttachSheet(context, options: [
+      if (widget.onViewOncePhoto != null) ...[
+        AttachKind.gallery,
+        AttachKind.camera,
+      ],
+      AttachKind.poll,
+    ]);
+    switch (kind) {
+      case AttachKind.gallery:
+        widget.onViewOncePhoto?.call(camera: false);
+      case AttachKind.camera:
+        widget.onViewOncePhoto?.call(camera: true);
+      case AttachKind.poll:
+        widget.onPoll();
+      default:
+        break;
+    }
+  }
+
+  /// A view-once photo in the room chat. Others tap to open it once; after
+  /// that it blows away. The sender sees how many people have seen it.
+  Widget _viewOnceLine(
+      Map<String, dynamic> m, String id, String name, String? senderId) {
+    final mine = senderId == widget.myUserId;
+    final opened = _openedViewOnce.contains(id);
+    final seen = (m['seenCount'] as num?)?.toInt() ?? 0;
+    Widget card(
+            {required Widget icon,
+            required Widget body,
+            VoidCallback? onTap,
+            bool chevron = false}) =>
+        Semantics(
+          button: onTap != null,
+          child: GestureDetector(
+            onTap: onTap,
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 270),
+              padding: const EdgeInsets.fromLTRB(8, 7, 10, 7),
+              decoration: BoxDecoration(
+                color: mine
+                    ? const Color(0xFF5A2196)
+                    : AppColors.primary.withValues(alpha: 0.32),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.lilac, width: 1.2),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: mine
+                          ? Colors.white.withValues(alpha: 0.18)
+                          : const Color(0xFF2B1640)),
+                  child: Center(child: icon),
+                ),
+                const SizedBox(width: 9),
+                Flexible(child: body),
+                if (chevron) ...[
+                  const SizedBox(width: 6),
+                  const InIcon(InIcons.right, size: 16, color: Colors.white),
+                ],
+              ]),
+            ),
+          ),
+        );
+    const sub = TextStyle(color: Color(0xFFE7DDF5), fontSize: 11.5);
+    final Widget line;
+    if (mine) {
+      line = card(
+        icon: const InIcon(InIcons.eye, size: 16, color: Colors.white),
+        chevron: widget.onViewOnceSeen != null,
+        onTap: widget.onViewOnceSeen == null
+            ? null
+            : () => widget.onViewOnceSeen!(id),
+        body: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Your photo',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13)),
+              Text(seen == 0 ? 'Not seen yet' : 'Seen by $seen', style: sub),
+            ]),
+      );
+    } else {
+      line = VanishOnce(
+        gone: opened,
+        after: ViewOnceGoneNote('$name’s photo · viewed'),
+        child: card(
+          icon: const InIcon(InIcons.eye, size: 16, color: AppColors.lilac),
+          onTap: widget.onOpenViewOnce == null
+              ? null
+              : () async {
+                  await widget.onOpenViewOnce!(id, name);
+                  if (mounted) setState(() => _openedViewOnce.add(id));
+                },
+          body: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                RichText(
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  text: TextSpan(
+                      style: const TextStyle(fontSize: 13, color: Colors.white),
+                      children: [
+                        TextSpan(
+                            text: name,
+                            style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: _nameColor(senderId))),
+                        const TextSpan(text: ' sent a photo'),
+                      ]),
+                ),
+                const Text('Tap to open · 10 sec', style: sub),
+              ]),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Align(
+          alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+          child: line),
+    );
+  }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -256,26 +391,15 @@ class _ChatOverlayState extends State<ChatOverlay> {
                     final name = m['name'] as String? ?? 'Someone';
                     final senderId = m['senderId'] as String?;
                     final viewOnceId = m['viewOnceId'] as String?;
-                    final mineVo = senderId == widget.myUserId;
-                    final openedVo = _openedViewOnce.contains(viewOnceId);
-                    final canOpenVo = viewOnceId != null &&
-                        !mineVo &&
-                        !openedVo &&
-                        widget.onOpenViewOnce != null;
+                    if (viewOnceId != null) {
+                      return _viewOnceLine(m, viewOnceId, name, senderId);
+                    }
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 6),
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: GestureDetector(
-                          onTap: canOpenVo
-                              ? () async {
-                                  await widget.onOpenViewOnce!(viewOnceId);
-                                  if (mounted) {
-                                    setState(
-                                        () => _openedViewOnce.add(viewOnceId));
-                                  }
-                                }
-                              : () => openProfile(context, senderId),
+                          onTap: () => openProfile(context, senderId),
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 260),
                             child: GlassPanel(
@@ -305,18 +429,8 @@ class _ChatOverlayState extends State<ChatOverlay> {
                                           style: TextStyle(
                                               fontWeight: FontWeight.w700,
                                               color: _nameColor(senderId))),
-                                      if (viewOnceId != null)
-                                        TextSpan(
-                                            text: mineVo
-                                                ? '⌛ sent a view once photo'
-                                                : openedVo
-                                                    ? '⌛ View once photo · opened'
-                                                    : '⌛ View once photo · tap to view (10s)',
-                                            style: const TextStyle(
-                                                fontStyle: FontStyle.italic))
-                                      else
-                                        TextSpan(
-                                            text: m['text'] as String? ?? ''),
+                                      TextSpan(
+                                          text: m['text'] as String? ?? ''),
                                     ],
                                   ),
                                 ),
@@ -439,13 +553,12 @@ class _ChatOverlayState extends State<ChatOverlay> {
                           ),
                         ),
                       ),
-                      if (!_focused)
-                        _inlineIcon(
-                            InIcons.clip,
-                            'Attach',
-                            () => showChatAttachmentSheet(context,
-                                onPoll: widget.onPoll,
-                                onViewOncePhoto: widget.onViewOncePhoto)),
+                      if (!_focused) ...[
+                        if (widget.onViewOncePhoto != null)
+                          _inlineIcon(InIcons.camera, 'Send a view once photo',
+                              () => widget.onViewOncePhoto!(camera: true)),
+                        _inlineIcon(InIcons.clip, 'Attach', _openAttach),
+                      ],
                     ],
                   ),
                 ),

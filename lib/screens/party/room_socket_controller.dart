@@ -197,6 +197,17 @@ class RoomSocketController extends ChangeNotifier {
       messages = [...messages, Map<String, dynamic>.from(data)];
       notifyListeners();
     });
+    // Your view-once photo was just opened by someone: bump its count.
+    s.on('chat:viewOnceSeen', (data) {
+      if (data is! Map) return;
+      messages = [
+        for (final m in messages)
+          m['viewOnceId'] == data['id']
+              ? {...m, 'seenCount': data['seenCount']}
+              : m
+      ];
+      notifyListeners();
+    });
     // Gifts show in chat for everyone; big ones play full-screen.
     s.on('gift:received', (data) {
       if (data is! Map) return;
@@ -391,6 +402,7 @@ class RoomSocketController extends ChangeNotifier {
     socket?.off('disconnect', _onSocketDisconnect);
     socket?.off('presence:roster');
     socket?.off('chat:message');
+    socket?.off('chat:viewOnceSeen');
     socket?.off('queue:state');
     socket?.off('poll:state');
     socket?.off('queue:promptPin');

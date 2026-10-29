@@ -1,4 +1,5 @@
 import '../theme/insync_icons.dart';
+
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/glass.dart';
@@ -25,6 +26,10 @@ class StaticBloomPlayer extends StatefulWidget {
   final bool compact;
   final VoidCallback? onSkip;
   final VoidCallback? onSkipPrevious;
+  // Compact (room) bar only: like, and a listener's skip vote.
+  final bool liked;
+  final VoidCallback? onToggleLike;
+  final VoidCallback? onVoteSkip;
 
   const StaticBloomPlayer({
     super.key,
@@ -42,6 +47,9 @@ class StaticBloomPlayer extends StatefulWidget {
     this.compact = false,
     this.onSkip,
     this.onSkipPrevious,
+    this.liked = false,
+    this.onToggleLike,
+    this.onVoteSkip,
   });
 
   @override
@@ -64,11 +72,182 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
   @override
   void didUpdateWidget(covariant StaticBloomPlayer old) {
     super.didUpdateWidget(old);
-    if (widget.playing && !_controller.isAnimating) {
+    if (_spinning && !_controller.isAnimating) {
       _controller.repeat();
-    } else if (!widget.playing) {
+    } else if (!_spinning) {
       _controller.stop();
     }
+  }
+
+  // A listener's play/pause only silences their own phone (the room keeps
+  // playing for everyone) — remembers the volume to come back to.
+  int? _volumeBeforeMute;
+  bool get _mutedHere => !widget.isHost && widget.volume == 0;
+  bool get _spinning => widget.playing && !_mutedHere;
+
+  void _toggleHere() {
+    if (_mutedHere) {
+      widget.onVolumeChange(_volumeBeforeMute ?? 80);
+    } else {
+      _volumeBeforeMute = widget.volume;
+      widget.onVolumeChange(0);
+    }
+    setState(() {});
+  }
+
+  /// The slim one-line room bar: spinning CD, name and time, like,
+  /// play/pause and skip, with a hairline progress line the host can drag.
+  Widget _slim(BuildContext context) {
+    final hasTime = widget.duration > 0;
+    final progress =
+        hasTime ? (widget.currentTime / widget.duration).clamp(0.0, 1.0) : 0.0;
+    final playIcon = _spinning ? InIcons.pause : InIcons.play;
+    final onPlay = widget.isHost ? widget.onTogglePlay : _toggleHere;
+    final onSkip = widget.isHost ? widget.onSkip : widget.onVoteSkip;
+    Widget icon(InIconData i, String label, VoidCallback? onTap,
+            {Color? color, bool filled = false}) =>
+        Semantics(
+          button: true,
+          label: label,
+          child: InkResponse(
+            onTap: onTap,
+            radius: 20,
+            child: SizedBox(
+              width: 32,
+              height: 32,
+              child: Center(
+                  child: InIcon(i,
+                      size: 17,
+                      filled: filled,
+                      color: onTap == null
+                          ? AppColors.textFaint
+                          : (color ?? AppColors.text))),
+            ),
+          ),
+        );
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: ColoredBox(
+        color: AppColors.surface2,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(6, 5, 4, 5),
+            child: Row(children: [
+              // The cover as a CD: spins while playing, stops on pause.
+              RotationTransition(
+                turns: _controller,
+                child: Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.surface3,
+                    border: Border.all(color: Colors.black, width: 1.5),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Stack(fit: StackFit.expand, children: [
+                    if (widget.thumbnail != null &&
+                        widget.thumbnail!.isNotEmpty)
+                      AppImage(source: widget.thumbnail, fit: BoxFit.cover)
+                    else
+                      const Center(
+                          child: InIcon(InIcons.music,
+                              size: 14, color: AppColors.lilac)),
+                    Center(
+                      child: Container(
+                        width: 7,
+                        height: 7,
+                        decoration: const BoxDecoration(
+                            shape: BoxShape.circle, color: AppColors.surface2),
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(widget.title ?? 'Music',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: AppColors.text,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600)),
+              ),
+              if (hasTime) ...[
+                const SizedBox(width: 6),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                        '${_formatTime(widget.currentTime)}/${_formatTime(widget.duration)}',
+                        style: const TextStyle(
+                            color: AppColors.textDim,
+                            fontSize: 11,
+                            fontFeatures: [FontFeature.tabularFigures()])),
+                  ),
+                ),
+              ],
+              icon(InIcons.heart, widget.liked ? 'Unlike' : 'Like',
+                  widget.onToggleLike,
+                  color: widget.liked ? AppColors.pink : null,
+                  filled: widget.liked),
+              Semantics(
+                button: true,
+                label: _spinning ? 'Pause' : 'Play',
+                child: InkResponse(
+                  onTap: onPlay,
+                  radius: 18,
+                  child: Container(
+                    width: 26,
+                    height: 26,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: onPlay == null ? Colors.white38 : Colors.white),
+                    child: Center(
+                        child: InIcon(playIcon,
+                            size: 13, color: Colors.black, filled: true)),
+                  ),
+                ),
+              ),
+              icon(InIcons.skipNext, widget.isHost ? 'Skip' : 'Vote to skip',
+                  onSkip),
+            ]),
+          ),
+          // Hairline progress; the host can tap or drag it to jump.
+          LayoutBuilder(builder: (context, box) {
+            void seekTo(double dx, {bool end = false}) {
+              if (!widget.isHost || !hasTime) return;
+              final t = (dx / box.maxWidth).clamp(0.0, 1.0) * widget.duration;
+              widget.onSeekChanged?.call(t);
+              if (end) widget.onSeekEnd?.call(t);
+            }
+
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapUp: (d) => seekTo(d.localPosition.dx, end: true),
+              onHorizontalDragUpdate: (d) => seekTo(d.localPosition.dx),
+              onHorizontalDragEnd: (_) =>
+                  widget.onSeekEnd?.call(widget.currentTime),
+              child: SizedBox(
+                height: widget.isHost ? 8 : 2,
+                child: Align(
+                  alignment: Alignment.bottomLeft,
+                  child: Stack(children: [
+                    Container(height: 2, color: AppColors.surface3),
+                    FractionallySizedBox(
+                      widthFactor: progress,
+                      child: Container(height: 2, color: AppColors.lilac),
+                    ),
+                  ]),
+                ),
+              ),
+            );
+          }),
+        ]),
+      ),
+    );
   }
 
   String _formatTime(double seconds) {
@@ -80,6 +259,7 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.compact) return _slim(context);
     final c = widget.compact;
     final discSize = c ? 32.0 : 56.0;
     final bloomSize = c ? 36.0 : 64.0;
