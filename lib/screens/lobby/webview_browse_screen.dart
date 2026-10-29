@@ -8,6 +8,7 @@ import '../../core/api_client.dart';
 import '../../core/mobile_webview_settings.dart';
 import '../../core/youtube_util.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/insync_icons.dart';
 import '../../widgets/app_song_lists.dart';
 import '../../widgets/spinner.dart';
 import 'watch_room_creator.dart';
@@ -138,6 +139,30 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
       // on the page yet" catches that case too — this only checks
       // presence (a plain boolean), never reads, plays, or otherwise
       // touches the element or its content.
+      final playing = await _controller?.evaluateJavascript(source: '''
+        (function() {
+          var vids = Array.from(document.querySelectorAll('video'));
+          var frames = document.querySelectorAll('iframe');
+          for (var i = 0; i < frames.length; i++) {
+            try {
+              if (frames[i].contentDocument) {
+                vids = vids.concat(Array.from(
+                    frames[i].contentDocument.querySelectorAll('video')));
+              }
+            } catch (e) {}
+          }
+          var w = window.innerWidth || 1;
+          return vids.some(function(v) {
+            var r = v.getBoundingClientRect();
+            return !v.paused && !v.muted && v.currentTime > 1 &&
+                r.width >= w * 0.6;
+          });
+        })();
+      ''');
+      if (playing == true && mounted && !_autoStarted && !_creatingRoom) {
+        _triggerAutoStart(urlStr);
+        return;
+      }
       if (widget.platform == 'amazon') {
         // Also checks inside same-origin iframes — Amazon's player can sit
         // in one rather than the top document. A cross-origin iframe would
@@ -306,7 +331,12 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
           ],
         ),
       );
-      if (confirmed != true || !mounted) return;
+      if (!mounted) return;
+      if (confirmed != true) {
+        // Started playing but don't want to switch: go back to the room.
+        Navigator.of(context).pop();
+        return;
+      }
       setState(() => _creatingRoom = true);
       await onConfirmOverride(sourceType, videoUrl,
           videoTitle: videoTitle, videoThumbnail: videoThumbnail);
@@ -397,6 +427,16 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
     }
   }
 
+  String get _hint {
+    if (widget.onAddToQueue != null) {
+      return 'Pick something and press play to add it to the queue';
+    }
+    if (widget.onConfirmOverride != null) {
+      return 'Pick something and press play to switch the room to it';
+    }
+    return 'Pick something and press play — your room opens with it';
+  }
+
   String get _buttonLabel {
     if (widget.onAddToQueue != null) {
       return _creatingRoom ? 'Adding…' : 'Add to queue';
@@ -422,9 +462,7 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
             onLoadStop: (controller, url) {
               setState(() => _loading = false);
               // Landed on what looks like a real watch/play page — jump
-              // straight into the room instead of waiting for the manual
-              // "Start watch party here" tap below (still there as a
-              // fallback for whatever this heuristic misses).
+              // straight into the room with it pinned.
               _maybeAutoStart(url?.toString());
             },
             // Catches SPA route changes that never trigger onLoadStop at
@@ -484,17 +522,34 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
                 ),
               ),
             ),
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 16,
-            child: ElevatedButton(
-              onPressed: _creatingRoom ? null : _startHere,
-              style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14)),
-              child: Text(_buttonLabel),
+          // No start button: picking something and pressing play is what
+          // opens the room with it pinned (see _maybeAutoStart).
+          if (!_creatingRoom)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 16,
+              child: IgnorePointer(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.72),
+                      borderRadius: BorderRadius.circular(999)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const InIcon(InIcons.play,
+                        size: 15, color: Colors.white, filled: true),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(_hint,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 12.5)),
+                    ),
+                  ]),
+                ),
+              ),
             ),
-          ),
         ],
       ),
     );
