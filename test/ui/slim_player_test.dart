@@ -118,7 +118,7 @@ void main() {
                 'ts': 2,
               },
             ],
-            onSend: (_, __) {},
+            onSend: (_, __, {replyTo}) {},
             myUserId: 'me',
             primaryColor: Colors.purple,
             textColor: Colors.white,

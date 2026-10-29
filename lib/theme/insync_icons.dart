@@ -128,6 +128,8 @@ class InIcons {
       InIconData('chart', '<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>');
   static const shield = InIconData('shield',
       '<path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.3-7.5 9.5-4.3-1.2-7.5-4.9-7.5-9.5V6z"/><path d="M8.8 12l2.2 2.2 4.2-4.4"/>');
+  static const reply = InIconData('reply',
+      '<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/>');
   static const eye = InIconData('eye',
       '<path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7z"/><circle cx="12" cy="12" r="3"/>');
   static const eyeoff = InIconData('eyeoff',

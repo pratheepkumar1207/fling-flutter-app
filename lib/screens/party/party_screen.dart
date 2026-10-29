@@ -1400,9 +1400,10 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                               child: ChatOverlay(
                                 fanIds: extras.fanIds,
                                 messages: rs.messages,
-                                onSend: (text, mentionedUserIds) =>
+                                onSend: (text, mentionedUserIds, {replyTo}) =>
                                     rs.sendMessage(text,
-                                        mentionedUserIds: mentionedUserIds),
+                                        mentionedUserIds: mentionedUserIds,
+                                        replyTo: replyTo),
                                 myUserId: myId,
                                 primaryColor: AppColors.primary,
                                 textColor: Colors.white,
@@ -1617,9 +1618,10 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                               messages: rs.messages,
                               chat: ChatOverlay(
                                 messages: rs.messages,
-                                onSend: (text, mentionedUserIds) =>
+                                onSend: (text, mentionedUserIds, {replyTo}) =>
                                     rs.sendMessage(text,
-                                        mentionedUserIds: mentionedUserIds),
+                                        mentionedUserIds: mentionedUserIds,
+                                        replyTo: replyTo),
                                 myUserId: myId,
                                 primaryColor: roomPrimary,
                                 textColor: roomText,
@@ -1699,10 +1701,12 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                             12, 4, 12, 12),
                                         child: ChatOverlay(
                                           messages: rs.messages,
-                                          onSend: (text, mentionedUserIds) =>
+                                          onSend: (text, mentionedUserIds,
+                                                  {replyTo}) =>
                                               rs.sendMessage(text,
                                                   mentionedUserIds:
-                                                      mentionedUserIds),
+                                                      mentionedUserIds,
+                                                  replyTo: replyTo),
                                           myUserId: myId,
                                           primaryColor: roomPrimary,
                                           textColor: roomText,
@@ -1824,10 +1828,12 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                         12, 0, 12, 12),
                                     child: ChatOverlay(
                                       messages: rs.messages,
-                                      onSend: (text, mentionedUserIds) =>
+                                      onSend: (text, mentionedUserIds,
+                                              {replyTo}) =>
                                           rs.sendMessage(text,
                                               mentionedUserIds:
-                                                  mentionedUserIds),
+                                                  mentionedUserIds,
+                                              replyTo: replyTo),
                                       myUserId: myId,
                                       primaryColor: roomPrimary,
                                       textColor: roomText,
@@ -1982,10 +1988,12 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                               12, 4, 12, 12),
                                           child: ChatOverlay(
                                             messages: rs.messages,
-                                            onSend: (text, mentionedUserIds) =>
+                                            onSend: (text, mentionedUserIds,
+                                                    {replyTo}) =>
                                                 rs.sendMessage(text,
                                                     mentionedUserIds:
-                                                        mentionedUserIds),
+                                                        mentionedUserIds,
+                                                    replyTo: replyTo),
                                             myUserId: myId,
                                             primaryColor: roomPrimary,
                                             textColor: roomText,
@@ -2089,9 +2097,10 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                               padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
                               child: ChatOverlay(
                                 messages: rs.messages,
-                                onSend: (text, mentionedUserIds) =>
+                                onSend: (text, mentionedUserIds, {replyTo}) =>
                                     rs.sendMessage(text,
-                                        mentionedUserIds: mentionedUserIds),
+                                        mentionedUserIds: mentionedUserIds,
+                                        replyTo: replyTo),
                                 myUserId: myId,
                                 primaryColor: roomPrimary,
                                 textColor: roomText,

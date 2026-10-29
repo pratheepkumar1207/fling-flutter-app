@@ -1,3 +1,4 @@
+import 'package:just_audio/just_audio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -24,6 +25,23 @@ class MentionNotifier extends StatefulWidget {
 
 class _MentionNotifierState extends State<MentionNotifier> {
   RoomSocketController? _rs;
+  // A short chime for "you were mentioned / replied to" in room chat.
+  final _player = AudioPlayer();
+  bool _loaded = false;
+
+  Future<void> _ping() async {
+    try {
+      if (!_loaded) {
+        await _player.setAsset('assets/sounds/chat_ping.wav');
+        await _player.setVolume(0.8);
+        _loaded = true;
+      }
+      await _player.seek(Duration.zero);
+      await _player.play();
+    } catch (_) {
+      HapticFeedback.mediumImpact();
+    }
+  }
 
   @override
   void initState() {
@@ -48,10 +66,12 @@ class _MentionNotifierState extends State<MentionNotifier> {
     final rs = _rs;
     if (rs == null || rs.mention == null) return;
     final fromName = rs.mention!['fromName'] as String? ?? 'Someone';
+    final reply = rs.mention!['reply'] == true;
     rs.clearMention();
-    if (!RoomPrefs.instance.muteAlerts) SystemSound.play(SystemSoundType.alert);
+    if (!RoomPrefs.instance.muteAlerts) _ping();
     scaffoldMessengerKey.currentState?.showSnackBar(SnackBar(
-      content: Text('$fromName mentioned you'),
+      content:
+          Text(reply ? '$fromName replied to you' : '$fromName mentioned you'),
       behavior: SnackBarBehavior.floating,
       duration: const Duration(seconds: 3),
     ));
@@ -59,6 +79,7 @@ class _MentionNotifierState extends State<MentionNotifier> {
 
   @override
   void dispose() {
+    _player.dispose();
     ActiveRoomHolder.activeLabel.removeListener(_onActiveRoomChanged);
     _rs?.removeListener(_onRoomStateChanged);
     super.dispose();

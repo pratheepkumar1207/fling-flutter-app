@@ -392,6 +392,10 @@ class RoomSocketController extends ChangeNotifier {
           (data is Map ? data['reason'] : null) as String? ?? 'Chat is off';
       notifyListeners();
     });
+    s.on('chat:replied', (data) {
+      mention = {...Map<String, dynamic>.from(data), 'reply': true};
+      notifyListeners();
+    });
     s.on('chat:mentioned', (data) {
       mention = Map<String, dynamic>.from(data);
       notifyListeners();
@@ -420,6 +424,7 @@ class RoomSocketController extends ChangeNotifier {
     socket?.off('disconnect', _onSocketDisconnect);
     socket?.off('presence:roster');
     socket?.off('chat:message');
+    socket?.off('chat:replied');
     socket?.off('chat:viewOnceSeen');
     socket?.off('queue:state');
     socket?.off('poll:state');
@@ -470,11 +475,14 @@ class RoomSocketController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void sendMessage(String text, {List<String> mentionedUserIds = const []}) =>
+  void sendMessage(String text,
+          {List<String> mentionedUserIds = const [],
+          Map<String, dynamic>? replyTo}) =>
       socket?.emit('chat:message', {
         'roomId': roomId,
         'text': text,
         if (mentionedUserIds.isNotEmpty) 'mentionedUserIds': mentionedUserIds,
+        if (replyTo != null) 'replyTo': replyTo,
       });
   void play(double position) {
     if (isHost) {

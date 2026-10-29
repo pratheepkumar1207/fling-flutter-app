@@ -1,4 +1,6 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/profile_nav.dart';
 import '../../core/room_prefs.dart';
 import '../../core/room_source_types.dart';
@@ -33,7 +35,8 @@ class ChatOverlay extends StatefulWidget {
   // regex-matching @handle tokens out of free text after the fact would be
   // unreliable. The server uses this list as-is (after validating each id
   // is actually in the room) to notify just those people.
-  final void Function(String text, List<String> mentionedUserIds) onSend;
+  final void Function(String text, List<String> mentionedUserIds,
+      {Map<String, dynamic>? replyTo}) onSend;
   final String? myUserId;
   final Color primaryColor;
   final Color textColor;
@@ -102,6 +105,15 @@ class _ChatOverlayState extends State<ChatOverlay> {
   final _controller = TextEditingController();
   // View-once photos this person has opened (or tried to) here.
   final _openedViewOnce = <String>{};
+  // The message being replied to (long-press or swipe a message).
+  Map<String, dynamic>? _replyTo;
+
+  void _startReply(Map<String, dynamic> m) {
+    HapticFeedback.selectionClick();
+    setState(() => _replyTo = m);
+    _focusNode.requestFocus();
+  }
+
   final _focusNode = FocusNode();
   bool _focused = false;
   // Non-null while the text after the last '@' looks like an in-progress
@@ -174,10 +186,176 @@ class _ChatOverlayState extends State<ChatOverlay> {
   void _send() {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-    widget.onSend(text, _mentionedUserIds.toList());
+    final r = _replyTo;
+    widget.onSend(text, _mentionedUserIds.toList(),
+        replyTo: r == null
+            ? null
+            : {
+                'id': r['id'],
+                'senderId': r['senderId'],
+                'name': r['name'],
+                'text': r['text'],
+              });
     _controller.clear();
     _mentionedUserIds.clear();
-    setState(() => _mentionQuery = null);
+    setState(() {
+      _mentionQuery = null;
+      _replyTo = null;
+    });
+  }
+
+  /// Message text with @handles picked out (yours highlighted).
+  List<InlineSpan> _textSpans(String text) {
+    final myHandle = widget.roster
+        .where((r) => r.userId == widget.myUserId)
+        .map((r) => (r.username ?? r.name).toLowerCase())
+        .firstOrNull;
+    final spans = <InlineSpan>[];
+    var last = 0;
+    for (final m in RegExp(r'@([A-Za-z0-9_.]+)').allMatches(text)) {
+      if (m.start > last) {
+        spans.add(TextSpan(text: text.substring(last, m.start)));
+      }
+      final me = myHandle != null && m.group(1)!.toLowerCase() == myHandle;
+      spans.add(TextSpan(
+          text: m.group(0),
+          style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: me ? AppColors.gold : AppColors.lilac,
+              backgroundColor:
+                  me ? AppColors.gold.withValues(alpha: 0.18) : null)));
+      last = m.end;
+    }
+    if (last < text.length) spans.add(TextSpan(text: text.substring(last)));
+    return spans;
+  }
+
+  bool _mentionsMe(String text) {
+    final myHandle = widget.roster
+        .where((r) => r.userId == widget.myUserId)
+        .map((r) => (r.username ?? r.name).toLowerCase())
+        .firstOrNull;
+    return myHandle != null && text.toLowerCase().contains('@$myHandle');
+  }
+
+  /// One chat message: yours on the right, everyone else's on the left.
+  /// Long-press or swipe it to reply.
+  Widget _messageLine(Map<String, dynamic> m, String name, String? senderId) {
+    final mine = senderId != null && senderId == widget.myUserId;
+    final text = m['text'] as String? ?? '';
+    final quote = m['replyTo'] is Map
+        ? Map<String, dynamic>.from(m['replyTo'] as Map)
+        : null;
+    final quoteMine = quote?['senderId'] == widget.myUserId;
+    final toMe = !mine && (quoteMine || _mentionsMe(text));
+    final bubble = Container(
+      constraints: const BoxConstraints(maxWidth: 270),
+      padding: const EdgeInsets.fromLTRB(11, 7, 11, 7),
+      decoration: BoxDecoration(
+        color: mine
+            ? AppColors.primary.withValues(alpha: 0.85)
+            : Colors.black.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.only(
+          topLeft: const Radius.circular(16),
+          topRight: const Radius.circular(16),
+          bottomLeft: Radius.circular(mine ? 16 : 4),
+          bottomRight: Radius.circular(mine ? 4 : 16),
+        ),
+        border: Border.all(
+            color: toMe
+                ? AppColors.gold.withValues(alpha: 0.8)
+                : Colors.white.withValues(alpha: 0.08),
+            width: toMe ? 1.4 : 1),
+      ),
+      child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (quote != null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 5),
+                padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: const Border(
+                      left: BorderSide(color: AppColors.lilac, width: 3)),
+                ),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(quoteMine ? 'You' : '${quote['name'] ?? 'Someone'}',
+                          style: const TextStyle(
+                              color: AppColors.lilac,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700)),
+                      Text('${quote['text'] ?? ''}',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 11.5)),
+                    ]),
+              ),
+            RichText(
+              text: TextSpan(
+                style: const TextStyle(fontSize: 12.5, color: Colors.white),
+                children: [
+                  if (!mine && widget.fanIds.contains(senderId))
+                    const WidgetSpan(
+                      alignment: PlaceholderAlignment.middle,
+                      child: Padding(
+                        padding: EdgeInsets.only(right: 4),
+                        child: InIcon(InIcons.heart,
+                            size: 12, color: AppColors.pink, filled: true),
+                      ),
+                    ),
+                  if (!mine)
+                    TextSpan(
+                        text: '$name  ',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: _nameColor(senderId))),
+                  ..._textSpans(text),
+                ],
+              ),
+            ),
+          ]),
+    );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Dismissible(
+        key: ValueKey('msg-${m['id'] ?? m['ts']}-$senderId'),
+        direction:
+            mine ? DismissDirection.endToStart : DismissDirection.startToEnd,
+        dismissThresholds: const {
+          DismissDirection.startToEnd: 0.25,
+          DismissDirection.endToStart: 0.25,
+        },
+        confirmDismiss: (_) async {
+          _startReply(m);
+          return false;
+        },
+        background: Align(
+          alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12),
+            child: InIcon(InIcons.reply, size: 18, color: AppColors.lilac),
+          ),
+        ),
+        child: Align(
+          alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+          child: Semantics(
+            label: '${mine ? 'You' : name}: $text. Long-press to reply',
+            child: GestureDetector(
+              onTap: mine ? null : () => openProfile(context, senderId),
+              onLongPress: () => _startReply(m),
+              child: bubble,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _openAttach() async {
@@ -394,86 +572,124 @@ class _ChatOverlayState extends State<ChatOverlay> {
                     if (viewOnceId != null) {
                       return _viewOnceLine(m, viewOnceId, name, senderId);
                     }
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: GestureDetector(
-                          onTap: () => openProfile(context, senderId),
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 260),
-                            child: GlassPanel(
-                              borderRadius: BorderRadius.circular(14),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 7),
-                                child: RichText(
-                                  text: TextSpan(
-                                    style: const TextStyle(
-                                        fontSize: 12.5, color: Colors.white),
-                                    children: [
-                                      if (widget.fanIds.contains(senderId))
-                                        const WidgetSpan(
-                                          alignment:
-                                              PlaceholderAlignment.middle,
-                                          child: Padding(
-                                            padding: EdgeInsets.only(right: 4),
-                                            child: InIcon(InIcons.heart,
-                                                size: 12,
-                                                color: AppColors.pink,
-                                                filled: true),
-                                          ),
-                                        ),
-                                      TextSpan(
-                                          text: '$name  ',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w700,
-                                              color: _nameColor(senderId))),
-                                      TextSpan(
-                                          text: m['text'] as String? ?? ''),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
+                    return _messageLine(m, name, senderId);
                   },
                 ),
         ),
         if (matches.isNotEmpty)
-          GlassPanel(
-            borderRadius: BorderRadius.circular(14),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 6),
-              constraints: const BoxConstraints(maxHeight: 180),
-              child: ListView.builder(
-                shrinkWrap: true,
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                itemCount: matches.length,
-                itemBuilder: (context, i) {
-                  final p = matches[i];
-                  final handle = p.username ?? p.name;
-                  return ListTile(
-                    dense: true,
-                    visualDensity: VisualDensity.compact,
-                    leading: Avatar(
-                      src: p.avatarUrl,
-                      name: p.name,
-                      size: AvatarSize.sm,
-                    ),
-                    title: Text('@$handle',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600)),
-                    onTap: () => _selectMention(p),
-                  );
-                },
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                child: Container(
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    borderRadius: BorderRadius.circular(16),
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                  ),
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(14, 8, 14, 0),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text('Tap someone to tag them',
+                              style: TextStyle(
+                                  color: Colors.white60, fontSize: 11)),
+                        ),
+                      ),
+                      Flexible(
+                        child: Container(
+                          constraints: const BoxConstraints(maxHeight: 180),
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            itemCount: matches.length,
+                            itemBuilder: (context, i) {
+                              final p = matches[i];
+                              final handle = p.username ?? p.name;
+                              return ListTile(
+                                dense: true,
+                                visualDensity: VisualDensity.compact,
+                                leading: Avatar(
+                                  src: p.avatarUrl,
+                                  name: p.name,
+                                  size: AvatarSize.sm,
+                                ),
+                                title: Text(p.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600)),
+                                subtitle: Text('@$handle',
+                                    style: const TextStyle(
+                                        color: AppColors.lilac, fontSize: 12)),
+                                trailing: p.isHost
+                                    ? const InIcon(InIcons.crown,
+                                        size: 14,
+                                        color: AppColors.gold,
+                                        filled: true)
+                                    : null,
+                                onTap: () => _selectMention(p),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ]),
+                  ),
+                ),
               ),
             ),
+          ),
+        if (_replyTo != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 6),
+            padding: const EdgeInsets.fromLTRB(10, 6, 4, 6),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(12),
+              border: const Border(
+                  left: BorderSide(color: AppColors.lilac, width: 3)),
+            ),
+            child: Row(children: [
+              const InIcon(InIcons.reply, size: 16, color: AppColors.lilac),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                          _replyTo!['senderId'] == widget.myUserId
+                              ? 'Replying to yourself'
+                              : 'Replying to ${_replyTo!['name'] ?? 'Someone'}',
+                          style: const TextStyle(
+                              color: AppColors.lilac,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700)),
+                      Text('${_replyTo!['text'] ?? ''}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 12)),
+                    ]),
+              ),
+              IconButton(
+                tooltip: 'Cancel reply',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => setState(() => _replyTo = null),
+                icon: const InIcon(InIcons.close,
+                    size: 16, color: Colors.white70),
+              ),
+            ]),
           ),
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,

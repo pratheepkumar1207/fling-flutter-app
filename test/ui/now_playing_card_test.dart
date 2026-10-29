@@ -14,7 +14,7 @@ Widget _overlay(List<Map<String, dynamic>> messages,
         height: 500,
         child: ChatOverlay(
           messages: messages,
-          onSend: (_, __) {},
+          onSend: (_, __, {replyTo}) {},
           primaryColor: Colors.blue,
           textColor: Colors.white,
           roster: roster,
