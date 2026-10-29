@@ -63,6 +63,10 @@ class ChatOverlay extends StatefulWidget {
   /// Live: the host's fan club members, shown with a heart badge.
   final Set<String> fanIds;
 
+  /// View-once photos: share one, and open one (once, for 10 seconds).
+  final VoidCallback? onViewOncePhoto;
+  final Future<void> Function(String id)? onOpenViewOnce;
+
   const ChatOverlay({
     super.key,
     required this.messages,
@@ -82,6 +86,8 @@ class ChatOverlay extends StatefulWidget {
     this.likedUrls = const {},
     this.onToggleLike,
     this.fanIds = const {},
+    this.onViewOncePhoto,
+    this.onOpenViewOnce,
   });
 
   @override
@@ -90,6 +96,8 @@ class ChatOverlay extends StatefulWidget {
 
 class _ChatOverlayState extends State<ChatOverlay> {
   final _controller = TextEditingController();
+  // View-once photos this person has opened (or tried to) here.
+  final _openedViewOnce = <String>{};
   final _focusNode = FocusNode();
   bool _focused = false;
   // Non-null while the text after the last '@' looks like an in-progress
@@ -247,12 +255,27 @@ class _ChatOverlayState extends State<ChatOverlay> {
                     }
                     final name = m['name'] as String? ?? 'Someone';
                     final senderId = m['senderId'] as String?;
+                    final viewOnceId = m['viewOnceId'] as String?;
+                    final mineVo = senderId == widget.myUserId;
+                    final openedVo = _openedViewOnce.contains(viewOnceId);
+                    final canOpenVo = viewOnceId != null &&
+                        !mineVo &&
+                        !openedVo &&
+                        widget.onOpenViewOnce != null;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 6),
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: GestureDetector(
-                          onTap: () => openProfile(context, senderId),
+                          onTap: canOpenVo
+                              ? () async {
+                                  await widget.onOpenViewOnce!(viewOnceId);
+                                  if (mounted) {
+                                    setState(
+                                        () => _openedViewOnce.add(viewOnceId));
+                                  }
+                                }
+                              : () => openProfile(context, senderId),
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 260),
                             child: GlassPanel(
@@ -282,8 +305,18 @@ class _ChatOverlayState extends State<ChatOverlay> {
                                           style: TextStyle(
                                               fontWeight: FontWeight.w700,
                                               color: _nameColor(senderId))),
-                                      TextSpan(
-                                          text: m['text'] as String? ?? ''),
+                                      if (viewOnceId != null)
+                                        TextSpan(
+                                            text: mineVo
+                                                ? '⌛ sent a view once photo'
+                                                : openedVo
+                                                    ? '⌛ View once photo · opened'
+                                                    : '⌛ View once photo · tap to view (10s)',
+                                            style: const TextStyle(
+                                                fontStyle: FontStyle.italic))
+                                      else
+                                        TextSpan(
+                                            text: m['text'] as String? ?? ''),
                                     ],
                                   ),
                                 ),
@@ -411,7 +444,8 @@ class _ChatOverlayState extends State<ChatOverlay> {
                             InIcons.clip,
                             'Attach',
                             () => showChatAttachmentSheet(context,
-                                onPoll: widget.onPoll)),
+                                onPoll: widget.onPoll,
+                                onViewOncePhoto: widget.onViewOncePhoto)),
                     ],
                   ),
                 ),

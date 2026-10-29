@@ -3,17 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
+import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
 import '../../core/dynamic_options_cache.dart';
 import '../../core/interest_options.dart';
 import '../../core/language_options.dart';
-import '../../models/photo.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
+import '../../widgets/avatar.dart';
 import '../../widgets/interest_picker.dart';
-import '../../widgets/spinner.dart';
-
-const _kMinGalleryPhotos = 5;
 
 const _kLookingForOptions = [
   ['long_term', 'Long-term'],
@@ -25,8 +23,9 @@ const _kLookingForOptions = [
 
 /// Shown right after login, before anything else — see SplashScreen, which
 /// routes here instead of AppShell whenever auth.user.profileComplete is
-/// false, and blocks every other screen until it's true. Dart port of
-/// CompleteProfilePage.jsx.
+/// false, and blocks every other screen until it's true. A profile picture,
+/// your name and your @username are required, plus age, what you're
+/// looking for and interests.
 class CompleteProfileScreen extends StatefulWidget {
   const CompleteProfileScreen({super.key});
 
@@ -40,10 +39,14 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   List<List<String>> _interestOptions = kInterestOptions;
   String _lookingFor = '';
   final _ageController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _usernameController = TextEditingController();
   bool _ageConfirmed18 = false;
-  List<Photo> _gallery = [];
-  bool _galleryLoading = true;
+  String? _avatar;
+  String? _usernameError;
   bool _saving = false;
+
+  static final _generated = RegExp(r'^user[a-z0-9]{6,}$');
 
   @override
   void initState() {
@@ -54,7 +57,11 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     _lookingFor = user?.lookingFor ?? '';
     _ageController.text = user?.age?.toString() ?? '';
     _ageConfirmed18 = user?.ageConfirmed18 ?? false;
-    _loadGallery();
+    _avatar = user?.avatarUrl;
+    final name = user?.name ?? '';
+    _nameController.text = name == 'Test User' ? '' : name;
+    final handle = user?.username ?? '';
+    _usernameController.text = _generated.hasMatch(handle) ? '' : handle;
     InterestOptionsCache.load().then((options) {
       if (mounted) setState(() => _interestOptions = options);
     });
@@ -63,65 +70,44 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   int? get _age => int.tryParse(_ageController.text.trim());
   bool get _isAdult => _age != null && _age! >= 18;
 
-  Future<void> _loadGallery() async {
-    setState(() => _galleryLoading = true);
-    try {
-      final data = await ApiClient.get('/gallery/me');
-      if (!mounted) return;
-      setState(() {
-        _gallery = (data as List)
-            .map((e) => Photo.fromJson(e as Map<String, dynamic>))
-            .toList();
-        _galleryLoading = false;
-      });
-    } catch (_) {
-      if (mounted) setState(() => _galleryLoading = false);
-    }
-  }
+  String get _handle => _usernameController.text
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9_]'), '');
 
   bool get _canContinue =>
+      _avatar != null &&
+      _nameController.text.trim().length >= 2 &&
+      _handle.length >= 3 &&
       _isAdult &&
       _ageConfirmed18 &&
       _interests.length >= kMinInterests &&
-      _lookingFor.isNotEmpty &&
-      _gallery.length >= _kMinGalleryPhotos;
+      _lookingFor.isNotEmpty;
 
-  Future<void> _addPhoto() async {
-    final picker = ImagePicker();
-    final file =
-        await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+  Future<void> _pickAvatar() async {
+    final file = await ImagePicker().pickImage(
+        source: ImageSource.gallery, imageQuality: 80, maxWidth: 1080);
     if (file == null) return;
     final bytes = await file.readAsBytes();
     final ext = file.name.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
-    final dataUri = 'data:image/$ext;base64,${base64Encode(bytes)}';
-    try {
-      await ApiClient.post('/gallery', body: {'imageData': dataUri});
-      _loadGallery();
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Failed to add photo')));
-      }
-    }
-  }
-
-  Future<void> _deletePhoto(String id) async {
-    try {
-      await ApiClient.delete('/gallery/$id');
-      _loadGallery();
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to remove photo')));
-      }
+    if (mounted) {
+      setState(() => _avatar = 'data:image/$ext;base64,${base64Encode(bytes)}');
     }
   }
 
   Future<void> _continue() async {
     if (!_canContinue) return;
-    setState(() => _saving = true);
+    setState(() {
+      _saving = true;
+      _usernameError = null;
+    });
     try {
       await ApiClient.patch('/auth/me', body: {
+        'name': _nameController.text.trim(),
+        'username': _handle,
+        if (_avatar != context.read<AuthProvider>().user?.avatarUrl)
+          'avatarUrl': _avatar,
+        'completeSetup': true,
         'interests': _interests,
         'languages': _languages,
         'lookingFor': _lookingFor,
@@ -130,6 +116,15 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       });
       if (!mounted) return;
       await context.read<AuthProvider>().refreshUser();
+    } on ApiException catch (e) {
+      if (mounted) {
+        if (e.message.toLowerCase().contains('username')) {
+          setState(() => _usernameError = e.message);
+        } else {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(e.message)));
+        }
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -142,9 +137,6 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final galleryCount = _gallery.length;
-    // Always at least one empty slot, and enough to reach the minimum.
-    final slots = (galleryCount + 1).clamp(6, 12);
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
@@ -162,29 +154,89 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                 const Text('Just a few details before you jump in.',
                     style: TextStyle(color: AppColors.textDim, fontSize: 14)),
                 const SizedBox(height: 18),
-                _sectionLabel(
-                    'Photos · ${galleryCount.clamp(0, _kMinGalleryPhotos)}/$_kMinGalleryPhotos',
-                    hint:
-                        'Add at least $_kMinGalleryPhotos so people get a real sense of you.'),
-                if (_galleryLoading)
-                  const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Center(child: Spinner(size: 20)))
-                else
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: slots,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            mainAxisSpacing: 8,
-                            crossAxisSpacing: 8,
-                            childAspectRatio: 0.8),
-                    itemBuilder: (context, i) => i < galleryCount
-                        ? _photoTile(_gallery[i], main: i == 0)
-                        : _addTile(),
+                Center(
+                  child: Semantics(
+                    button: true,
+                    label: 'Add profile picture',
+                    child: GestureDetector(
+                      onTap: _pickAvatar,
+                      child: Stack(children: [
+                        Container(
+                          width: 112,
+                          height: 112,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.surface,
+                            border: Border.all(
+                                color: _avatar == null
+                                    ? AppColors.border
+                                    : AppColors.primary,
+                                width: 2),
+                          ),
+                          child: _avatar == null
+                              ? const Center(
+                                  child: InIcon(InIcons.camera,
+                                      size: 30, color: AppColors.textDim))
+                              : ClipOval(
+                                  child: FittedBox(
+                                      fit: BoxFit.cover,
+                                      child: Avatar(
+                                          src: _avatar, size: AvatarSize.lg))),
+                        ),
+                        Positioned(
+                          right: 2,
+                          bottom: 2,
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle),
+                            child: const Center(
+                                child: InIcon(InIcons.plus,
+                                    size: 16, color: Colors.white)),
+                          ),
+                        ),
+                      ]),
+                    ),
                   ),
+                ),
+                const SizedBox(height: 6),
+                Center(
+                  child: Text(
+                      _avatar == null
+                          ? 'Add a profile picture (required)'
+                          : 'Tap to change',
+                      style: const TextStyle(
+                          color: AppColors.textFaint, fontSize: 12)),
+                ),
+                const SizedBox(height: 18),
+                _sectionLabel('Your name'),
+                TextField(
+                  controller: _nameController,
+                  maxLength: 40,
+                  textCapitalization: TextCapitalization.words,
+                  onChanged: (_) => setState(() {}),
+                  style: const TextStyle(color: AppColors.text, fontSize: 15),
+                  decoration:
+                      const InputDecoration(hintText: 'Name', counterText: ''),
+                ),
+                const SizedBox(height: 14),
+                _sectionLabel('Your @username',
+                    hint:
+                        'Letters, numbers and _. You can change it once every 15 days.'),
+                TextField(
+                  controller: _usernameController,
+                  maxLength: 30,
+                  autocorrect: false,
+                  onChanged: (_) => setState(() => _usernameError = null),
+                  style: const TextStyle(color: AppColors.text, fontSize: 15),
+                  decoration: InputDecoration(
+                      hintText: 'username',
+                      prefixText: '@',
+                      counterText: '',
+                      errorText: _usernameError),
+                ),
                 const SizedBox(height: 22),
                 _sectionLabel('Your age'),
                 TextField(
@@ -299,95 +351,11 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         ]),
       );
 
-  Widget _photoTile(Photo p, {required bool main}) {
-    return Stack(fit: StackFit.expand, children: [
-      ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Image.memory(base64Decode(p.imageData.split(',').last),
-            fit: BoxFit.cover),
-      ),
-      if (main)
-        Positioned(
-          left: 6,
-          top: 6,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-            decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(6)),
-            child: const Text('Main',
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
-          ),
-        ),
-      Positioned(
-        top: 2,
-        right: 2,
-        child: Semantics(
-          button: true,
-          label: 'Remove photo',
-          child: InkResponse(
-            onTap: () => _deletePhoto(p.id),
-            radius: 20,
-            child: Container(
-              width: 28,
-              height: 28,
-              margin: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                  color: Colors.black54, shape: BoxShape.circle),
-              alignment: Alignment.center,
-              child: const InIcon(InIcons.close, size: 14, color: Colors.white),
-            ),
-          ),
-        ),
-      ),
-    ]);
-  }
-
-  Widget _addTile() => Semantics(
-        button: true,
-        label: 'Add photo',
-        child: InkWell(
-          onTap: _addPhoto,
-          borderRadius: BorderRadius.circular(16),
-          child: CustomPaint(
-            painter: _DashedBorder(),
-            child: const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  InIcon(InIcons.plus, size: 22, color: AppColors.textDim),
-                  SizedBox(height: 4),
-                  Text('Add photo',
-                      style: TextStyle(color: AppColors.textDim, fontSize: 12)),
-                ]),
-          ),
-        ),
-      );
-
   @override
   void dispose() {
     _ageController.dispose();
+    _nameController.dispose();
+    _usernameController.dispose();
     super.dispose();
   }
-}
-
-/// Dashed rounded outline for empty photo slots.
-class _DashedBorder extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF3A3548)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-    final path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-          Offset.zero & size, const Radius.circular(16)));
-    for (final metric in path.computeMetrics()) {
-      for (var d = 0.0; d < metric.length; d += 10) {
-        canvas.drawPath(metric.extractPath(d, d + 5), paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

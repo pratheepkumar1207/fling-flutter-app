@@ -1,3 +1,5 @@
+import '../../widgets/chat_media.dart' show pickChatPhoto;
+import '../../widgets/view_once.dart';
 import '../../widgets/permission_primer.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -426,6 +428,23 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       });
     }
   }
+
+  Future<void> _shareViewOncePhoto() async {
+    final uri = await pickChatPhoto();
+    if (uri == null || !mounted) return;
+    try {
+      await ApiClient.post('/rooms/${widget.roomId}/view-once',
+          body: {'mediaUrl': uri});
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    }
+  }
+
+  Future<void> _openRoomViewOnce(String id) =>
+      openViewOncePhoto(context, '/rooms/${widget.roomId}/view-once/$id/open');
 
   Future<void> _shareRoom() async {
     // The room's own control-bar share action — was a plain clipboard copy,
@@ -1413,6 +1432,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                 onShare: _shareRoom,
                                 onInvite: _openInvite,
                                 onFocusChanged: _setChatFocused,
+                                onViewOncePhoto: _shareViewOncePhoto,
+                                onOpenViewOnce: _openRoomViewOnce,
                                 likedUrls: _likedUrls,
                                 onToggleLike: _toggleLike,
                               ),
@@ -1627,6 +1648,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                 onShare: _shareRoom,
                                 onInvite: _openInvite,
                                 onFocusChanged: _setChatFocused,
+                                onViewOncePhoto: _shareViewOncePhoto,
+                                onOpenViewOnce: _openRoomViewOnce,
                               ),
                             ),
                           )
@@ -1726,6 +1749,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                       onShare: _shareRoom,
                                       onInvite: _openInvite,
                                       onFocusChanged: _setChatFocused,
+                                      onViewOncePhoto: _shareViewOncePhoto,
+                                      onOpenViewOnce: _openRoomViewOnce,
                                       likedUrls: _likedUrls,
                                       onToggleLike: _toggleLike,
                                     ),
@@ -1885,6 +1910,10 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                                 onShare: _shareRoom,
                                                 onInvite: _openInvite,
                                                 onFocusChanged: _setChatFocused,
+                                                onViewOncePhoto:
+                                                    _shareViewOncePhoto,
+                                                onOpenViewOnce:
+                                                    _openRoomViewOnce,
                                                 likedUrls: _likedUrls,
                                                 onToggleLike: _toggleLike,
                                               ),
@@ -2002,6 +2031,9 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                             onShare: _shareRoom,
                                             onInvite: _openInvite,
                                             onFocusChanged: _setChatFocused,
+                                            onViewOncePhoto:
+                                                _shareViewOncePhoto,
+                                            onOpenViewOnce: _openRoomViewOnce,
                                             likedUrls: _likedUrls,
                                             onToggleLike: _toggleLike,
                                           ),
@@ -2102,6 +2134,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                 onShare: _shareRoom,
                                 onInvite: _openInvite,
                                 onFocusChanged: _setChatFocused,
+                                onViewOncePhoto: _shareViewOncePhoto,
+                                onOpenViewOnce: _openRoomViewOnce,
                               ),
                             ),
                           ),

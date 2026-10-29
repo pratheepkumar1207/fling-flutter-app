@@ -20,6 +20,7 @@ import '../../widgets/post_composer_sheet.dart';
 import '../../widgets/post_likes_sheet.dart';
 import '../../widgets/reels_feed.dart';
 import '../../widgets/share_row.dart';
+import '../../widgets/verified_tick.dart';
 import '../../widgets/spinner.dart';
 import '../../widgets/story_bar.dart';
 import '../../widgets/story_viewer_screen.dart';
@@ -498,12 +499,14 @@ class _FeedScreenState extends State<FeedScreen> {
                         post.savedByMe ? 'Unsave' : 'Save',
                         () => _toggleSave(post)
                       ),
-                      (InIcons.repeat, 'Repost', () => _repost(post)),
-                      (
-                        InIcons.plus,
-                        'Add to story',
-                        () => _repost(post, toStory: true)
-                      ),
+                      if (post.canShare) ...[
+                        (InIcons.repeat, 'Repost', () => _repost(post)),
+                        (
+                          InIcons.plus,
+                          'Add to story',
+                          () => _repost(post, toStory: true)
+                        ),
+                      ],
                       if (extractYouTubeId(post.videoUrl) case final videoId?)
                         (InIcons.tv, 'Watch', () => _watchInRoom(videoId)),
                       (
@@ -665,6 +668,12 @@ class _FeedScreenState extends State<FeedScreen> {
                         Text.rich(
                           TextSpan(children: [
                             TextSpan(text: post.author.name),
+                            if (post.author.isVerified)
+                              const WidgetSpan(
+                                  alignment: PlaceholderAlignment.middle,
+                                  child: Padding(
+                                      padding: EdgeInsets.only(left: 4),
+                                      child: VerifiedTick(size: 13))),
                             if (post.collaborator != null)
                               TextSpan(
                                   text:
@@ -812,8 +821,10 @@ class _FeedScreenState extends State<FeedScreen> {
                     count: post.commentsCount,
                     onTap: () => _openComments(post),
                   ),
-                ShareRow(
-                    text: post.text, url: '${ApiClient.baseUrl}/p/${post.id}'),
+                if (post.canShare)
+                  ShareRow(
+                      text: post.text,
+                      url: '${ApiClient.baseUrl}/p/${post.id}'),
                 const Spacer(),
                 _action(
                   post.savedByMe ? 'Unsave' : 'Save',

@@ -463,6 +463,19 @@ class _PrivacyCenterScreenState extends State<PrivacyCenterScreen> {
                           style: TextStyle(
                               color: AppColors.textDim, fontSize: 12)),
                     ),
+                    SwitchListTile(
+                      value: u['allowSharing'] == true,
+                      onChanged: (v) => _set('allowSharing', v),
+                      activeThumbColor: AppColors.primary,
+                      secondary: const InIcon(InIcons.send,
+                          size: 20, color: AppColors.lilac),
+                      title: const Text('Let others share my posts',
+                          style: TextStyle(fontWeight: FontWeight.w700)),
+                      subtitle: const Text(
+                          'Off: no one can share, repost or add your posts to their story. Screenshots are always blocked in Insync.',
+                          style: TextStyle(
+                              color: AppColors.textDim, fontSize: 12)),
+                    ),
                   ]),
                   const _Label('QUICK CHECK'),
                   _Card([

@@ -23,6 +23,7 @@ import '../../widgets/notes.dart';
 import 'highlights.dart';
 import 'profile_layout.dart';
 import 'profile_post_grid.dart';
+import '../../widgets/verified_tick.dart';
 
 class CreatorProfileScreen extends StatefulWidget {
   final String userId;
@@ -515,8 +516,8 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
     final layout = ProfileLayout.fromJson(p['profileLayout'] is Map
         ? Map<String, dynamic>.from(p['profileLayout'] as Map)
         : null);
-    final tabs = layout.visibleTabs(
-        const {'posts', 'reels', 'photos', 'music', 'supporters', 'tagged'});
+    final tabs = layout
+        .visibleTabs(const {'posts', 'reels', 'music', 'supporters', 'tagged'});
     final inRoom = activeRoom != null;
     final header = <Widget>[
       // Avatar gets a green ring + "IN ROOM" tag while they're in a room
@@ -624,8 +625,8 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis)),
           if (p['isVerified'] == true) ...[
-            const SizedBox(width: 6),
-            const InIcon(InIcons.verified, color: AppColors.accent2, size: 14)
+            const SizedBox(width: 5),
+            const VerifiedTick(size: 15)
           ],
           if (p['isCreator'] == true) ...[
             const SizedBox(width: 6),

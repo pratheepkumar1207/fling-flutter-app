@@ -54,6 +54,9 @@ class User {
   final double coinBalance;
   final int galleryCount;
   final bool profileComplete;
+  // First-time setup (name, @username, photo) done.
+  final bool identityComplete;
+  final bool allowSharing;
   final int completenessPercent;
   final DateTime? lastSpinAt;
 
@@ -107,6 +110,8 @@ class User {
     this.coinBalance = 0,
     this.galleryCount = 0,
     this.profileComplete = true,
+    this.identityComplete = true,
+    this.allowSharing = false,
     this.completenessPercent = 100,
     this.lastSpinAt,
   });
@@ -187,6 +192,8 @@ class User {
       // have this field at all — default true so we don't wrongly gate an
       // existing account behind the completion screen.
       profileComplete: json['profileComplete'] as bool? ?? true,
+      identityComplete: json['identityComplete'] as bool? ?? true,
+      allowSharing: json['allowSharing'] == true,
       completenessPercent: json['completenessPercent'] as int? ?? 100,
       lastSpinAt: json['lastSpinAt'] != null
           ? DateTime.tryParse(json['lastSpinAt'].toString())

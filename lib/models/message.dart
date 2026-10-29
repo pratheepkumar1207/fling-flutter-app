@@ -14,6 +14,11 @@ class DirectMessage {
   /// userId → emoji.
   final Map<String, String> reactions;
 
+  /// View-once photo: no image is sent with it; the recipient opens it
+  /// once. [viewed] once they have.
+  final bool viewOnce;
+  final bool viewed;
+
   DirectMessage({
     required this.id,
     required this.senderId,
@@ -25,9 +30,12 @@ class DirectMessage {
     this.readAt,
     this.replyToId,
     this.reactions = const {},
+    this.viewOnce = false,
+    this.viewed = false,
   });
 
-  DirectMessage copyWith({DateTime? readAt, Map<String, String>? reactions}) =>
+  DirectMessage copyWith(
+          {DateTime? readAt, Map<String, String>? reactions, bool? viewed}) =>
       DirectMessage(
         id: id,
         senderId: senderId,
@@ -39,10 +47,13 @@ class DirectMessage {
         readAt: readAt ?? this.readAt,
         replyToId: replyToId,
         reactions: reactions ?? this.reactions,
+        viewOnce: viewOnce,
+        viewed: viewed ?? this.viewed,
       );
 
   /// One line for a reply quote or a preview.
   String get summary => switch (messageType) {
+        'image' when viewOnce => 'View once photo',
         'image' => 'Photo',
         'voice' => 'Voice message',
         'gif' => 'GIF',
@@ -69,6 +80,8 @@ class DirectMessage {
           : null,
       replyToId: json['replyToId'] as String?,
       reactions: reactionsFrom(json['reactions']),
+      viewOnce: json['viewOnce'] == true,
+      viewed: json['viewed'] == true || json['viewedAt'] != null,
     );
   }
 }

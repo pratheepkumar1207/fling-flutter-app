@@ -2,16 +2,13 @@ import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-/// "+" attachment menu for the room chat input bar (chat_overlay.dart) —
-/// replaces the old standalone poll icon. Poll is wired
-/// to the existing, already-working poll flow; Image/Video/Audio/GIF are
-/// UI-only for now — there's no upload/storage/message-rendering support
-/// for media messages anywhere in this app yet, so tapping them is honest
-/// about that ("coming soon") rather than pretending to send something
-/// that silently goes nowhere.
+/// "+" attachment menu for the room chat input bar (chat_overlay.dart).
+/// Poll and view-once photos work; Video/Audio/GIF say they're coming
+/// rather than pretending to send something.
 Future<void> showChatAttachmentSheet(
   BuildContext context, {
   required VoidCallback onPoll,
+  VoidCallback? onViewOncePhoto,
 }) {
   return showModalBottomSheet(
     context: context,
@@ -46,9 +43,14 @@ Future<void> showChatAttachmentSheet(
                   },
                 ),
                 _AttachOption(
-                  icon: InIcons.image,
-                  label: 'Image',
-                  onTap: () => _comingSoon(context, 'Image'),
+                  icon: InIcons.hourglass,
+                  label: 'View once',
+                  onTap: onViewOncePhoto == null
+                      ? () => _comingSoon(context, 'Photo')
+                      : () {
+                          Navigator.of(context).pop();
+                          onViewOncePhoto();
+                        },
                 ),
                 _AttachOption(
                   icon: InIcons.video,

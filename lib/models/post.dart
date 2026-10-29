@@ -2,14 +2,20 @@ class PostAuthor {
   final String id;
   final String name;
   final String? avatarUrl;
+  final bool isVerified;
 
-  PostAuthor({required this.id, required this.name, this.avatarUrl});
+  PostAuthor(
+      {required this.id,
+      required this.name,
+      this.avatarUrl,
+      this.isVerified = false});
 
   factory PostAuthor.fromJson(Map<String, dynamic> json) {
     return PostAuthor(
       id: json['id'] as String,
       name: json['name'] as String? ?? 'Unknown',
       avatarUrl: json['avatarUrl'] as String?,
+      isVerified: json['isVerified'] == true,
     );
   }
 }
@@ -42,6 +48,8 @@ class Post {
   final bool commentsDisabled;
   final bool hideLikes;
   final bool archived;
+  // Others may share it only if the author allows sharing.
+  final bool canShare;
   final DateTime createdAt;
 
   Post({
@@ -68,6 +76,7 @@ class Post {
     this.commentsDisabled = false,
     this.hideLikes = false,
     this.archived = false,
+    this.canShare = true,
     required this.createdAt,
   });
 
@@ -105,6 +114,7 @@ class Post {
         commentsDisabled: commentsDisabled ?? this.commentsDisabled,
         hideLikes: hideLikes ?? this.hideLikes,
         archived: archived ?? this.archived,
+        canShare: canShare,
         createdAt: createdAt,
       );
 
@@ -138,6 +148,7 @@ class Post {
           ? Map<String, dynamic>.from(json['repostOf'] as Map)
           : null,
       commentsDisabled: json['commentsDisabled'] as bool? ?? false,
+      canShare: json['canShare'] != false,
       hideLikes: json['hideLikes'] as bool? ?? false,
       archived: json['archived'] as bool? ?? false,
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??

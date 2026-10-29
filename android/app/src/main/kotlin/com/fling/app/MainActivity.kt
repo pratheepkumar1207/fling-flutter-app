@@ -4,6 +4,8 @@ import android.app.PictureInPictureParams
 import android.content.res.Configuration
 import android.media.MediaDrm
 import android.os.Build
+import android.os.Bundle
+import android.view.WindowManager
 import android.util.Log
 import android.util.Rational
 import androidx.annotation.NonNull
@@ -32,6 +34,13 @@ class MainActivity : AudioServiceActivity() {
     // screen (Home, Feed, chat, ...) doesn't pop up a PiP window with
     // nothing worth watching in it.
     private var autoPipEnabled = false
+
+    // Screenshots and screen recordings of Insync are blocked everywhere
+    // (they come out black), to protect people's chats, photos and profiles.
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+    }
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

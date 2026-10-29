@@ -1,3 +1,4 @@
+import '../../widgets/view_once.dart';
 import '../../widgets/permission_primer.dart';
 import 'dart:async';
 
@@ -213,7 +214,25 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     'dm:read': _onRead,
     'dm:reaction': _onReaction,
     'dm:typing': _onTyping,
+    'dm:viewOnceOpened': _onViewOnceOpened,
   };
+
+  void _onViewOnceOpened(dynamic data) {
+    if (!mounted || data is! Map || data['otherUserId'] != widget.userId) {
+      return;
+    }
+    _markViewed(data['id'] as String?);
+  }
+
+  void _markViewed(String? id) => setState(() => _messages = [
+        for (final m in _messages) m.id == id ? m.copyWith(viewed: true) : m
+      ]);
+
+  Future<void> _openViewOnce(DirectMessage m) async {
+    await openViewOncePhoto(context, '/messages/view-once/${m.id}/open');
+    // Opened now, or already opened before — either way it's gone.
+    if (mounted) _markViewed(m.id);
+  }
 
   io.Socket? _socket;
 
@@ -428,6 +447,12 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   }
 
   Widget _messageContent(DirectMessage m, bool mine) {
+    if (m.viewOnce) {
+      return ViewOnceChip(
+          mine: mine,
+          opened: m.viewed,
+          onOpen: mine || m.viewed ? null : () => _openViewOnce(m));
+    }
     if (m.messageType == 'image' && m.mediaUrl != null) {
       return ChatPhoto(m.mediaUrl!);
     }
@@ -474,10 +499,14 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     await _sendBody({'text': text}, clearText: true);
   }
 
-  Future<void> _sendPhoto() async {
+  Future<void> _sendPhoto({bool viewOnce = false}) async {
     final uri = await pickChatPhoto();
     if (uri == null || !mounted) return;
-    await _sendBody({'messageType': 'image', 'mediaUrl': uri});
+    await _sendBody({
+      'messageType': 'image',
+      'mediaUrl': uri,
+      if (viewOnce) 'viewOnce': true,
+    });
   }
 
   Future<void> _sendSticker(String emoji) async {
@@ -600,6 +629,16 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
             onTap: () {
               Navigator.of(sheet).pop();
               _sendPhoto();
+            },
+          ),
+          ListTile(
+            leading: const InIcon(InIcons.hourglass, size: 20),
+            title: const Text('View once photo'),
+            subtitle: const Text('They can open it one time, for 10 seconds',
+                style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+            onTap: () {
+              Navigator.of(sheet).pop();
+              _sendPhoto(viewOnce: true);
             },
           ),
           ListTile(

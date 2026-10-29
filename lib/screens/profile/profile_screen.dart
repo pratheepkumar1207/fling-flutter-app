@@ -1,4 +1,5 @@
 import '../../widgets/profile_song_chip.dart';
+import '../../widgets/verified_tick.dart';
 import '../../theme/insync_icons.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -15,13 +16,11 @@ import '../../core/language_options.dart';
 import '../../core/location_service.dart';
 import '../../core/smart_play_song.dart';
 import '../../core/active_room_holder.dart';
-import '../../models/photo.dart';
 import '../../models/post.dart';
 import '../../models/playlist.dart';
 import '../../models/song.dart';
 import '../../models/user.dart';
 import '../../theme/app_colors.dart';
-import '../../theme/glass.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/interest_picker.dart';
@@ -79,7 +78,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _gam;
   Map<String, dynamic>? _stats;
   int _matchesCount = 0;
-  List<Photo> _gallery = [];
   List<Playlist> _playlists = [];
   List<Song> _history = [];
   List<Song> _liked = [];
@@ -100,7 +98,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final results = await Future.wait([
       ApiClient.get('/gamification/me').catchError((_) => null),
       ApiClient.get('/social/stats').catchError((_) => null),
-      ApiClient.get('/gallery/me').catchError((_) => []),
+      Future.value(null), // (photos are posts now)
       ApiClient.get('/playlists').catchError((_) => []),
       ApiClient.get('/song-history').catchError((_) => []),
       ApiClient.get('/liked-songs').catchError((_) => []),
@@ -123,9 +121,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _gam = results[0] as Map<String, dynamic>?;
       _stats = results[1] as Map<String, dynamic>?;
-      _gallery = ((results[2] as List?) ?? [])
-          .map((e) => Photo.fromJson(e as Map<String, dynamic>))
-          .toList();
       _playlists = ((results[3] as List?) ?? [])
           .map((e) => Playlist.fromJson(e as Map<String, dynamic>))
           .toList();
@@ -153,31 +148,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   String? get _myId => context.read<AuthProvider>().user?.id;
-
-  Future<void> _addPhoto() async {
-    final picker = ImagePicker();
-    final file =
-        await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-    if (file == null) return;
-    final bytes = await file.readAsBytes();
-    final ext = file.name.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
-    final dataUri = 'data:image/$ext;base64,${base64Encode(bytes)}';
-    try {
-      await ApiClient.post('/gallery', body: {'imageData': dataUri});
-      _loadAll();
-    } catch (_) {
-      _showSnack('Failed to add photo');
-    }
-  }
-
-  Future<void> _deletePhoto(String id) async {
-    try {
-      await ApiClient.delete('/gallery/$id');
-      _loadAll();
-    } catch (_) {
-      _showSnack('Failed to remove photo');
-    }
-  }
 
   Future<void> _createPlaylist(String name) async {
     try {
@@ -514,61 +484,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _photosTab() => ListView(
-        padding: const EdgeInsets.all(12),
-        children: [
-          _sectionHeader('Gallery',
-              trailing: TextButton(
-                  onPressed: _addPhoto,
-                  child: const Text('+ Add photo',
-                      style: TextStyle(color: AppColors.primary)))),
-          _gallery.isEmpty
-              ? const Text('No photos yet.',
-                  style: TextStyle(color: AppColors.textFaint))
-              : GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 6,
-                      mainAxisSpacing: 6),
-                  itemCount: _gallery.length,
-                  itemBuilder: (context, i) {
-                    final p = _gallery[i];
-                    return Stack(
-                      children: [
-                        Positioned.fill(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: AppImage(
-                                source: p.imageData, fit: BoxFit.cover),
-                          ),
-                        ),
-                        Positioned(
-                          top: 4,
-                          right: 4,
-                          child: GestureDetector(
-                            onTap: () => _deletePhoto(p.id),
-                            child: GlassIcon.circle(
-                              size: 22,
-                              colors: const [
-                                AppColors.danger,
-                                AppColors.accent
-                              ],
-                              glowColor:
-                                  AppColors.danger.withValues(alpha: 0.4),
-                              child: const InIcon(InIcons.close,
-                                  size: 14, color: Colors.white),
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-        ],
-      );
-
   Widget _musicTab() => ListView(
         padding: const EdgeInsets.all(12),
         children: [
@@ -594,7 +509,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             posts: _posts, emptyText: 'Share your first post from the feed'),
         'reels' => ProfilePostGrid(
             posts: _reels, reels: true, emptyText: 'No reels yet'),
-        'photos' => _photosTab(),
         'music' => _musicTab(),
         _ => ProfilePostGrid(
             posts: _tagged,
@@ -605,8 +519,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
     final layout = ProfileLayout.fromJson(user?.profileLayout);
-    final tabs = layout
-        .visibleTabs(const {'posts', 'reels', 'photos', 'music', 'tagged'});
+    final tabs =
+        layout.visibleTabs(const {'posts', 'reels', 'music', 'tagged'});
     final sections = <Widget>[];
     for (final id in layout.visibleSections()) {
       final Widget? w = switch (id) {
@@ -783,16 +697,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _profileStat('${_posts.length}', 'Posts'),
-                      GestureDetector(
+                      Expanded(
+                          child: _profileStat('${_posts.length}', 'Posts')),
+                      Expanded(
+                          child: GestureDetector(
                         onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
                                 builder: (_) => const UserListScreen())),
                         child: _profileStat(
                             formatNumber(_stats?['followers'] ?? 0),
                             'Followers'),
-                      ),
-                      GestureDetector(
+                      )),
+                      Expanded(
+                          child: GestureDetector(
                         onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
                                 builder: (_) => const UserListScreen(
@@ -800,22 +717,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: _profileStat(
                             formatNumber(_stats?['following'] ?? 0),
                             'Following'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                                builder: (_) => const DiscoverMatchesScreen())),
-                        child: _profileStat('$_matchesCount', 'Matches'),
-                      ),
-                      _profileStat('${_gallery.length}', 'Photos'),
-                      _profileStat(
-                          _gam != null ? 'Lv ${_gam!['level']}' : '–', 'Level'),
+                      )),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      const DiscoverMatchesScreen())),
+                          child: _profileStat('$_matchesCount', 'Matches'),
+                        ),
+                      )
                     ],
                   ),
                 ],
@@ -824,13 +735,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
         const SizedBox(height: 14),
-        Text(
-          [user?.name, if (user?.age != null) '${user!.age}']
-              .whereType<String>()
-              .join(', '),
-          style: const TextStyle(
-              color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 14),
-        ),
+        Row(children: [
+          Flexible(
+            child: Text(
+              [user?.name, if (user?.age != null) '${user!.age}']
+                  .whereType<String>()
+                  .join(', '),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  color: AppColors.text,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14),
+            ),
+          ),
+          if (user?.isVerified == true ||
+              user?.photoVerificationStatus == 'verified') ...[
+            const SizedBox(width: 5),
+            const VerifiedTick(size: 15),
+          ],
+        ]),
         if ((user?.bio != null && user!.bio!.isNotEmpty) ||
             (user?.city != null && user!.city!.isNotEmpty))
           Padding(
@@ -848,7 +772,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Padding(
           padding: const EdgeInsets.only(top: 6),
           child: Wrap(spacing: 6, runSpacing: 6, children: [
-            if (user?.isVerified == true) _badge('Verified', AppColors.success),
             if (user?.isVip == true) _badge('VIP', AppColors.gold),
             if (_gam?['rank'] != null)
               _badge(_gam!['rank'] as String, AppColors.accent),
@@ -924,7 +847,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _profileStat(String value, String label) => Column(
+  // Shrinks to fit when four stats share the row beside the avatar.
+  Widget _profileStat(String value, String label) => FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Column(
         children: [
           Text(value,
               style: TextStyle(
@@ -944,7 +870,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ],
-      );
+      ));
 
   Widget _badge(String label, Color color) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -1300,7 +1226,7 @@ class EditProfileSheetState extends State<EditProfileSheet> {
   Map<String, dynamic>? _profileSong;
   bool _songChanged = false;
 
-  static const _usernameCooldown = Duration(days: 30);
+  static const _usernameCooldown = Duration(days: 15);
 
   /// Pick the profile song from your liked songs (or history).
   Future<void> _pickSong() async {
@@ -1422,7 +1348,7 @@ class EditProfileSheetState extends State<EditProfileSheet> {
         () => _avatarDataUri = 'data:image/$ext;base64,${base64Encode(bytes)}');
   }
 
-  Map<String, dynamic> _buildPatch({bool payToChangeNow = false}) => {
+  Map<String, dynamic> _buildPatch() => {
         if (_songChanged) 'profileSong': _profileSong,
         'name': _name.text.trim(),
         'username': _username.text.trim(),
@@ -1445,7 +1371,6 @@ class EditProfileSheetState extends State<EditProfileSheet> {
         'safeModeEnabled': _safeModeEnabled,
         'locationSharingEnabled': _locationSharingEnabled,
         if (_avatarDataUri != null) 'avatarUrl': _avatarDataUri,
-        if (payToChangeNow) 'payToChangeNow': true,
       };
 
   Future<void> _save() async {
@@ -1461,53 +1386,6 @@ class EditProfileSheetState extends State<EditProfileSheet> {
       if (_locationSharingEnabled) LocationService.requestPermissionAndPing();
       if (!mounted) return;
       Navigator.of(context).pop();
-    } on ApiException catch (e) {
-      if (e.status == 403 &&
-          e.data is Map &&
-          (e.data as Map)['costCoins'] != null) {
-        if (mounted) setState(() => _saving = false);
-        final costCoins = (e.data as Map)['costCoins'];
-        final confirmed = await _confirmPayToChangeNow(costCoins);
-        if (confirmed == true) await _payToChangeNow();
-        return;
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
-      }
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  Future<bool?> _confirmPayToChangeNow(dynamic costCoins) {
-    return showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface2,
-        title: Text('Pay $costCoins coins to change your handle now?'),
-        content: const Text(
-            'Your handle just changed recently — this skips the wait by spending coins instead.'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancel')),
-          TextButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Pay & change now')),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _payToChangeNow() async {
-    setState(() => _saving = true);
-    try {
-      await ApiClient.patch('/auth/me',
-          body: _buildPatch(payToChangeNow: true));
-      if (!mounted) return;
-      await context.read<AuthProvider>().refreshUser();
-      if (mounted) Navigator.of(context).pop();
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -1535,13 +1413,13 @@ class EditProfileSheetState extends State<EditProfileSheet> {
           ),
           const SizedBox(height: 16),
           _field('Name', _name),
-          _field('Username', _username),
+          _field('Username', _username, enabled: !_inCooldown),
           Padding(
             padding: const EdgeInsets.only(top: 4, bottom: 12),
             child: Text(
               _inCooldown
-                  ? 'Free change available in $_daysLeft day${_daysLeft == 1 ? '' : 's'} — or pay 200 coins to change it now'
-                  : 'Free to change right now',
+                  ? 'You can change your handle again in $_daysLeft day${_daysLeft == 1 ? '' : 's'} (once every 15 days)'
+                  : 'You can change your handle once every 15 days',
               style: const TextStyle(color: AppColors.textFaint, fontSize: 11),
             ),
           ),
@@ -1808,7 +1686,7 @@ class EditProfileSheetState extends State<EditProfileSheet> {
   }
 
   Widget _field(String label, TextEditingController controller,
-      {int maxLines = 1, TextInputType? keyboardType}) {
+      {int maxLines = 1, TextInputType? keyboardType, bool enabled = true}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -1821,6 +1699,7 @@ class EditProfileSheetState extends State<EditProfileSheet> {
             decoration: insyncClay(radius: 22),
             child: TextField(
               controller: controller,
+              enabled: enabled,
               maxLines: maxLines,
               keyboardType: keyboardType,
               style: const TextStyle(color: AppColors.text),
