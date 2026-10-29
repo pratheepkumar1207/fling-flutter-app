@@ -24,6 +24,7 @@ import 'highlights.dart';
 import 'profile_layout.dart';
 import 'profile_post_grid.dart';
 import '../../widgets/verified_tick.dart';
+import '../../widgets/two_row_carousel.dart';
 
 class CreatorProfileScreen extends StatefulWidget {
   final String userId;
@@ -373,6 +374,20 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
           children: [
             if (_playlists.isNotEmpty) ...[
               _sectionTitle('Playlists'),
+              TwoRowCarousel(tiles: [
+                for (final pl in _playlists)
+                  CarouselTile(
+                    title: pl.name,
+                    thumbnail:
+                        pl.songs.isEmpty ? null : pl.songs.first.thumbnail,
+                    badge:
+                        '${pl.songs.length} song${pl.songs.length == 1 ? '' : 's'}',
+                    onTap: pl.songs.isEmpty
+                        ? null
+                        : () => playPlaylistSmart(context, pl.songs),
+                  ),
+              ]),
+              const SizedBox(height: 10),
               ..._playlists.map(
                 (pl) => Container(
                   margin: const EdgeInsets.only(bottom: 8),
@@ -465,12 +480,24 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
             ],
             if (_history.isNotEmpty) ...[
               _sectionTitle('History'),
-              ..._history.map(_songTile),
+              TwoRowCarousel(tiles: [
+                for (final s in _history)
+                  CarouselTile(
+                      title: s.title ?? 'Untitled',
+                      thumbnail: s.thumbnail,
+                      onTap: () => playSongSmart(context, s)),
+              ]),
               const SizedBox(height: 16)
             ],
             if (showLiked && _liked.isNotEmpty) ...[
               _sectionTitle('Liked songs'),
-              ..._liked.map(_songTile)
+              TwoRowCarousel(tiles: [
+                for (final s in _liked)
+                  CarouselTile(
+                      title: s.title ?? 'Untitled',
+                      thumbnail: s.thumbnail,
+                      onTap: () => playSongSmart(context, s)),
+              ])
             ],
             if (_playlists.isEmpty &&
                 _history.isEmpty &&
@@ -1082,37 +1109,6 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                 color: AppColors.text,
                 fontWeight: FontWeight.bold,
                 fontSize: 15)),
-      );
-
-  Widget _songTile(Song s) => GestureDetector(
-        onTap: () => playSongSmart(context, s),
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 6),
-          padding: const EdgeInsets.all(8),
-          decoration: insyncClay(radius: 22),
-          child: Row(
-            children: [
-              Container(
-                width: 56,
-                height: 40,
-                decoration: BoxDecoration(
-                    color: AppColors.surface3,
-                    borderRadius: BorderRadius.circular(8)),
-                clipBehavior: Clip.antiAlias,
-                child: s.thumbnail != null
-                    ? AppImage(source: s.thumbnail, fit: BoxFit.cover)
-                    : const Center(child: Text('🎵')),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                  child: Text(s.title ?? 'Untitled',
-                      style:
-                          const TextStyle(color: AppColors.text, fontSize: 13),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis)),
-            ],
-          ),
-        ),
       );
 }
 

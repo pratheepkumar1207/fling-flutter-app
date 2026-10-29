@@ -1,5 +1,6 @@
 import '../../widgets/profile_song_chip.dart';
 import '../../widgets/verified_tick.dart';
+import '../../widgets/two_row_carousel.dart';
 import '../../theme/insync_icons.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -484,22 +485,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // Tap a playlist: all its songs play as the room's queue (your current
+  // room, or a new one). Long-press to edit it.
+  void _playPlaylist(Playlist p) {
+    if (p.songs.isEmpty) {
+      _showSnack('Add songs to "${p.name}" first');
+      return;
+    }
+    playPlaylistSmart(context, p.songs);
+  }
+
+  void _editPlaylist(Playlist p) => showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: AppColors.surface,
+        builder: (_) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: SingleChildScrollView(child: _playlistCard(p)),
+          ),
+        ),
+      );
+
   Widget _musicTab() => ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          _sectionHeader('My playlists'),
-          ..._playlists.map((p) => _playlistCard(p)),
+          if (_history.isNotEmpty) ...[
+            _sectionHeader('History'),
+            TwoRowCarousel(tiles: [
+              for (final s in _history)
+                CarouselTile(
+                    title: s.title ?? 'Untitled',
+                    thumbnail: s.thumbnail,
+                    onTap: () => playSongSmart(context, s)),
+            ]),
+            const SizedBox(height: 18),
+          ],
+          _sectionHeader('Playlists'),
+          if (_playlists.isNotEmpty) ...[
+            TwoRowCarousel(tiles: [
+              for (final p in _playlists)
+                CarouselTile(
+                  title: p.name,
+                  thumbnail: p.songs.isEmpty ? null : p.songs.first.thumbnail,
+                  badge:
+                      '${p.songs.length} song${p.songs.length == 1 ? '' : 's'}',
+                  onTap: () => _playPlaylist(p),
+                  onLongPress: () => _editPlaylist(p),
+                ),
+            ]),
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text('Tap to play all in a room · long-press to edit',
+                  style: TextStyle(color: AppColors.textFaint, fontSize: 11.5)),
+            ),
+          ],
           const SizedBox(height: 8),
           _CreatePlaylistRow(onCreate: _createPlaylist),
-          if (_history.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            _sectionHeader('History'),
-            ..._history.map(_songTile),
-          ],
           if (_liked.isNotEmpty) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
             _sectionHeader('Liked songs'),
-            ..._liked.map(_songTile),
+            TwoRowCarousel(tiles: [
+              for (final s in _liked)
+                CarouselTile(
+                    title: s.title ?? 'Untitled',
+                    thumbnail: s.thumbnail,
+                    onTap: () => playSongSmart(context, s)),
+            ]),
           ],
         ],
       );
@@ -1114,37 +1166,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-
-  Widget _songTile(Song s) => GestureDetector(
-        onTap: () => playSongSmart(context, s),
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 6),
-          padding: const EdgeInsets.all(8),
-          decoration: insyncClay(radius: 22),
-          child: Row(
-            children: [
-              Container(
-                width: 56,
-                height: 40,
-                decoration: BoxDecoration(
-                    color: AppColors.surface3,
-                    borderRadius: BorderRadius.circular(8)),
-                clipBehavior: Clip.antiAlias,
-                child: s.thumbnail != null
-                    ? AppImage(source: s.thumbnail, fit: BoxFit.cover)
-                    : const Center(child: Text('🎵')),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                  child: Text(s.title ?? 'Untitled',
-                      style:
-                          const TextStyle(color: AppColors.text, fontSize: 13),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis)),
-            ],
-          ),
-        ),
-      );
 }
 
 class _CreatePlaylistRow extends StatefulWidget {

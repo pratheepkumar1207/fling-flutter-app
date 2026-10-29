@@ -8,6 +8,7 @@ import '../theme/app_colors.dart';
 import '../widgets/app_image.dart';
 import '../widgets/google_connect_gate.dart';
 import '../widgets/spinner.dart';
+import 'two_row_carousel.dart';
 
 /// Shared app-internal song list tabs — extracted from queue_sheet.dart so
 /// both the in-room Queue sheet and the (Lobby/in-room) source picker can
@@ -54,94 +55,19 @@ class _AppSongListTabState extends State<AppSongListTab> {
     if (s.videoUrl != null) setState(() => _added.add(s.videoUrl!));
   }
 
-  Widget _carousel() {
-    return LayoutBuilder(builder: (context, constraints) {
-      final tileWidth = constraints.maxWidth * 0.46;
-      final tileHeight = tileWidth * 9 / 16;
-      const gap = 4.0;
-      return SizedBox(
-        height: tileHeight * 2 + gap,
-        child: GridView.builder(
-          scrollDirection: Axis.horizontal,
-          itemCount: _songs.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisExtent: tileWidth,
-            mainAxisSpacing: gap,
-            crossAxisSpacing: gap,
-          ),
-          itemBuilder: (context, i) {
-            final s = _songs[i];
+  Widget _carousel() => TwoRowCarousel(tiles: [
+        for (final s in _songs)
+          () {
             final added = s.videoUrl != null && _added.contains(s.videoUrl);
-            return Semantics(
-              button: true,
-              label:
-                  '${s.title ?? 'Untitled'}${added ? ', added' : ', add to queue'}',
-              child: GestureDetector(
-                onTap: widget.canAddSongs && !added ? () => _add(s) : null,
-                child: Container(
-                  clipBehavior: Clip.antiAlias,
-                  decoration: BoxDecoration(
-                    color: AppColors.surface3,
-                    borderRadius: BorderRadius.circular(8),
-                    border: added
-                        ? Border.all(color: AppColors.accent, width: 2)
-                        : null,
-                  ),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      if (s.thumbnail != null)
-                        AppImage(source: s.thumbnail, fit: BoxFit.cover)
-                      else
-                        const Center(child: Text('🎵')),
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        child: Container(
-                          padding: const EdgeInsets.fromLTRB(6, 10, 6, 4),
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [Colors.transparent, Colors.black87],
-                            ),
-                          ),
-                          child: Text(s.title ?? 'Untitled',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 11)),
-                        ),
-                      ),
-                      if (added)
-                        Positioned(
-                          top: 4,
-                          right: 4,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 1),
-                            decoration: BoxDecoration(
-                                color: AppColors.accent,
-                                borderRadius: BorderRadius.circular(999)),
-                            child: const Text('Added',
-                                style: TextStyle(
-                                    color: AppColors.ink,
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w700)),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
+            return CarouselTile(
+              title: s.title ?? 'Untitled',
+              thumbnail: s.thumbnail,
+              highlighted: added,
+              badge: added ? 'Added' : null,
+              onTap: widget.canAddSongs && !added ? () => _add(s) : null,
             );
-          },
-        ),
-      );
-    });
-  }
+          }(),
+      ]);
 
   @override
   void initState() {

@@ -80,6 +80,10 @@ class RoomSocketController extends ChangeNotifier {
   // the suggestion grid; there's nothing to clear, callers just compare
   // this value against what they last saw.
   int promptPinToken = 0;
+  // The 10s "vote for what plays next" window after the queue runs dry,
+  // and whether it ended with no votes (then the next pick plays at once).
+  DateTime? pickVoteEndsAt;
+  bool pickWaiting = false;
   // One-shot signal — set when the server tells this client it was just
   // @mentioned, cleared by clearMention() once party_screen.dart has shown
   // the pop-up/played the sound for it. {fromName, text} — see
@@ -235,8 +239,18 @@ class RoomSocketController extends ChangeNotifier {
       poll = Map<String, dynamic>.from(data);
       notifyListeners();
     });
-    s.on('queue:promptPin', (_) {
+    s.on('queue:promptPin', (data) {
       promptPinToken++;
+      final ends = data is Map ? data['voteEndsAt'] : null;
+      pickVoteEndsAt = ends is num
+          ? DateTime.fromMillisecondsSinceEpoch(ends.toInt())
+          : null;
+      pickWaiting = false;
+      notifyListeners();
+    });
+    s.on('queue:pickWaiting', (_) {
+      pickVoteEndsAt = null;
+      pickWaiting = true;
       notifyListeners();
     });
     s.on('room:hostChanged', (data) {
@@ -245,6 +259,10 @@ class RoomSocketController extends ChangeNotifier {
     });
     s.on('playback:state', (data) {
       playback = data == null ? null : Map<String, dynamic>.from(data);
+      if (playback != null) {
+        pickVoteEndsAt = null;
+        pickWaiting = false;
+      }
       notifyListeners();
     });
     s.on('ott:status', (data) {
@@ -406,6 +424,7 @@ class RoomSocketController extends ChangeNotifier {
     socket?.off('queue:state');
     socket?.off('poll:state');
     socket?.off('queue:promptPin');
+    socket?.off('queue:pickWaiting');
     socket?.off('room:hostChanged');
     socket?.off('playback:state');
     socket?.off('queue:skipVoteState');

@@ -798,6 +798,43 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                           ),
                         ),
                         const SizedBox(width: 8),
+                        if (widget.isHost || widget.onVoteSkip != null) ...[
+                          Semantics(
+                            button: true,
+                            label: widget.isHost
+                                ? 'Skip to next'
+                                : 'Vote to skip, ${widget.skipVoteCount} of ${widget.skipVoteRequired}',
+                            child: GestureDetector(
+                              onTap: widget.isHost
+                                  ? widget.onSkip
+                                  : widget.onVoteSkip,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 7),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const InIcon(InIcons.skipNext,
+                                          color: Colors.white, size: 17),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                          widget.isHost
+                                              ? 'Skip'
+                                              : 'Skip ${widget.skipVoteCount}/${widget.skipVoteRequired}',
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600)),
+                                    ]),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
                         GestureDetector(
                           onTap: widget.onToggleLike,
                           child: Container(

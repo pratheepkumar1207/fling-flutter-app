@@ -1889,6 +1889,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                           // below would have used, just rendered small.
                           VideoSuggestionsPanel(
                             showNowPlaying: rs.playback != null,
+                            voteEndsAt: rs.pickVoteEndsAt,
+                            waiting: rs.pickWaiting,
                             roster: rs.roster,
                             sourceType: playerSourceType,
                             videoUrl: playerVideoUrl,
