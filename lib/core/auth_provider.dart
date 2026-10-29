@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
@@ -11,6 +14,10 @@ enum AuthStatus { loading, authed, anon }
 /// and status-machine shape, wired to the same backend.
 class AuthProvider extends ChangeNotifier {
   static const _tokenKey = 'flingToken';
+  // Last profile we got from the server, so the app opens signed in even
+  // while the server is still waking up or the phone is offline.
+  static const _profileKey = 'flingProfile';
+  Timer? _retry;
 
   String? _token;
   User? _user;
@@ -34,28 +41,66 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    // Only a 401 means the saved login is actually dead. A rate limit, a 5xx
-    // or a network blip at startup must not wipe a valid token, so retry
-    // briefly and, if it still fails, keep the token for the next launch.
-    for (var attempt = 0; attempt < 3; attempt++) {
+    // Only a 401 means the saved login is really over. Anything else (the
+    // server waking up, no signal, a rate limit) keeps you signed in.
+    if (await _tryMe()) return;
+    final cached = prefs.getString(_profileKey);
+    if (cached != null) {
       try {
-        final data = await ApiClient.get('/auth/me');
-        _user = User.fromJson(data as Map<String, dynamic>);
+        _user = User.fromJson(jsonDecode(cached) as Map<String, dynamic>);
         _status = AuthStatus.authed;
         notifyListeners();
+        _keepRetrying();
         return;
-      } on ApiException catch (e) {
-        if (e.status == 401) {
-          await clearSession();
-          return;
-        }
       } catch (_) {}
-      if (attempt < 2) {
-        await Future.delayed(Duration(seconds: 2 * (attempt + 1)));
-      }
     }
+    // No saved profile yet: give a sleeping server time to wake up.
+    for (final wait in const [3, 6, 10, 15, 20]) {
+      if (_token == null) return; // a 401 cleared it
+      await Future.delayed(Duration(seconds: wait));
+      if (await _tryMe()) return;
+    }
+    if (_token == null) return;
     _status = AuthStatus.anon;
     notifyListeners();
+  }
+
+  /// GET /auth/me; true when signed in. A 401 signs out.
+  Future<bool> _tryMe() async {
+    try {
+      final data = await ApiClient.get('/auth/me');
+      await _applyMe(data as Map<String, dynamic>);
+      _status = AuthStatus.authed;
+      notifyListeners();
+      return true;
+    } on ApiException catch (e) {
+      if (e.status == 401) await clearSession();
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  void _keepRetrying() {
+    _retry?.cancel();
+    var tries = 0;
+    _retry = Timer.periodic(const Duration(seconds: 15), (t) async {
+      if (_token == null || ++tries > 40) return t.cancel();
+      if (await _tryMe()) t.cancel();
+    });
+  }
+
+  /// Saves the profile (and a renewed token, when the server sends one).
+  Future<void> _applyMe(Map<String, dynamic> data) async {
+    final prefs = await SharedPreferences.getInstance();
+    final renewed = data['token'];
+    if (renewed is String && renewed.isNotEmpty) {
+      _token = renewed;
+      await prefs.setString(_tokenKey, renewed);
+    }
+    final profile = Map<String, dynamic>.from(data)..remove('token');
+    _user = User.fromJson(profile);
+    await prefs.setString(_profileKey, jsonEncode(profile));
   }
 
   Future<void> _persistToken(String token) async {
@@ -70,9 +115,9 @@ class AuthProvider extends ChangeNotifier {
         body: {'phone': phone}, skipAuth: true);
     final map = data as Map<String, dynamic>;
     _token = map['token'] as String;
-    _user = User.fromJson(map['user'] as Map<String, dynamic>);
-    _status = AuthStatus.authed;
     await _persistToken(_token!);
+    await _applyMe(map['user'] as Map<String, dynamic>);
+    _status = AuthStatus.authed;
     notifyListeners();
   }
 
@@ -83,9 +128,9 @@ class AuthProvider extends ChangeNotifier {
         body: {'username': username, 'password': password}, skipAuth: true);
     final map = data as Map<String, dynamic>;
     _token = map['token'] as String;
-    _user = User.fromJson(map['user'] as Map<String, dynamic>);
-    _status = AuthStatus.authed;
     await _persistToken(_token!);
+    await _applyMe(map['user'] as Map<String, dynamic>);
+    _status = AuthStatus.authed;
     notifyListeners();
   }
 
@@ -94,9 +139,9 @@ class AuthProvider extends ChangeNotifier {
         body: {'idToken': idToken}, skipAuth: true);
     final map = data as Map<String, dynamic>;
     _token = map['token'] as String;
-    _user = User.fromJson(map['user'] as Map<String, dynamic>);
-    _status = AuthStatus.authed;
     await _persistToken(_token!);
+    await _applyMe(map['user'] as Map<String, dynamic>);
+    _status = AuthStatus.authed;
     notifyListeners();
   }
 
@@ -104,7 +149,7 @@ class AuthProvider extends ChangeNotifier {
     if (!isAuthed) return;
     try {
       final data = await ApiClient.get('/auth/me');
-      _user = User.fromJson(data as Map<String, dynamic>);
+      await _applyMe(data as Map<String, dynamic>);
       notifyListeners();
     } on ApiException {
       // onUnauthorized already handles 401; ignore transient failures here.
@@ -114,6 +159,8 @@ class AuthProvider extends ChangeNotifier {
   Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
+    await prefs.remove(_profileKey);
+    _retry?.cancel();
     // Also leave Google/Firebase, so the next sign-in can pick another
     // account. Best-effort: Firebase may not be set up (tests, web).
     try {
