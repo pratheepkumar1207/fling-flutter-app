@@ -547,8 +547,9 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     // SourcePickerBody.audioOnly's comment for why this restricts the
     // picker to just YouTube Music instead of the full source grid.
     final audioOnly = roomType == 'voice' || roomType == 'game';
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => AnimatedBuilder(
+    showQueueSheet(
+      context,
+      sheet: AnimatedBuilder(
         animation: rs,
         builder: (context, _) => QueueSheetScreen(
           roomId: widget.roomId,
@@ -565,9 +566,13 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           canPin: rs.canPin,
           canAddSongs: rs.settings['songPermission'] != 'host' || rs.isHost,
           onAddMany: (items) => rs.queueAddMany(items),
+          nameFor: (id) => rs.roster
+              .where((r) => r.userId == id)
+              .map((r) => r.name)
+              .firstOrNull,
         ),
       ),
-    ));
+    );
   }
 
   // Watch/voice/game rooms get the theme's backdrop; other room types keep
