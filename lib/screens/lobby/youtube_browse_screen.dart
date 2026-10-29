@@ -29,12 +29,17 @@ class YoutubeBrowseScreen extends StatefulWidget {
   /// screen rather than duplicating YouTube search/playlists/liked.
   final void Function(Map<String, dynamic> item)? onSelectOverride;
 
+  /// Voice, game and music rooms: YouTube Music — songs only, played as
+  /// audio.
+  final bool music;
+
   const YoutubeBrowseScreen(
       {super.key,
       required this.visibility,
       this.topic,
       this.options,
-      this.onSelectOverride});
+      this.onSelectOverride,
+      this.music = false});
 
   @override
   State<YoutubeBrowseScreen> createState() => _YoutubeBrowseScreenState();
@@ -72,7 +77,7 @@ class _YoutubeBrowseScreenState extends State<YoutubeBrowseScreen>
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const InsyncPageTitle('YouTube'),
+        title: InsyncPageTitle(widget.music ? 'YouTube Music' : 'YouTube'),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -87,7 +92,7 @@ class _YoutubeBrowseScreenState extends State<YoutubeBrowseScreen>
           TabBarView(
             controller: _tabController,
             children: [
-              _SearchTab(onSelect: _selectVideo),
+              _SearchTab(onSelect: _selectVideo, music: widget.music),
               _PlaylistsTab(onSelect: _selectVideo),
               _VideoListTab(
                   endpoint: '/youtube/liked',
@@ -115,7 +120,8 @@ class _YoutubeBrowseScreenState extends State<YoutubeBrowseScreen>
 // ---------- Search (public API key, no Google account needed) ----------
 class _SearchTab extends StatefulWidget {
   final void Function(Map<String, dynamic> item) onSelect;
-  const _SearchTab({required this.onSelect});
+  final bool music;
+  const _SearchTab({required this.onSelect, this.music = false});
 
   @override
   State<_SearchTab> createState() => _SearchTabState();
@@ -188,7 +194,7 @@ class _SearchTabState extends State<_SearchTab> {
     });
     try {
       final data = await ApiClient.get(
-          '/youtube/search?q=${Uri.encodeQueryComponent(q)}');
+          '/youtube/search?q=${Uri.encodeQueryComponent(q)}${widget.music ? '&music=1' : ''}');
       if (!mounted) return;
       setState(() => _results = (data as List).cast<Map<String, dynamic>>());
     } on ApiException catch (e) {
@@ -226,8 +232,10 @@ class _SearchTabState extends State<_SearchTab> {
             onChanged: _onChanged,
             autofocus: true,
             style: const TextStyle(color: AppColors.text),
-            decoration:
-                const InputDecoration(hintText: 'Search YouTube for a video…'),
+            decoration: InputDecoration(
+                hintText: widget.music
+                    ? 'Search songs on YouTube Music…'
+                    : 'Search YouTube for a video…'),
           ),
         ),
         if (_searching)

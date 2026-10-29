@@ -201,7 +201,8 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
     });
     try {
       final data = await ApiClient.get(
-          '/youtube/search?q=${Uri.encodeQueryComponent(q)}') as List;
+              '/youtube/search?q=${Uri.encodeQueryComponent(q)}${widget.audioOnly ? '&music=1' : ''}')
+          as List;
       if (!mounted) return;
       setState(() => _results = [
             for (final r in data)
@@ -581,7 +582,9 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                   if (v.isEmpty) setState(() => _results = null);
                 },
                 decoration: InputDecoration(
-                  hintText: 'Search YouTube or paste a link',
+                  hintText: widget.audioOnly
+                      ? 'Search YouTube Music or paste a link'
+                      : 'Search YouTube or paste a link',
                   prefixIcon: const Padding(
                       padding: EdgeInsets.all(12),
                       child: InIcon(InIcons.search,
@@ -630,7 +633,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                           _results = null;
                           _searchError = null;
                         })),
-              if (widget.canAddSongs)
+              if (widget.canAddSongs && !widget.audioOnly)
                 _chip(
                     'Audio only',
                     _audioOnly,

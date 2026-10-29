@@ -108,6 +108,7 @@ class SourcePickerBody extends StatelessWidget {
         visibility: visibility,
         topic: topic,
         options: options,
+        music: audioOnly,
         onSelectOverride: _inRoom
             ? (item) {
                 onAddToQueue!(
@@ -115,7 +116,7 @@ class SourcePickerBody extends StatelessWidget {
                       'https://www.youtube.com/watch?v=${item['videoId']}',
                   title: item['title'] as String? ?? '',
                   thumbnail: item['thumbnail'] as String?,
-                  mediaMode: 'video',
+                  mediaMode: audioOnly ? 'audio' : 'video',
                 );
                 Navigator.of(context).pop();
               }
@@ -297,7 +298,6 @@ class SourcePickerBody extends StatelessWidget {
         compact: c,
         onYoutube: () => _openYoutube(context),
         onPlaylists: () => _openPlaylists(context),
-        onDrive: () => _openDrive(context),
         onAdd: onAddToQueue!,
       );
     }
@@ -618,13 +618,11 @@ class _MusicSourceRow extends StatefulWidget {
   final bool compact;
   final VoidCallback onYoutube;
   final VoidCallback onPlaylists;
-  final VoidCallback onDrive;
   final SongAddCallback onAdd;
   const _MusicSourceRow({
     required this.compact,
     required this.onYoutube,
     required this.onPlaylists,
-    required this.onDrive,
     required this.onAdd,
   });
 
@@ -668,7 +666,7 @@ class _MusicSourceRowState extends State<_MusicSourceRow> {
               _tile(_SourceTile(
                   compact: true,
                   iconAsset: 'assets/icons/app/youtube.png',
-                  label: 'YouTube',
+                  label: 'YouTube Music',
                   available: true,
                   onTap: widget.onYoutube)),
               _tile(
@@ -693,13 +691,6 @@ class _MusicSourceRowState extends State<_MusicSourceRow> {
                   label: 'Playlists',
                   available: true,
                   onTap: widget.onPlaylists)),
-              _tile(_SourceTile(
-                  compact: true,
-                  icon: FontAwesomeIcons.googleDrive,
-                  iconColor: const Color(0xFF0F9D58),
-                  label: 'Drive',
-                  available: true,
-                  onTap: widget.onDrive)),
             ],
           ),
           if (_open != null) ...[
