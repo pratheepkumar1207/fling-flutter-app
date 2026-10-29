@@ -177,6 +177,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => YoutubeBrowseScreen(
         visibility: 'public',
+        music: true,
         onSelectOverride: (item) async {
           Navigator.of(context).pop();
           try {
@@ -185,6 +186,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               'title': item['title'],
               'thumbnail': item['thumbnail'],
               'sourceType': 'youtube',
+              'music': true,
             });
             _loadAll();
           } on ApiException catch (e) {

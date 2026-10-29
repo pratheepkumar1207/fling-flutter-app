@@ -383,12 +383,18 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           'title': current['title'],
           'thumbnail': current['thumbnail'],
           'sourceType': current['sourceType'],
+          if (_isMusicRoom || current['mediaMode'] == 'audio') 'music': true,
         }).catchError((_) => null);
       }
     }
 
     setState(() {});
   }
+
+  // Voice, game and music rooms play YouTube Music; what's played or liked
+  // there shows in those rooms' Liked, History and Playlists.
+  bool get _isMusicRoom =>
+      _room?['roomType'] == 'voice' || _room?['roomType'] == 'game';
 
   Future<void> _toggleLike(Map<String, dynamic>? item) async {
     final videoUrl = item?['videoUrl'] as String?;
@@ -409,7 +415,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           'videoUrl': videoUrl,
           'title': item?['title'],
           'thumbnail': item?['thumbnail'],
-          'sourceType': item?['sourceType']
+          'sourceType': item?['sourceType'],
+          if (_isMusicRoom || item?['mediaMode'] == 'audio') 'music': true,
         });
       }
     } catch (_) {

@@ -156,8 +156,14 @@ class AppPlaylistsTab extends StatefulWidget {
   // Non-null (in-room mode only — see source_picker_screen.dart) queues
   // every song in a playlist at once instead of requiring a tap per song.
   final void Function(List<Song> songs)? onAddAll;
+  // Music rooms: only playlists (and songs) from YouTube Music.
+  final bool music;
   const AppPlaylistsTab(
-      {super.key, required this.onAdd, this.canAddSongs = true, this.onAddAll});
+      {super.key,
+      required this.onAdd,
+      this.canAddSongs = true,
+      this.onAddAll,
+      this.music = false});
 
   @override
   State<AppPlaylistsTab> createState() => _AppPlaylistsTabState();
@@ -175,7 +181,8 @@ class _AppPlaylistsTabState extends State<AppPlaylistsTab> {
 
   Future<void> _load() async {
     try {
-      final data = await ApiClient.get('/playlists');
+      final data = await ApiClient.get(
+          widget.music ? '/playlists?music=1' : '/playlists');
       if (!mounted) return;
       setState(() {
         _playlists = (data as List)

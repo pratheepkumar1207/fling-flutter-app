@@ -239,8 +239,10 @@ class SourcePickerBody extends StatelessWidget {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => Scaffold(
         backgroundColor: AppColors.bg,
-        appBar: AppBar(title: Text('Playlists')),
+        appBar:
+            AppBar(title: Text(audioOnly ? 'Music playlists' : 'Playlists')),
         body: AppPlaylistsTab(
+          music: audioOnly,
           onAdd: (
                   {required videoUrl,
                   required title,
@@ -675,16 +677,16 @@ class _MusicSourceRowState extends State<_MusicSourceRow> {
                       inIcon: InIcons.heart,
                       label: 'Liked',
                       available: true,
-                      onTap: () => _toggle('/liked-songs')),
-                  selected: _open == '/liked-songs'),
+                      onTap: () => _toggle('/liked-songs?music=1')),
+                  selected: _open == '/liked-songs?music=1'),
               _tile(
                   _SourceTile(
                       compact: true,
                       inIcon: InIcons.undo,
                       label: 'History',
                       available: true,
-                      onTap: () => _toggle('/song-history')),
-                  selected: _open == '/song-history'),
+                      onTap: () => _toggle('/song-history?music=1')),
+                  selected: _open == '/song-history?music=1'),
               _tile(_SourceTile(
                   compact: true,
                   inIcon: InIcons.queue,
@@ -696,7 +698,8 @@ class _MusicSourceRowState extends State<_MusicSourceRow> {
           if (_open != null) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(2, 10, 2, 6),
-              child: Text(_open == '/liked-songs' ? 'Liked songs' : 'History',
+              child: Text(
+                  _open == '/liked-songs?music=1' ? 'Liked songs' : 'History',
                   style: const TextStyle(
                       color: AppColors.text,
                       fontSize: 13,
