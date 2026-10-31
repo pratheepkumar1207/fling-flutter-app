@@ -1,10 +1,13 @@
 package com.fling.app
 
 import android.app.PictureInPictureParams
+import android.content.Context
 import android.content.res.Configuration
+import android.media.AudioManager
 import android.media.MediaDrm
 import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.WindowManager
 import android.util.Log
 import android.util.Rational
@@ -75,6 +78,18 @@ class MainActivity : AudioServiceActivity() {
         // Whether this device has Widevine, the copy protection Netflix,
         // Prime and Hotstar need — see core/drm_support.dart. Emulators and
         // some phones don't, and no WebView can play those services there.
+        VideoEditChannel(this, flutterEngine.dartExecutor.binaryMessenger)
+
+        volumeChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.fling.app/volume_keys")
+        volumeChannel?.setMethodCallHandler { call, result ->
+            if (call.method == "setEnabled") {
+                handleVolumeKeys = call.arguments == true
+                result.success(true)
+            } else {
+                result.notImplemented()
+            }
+        }
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.fling.app/drm")
             .setMethodCallHandler { call, result ->
                 if (call.method == "hasWidevine") {
@@ -122,5 +137,27 @@ class MainActivity : AudioServiceActivity() {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         Log.d("FlingPip", "onPictureInPictureModeChanged -> $isInPictureInPictureMode")
         pipChannel?.invokeMethod("onPipModeChanged", isInPictureInPictureMode)
+    }
+
+    private var volumeChannel: MethodChannel? = null
+    private var handleVolumeKeys = false
+
+    // Inside a room the volume buttons work without Android's on-screen bar;
+    // the app shows its own small line instead (core/volume_keys.dart).
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val raise = event.keyCode == KeyEvent.KEYCODE_VOLUME_UP
+        val lower = event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
+        if (!handleVolumeKeys || (!raise && !lower)) return super.dispatchKeyEvent(event)
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            audio.adjustVolume(
+                if (raise) AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER,
+                0,
+            )
+            val max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+            val level = audio.getStreamVolume(AudioManager.STREAM_MUSIC).toDouble() / max
+            volumeChannel?.invokeMethod("changed", level)
+        }
+        return true
     }
 }

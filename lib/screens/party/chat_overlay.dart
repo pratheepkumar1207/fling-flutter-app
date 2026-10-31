@@ -1,4 +1,5 @@
 import 'dart:ui' show ImageFilter;
+import 'pick_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/room_person_scope.dart';
@@ -57,6 +58,9 @@ class ChatOverlay extends StatefulWidget {
   // freed space, chat gets the room below) — see party_screen.dart's
   // _chatFocused.
   final ValueChanged<bool>? onFocusChanged;
+  // The vote for what plays next, shown right above the chat box.
+  final DateTime? pickEndsAt;
+  final bool pickWaiting;
   // For the "now playing" chat card's like icon (see syncHandler.js's
   // chat:message type:'nowPlaying') — reuses the same liked-songs set/
   // toggle the video players themselves use, so liking from chat and
@@ -89,6 +93,8 @@ class ChatOverlay extends StatefulWidget {
     required this.onShare,
     required this.onInvite,
     this.onFocusChanged,
+    this.pickEndsAt,
+    this.pickWaiting = false,
     this.likedUrls = const {},
     this.onToggleLike,
     this.fanIds = const {},
@@ -689,6 +695,8 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
               ),
             ),
           ),
+        if (widget.pickEndsAt != null || widget.pickWaiting)
+          PickBanner(endsAt: widget.pickEndsAt, waiting: widget.pickWaiting),
         if (_replyTo != null)
           Container(
             margin: const EdgeInsets.only(bottom: 6),

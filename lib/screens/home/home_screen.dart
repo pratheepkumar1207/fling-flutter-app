@@ -18,6 +18,7 @@ import 'home_room_cards.dart';
 import 'home_lobby_card.dart';
 import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
+import '../create/create_flow.dart';
 import '../../core/location_service.dart';
 import 'package:geolocator/geolocator.dart';
 import '../blend/blend_screen.dart';
@@ -282,111 +283,121 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final active = _rooms.where((r) => asNum(r['memberCount']) > 0).toList();
-    return RefreshIndicator(
-      onRefresh: () async {
-        await Future.wait([_load(), _loadLikedPlaylists()]);
+    return GestureDetector(
+      // Swipe right from Home opens the camera, as on Instagram.
+      onHorizontalDragEnd: (d) {
+        if ((d.primaryVelocity ?? 0) > 300) openCreateFlow(context);
       },
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(18, 6, 18, 24),
-        children: [
-          _HomeHero(onCreate: _createRoom, onJoin: _showJoinSheet),
-          const SizedBox(height: 14),
-          if (_myRoom != null) ...[
-            HomeInRoomBanner(
-                title: _myRoom!['title'] as String? ?? 'Your room',
-                speakingName: _rooms
-                    .where((r) => r['id'] == _myRoom!['roomId'])
-                    .map((r) => r['speakingName'] as String?)
-                    .firstOrNull,
-                onOpen: () => _openRoom(_myRoom!['roomId'] as String)),
+      child: RefreshIndicator(
+        onRefresh: () async {
+          await Future.wait([_load(), _loadLikedPlaylists()]);
+        },
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(18, 6, 18, 24),
+          children: [
+            _HomeHero(onCreate: _createRoom, onJoin: _showJoinSheet),
             const SizedBox(height: 14),
-          ],
-          _QuickStart(onPick: _startType),
-          for (final r in _invited) ...[
-            const SizedBox(height: 10),
-            HomeInviteCard(
-                title: '${r.hostName ?? 'A friend'} invited you to ${r.title}',
-                subtitle: 'Tap to join the room',
-                onTap: () => _openRoom(r.id)),
-          ],
-          const SizedBox(height: 16),
-          const SizedBox(height: 14),
-          if (context.watch<AuthProvider>().user?.locationSharingEnabled ==
-              false) ...[
-            _actionRow(
-                InIcons.pin, 'See rooms near you', 'Turn on', _turnOnLocation),
-            const SizedBox(height: 12),
-          ],
-          _heading('Near you',
-              trailing:
-                  '${active.length} room${active.length == 1 ? '' : 's'}'),
-          const SizedBox(height: 12),
-          if (_loading)
-            const Padding(
-                padding: EdgeInsets.all(32),
-                child: Center(child: CircularProgressIndicator()))
-          else if (_roomsLoadFailed && active.isEmpty)
-            _actionRow(InIcons.cloud, 'Could not load rooms',
-                'Tap to try again', () => _load())
-          else if (active.isEmpty)
-            _EmptyRooms(onCreate: _createRoom)
-          else
-            for (final r in active) ...[
-              HomeLobbyCard(room: r, onTap: () => _openRoom(r['id'] as String)),
-              const SizedBox(height: 16),
+            if (_myRoom != null) ...[
+              HomeInRoomBanner(
+                  title: _myRoom!['title'] as String? ?? 'Your room',
+                  speakingName: _rooms
+                      .where((r) => r['id'] == _myRoom!['roomId'])
+                      .map((r) => r['speakingName'] as String?)
+                      .firstOrNull,
+                  onOpen: () => _openRoom(_myRoom!['roomId'] as String)),
+              const SizedBox(height: 14),
             ],
-          for (final b in _liveBlends) ...[
-            HomeBlendCard(
-                title: _blendTitle(b),
-                members: [
-                  for (final m in (b['members'] as List? ?? const []))
-                    if (m is Map) Map<String, dynamic>.from(m)
-                ],
-                watching: (b['watching'] as List).length,
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => BlendScreen(
-                        blendId: b['id'] as String, together: true)))),
-            const SizedBox(height: 12),
-          ],
-          if (_scheduledEvents.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _heading('Coming up'),
-            const SizedBox(height: 12),
-            for (final ev in _scheduledEvents) ...[
-              HomeEventCard(
-                  key: ValueKey('event-${ev['id']}'),
-                  event: ev,
-                  onRemind: () => _toggleRemind(ev['id'] as String),
-                  onTap: () => _openRoom(ev['id'] as String)),
+            _QuickStart(onPick: _startType),
+            for (final r in _invited) ...[
               const SizedBox(height: 10),
+              HomeInviteCard(
+                  title:
+                      '${r.hostName ?? 'A friend'} invited you to ${r.title}',
+                  subtitle: r.invitedAt == null
+                      ? 'Tap to join the room'
+                      : 'Tap to join the room · ${formatRelativeTime(r.invitedAt)}',
+                  onTap: () => _openRoom(r.id)),
             ],
-          ],
-          if (_likedPlaylists.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const SizedBox(height: 14),
+            if (context.watch<AuthProvider>().user?.locationSharingEnabled ==
+                false) ...[
+              _actionRow(InIcons.pin, 'See rooms near you', 'Turn on',
+                  _turnOnLocation),
+              const SizedBox(height: 12),
+            ],
+            _heading('Near you',
+                trailing:
+                    '${active.length} room${active.length == 1 ? '' : 's'}'),
             const SizedBox(height: 12),
-            _heading('On repeat'),
+            if (_loading)
+              const Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Center(child: CircularProgressIndicator()))
+            else if (_roomsLoadFailed && active.isEmpty)
+              _actionRow(InIcons.cloud, 'Could not load rooms',
+                  'Tap to try again', () => _load())
+            else if (active.isEmpty)
+              _EmptyRooms(onCreate: _createRoom)
+            else
+              for (final r in active) ...[
+                HomeLobbyCard(
+                    room: r, onTap: () => _openRoom(r['id'] as String)),
+                const SizedBox(height: 16),
+              ],
+            for (final b in _liveBlends) ...[
+              HomeBlendCard(
+                  title: _blendTitle(b),
+                  members: [
+                    for (final m in (b['members'] as List? ?? const []))
+                      if (m is Map) Map<String, dynamic>.from(m)
+                  ],
+                  watching: (b['watching'] as List).length,
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => BlendScreen(
+                          blendId: b['id'] as String, together: true)))),
+              const SizedBox(height: 12),
+            ],
+            if (_scheduledEvents.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _heading('Coming up'),
+              const SizedBox(height: 12),
+              for (final ev in _scheduledEvents) ...[
+                HomeEventCard(
+                    key: ValueKey('event-${ev['id']}'),
+                    event: ev,
+                    onRemind: () => _toggleRemind(ev['id'] as String),
+                    onTap: () => _openRoom(ev['id'] as String)),
+                const SizedBox(height: 10),
+              ],
+            ],
+            if (_likedPlaylists.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _heading('On repeat'),
+              const SizedBox(height: 12),
+              ..._likedPlaylists.map((p) {
+                final songs = ((p['songs'] as List?) ?? [])
+                    .map((s) => Song.fromJson(s as Map<String, dynamic>))
+                    .toList();
+                return _actionRow(
+                    InIcons.queue,
+                    p['name'] as String? ?? 'Saved playlist',
+                    '${songs.length} tracks · Your saved collection',
+                    () => playPlaylistSmart(context, songs));
+              }),
+            ],
             const SizedBox(height: 12),
-            ..._likedPlaylists.map((p) {
-              final songs = ((p['songs'] as List?) ?? [])
-                  .map((s) => Song.fromJson(s as Map<String, dynamic>))
-                  .toList();
-              return _actionRow(
-                  InIcons.queue,
-                  p['name'] as String? ?? 'Saved playlist',
-                  '${songs.length} tracks · Your saved collection',
-                  () => playPlaylistSmart(context, songs));
-            }),
+            _actionRow(
+                InIcons.globe,
+                'More ways to connect',
+                'Vibe Match, communities & your creator space',
+                () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const FlingFeatureHubScreen()))),
+            const SizedBox(height: 16),
+            const BannerCarousel(placement: 'home'),
           ],
-          const SizedBox(height: 12),
-          _actionRow(
-              InIcons.globe,
-              'More ways to connect',
-              'Vibe Match, communities & your creator space',
-              () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => const FlingFeatureHubScreen()))),
-          const SizedBox(height: 16),
-          const BannerCarousel(placement: 'home'),
-        ],
+        ),
       ),
     );
   }

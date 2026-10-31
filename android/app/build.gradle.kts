@@ -121,4 +121,8 @@ dependencies {
     implementation("androidx.media3:media3-ui:$media3Version")
     implementation("androidx.media3:media3-datasource:$media3Version")
     implementation("androidx.media3:media3-common:$media3Version")
+    // Trims, filters and cartoons clips on the phone (VideoEditChannel.kt).
+    implementation("androidx.media3:media3-transformer:$media3Version")
+    implementation("androidx.media3:media3-effect:$media3Version")
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
 }

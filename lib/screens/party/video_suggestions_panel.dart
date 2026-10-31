@@ -4,7 +4,6 @@ import '../../core/api_client.dart';
 import '../../core/youtube_util.dart';
 import '../../models/room_models.dart';
 import '../../theme/app_colors.dart';
-import '../../theme/insync_icons.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/spinner.dart';
@@ -62,10 +61,6 @@ class VideoSuggestionsPanel extends StatefulWidget {
   final Map<String, Map<String, dynamic>> addVotes;
   // Who's in the room, to turn a candidate's voterIds into profile pictures.
   final List<RosterEntry> roster;
-  // After a song ends with nothing queued: vote until [voteEndsAt]; once
-  // [waiting], the next pick plays straight away.
-  final DateTime? voteEndsAt;
-  final bool waiting;
 
   const VideoSuggestionsPanel({
     super.key,
@@ -81,8 +76,6 @@ class VideoSuggestionsPanel extends StatefulWidget {
     this.onUnvoteAdd,
     this.myUserId,
     this.addVotes = const {},
-    this.voteEndsAt,
-    this.waiting = false,
     this.roster = const [],
   });
 
@@ -265,100 +258,8 @@ class _VideoSuggestionsPanelState extends State<VideoSuggestionsPanel> {
           ),
         ),
       );
-      if (widget.voteEndsAt == null && !widget.waiting) return grid;
-      return Column(mainAxisSize: MainAxisSize.min, children: [
-        _PickBanner(endsAt: widget.voteEndsAt, waiting: widget.waiting),
-        grid,
-      ]);
+      return grid;
     });
-  }
-}
-
-/// "Vote for what plays next · 7s" while the 10s window runs, then
-/// "Pick what plays next" once it ends with no votes.
-class _PickBanner extends StatefulWidget {
-  final DateTime? endsAt;
-  final bool waiting;
-  const _PickBanner({required this.endsAt, required this.waiting});
-
-  @override
-  State<_PickBanner> createState() => _PickBannerState();
-}
-
-class _PickBannerState extends State<_PickBanner> {
-  Timer? _tick;
-
-  @override
-  void initState() {
-    super.initState();
-    _tick = Timer.periodic(const Duration(milliseconds: 250), (_) {
-      if (mounted) setState(() {});
-    });
-  }
-
-  @override
-  void dispose() {
-    _tick?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final left = widget.endsAt == null
-        ? 0
-        : (widget.endsAt!.difference(DateTime.now()).inMilliseconds / 1000)
-            .ceil()
-            .clamp(0, 10);
-    final voting = !widget.waiting && left > 0;
-    return Container(
-      margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-      padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2B1640),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.lilac.withValues(alpha: 0.6)),
-      ),
-      child: Row(children: [
-        SizedBox(
-          width: 30,
-          height: 30,
-          child: Stack(alignment: Alignment.center, children: [
-            if (voting)
-              CircularProgressIndicator(
-                value: left / 10,
-                strokeWidth: 2.5,
-                color: AppColors.lilac,
-                backgroundColor: Colors.white12,
-              ),
-            voting
-                ? Text('$left',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w800, fontSize: 13))
-                : const InIcon(InIcons.music, size: 18, color: AppColors.lilac),
-          ]),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                    voting
-                        ? 'Vote for what plays next'
-                        : 'Pick what plays next',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 13.5)),
-                Text(
-                    voting
-                        ? 'Tap a video · most votes plays in ${left}s'
-                        : 'Tap a video and it plays for everyone',
-                    style: const TextStyle(
-                        color: AppColors.textDim, fontSize: 11.5)),
-              ]),
-        ),
-      ]),
-    );
   }
 }
 

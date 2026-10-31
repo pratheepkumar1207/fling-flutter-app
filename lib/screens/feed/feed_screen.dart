@@ -1,3 +1,4 @@
+import '../create/create_flow.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
@@ -202,7 +203,7 @@ class _FeedScreenState extends State<FeedScreen> {
           }
         },
         onOpenComments: _openComments,
-        onCreate: () => showPostComposerSheet(context, onPosted: _load),
+        onCreate: () => openCreateFlow(context, onPosted: _load),
       ),
     ));
   }

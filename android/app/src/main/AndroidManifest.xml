@@ -19,6 +19,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Voice notes in chat (Agora also merges this in for calls and rooms). -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- The in-app camera for reels, stories and posts. -->
+    <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <application

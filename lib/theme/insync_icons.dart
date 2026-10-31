@@ -208,6 +208,10 @@ class InIcons {
       '<path d="M4 20h4L19 9a2.8 2.8 0 00-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>');
   static const copy = InIconData('copy',
       '<rect x="8" y="8" width="12" height="12" rx="3"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/>');
+  static const exitFullscreen = InIconData('exitFullscreen',
+      '<path d="M9 4v4a1 1 0 01-1 1H4M20 9h-4a1 1 0 01-1-1V4M15 20v-4a1 1 0 011-1h4M4 15h4a1 1 0 011 1v4"/>');
+  static const fillWidth = InIconData('fillWidth',
+      '<path d="M3 8v8M21 8v8"/><path d="M6 12h12M9 9l-3 3 3 3M15 9l3 3-3 3"/>');
   static const fullscreen = InIconData('fullscreen',
       '<path d="M4 9V5a1 1 0 011-1h4M15 4h4a1 1 0 011 1v4M20 15v4a1 1 0 01-1 1h-4M9 20H5a1 1 0 01-1-1v-4"/>');
   static const pip = InIconData('pip',

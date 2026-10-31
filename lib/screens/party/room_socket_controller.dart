@@ -487,8 +487,26 @@ class RoomSocketController extends ChangeNotifier {
         if (replyTo != null) 'replyTo': replyTo,
       });
 
-  /// Host: the current video's length, for the room's Home card.
+  double? _durationSeconds;
+  Object? _durationFor;
+
+  /// The current video's length, once this phone's player knows it.
+  Duration? get currentDuration {
+    final items = queue['items'] as List? ?? const [];
+    final index = (queue['currentIndex'] as num?)?.toInt() ?? 0;
+    if (_durationSeconds == null || index >= items.length) return null;
+    if ((items[index] as Map)['videoUrl'] != _durationFor) return null;
+    return Duration(milliseconds: (_durationSeconds! * 1000).round());
+  }
+
+  /// Reports the current video's length, for its Home card and lock screen.
   void reportDuration(double seconds) {
+    final items = queue['items'] as List? ?? const [];
+    final index = (queue['currentIndex'] as num?)?.toInt() ?? 0;
+    _durationSeconds = seconds;
+    _durationFor =
+        index < items.length ? (items[index] as Map)['videoUrl'] : null;
+    notifyListeners();
     if (isHost) {
       socket?.emit('playback:duration', {'roomId': roomId, 'seconds': seconds});
     }

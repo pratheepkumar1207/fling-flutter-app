@@ -72,6 +72,10 @@ class ActiveRoomHolder {
         () => controller?.play(_currentElapsedSeconds());
     backgroundAudioHandler.onMirrorPause =
         () => controller?.pause(_currentElapsedSeconds());
+    backgroundAudioHandler.onMirrorSeek = (position) {
+      final c = controller;
+      if (c != null && c.isHost) c.seek(position.inMilliseconds / 1000);
+    };
     backgroundAudioHandler.onMirrorSkip = () => controller?.queueSkip();
     _syncBackgroundMirror();
   }
@@ -130,6 +134,8 @@ class ActiveRoomHolder {
       isPlaying: true,
       position:
           Duration(milliseconds: (_currentElapsedSeconds() * 1000).round()),
+      duration: rs.currentDuration,
+      canSeek: rs.isHost,
     );
   }
 

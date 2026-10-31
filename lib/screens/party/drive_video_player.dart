@@ -92,7 +92,6 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
   bool _dragging = false;
   double _dragPosition = 0;
   int _volume = 80;
-  bool _volumePopoverOpen = false;
   bool _endFired = false;
   bool _backgrounded = false;
   // Set alongside _backgrounded whenever PIP is involved on *either* side
@@ -556,21 +555,20 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
                       ),
                     ),
                   ),
-                  if (_volumePopoverOpen)
-                    Positioned(
-                      right: 8,
-                      bottom: 64,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.85),
-                            borderRadius: BorderRadius.circular(16)),
-                        child: VolumeDots(
-                            volume: _volume,
-                            onVolumeChange: _handleVolumeChange,
-                            trackColor: Colors.white24),
-                      ),
+                  Positioned(
+                    right: 8,
+                    bottom: 64,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.85),
+                          borderRadius: BorderRadius.circular(16)),
+                      child: VolumeDots(
+                          volume: _volume,
+                          onVolumeChange: _handleVolumeChange,
+                          trackColor: Colors.white24),
                     ),
+                  ),
                   Positioned(
                     left: 0,
                     right: 0,
@@ -658,20 +656,6 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
                               Text(_formatTime(duration),
                                   style: const TextStyle(
                                       color: Colors.white, fontSize: 11)),
-                              IconButton(
-                                onPressed: () => setState(() =>
-                                    _volumePopoverOpen = !_volumePopoverOpen),
-                                icon: InIcon(
-                                    _volume == 0
-                                        ? InIcons.mute
-                                        : (_volume < 50
-                                            ? InIcons.speaker
-                                            : InIcons.speaker),
-                                    color: Colors.white,
-                                    size: 18),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                              ),
                               // Moved here from the center cluster — see the
                               // matching comment in sync_video_player.dart.
                               if (widget.isHost)

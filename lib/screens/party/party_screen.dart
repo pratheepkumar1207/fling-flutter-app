@@ -1,6 +1,9 @@
 import '../../widgets/chat_media.dart' show pickChatPhoto;
 import '../../widgets/view_once.dart';
 import '../../widgets/permission_primer.dart';
+import 'dart:ui' as ui;
+import 'package:flutter/services.dart';
+import '../../core/volume_keys.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart' show ImageSource;
 import 'package:provider/provider.dart';
@@ -200,6 +203,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    VolumeKeys.setEnabled(true);
     _dmSocket = context.read<SocketService>().socket;
     _dmSocket?.on('dm:message', _onRoomDm);
     WidgetsBinding.instance.addObserver(this);
@@ -671,6 +675,27 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
         AnimatedBuilder(
           animation: rs,
           builder: (context, _) => _buildRoom(context, rs),
+        ),
+        Positioned(
+          top: MediaQuery.paddingOf(context).top + 2,
+          left: 48,
+          right: 48,
+          child: IgnorePointer(
+            child: ValueListenableBuilder<double?>(
+              valueListenable: VolumeKeys.level,
+              builder: (_, level, __) => AnimatedOpacity(
+                opacity: level == null ? 0 : 1,
+                duration: const Duration(milliseconds: 250),
+                child: LinearProgressIndicator(
+                  value: level ?? 0,
+                  minHeight: 3,
+                  borderRadius: BorderRadius.circular(2),
+                  backgroundColor: Colors.white24,
+                  valueColor: const AlwaysStoppedAnimation(Colors.white),
+                ),
+              ),
+            ),
+          ),
         ),
         if (bubble != null)
           Positioned(
@@ -1196,21 +1221,36 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                 MediaQuery.orientationOf(context) == Orientation.landscape) {
               return Scaffold(
                 backgroundColor: Colors.black,
-                body: Stack(children: [
-                  Center(
-                    child: player(
-                        mediaMode:
-                            currentItem?['mediaMode'] as String? ?? 'video'),
-                  ),
-                  if (RoomPrefs.instance.chatOverVideo)
-                    Positioned(
-                      left: 16,
-                      bottom: 16,
-                      width: 300,
-                      child: IgnorePointer(
-                          child: _ChatOverVideo(messages: rs.messages)),
+                body: _ImmersiveWhileShown(
+                  child: Stack(children: [
+                    Center(
+                      child: player(
+                          mediaMode:
+                              currentItem?['mediaMode'] as String? ?? 'video'),
                     ),
-                ]),
+                    // Clear of the player's own buttons above and time below.
+                    if (RoomPrefs.instance.chatOverVideo)
+                      Positioned(
+                        left: 12,
+                        top: 56,
+                        bottom: 56,
+                        width: 280,
+                        child: _ChatOverVideo(messages: rs.messages),
+                      ),
+                    Positioned(
+                      right: 16,
+                      top: 0,
+                      bottom: 0,
+                      child: Center(
+                        child: GlassCircleButton(
+                          onTap: handleMicTap,
+                          child: InIcon(myMicOn ? InIcons.mic : InIcons.micoff,
+                              size: 20, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ]),
+                ),
               );
             }
             // _chatFocused alone isn't enough — dismissing the keyboard via
@@ -1540,6 +1580,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                 onShare: _shareRoom,
                                 onInvite: _openInvite,
                                 onFocusChanged: _setChatFocused,
+                                pickEndsAt: rs.pickVoteEndsAt,
+                                pickWaiting: rs.pickWaiting,
                                 onViewOncePhoto: _shareViewOncePhoto,
                                 onOpenViewOnce: _openRoomViewOnce,
                                 onViewOnceSeen: _showViewOnceSeen,
@@ -1679,23 +1721,37 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                 top: hideChromeForChat,
                 bottom: false,
                 child: GestureDetector(
-                  // Swipe right-to-left opens the Queue — same destination as tapping
-                  // the queue icon, just a gesture shortcut. QueueSheetScreen's own
-                  // swipe (left-to-right) mirrors this to close back to the room.
-                  // The SAME gesture, started ON the player itself, instead
-                  // shrinks it into a corner + shows suggestions (see
-                  // _suggestionsMode) — the drag's start position (captured on
-                  // Start, checked on End) decides which one a given swipe
-                  // means, since both live on this one outer detector.
+                  // Left to right goes Home with the room still running, right
+                  // to left opens the people list, and an upward swipe starting
+                  // around the chat box opens Search & queue. Right to left on
+                  // the player itself still shrinks it and shows suggestions
+                  // (see _suggestionsMode). Swiping a chat message stays Reply,
+                  // and scrolling stays with whatever scrolls.
                   onHorizontalDragStart: (details) =>
                       _dragStartGlobal = details.globalPosition,
                   onHorizontalDragEnd: (details) {
-                    if ((details.primaryVelocity ?? 0) >= -250) return;
-                    if (isWatch &&
-                        !_suggestionsMode &&
-                        _dragStartedOnPlayer()) {
-                      setState(() => _suggestionsMode = true);
-                    } else {
+                    if (hideChromeForChat) return;
+                    final v = details.primaryVelocity ?? 0;
+                    if (v > 250) {
+                      Navigator.of(context).maybePop();
+                    } else if (v < -250) {
+                      if (isWatch &&
+                          !_suggestionsMode &&
+                          _dragStartedOnPlayer()) {
+                        setState(() => _suggestionsMode = true);
+                      } else {
+                        _openRoster();
+                      }
+                    }
+                  },
+                  onVerticalDragStart: (details) =>
+                      _dragStartGlobal = details.globalPosition,
+                  onVerticalDragEnd: (details) {
+                    if (hideChromeForChat) return;
+                    final fromBottom = MediaQuery.sizeOf(context).height -
+                        (_dragStartGlobal?.dy ?? 0);
+                    if ((details.primaryVelocity ?? 0) < -250 &&
+                        fromBottom < 140) {
                       _openQueue();
                     }
                   },
@@ -1760,6 +1816,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                 onShare: _shareRoom,
                                 onInvite: _openInvite,
                                 onFocusChanged: _setChatFocused,
+                                pickEndsAt: rs.pickVoteEndsAt,
+                                pickWaiting: rs.pickWaiting,
                                 onViewOncePhoto: _shareViewOncePhoto,
                                 onOpenViewOnce: _openRoomViewOnce,
                                 onViewOnceSeen: _showViewOnceSeen,
@@ -1869,6 +1927,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                           onShare: _shareRoom,
                                           onInvite: _openInvite,
                                           onFocusChanged: _setChatFocused,
+                                          pickEndsAt: rs.pickVoteEndsAt,
+                                          pickWaiting: rs.pickWaiting,
                                           onViewOncePhoto: _shareViewOncePhoto,
                                           onOpenViewOnce: _openRoomViewOnce,
                                           onViewOnceSeen: _showViewOnceSeen,
@@ -1977,6 +2037,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                       onShare: _shareRoom,
                                       onInvite: _openInvite,
                                       onFocusChanged: _setChatFocused,
+                                      pickEndsAt: rs.pickVoteEndsAt,
+                                      pickWaiting: rs.pickWaiting,
                                       onViewOncePhoto: _shareViewOncePhoto,
                                       onOpenViewOnce: _openRoomViewOnce,
                                       onViewOnceSeen: _showViewOnceSeen,
@@ -2009,8 +2071,6 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                           // below would have used, just rendered small.
                           VideoSuggestionsPanel(
                             showNowPlaying: rs.playback != null,
-                            voteEndsAt: rs.pickVoteEndsAt,
-                            waiting: rs.pickWaiting,
                             roster: rs.roster,
                             sourceType: playerSourceType,
                             videoUrl: playerVideoUrl,
@@ -2141,6 +2201,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                             onShare: _shareRoom,
                                             onInvite: _openInvite,
                                             onFocusChanged: _setChatFocused,
+                                            pickEndsAt: rs.pickVoteEndsAt,
+                                            pickWaiting: rs.pickWaiting,
                                             onViewOncePhoto:
                                                 _shareViewOncePhoto,
                                             onOpenViewOnce: _openRoomViewOnce,
@@ -2243,6 +2305,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                 onShare: _shareRoom,
                                 onInvite: _openInvite,
                                 onFocusChanged: _setChatFocused,
+                                pickEndsAt: rs.pickVoteEndsAt,
+                                pickWaiting: rs.pickWaiting,
                                 onViewOncePhoto: _shareViewOncePhoto,
                                 onOpenViewOnce: _openRoomViewOnce,
                                 onViewOnceSeen: _showViewOnceSeen,
@@ -2268,6 +2332,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     RoomPrefs.instance.talking.value = false;
     _extras?.removeListener(_onExtras);
     _extras?.dispose();
+    VolumeKeys.setEnabled(false);
     _watchScrollController.dispose();
     _rs?.removeListener(_onRoomStateChanged);
     // Leaving this screen either way (minimize or real leave) — clear this
@@ -2825,36 +2890,72 @@ class _ChatOverVideo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final recent = messages
+    final shown = messages
         .where((m) => m['system'] != true && '${m['text'] ?? ''}'.isNotEmpty)
         .toList();
-    final shown =
-        recent.length > 4 ? recent.sublist(recent.length - 4) : recent;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (final m in shown)
-          Container(
-            margin: const EdgeInsets.only(top: 6),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.45),
-                borderRadius: BorderRadius.circular(14)),
-            child: Text.rich(
-              TextSpan(children: [
-                TextSpan(
-                    text: '${m['name'] ?? 'Someone'}  ',
-                    style: const TextStyle(
-                        color: AppColors.lilac, fontWeight: FontWeight.w700)),
-                TextSpan(text: '${m['text']}'),
-              ]),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
+    if (shown.isEmpty) return const SizedBox.shrink();
+    return Align(
+      alignment: Alignment.bottomLeft,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: ColoredBox(
+            color: Colors.black.withValues(alpha: 0.4),
+            child: ListView.builder(
+              reverse: true,
+              shrinkWrap: true,
+              padding: const EdgeInsets.all(10),
+              itemCount: shown.length,
+              itemBuilder: (_, i) {
+                final m = shown[shown.length - 1 - i];
+                return Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text.rich(
+                    TextSpan(children: [
+                      TextSpan(
+                          text: '${m['name'] ?? 'Someone'}  ',
+                          style: const TextStyle(
+                              color: AppColors.lilac,
+                              fontWeight: FontWeight.w700)),
+                      TextSpan(text: '${m['text']}'),
+                    ]),
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                  ),
+                );
+              },
             ),
           ),
-      ],
+        ),
+      ),
     );
   }
+}
+
+/// Hides the phone's status and navigation bars while the video is full
+/// screen, and brings them back when it isn't.
+class _ImmersiveWhileShown extends StatefulWidget {
+  final Widget child;
+  const _ImmersiveWhileShown({required this.child});
+
+  @override
+  State<_ImmersiveWhileShown> createState() => _ImmersiveWhileShownState();
+}
+
+class _ImmersiveWhileShownState extends State<_ImmersiveWhileShown> {
+  @override
+  void initState() {
+    super.initState();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  }
+
+  @override
+  void dispose() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
+        overlays: SystemUiOverlay.values);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

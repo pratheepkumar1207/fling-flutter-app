@@ -52,6 +52,7 @@ class BackgroundAudioHandler extends BaseAudioHandler with SeekHandler {
   void Function()? onMirrorPlay;
   void Function()? onMirrorPause;
   void Function()? onMirrorSkip;
+  void Function(Duration position)? onMirrorSeek;
 
   BackgroundAudioHandler() {
     player.playbackEventStream
@@ -70,12 +71,15 @@ class BackgroundAudioHandler extends BaseAudioHandler with SeekHandler {
     String? artUri,
     required bool isPlaying,
     required Duration position,
+    Duration? duration,
+    bool canSeek = false,
   }) {
     _mirroring = true;
     mediaItem.add(MediaItem(
       id: 'youtube-room-mirror',
       title: title,
       artUri: artUri != null ? Uri.tryParse(artUri) : null,
+      duration: duration,
     ));
     playbackState.add(playbackState.value.copyWith(
       controls: [
@@ -83,7 +87,7 @@ class BackgroundAudioHandler extends BaseAudioHandler with SeekHandler {
         MediaControl.skipToNext,
         MediaControl.stop,
       ],
-      systemActions: const {MediaAction.seek},
+      systemActions: canSeek ? const {MediaAction.seek} : const {},
       androidCompactActionIndices: const [0, 1],
       processingState: AudioProcessingState.ready,
       playing: isPlaying,
@@ -167,7 +171,13 @@ class BackgroundAudioHandler extends BaseAudioHandler with SeekHandler {
   }
 
   @override
-  Future<void> seek(Duration position) => player.seek(position);
+  Future<void> seek(Duration position) {
+    if (_mirroring) {
+      onMirrorSeek?.call(position);
+      return Future.value();
+    }
+    return player.seek(position);
+  }
 
   @override
   Future<void> stop() async {

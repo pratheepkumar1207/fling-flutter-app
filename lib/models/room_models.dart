@@ -6,6 +6,7 @@ class RoomSummary {
   final String? hostName;
   final int memberCount;
   final bool isInvited;
+  final DateTime? invitedAt;
 
   RoomSummary({
     required this.id,
@@ -14,6 +15,7 @@ class RoomSummary {
     this.hostName,
     this.memberCount = 0,
     this.isInvited = false,
+    this.invitedAt,
   });
 
   factory RoomSummary.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,7 @@ class RoomSummary {
       hostName: room['hostName'] as String?,
       memberCount: room['memberCount'] as int? ?? 0,
       isInvited: json['isInvited'] as bool? ?? false,
+      invitedAt: DateTime.tryParse('${json['invitedAt'] ?? ''}'),
     );
   }
 }
