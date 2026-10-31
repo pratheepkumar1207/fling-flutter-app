@@ -101,7 +101,7 @@ class ChatOverlay extends StatefulWidget {
   State<ChatOverlay> createState() => _ChatOverlayState();
 }
 
-class _ChatOverlayState extends State<ChatOverlay> {
+class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
   final _controller = TextEditingController();
   // View-once photos this person has opened (or tried to) here.
   final _openedViewOnce = <String>{};
@@ -133,6 +133,7 @@ class _ChatOverlayState extends State<ChatOverlay> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _controller.addListener(_updateMentionQuery);
     // Collapses the attachment/gift/share/invite row and hands the parent
     // screen's AppBar space back while typing — restored once focus is
@@ -141,6 +142,18 @@ class _ChatOverlayState extends State<ChatOverlay> {
       setState(() => _focused = _focusNode.hasFocus);
       widget.onFocusChanged?.call(_focusNode.hasFocus);
     });
+  }
+
+  // Closing the keyboard with Android's back gesture keeps the text field
+  // focused, which would leave the room in its typing layout.
+  bool _keyboardUp = false;
+
+  @override
+  void didChangeMetrics() {
+    if (!mounted) return;
+    final up = View.of(context).viewInsets.bottom > 0;
+    if (_keyboardUp && !up && _focusNode.hasFocus) _focusNode.unfocus();
+    _keyboardUp = up;
   }
 
   void _updateMentionQuery() {
@@ -517,6 +530,7 @@ class _ChatOverlayState extends State<ChatOverlay> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();

@@ -106,6 +106,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   bool _chatFocused = false;
   void _setChatFocused(bool v) {
     if (_chatFocused != v) setState(() => _chatFocused = v);
+    // Typing done: bring the seats or player back into view.
+    if (!v && _playerCollapsed) _scrollWatchHeaderToTop();
   }
 
   // Right-to-left swipe ON THE PLAYER ITSELF shrinks it into a corner and
