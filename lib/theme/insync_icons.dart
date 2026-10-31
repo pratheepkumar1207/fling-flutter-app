@@ -130,6 +130,8 @@ class InIcons {
       '<path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.3-7.5 9.5-4.3-1.2-7.5-4.9-7.5-9.5V6z"/><path d="M8.8 12l2.2 2.2 4.2-4.4"/>');
   static const reply = InIconData('reply',
       '<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/>');
+  static const shuffle = InIconData('shuffle',
+      '<path d="M3 7h3.5c2 0 3.4 1 4.5 2.6l2 2.8c1.1 1.6 2.5 2.6 4.5 2.6H21M3 17h3.5c1.3 0 2.4-.4 3.3-1.2M13.7 8.2C14.6 7.4 15.7 7 17 7h4M18 4l3 3-3 3M18 14l3 3-3 3"/>');
   static const eye = InIconData('eye',
       '<path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7z"/><circle cx="12" cy="12" r="3"/>');
   static const eyeoff = InIconData('eyeoff',

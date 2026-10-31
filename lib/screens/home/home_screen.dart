@@ -12,6 +12,7 @@ import '../../widgets/banner_carousel.dart';
 import '../experience/experience_hub.dart';
 import '../party/party_screen.dart';
 import '../lobby/lobby_create_screen.dart';
+import '../lobby/music_room_create_screen.dart';
 import '../../theme/insync_icons.dart';
 import '../shell/create_sheet.dart';
 import 'home_room_cards.dart';
@@ -409,7 +410,9 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
     Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => LobbyCreateScreen(initialRoomType: type)));
+        builder: (_) => type == 'music'
+            ? const MusicRoomCreateScreen()
+            : LobbyCreateScreen(initialRoomType: type)));
   }
 
   Widget _heading(String title, {String? trailing}) => Row(children: [
@@ -516,7 +519,7 @@ class _QuickStart extends StatelessWidget {
     ('watch', 'Watch', InIcons.tv, AppColors.pink, Color(0xFF2A1028)),
     ('voice', 'Voice', InIcons.mic, Color(0xFFB97CF8), Color(0xFF1C1638)),
     ('game', 'Games', InIcons.game, Color(0xFF6E95FD), Color(0xFF122046)),
-    ('voice', 'Music', InIcons.music, Color(0xFFFF9F5A), Color(0xFF2A1A10)),
+    ('music', 'Music', InIcons.music, Color(0xFFFF9F5A), Color(0xFF2A1A10)),
     ('live', 'Live', InIcons.live, AppColors.pink, Color(0xFF2A1028)),
   ];
 

@@ -127,15 +127,11 @@ Future<void> playPlaylistSmart(BuildContext context, List<Song> songs) async {
       'videoTitle': first.title,
       'videoThumbnail': first.thumbnail,
       'visibility': 'public',
+      // The whole playlist, in order, is the room's queue from the start.
+      'queueItems': [for (final s in songs) toItem(s)],
     }) as Map<String, dynamic>;
     if (!context.mounted) return;
     final roomId = room['id'] as String;
-    if (songs.length > 1) {
-      final socket = context.read<SocketService>().socket;
-      for (final s in songs.skip(1)) {
-        socket?.emit('queue:add', {'roomId': roomId, 'item': toItem(s)});
-      }
-    }
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('Started a new room')));
     Navigator.of(context)

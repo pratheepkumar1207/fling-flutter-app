@@ -736,8 +736,19 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           onToggleLike: () => _toggleLike(currentItem),
         );
       }
+      final nextItem = currentIndex + 1 < items.length
+          ? items[currentIndex + 1] as Map?
+          : null;
+      final addedBy = rs.roster
+          .where((r) => r.userId == currentItem?['addedBy'])
+          .map((r) => r.name.split(' ').first)
+          .firstOrNull;
       return SyncVideoPlayer(
         key: playerKey,
+        musicRoom: room['musicRoom'] == true,
+        subtitle: addedBy == null ? 'YouTube Music' : 'Added by $addedBy',
+        nextTitle: nextItem?['title'] as String?,
+        onOpenQueue: _openQueue,
         videoUrl: playerVideoUrl,
         isHost: rs.isHost,
         playback: rs.playback,
@@ -1677,6 +1688,23 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                       const EdgeInsets.fromLTRB(12, 6, 12, 0),
                                   child:
                                       player(mediaMode: 'audio', compact: true),
+                                )
+                              else if (room['musicRoom'] == true)
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(12, 6, 12, 0),
+                                  child: ListTile(
+                                    onTap: _openQueue,
+                                    tileColor: const Color(0xFF1A1028),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(16)),
+                                    leading: const InIcon(InIcons.music,
+                                        color: AppColors.lilac),
+                                    title: const Text('Play music together'),
+                                    subtitle: const Text(
+                                        'Tap to add a song from YouTube Music'),
+                                  ),
                                 ),
                               Expanded(
                                 child: Stack(

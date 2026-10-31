@@ -60,6 +60,11 @@ class SyncVideoPlayer extends StatefulWidget {
   final bool liked;
   final VoidCallback onToggleLike;
   final bool compact;
+  // Music rooms: see StaticBloomPlayer.
+  final bool musicRoom;
+  final String? subtitle;
+  final String? nextTitle;
+  final VoidCallback? onOpenQueue;
   // True for the hidden background-continuity instance (see
   // persistent_room_audio.dart) — renders no UI/chrome at all (no skip
   // buttons, seek bar, like icon, PIP button), just the bare WebView at a
@@ -89,6 +94,10 @@ class SyncVideoPlayer extends StatefulWidget {
     required this.liked,
     required this.onToggleLike,
     this.compact = false,
+    this.musicRoom = false,
+    this.subtitle,
+    this.nextTitle,
+    this.onOpenQueue,
     this.silent = false,
   });
 
@@ -1090,6 +1099,10 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
               liked: widget.liked,
               onToggleLike: widget.onToggleLike,
               onVoteSkip: widget.isHost ? null : widget.onVoteSkip,
+              musicRoom: widget.musicRoom,
+              subtitle: widget.subtitle,
+              nextTitle: widget.nextTitle,
+              onOpenQueue: widget.onOpenQueue,
             ),
           ],
         );
