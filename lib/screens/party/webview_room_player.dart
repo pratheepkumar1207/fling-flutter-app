@@ -143,6 +143,10 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     // state on join so a late joiner's elapsed-time estimate starts
     // correct instead of at zero.
     if (!widget.isHost) widget.onRequestState();
+    // Netflix sends phones to its app and doesn't keep a sign-in in a web
+    // view (confirmed live), so its rooms go straight to the app. The room
+    // keeps everyone in sync with it.
+    _useApp = _drmPlatform == 'Netflix';
     _checkWidevine();
     if (_isOtt) {
       _webSyncTimer = Timer.periodic(
@@ -766,13 +770,8 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         else
           InAppWebView(
             initialUrlRequest: URLRequest(url: WebUri(url)),
-            // Netflix sends a phone browser to its app, so its player tries
-            // desktop view. It has answered that with error M7701-1003 before;
-            // if it still does, the error check below moves the room to the
-            // app. Everything else stays on the mobile settings.
-            initialSettings: _drmPlatform == 'Netflix'
-                ? desktopPlayerWebViewSettings
-                : mobileWebViewSettings,
+            // Netflix itself never gets here: see initState.
+            initialSettings: mobileWebViewSettings,
             onWebViewCreated: (controller) {
               _controller = controller;
               if (_isOtt) {

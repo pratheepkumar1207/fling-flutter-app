@@ -83,7 +83,10 @@ class WebviewBrowseScreen extends StatefulWidget {
 // reliably /watch/<numeric id>; others are less certain, so they fall back
 // to the generic pattern below rather than guessing a specific shape wrong.
 final _platformWatchPatterns = <String, RegExp>{
-  'netflix': RegExp(r'netflix\.com/(?:[a-z]{2}(?:-[a-z]{2})?/)?watch/\d+',
+  // A title page is enough: the title plays in the Netflix app, and these
+  // pages open without signing in here.
+  'netflix': RegExp(
+      r'netflix\.com/(?:[a-z]{2}(?:-[a-z]{2})?/)?(?:watch|title)/\d+',
       caseSensitive: false),
   'hotstar': RegExp(r'hotstar\.com/.+/watch(?:[/?]|$)', caseSensitive: false),
   'sonyliv': RegExp(r'sonyliv\.com/watch/', caseSensitive: false),
@@ -139,6 +142,8 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
       // on the page yet" catches that case too — this only checks
       // presence (a plain boolean), never reads, plays, or otherwise
       // touches the element or its content.
+      // Netflix's title pages play trailers, which aren't a pick.
+      if (widget.platform == 'netflix') return;
       final playing = await _controller?.evaluateJavascript(source: '''
         (function() {
           var vids = Array.from(document.querySelectorAll('video'));
@@ -281,6 +286,15 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
           videoTitle = await _lookupYoutubeTitle(videoId);
         }
         videoThumbnail = 'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
+      }
+    }
+    if (widget.platform == 'netflix') {
+      // "Watch Baththa | Netflix"
+      final page = (await controller.getTitle())
+          ?.replaceAll(RegExp(r'^Watch\s+|\s*\|\s*Netflix.*$'), '')
+          .trim();
+      if (page != null && page.isNotEmpty && page != 'Netflix') {
+        videoTitle = page;
       }
     }
     if (!mounted) return;
@@ -428,6 +442,9 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
   }
 
   String get _hint {
+    if (widget.platform == 'netflix') {
+      return 'Pick a title. It plays in the Netflix app, in sync with your room';
+    }
     if (widget.onAddToQueue != null) {
       return 'Pick something and press play to add it to the queue';
     }
