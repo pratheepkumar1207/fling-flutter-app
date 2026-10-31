@@ -721,11 +721,12 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
     // layout overflow).
     return Stack(
       // The bar sets the height; the hidden player stays full size
-      // behind it (clipped), so the WebView keeps playing.
+      // behind it (clipped), so the WebView keeps playing. Inset so it can't
+      // show through the bar's rounded corners.
       clipBehavior: Clip.hardEdge,
       children: [
         Positioned(
-            left: 0,
+            left: 28,
             top: 0,
             width: 100,
             height: 100,

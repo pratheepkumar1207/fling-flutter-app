@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/glass.dart';
 import 'app_image.dart';
-import 'spinning_vinyl.dart';
 import 'volume_dots.dart';
 
 /// "Static Bloom" style audio-only now-playing card — Dart port of
@@ -31,12 +30,6 @@ class StaticBloomPlayer extends StatefulWidget {
   final bool liked;
   final VoidCallback? onToggleLike;
   final VoidCallback? onVoteSkip;
-  // Music rooms: the elegant card (slim while typing, full on tapping the
-  // record), who added the song, and what's next.
-  final bool musicRoom;
-  final String? subtitle;
-  final String? nextTitle;
-  final VoidCallback? onOpenQueue;
 
   const StaticBloomPlayer({
     super.key,
@@ -57,10 +50,6 @@ class StaticBloomPlayer extends StatefulWidget {
     this.liked = false,
     this.onToggleLike,
     this.onVoteSkip,
-    this.musicRoom = false,
-    this.subtitle,
-    this.nextTitle,
-    this.onOpenQueue,
   });
 
   @override
@@ -104,190 +93,6 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
       widget.onVolumeChange(0);
     }
     setState(() {});
-  }
-
-  bool _full = false;
-
-  /// Music room card: record beside the song and controls, or (tap the
-  /// record) the full player with a big record.
-  Widget _musicCard(BuildContext context) {
-    final hasTime = widget.duration > 0;
-    final progress =
-        hasTime ? (widget.currentTime / widget.duration).clamp(0.0, 1.0) : 0.0;
-    final onPlay = widget.isHost ? widget.onTogglePlay : _toggleHere;
-    final onSkip = widget.isHost ? widget.onSkip : widget.onVoteSkip;
-    final screen = MediaQuery.sizeOf(context).height;
-    final recordSize = _full ? (screen * 0.27).clamp(120.0, 210.0) : 96.0;
-    final record = Semantics(
-      button: true,
-      label: _full ? 'Close full player' : 'Open full player',
-      child: GestureDetector(
-        onTap: () => setState(() => _full = !_full),
-        child: SpinningVinyl(
-            thumbnail: widget.thumbnail, size: recordSize, spinning: _spinning),
-      ),
-    );
-    final info = Column(
-        crossAxisAlignment:
-            _full ? CrossAxisAlignment.center : CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(widget.title ?? 'Music',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                  fontSize: _full ? 18 : 14.5, fontWeight: FontWeight.w700)),
-          if (widget.subtitle != null)
-            Text(widget.subtitle!,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style:
-                    const TextStyle(color: AppColors.textDim, fontSize: 11.5)),
-        ]);
-    final time = Column(mainAxisSize: MainAxisSize.min, children: [
-      LayoutBuilder(builder: (context, box) {
-        void seekTo(double dx, {bool end = false}) {
-          if (!widget.isHost || !hasTime) return;
-          final t = (dx / box.maxWidth).clamp(0.0, 1.0) * widget.duration;
-          widget.onSeekChanged?.call(t);
-          if (end) widget.onSeekEnd?.call(t);
-        }
-
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapUp: (d) => seekTo(d.localPosition.dx, end: true),
-          onHorizontalDragUpdate: (d) => seekTo(d.localPosition.dx),
-          onHorizontalDragEnd: (_) =>
-              widget.onSeekEnd?.call(widget.currentTime),
-          child: SizedBox(
-            height: 14,
-            child: Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(2),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 4,
-                  color: AppColors.lilac,
-                  backgroundColor: Colors.white24,
-                ),
-              ),
-            ),
-          ),
-        );
-      }),
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text(_formatTime(widget.currentTime),
-            style: const TextStyle(color: AppColors.textDim, fontSize: 11)),
-        Text(_formatTime(widget.duration),
-            style: const TextStyle(color: AppColors.textDim, fontSize: 11)),
-      ]),
-    ]);
-    final buttons = Row(
-        mainAxisAlignment:
-            _full ? MainAxisAlignment.spaceEvenly : MainAxisAlignment.start,
-        children: [
-          IconButton(
-            tooltip: widget.liked ? 'Unlike' : 'Like',
-            onPressed: widget.onToggleLike,
-            visualDensity: VisualDensity.compact,
-            icon: InIcon(InIcons.heart,
-                size: _full ? 24 : 19,
-                filled: widget.liked,
-                color: widget.liked ? AppColors.pink : AppColors.text),
-          ),
-          Semantics(
-            button: true,
-            label: _spinning ? 'Pause' : 'Play',
-            child: InkResponse(
-              onTap: onPlay,
-              child: Container(
-                width: _full ? 60 : 38,
-                height: _full ? 60 : 38,
-                decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: onPlay == null ? Colors.white38 : Colors.white),
-                child: Center(
-                    child: InIcon(_spinning ? InIcons.pause : InIcons.play,
-                        size: _full ? 26 : 17,
-                        filled: true,
-                        color: Colors.black)),
-              ),
-            ),
-          ),
-          IconButton(
-            tooltip: widget.isHost ? 'Skip' : 'Vote to skip',
-            onPressed: onSkip,
-            visualDensity: VisualDensity.compact,
-            icon: InIcon(InIcons.skipNext,
-                size: _full ? 24 : 19, color: AppColors.text),
-          ),
-          if (!_full && widget.nextTitle != null)
-            Expanded(
-              child: GestureDetector(
-                onTap: widget.onOpenQueue,
-                child: Text('Next: ${widget.nextTitle}',
-                    textAlign: TextAlign.end,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        color: AppColors.textDim, fontSize: 11)),
-              ),
-            ),
-        ]);
-    final body = _full
-        ? Column(mainAxisSize: MainAxisSize.min, children: [
-            record,
-            const SizedBox(height: 10),
-            info,
-            const SizedBox(height: 6),
-            time,
-            buttons,
-            if (widget.nextTitle != null)
-              ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                onTap: widget.onOpenQueue,
-                title: const Text('Up next',
-                    style: TextStyle(color: AppColors.textDim, fontSize: 11)),
-                subtitle: Text(widget.nextTitle!,
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-                trailing: const InIcon(InIcons.right,
-                    size: 16, color: AppColors.textDim),
-              ),
-          ])
-        : Row(children: [
-            record,
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [info, time, buttons]),
-            ),
-          ]);
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFF3A2A55)),
-          gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF2A1646),
-                Color(0xFF17101F),
-                Color(0xFF2B1224)
-              ]),
-        ),
-        child: _full
-            ? ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: screen * 0.62),
-                child: SingleChildScrollView(child: body))
-            : body,
-      ),
-    );
   }
 
   /// The slim one-line room bar: spinning CD, name and time, like,
@@ -455,10 +260,6 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
   @override
   Widget build(BuildContext context) {
     if (widget.compact) {
-      // Keyboard up in a music room: tuck down to the slim bar for chat.
-      if (widget.musicRoom && MediaQuery.viewInsetsOf(context).bottom == 0) {
-        return _musicCard(context);
-      }
       return _slim(context);
     }
     final c = widget.compact;

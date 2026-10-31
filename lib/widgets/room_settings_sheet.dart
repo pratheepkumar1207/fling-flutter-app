@@ -37,6 +37,7 @@ Future<void> showRoomSettingsSheet(BuildContext context,
     required VoidCallback onChanged,
     VoidCallback? onMySettings,
     VoidCallback? onStartPoll,
+    VoidCallback? onMuteAll,
     VoidCallback? onModeration,
     VoidCallback? onEndRoom}) {
   return showModalBottomSheet(
@@ -49,6 +50,7 @@ Future<void> showRoomSettingsSheet(BuildContext context,
         onChanged: onChanged,
         onMySettings: onMySettings,
         onStartPoll: onStartPoll,
+        onMuteAll: onMuteAll,
         onModeration: onModeration,
         onEndRoom: onEndRoom),
   );
@@ -61,6 +63,7 @@ class _RoomSettingsSheet extends StatefulWidget {
   /// Opens the host's own push-to-talk / balance / picture-in-picture sheet.
   final VoidCallback? onMySettings;
   final VoidCallback? onStartPoll;
+  final VoidCallback? onMuteAll;
   final VoidCallback? onModeration;
   final VoidCallback? onEndRoom;
   const _RoomSettingsSheet(
@@ -68,6 +71,7 @@ class _RoomSettingsSheet extends StatefulWidget {
       required this.onChanged,
       this.onMySettings,
       this.onStartPoll,
+      this.onMuteAll,
       this.onModeration,
       this.onEndRoom});
 
@@ -680,6 +684,8 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
                   if (widget.onStartPoll != null)
                     _actionRow(
                         InIcons.poll, 'Start a poll', widget.onStartPoll!),
+                  if (widget.onMuteAll != null)
+                    _actionRow(InIcons.micoff, 'Mute all', widget.onMuteAll!),
                   if (widget.onModeration != null)
                     _actionRow(
                         InIcons.shield, 'Moderation', widget.onModeration!,

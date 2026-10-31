@@ -1,6 +1,6 @@
 import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
-import '../core/profile_nav.dart';
+import '../core/room_person_scope.dart';
 import '../theme/app_colors.dart';
 import 'avatar.dart';
 
@@ -75,7 +75,7 @@ class GameSeat extends StatelessWidget {
     final scope = GameSeatScope.of(context);
     final ringColor = isTurn ? kTurnRing : (color ?? Colors.transparent);
     final avatar = GestureDetector(
-      onTap: () => openProfile(context, userId),
+      onTap: () => openRoomPerson(context, userId),
       child: Container(
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(

@@ -100,11 +100,13 @@ class RoomSocketController extends ChangeNotifier {
 
   bool get isHost => hostId != null && myUserId != null && hostId == myUserId;
 
-  /// 'full' or 'mics' when the room's owner made you a co-host.
-  String? coHostRole;
+  /// The room's one co-host (seat 2), if the host has picked one.
+  String? coHostId;
+  bool get isCoHost =>
+      coHostId != null && myUserId != null && coHostId == myUserId;
 
-  /// Host, or a co-host allowed to approve mic requests.
-  bool get canApproveMics => isHost || coHostRole != null;
+  /// Host or co-host: runs mics and can mute or remove people.
+  bool get canApproveMics => isHost || isCoHost;
   bool get canPin => isHost || settings['pinPermission'] == 'anyone';
 
   // How far ahead (+) or behind (-) the server's clock is from this
@@ -379,8 +381,8 @@ class RoomSocketController extends ChangeNotifier {
       queueDenied = data['reason'] as String?;
       notifyListeners();
     });
-    s.on('room:myRole', (data) {
-      coHostRole = (data is Map ? data['coHost'] : null) as String?;
+    s.on('room:coHost', (data) {
+      coHostId = (data is Map ? data['coHostId'] : null) as String?;
       notifyListeners();
     });
     s.on('room:ended', (data) {
@@ -450,7 +452,7 @@ class RoomSocketController extends ChangeNotifier {
     socket?.off('queue:denied');
     socket?.off('room:ended');
     socket?.off('gift:received');
-    socket?.off('room:myRole');
+    socket?.off('room:coHost');
     socket?.off('chat:denied');
     socket?.off('chat:mentioned');
   }
@@ -600,22 +602,28 @@ class RoomSocketController extends ChangeNotifier {
     }
   }
 
-  void makeHost(String targetUserId) {
+  /// Host only; null takes the role away.
+  void setCoHost(String? targetUserId) {
     if (isHost) {
       socket?.emit(
-          'room:makeHost', {'roomId': roomId, 'targetUserId': targetUserId});
+          'room:setCoHost', {'roomId': roomId, 'targetUserId': targetUserId});
     }
   }
 
+  /// Host only: mutes everyone else on stage.
+  void muteAll() {
+    if (isHost) socket?.emit('call:muteAll', {'roomId': roomId});
+  }
+
   void kick(String targetUserId) {
-    if (isHost) {
+    if (canApproveMics) {
       socket
           ?.emit('room:kick', {'roomId': roomId, 'targetUserId': targetUserId});
     }
   }
 
   void micOn() {
-    if (isHost) socket?.emit('call:micOn', {'roomId': roomId});
+    if (canApproveMics) socket?.emit('call:micOn', {'roomId': roomId});
   }
 
   /// Host only: closes the room for everyone in it.
@@ -643,28 +651,28 @@ class RoomSocketController extends ChangeNotifier {
   }
 
   void inviteMic(String targetUserId) {
-    if (isHost) {
+    if (canApproveMics) {
       socket?.emit(
           'call:inviteMic', {'roomId': roomId, 'targetUserId': targetUserId});
     }
   }
 
   void removeMic(String targetUserId) {
-    if (isHost) {
+    if (canApproveMics) {
       socket?.emit(
           'call:removeMic', {'roomId': roomId, 'targetUserId': targetUserId});
     }
   }
 
   void forceMuteMic(String targetUserId) {
-    if (isHost) {
+    if (canApproveMics) {
       socket?.emit(
           'call:forceMute', {'roomId': roomId, 'targetUserId': targetUserId});
     }
   }
 
   void forceUnmuteMic(String targetUserId) {
-    if (isHost) {
+    if (canApproveMics) {
       socket?.emit(
           'call:forceUnmute', {'roomId': roomId, 'targetUserId': targetUserId});
     }

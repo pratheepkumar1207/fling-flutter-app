@@ -2,12 +2,11 @@ import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
-import '../../core/profile_nav.dart';
+import '../../core/room_person_scope.dart';
 import '../../models/room_models.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/glass.dart';
-import '../messages/message_thread_screen.dart';
 
 // Deterministic per-user gradient for the initials fallback, matching
 // RosterSheetDark.dc.html's colorful avatars — local to this screen, same
@@ -21,66 +20,33 @@ const _kAvatarGradients = [
   [Color(0xFFC96B6B), Color(0xFF5C1E1E)],
 ];
 
-enum _Action {
-  coHost,
-  ban,
-  follow,
-  profile,
-  message,
-  inviteMic,
-  inviteGame,
-  mute,
-  unmute,
-  makeHost,
-  remove
-}
-
 /// The room's participant list — opened as a right-side Drawer (see
 /// party_screen.dart's endDrawer + _scaffoldKey.currentState?.openEndDrawer()).
 ///
 /// Half the screen wide, frosted glass over the room. Compact rows: the host
 /// in their own section, everyone else below with their name and a status
-/// line (on mic / muted / following). Everything you can do with a person —
-/// follow, profile, message, and the host's controls (invite to mic, mute,
-/// invite to play, make host, remove) — lives behind that row's ⋮ menu, so nothing crowds
-/// the row and a mis-tap can't remove anyone (Remove asks first). Search
+/// line (on mic / muted / following). Tap a row for their profile card; the
+/// host and co-host long-press for their options, same as on a seat. Search
 /// filters by name; Invite sits at the bottom.
 class RosterSheet extends StatefulWidget {
   final List<RosterEntry> roster;
   final String? hostId;
   final bool isHost;
   final String? myUserId;
-  final void Function(String userId) onKick;
-  final void Function(String userId) onMakeHost;
   final String? roomType;
   final List<String>? activeMics;
   final List<String>? mutedMics;
-  final void Function(String userId)? onInviteMic;
-  final void Function(String userId)? onForceMute;
-  final void Function(String userId)? onForceUnmute;
   final VoidCallback? onInvite;
-  // Game rooms: host offers someone a seat (null = not offered here, e.g.
-  // they're already playing).
-  final void Function(String userId)? onInviteGame;
-  final Set<String> gamePlayerIds;
-
   const RosterSheet({
     super.key,
     required this.roster,
     required this.hostId,
     required this.isHost,
     required this.myUserId,
-    required this.onKick,
-    required this.onMakeHost,
     this.roomType,
     this.activeMics,
     this.mutedMics,
-    this.onInviteMic,
-    this.onForceMute,
-    this.onForceUnmute,
     this.onInvite,
-    this.onInviteGame,
-    this.gamePlayerIds = const {},
   });
 
   @override
@@ -89,7 +55,6 @@ class RosterSheet extends StatefulWidget {
 
 class _RosterSheetState extends State<RosterSheet> {
   Set<String> _following = {};
-  final Set<String> _pendingFollow = {};
   String _query = '';
 
   @override
@@ -105,28 +70,7 @@ class _RosterSheetState extends State<RosterSheet> {
       setState(() =>
           _following = data.map((u) => (u as Map)['id'] as String).toSet());
     } catch (_) {
-      // non-critical — rows just fall back to showing "Follow" for everyone
-    }
-  }
-
-  Future<void> _toggleFollow(String userId) async {
-    final wasFollowing = _following.contains(userId);
-    setState(() {
-      _pendingFollow.add(userId);
-      wasFollowing ? _following.remove(userId) : _following.add(userId);
-    });
-    try {
-      await ApiClient.post(
-          '/social/${wasFollowing ? 'unfollow' : 'follow'}/$userId');
-    } catch (_) {
-      if (mounted) {
-        setState(() =>
-            wasFollowing ? _following.add(userId) : _following.remove(userId));
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Action failed')));
-      }
-    } finally {
-      if (mounted) setState(() => _pendingFollow.remove(userId));
+      // non-critical — rows just don't say "Following"
     }
   }
 
@@ -299,7 +243,10 @@ class _RosterSheetState extends State<RosterSheet> {
     );
   }
 
-  Widget _row(BuildContext context, RosterEntry r) {
+  Widget _row(BuildContext context, RosterEntry r) =>
+      Builder(builder: (row) => _rowBody(row, r));
+
+  Widget _rowBody(BuildContext context, RosterEntry r) {
     final isRowHost = r.userId == widget.hostId;
     final isMe = r.userId == widget.myUserId;
     final onMic = _onMic(r);
@@ -312,7 +259,8 @@ class _RosterSheetState extends State<RosterSheet> {
     ];
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: () => openProfile(context, r.userId),
+      onTap: () => openRoomPerson(context, r.userId),
+      onLongPress: () => longPressRoomPerson(context, r.userId),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
@@ -363,157 +311,9 @@ class _RosterSheetState extends State<RosterSheet> {
                 ],
               ),
             ),
-            if (!isMe) _menu(context, r) else const SizedBox(width: 36),
           ],
         ),
       ),
     );
-  }
-
-  Widget _menu(BuildContext context, RosterEntry r) {
-    final voice = widget.roomType == 'voice';
-    final onMic = _onMic(r);
-    final muted = _muted(r);
-    final hostTools = widget.isHost && r.userId != widget.hostId;
-    final following = _following.contains(r.userId);
-    return PopupMenuButton<_Action>(
-      tooltip: 'More for ${r.name}',
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(minWidth: 180),
-      iconSize: 20,
-      icon: const InIcon(InIcons.more, color: AppColors.textDim),
-      color: AppColors.surface,
-      onSelected: (a) => _run(context, a, r),
-      itemBuilder: (_) => [
-        _item(_Action.follow, following ? InIcons.user : InIcons.useradd,
-            following ? 'Unfollow' : 'Follow'),
-        _item(_Action.profile, InIcons.user, 'View profile'),
-        _item(_Action.message, InIcons.chat, 'Message'),
-        if (hostTools) ...[
-          const PopupMenuDivider(),
-          if (widget.roomType == 'game' &&
-              widget.onInviteGame != null &&
-              !widget.gamePlayerIds.contains(r.userId))
-            _item(_Action.inviteGame, InIcons.game, 'Invite to play'),
-          if (voice && !onMic && widget.onInviteMic != null)
-            _item(_Action.inviteMic, InIcons.mic, 'Invite to mic'),
-          if (voice && onMic && muted && widget.onForceUnmute != null)
-            _item(_Action.unmute, InIcons.mic, 'Unmute mic'),
-          if (voice && onMic && !muted && widget.onForceMute != null)
-            _item(_Action.mute, InIcons.micoff, 'Mute mic'),
-          _item(_Action.makeHost, InIcons.crown, 'Make host'),
-          _item(_Action.coHost, InIcons.shield, 'Make co-host'),
-          _item(_Action.remove, InIcons.logout, 'Remove from room',
-              danger: true),
-          _item(_Action.ban, InIcons.block, 'Ban from my rooms', danger: true),
-        ],
-      ],
-    );
-  }
-
-  PopupMenuItem<_Action> _item(_Action value, InIconData icon, String label,
-      {bool danger = false}) {
-    final color = danger ? AppColors.danger : AppColors.text;
-    return PopupMenuItem(
-      value: value,
-      child: Row(
-        children: [
-          InIcon(icon, size: 18, color: color),
-          const SizedBox(width: 10),
-          Text(label, style: TextStyle(color: color, fontSize: 13.5)),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _run(BuildContext context, _Action action, RosterEntry r) async {
-    switch (action) {
-      case _Action.follow:
-        if (!_pendingFollow.contains(r.userId)) await _toggleFollow(r.userId);
-      case _Action.profile:
-        openProfile(context, r.userId);
-      case _Action.message:
-        Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => MessageThreadScreen(
-                userId: r.userId, name: r.name, avatarUrl: r.avatarUrl)));
-      case _Action.inviteMic:
-        widget.onInviteMic!(r.userId);
-      case _Action.inviteGame:
-        widget.onInviteGame!(r.userId);
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Invited ${r.name} to play')));
-        }
-      case _Action.mute:
-        widget.onForceMute!(r.userId);
-      case _Action.unmute:
-        widget.onForceUnmute!(r.userId);
-      case _Action.makeHost:
-        widget.onMakeHost(r.userId);
-      case _Action.remove:
-        final ok = await showDialog<bool>(
-          context: context,
-          builder: (d) => AlertDialog(
-            title: Text('Remove ${r.name}?'),
-            content: const Text('They\'ll be taken out of this room.'),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.of(d).pop(false),
-                  child: const Text('Cancel')),
-              TextButton(
-                  onPressed: () => Navigator.of(d).pop(true),
-                  child: const Text('Remove',
-                      style: TextStyle(color: AppColors.danger))),
-            ],
-          ),
-        );
-        if (ok == true) widget.onKick(r.userId);
-      case _Action.coHost:
-        await _moderate(
-            context,
-            () => ApiClient.put('/moderation/cohosts/${r.userId}',
-                body: {'role': 'mics'}),
-            '${r.name} can now approve mics');
-      case _Action.ban:
-        final ok = await showDialog<bool>(
-          context: context,
-          builder: (d) => AlertDialog(
-            title: Text('Ban ${r.name}?'),
-            content: const Text(
-                'They’re taken out now and can’t join any room you host. Unban them from Room moderation.'),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.of(d).pop(false),
-                  child: const Text('Cancel')),
-              TextButton(
-                  onPressed: () => Navigator.of(d).pop(true),
-                  child: const Text('Ban',
-                      style: TextStyle(color: AppColors.danger))),
-            ],
-          ),
-        );
-        if (ok == true && context.mounted) {
-          await _moderate(
-              context,
-              () => ApiClient.post('/moderation/bans/${r.userId}'),
-              '${r.name} is banned from your rooms');
-        }
-    }
-  }
-
-  Future<void> _moderate(BuildContext context, Future<dynamic> Function() call,
-      String done) async {
-    try {
-      await call();
-      if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(done)));
-      }
-    } catch (_) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Action failed')));
-      }
-    }
   }
 }

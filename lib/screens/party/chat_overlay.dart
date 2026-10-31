@@ -1,7 +1,7 @@
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../core/profile_nav.dart';
+import '../../core/room_person_scope.dart';
 import '../../core/room_prefs.dart';
 import '../../core/room_source_types.dart';
 import '../../models/room_models.dart';
@@ -348,7 +348,7 @@ class _ChatOverlayState extends State<ChatOverlay> {
           child: Semantics(
             label: '${mine ? 'You' : name}: $text. Long-press to reply',
             child: GestureDetector(
-              onTap: mine ? null : () => openProfile(context, senderId),
+              onTap: mine ? null : () => openRoomPerson(context, senderId),
               onLongPress: () => _startReply(m),
               child: bubble,
             ),
@@ -357,6 +357,32 @@ class _ChatOverlayState extends State<ChatOverlay> {
       ),
     );
   }
+
+  // Invite and share live here so the chat field keeps its width.
+  void _openMore() => showModalBottomSheet(
+        context: context,
+        backgroundColor: AppColors.surface,
+        builder: (sheet) => SafeArea(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            ListTile(
+              leading: const InIcon(InIcons.useradd, size: 20),
+              title: const Text('Invite people'),
+              onTap: () {
+                Navigator.of(sheet).pop();
+                widget.onInvite();
+              },
+            ),
+            ListTile(
+              leading: const InIcon(InIcons.share, size: 20),
+              title: const Text('Share room'),
+              onTap: () {
+                Navigator.of(sheet).pop();
+                widget.onShare();
+              },
+            ),
+          ]),
+        ),
+      );
 
   Future<void> _openAttach() async {
     final kind = await showInsyncAttachSheet(context, options: [
@@ -769,12 +795,9 @@ class _ChatOverlayState extends State<ChatOverlay> {
                           ),
                         ),
                       ),
-                      if (!_focused) ...[
-                        if (widget.onViewOncePhoto != null)
-                          _inlineIcon(InIcons.camera, 'Send a view once photo',
-                              () => widget.onViewOncePhoto!(camera: true)),
+                      // Camera is in this sheet too: the field needs the room.
+                      if (!_focused)
                         _inlineIcon(InIcons.clip, 'Attach', _openAttach),
-                      ],
                     ],
                   ),
                 ),
@@ -806,23 +829,12 @@ class _ChatOverlayState extends State<ChatOverlay> {
               const SizedBox(width: 6),
               Semantics(
                 button: true,
-                label: 'Invite',
+                label: 'More',
                 child: GlassCircleButton(
                   size: 42,
-                  onTap: widget.onInvite,
-                  child: const InIcon(InIcons.useradd,
-                      color: Colors.white, size: 20),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Semantics(
-                button: true,
-                label: 'Share room',
-                child: GlassCircleButton(
-                  size: 42,
-                  onTap: widget.onShare,
-                  child: const InIcon(InIcons.share,
-                      color: Colors.white, size: 19),
+                  onTap: _openMore,
+                  child:
+                      const InIcon(InIcons.more, color: Colors.white, size: 20),
                 ),
               ),
             ],

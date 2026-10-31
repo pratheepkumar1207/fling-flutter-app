@@ -147,9 +147,7 @@ class HomeRoomCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(14),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        if (room['musicRoom'] == true)
-          const _Kind(InIcons.music, 'MUSIC ROOM', Color(0xFFFF9F5A))
-        else if (room['communityName'] != null)
+        if (room['communityName'] != null)
           _Kind(InIcons.users, 'COMMUNITY ROOM · ${room['communityName']}',
               const Color(0xFF7FD6B0))
         else

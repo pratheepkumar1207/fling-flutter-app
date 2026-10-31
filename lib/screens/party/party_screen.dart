@@ -46,6 +46,9 @@ import 'game_seat_prompts.dart';
 import 'live_broadcast_controller.dart';
 import 'queue_sheet.dart';
 import 'roster_sheet.dart';
+import 'package:socket_io_client/socket_io_client.dart' as io;
+import 'room_person_sheets.dart';
+import '../../core/room_person_scope.dart';
 import 'room_socket_controller.dart';
 import 'sync_video_player.dart';
 import 'video_suggestions_panel.dart';
@@ -195,6 +198,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    _dmSocket = context.read<SocketService>().socket;
+    _dmSocket?.on('dm:message', _onRoomDm);
     WidgetsBinding.instance.addObserver(this);
     RoomPrefs.instance.load();
     RoomPrefs.instance.addListener(_onPrefs);
@@ -392,7 +397,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     setState(() {});
   }
 
-  // Voice, game and music rooms play YouTube Music; what's played or liked
+  // Voice and game rooms play YouTube Music; what's played or liked
   // there shows in those rooms' Liked, History and Playlists.
   bool get _isMusicRoom =>
       _room?['roomType'] == 'voice' || _room?['roomType'] == 'game';
@@ -656,9 +661,31 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           body: Center(child: Spinner(size: 28)));
     }
 
-    return AnimatedBuilder(
-      animation: rs,
-      builder: (context, _) => _buildRoom(context, rs),
+    final bubble = _dmBubble;
+    return RoomPersonScope(
+      onTap: _openPerson,
+      onLongPress: _openPersonActions,
+      child: Stack(fit: StackFit.expand, children: [
+        AnimatedBuilder(
+          animation: rs,
+          builder: (context, _) => _buildRoom(context, rs),
+        ),
+        if (bubble != null)
+          Positioned(
+            right: 14,
+            bottom: MediaQuery.viewInsetsOf(context).bottom + 84,
+            child: RoomDmBubble(
+              name: bubble.name,
+              avatarUrl: bubble.avatarUrl,
+              count: bubble.count,
+              onTap: () {
+                setState(() => _dmBubble = null);
+                _openDm(bubble.userId, bubble.name, bubble.avatarUrl);
+              },
+              onDismiss: () => setState(() => _dmBubble = null),
+            ),
+          ),
+      ]),
     );
   }
 
@@ -764,19 +791,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           onToggleLike: () => _toggleLike(currentItem),
         );
       }
-      final nextItem = currentIndex + 1 < items.length
-          ? items[currentIndex + 1] as Map?
-          : null;
-      final addedBy = rs.roster
-          .where((r) => r.userId == currentItem?['addedBy'])
-          .map((r) => r.name.split(' ').first)
-          .firstOrNull;
       return SyncVideoPlayer(
         key: playerKey,
-        musicRoom: room['musicRoom'] == true,
-        subtitle: addedBy == null ? 'YouTube Music' : 'Added by $addedBy',
-        nextTitle: nextItem?['title'] as String?,
-        onOpenQueue: _openQueue,
         videoUrl: playerVideoUrl,
         isHost: rs.isHost,
         playback: rs.playback,
@@ -853,6 +869,34 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       _voice?.setMicEnabled(false);
     }
 
+    void openHostSettings(RoomSocketController rs) => showRoomSettingsSheet(
+        context,
+        room: room,
+        onChanged: _refreshRoom,
+        onMySettings: () => showGuestSettingsSheet(context, hasVideo: isWatch),
+        onStartPoll: () =>
+            showPollCreatorBottomSheet(context, onCreate: rs.createPoll),
+        onMuteAll: rs.muteAll,
+        onModeration: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const RoomModerationScreen())),
+        onEndRoom: _confirmEndRoom);
+
+    Widget voiceTypingRow(RoomSocketController rs) {
+      final byId = {for (final r in rs.roster) r.userId: r};
+      final seats = voiceSeatOrder(
+          inRoom: byId.keys,
+          hostId: rs.hostId,
+          coHostId: rs.coHostId,
+          activeMics: activeMics);
+      final talking =
+          seats.where(rs.speaking.contains).map((id) => byId[id]!).firstOrNull;
+      return VoiceTypingRow(
+        onStage: seats.map((id) => byId[id]!).toList(),
+        talkingName: talking?.name.split(' ').first,
+        listening: rs.roster.length - seats.length,
+      );
+    }
+
     Future<void> handleMicTap() async {
       final messenger = ScaffoldMessenger.of(context);
       // Turning the mic on (or joining a live on camera) needs it allowed;
@@ -869,7 +913,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
             const SnackBar(content: Text('The host has muted you')));
       } else if (myMicOn) {
         rs.micOff();
-      } else if (rs.isHost) {
+      } else if (rs.canApproveMics) {
         rs.micOn();
       } else if (myMicRequested) {
         _showRaiseHand(rs, place: pendingRequests.indexOf(myId) + 1);
@@ -1159,17 +1203,10 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
               hostId: rs.hostId,
               isHost: rs.isHost,
               myUserId: myId,
-              onKick: rs.kick,
-              onMakeHost: rs.makeHost,
               roomType: room['roomType'] as String?,
               activeMics: activeMics,
               mutedMics: mutedMics,
-              onInviteMic: rs.inviteMic,
-              onForceMute: rs.forceMuteMic,
-              onForceUnmute: rs.forceUnmuteMic,
               onInvite: _openInvite,
-              onInviteGame: isGame && rs.isHost ? rs.gameInvite : null,
-              gamePlayerIds: gamePlayerIds,
             );
             // Live: Tango-style full-screen video with everything on top.
             if (room['roomType'] == 'live' && _live != null) {
@@ -1284,8 +1321,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                       isMe: rs.isHost,
                                       onTap: host == null || rs.isHost
                                           ? null
-                                          : () =>
-                                              openProfile(context, host.userId),
+                                          : () => _openPerson(host.userId),
                                     ),
                                   ),
                                   const SizedBox(height: 6),
@@ -1522,7 +1558,9 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                               tooltip: 'Leave room',
                               color: const Color(0xFFFF8AA0),
                               onPressed: _leaveRoom),
-                          if (rs.isHost && room['roomType'] != 'live')
+                          if (rs.isHost && isVoice)
+                            const SizedBox.shrink()
+                          else if (rs.isHost && room['roomType'] != 'live')
                             InIconButton(InIcons.gear,
                                 tooltip: 'Room settings',
                                 color: roomTextDim,
@@ -1710,28 +1748,19 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                           // right under the app bar.
                           Expanded(
                             child: Column(children: [
+                              // Clipped rather than removed while typing, so
+                              // the song keeps playing.
                               if (currentItem != null)
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.fromLTRB(12, 6, 12, 0),
-                                  child:
-                                      player(mediaMode: 'audio', compact: true),
-                                )
-                              else if (room['musicRoom'] == true)
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.fromLTRB(12, 6, 12, 0),
-                                  child: ListTile(
-                                    onTap: _openYoutubeMusic,
-                                    tileColor: const Color(0xFF1A1028),
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(16)),
-                                    leading: const InIcon(InIcons.music,
-                                        color: AppColors.lilac),
-                                    title: const Text('Play music together'),
-                                    subtitle: const Text(
-                                        'Tap to add a song from YouTube Music'),
+                                ClipRect(
+                                  child: Align(
+                                    alignment: Alignment.topCenter,
+                                    heightFactor: hideChromeForChat ? 0 : 1,
+                                    child: Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                          12, 6, 12, 0),
+                                      child: player(
+                                          mediaMode: 'audio', compact: true),
+                                    ),
                                   ),
                                 ),
                               Expanded(
@@ -1744,18 +1773,29 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                           child: Padding(
                                             padding: const EdgeInsets.fromLTRB(
                                                 12, 12, 12, 4),
-                                            child: VoiceStageView(
-                                              roster: rs.roster,
-                                              activeMics: activeMics,
-                                              pendingRequests: pendingRequests,
-                                              maxSlots: maxSlots,
-                                              hostId: rs.hostId,
-                                              myUserId: myId,
-                                              isHost: rs.canApproveMics,
-                                              onApprove: rs.approveMic,
-                                              onDeny: rs.denyMic,
-                                              onRemove: rs.removeMic,
-                                            ),
+                                            child: hideChromeForChat
+                                                ? voiceTypingRow(rs)
+                                                : VoiceStageView(
+                                                    roster: rs.roster,
+                                                    activeMics: activeMics,
+                                                    pendingRequests:
+                                                        pendingRequests,
+                                                    mutedMics: mutedMics,
+                                                    speaking: rs.speaking,
+                                                    maxSlots: maxSlots,
+                                                    hostId: rs.hostId,
+                                                    coHostId: rs.coHostId,
+                                                    myUserId: myId,
+                                                    myMicRequested:
+                                                        myMicRequested,
+                                                    onApprove: rs.approveMic,
+                                                    onDeny: rs.denyMic,
+                                                    onOpenListeners:
+                                                        _openListeners,
+                                                    onAskToSpeak: handleMicTap,
+                                                    onSettings: () =>
+                                                        openHostSettings(rs),
+                                                  ),
                                           ),
                                         ),
                                       ],
@@ -1811,7 +1851,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                         ),
                                       ),
                                     ),
-                                    if (_playerCollapsed)
+                                    if (_playerCollapsed && !hideChromeForChat)
                                       Positioned(
                                         top: 8,
                                         right: 12,
@@ -1852,35 +1892,20 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                               child: LiveVideoView(
                                                   controller: _live!,
                                                   isHost: rs.isHost))
-                                          : isVoice
-                                              ? VoiceStageView(
-                                                  roster: rs.roster,
-                                                  activeMics: activeMics,
-                                                  pendingRequests:
-                                                      pendingRequests,
-                                                  maxSlots: maxSlots,
-                                                  hostId: rs.hostId,
-                                                  myUserId: myId,
-                                                  isHost: rs.canApproveMics,
-                                                  onApprove: rs.approveMic,
-                                                  onDeny: rs.denyMic,
-                                                  onRemove: rs.removeMic,
-                                                )
-                                              : Center(
-                                                  child: AspectRatio(
-                                                    aspectRatio: 16 / 9,
-                                                    child: GlassPanel(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              16),
-                                                      child: const Center(
-                                                        child: Text('🎙️',
-                                                            style: TextStyle(
-                                                                fontSize: 48)),
-                                                      ),
-                                                    ),
+                                          : Center(
+                                              child: AspectRatio(
+                                                aspectRatio: 16 / 9,
+                                                child: GlassPanel(
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
+                                                  child: const Center(
+                                                    child: Text('🎙️',
+                                                        style: TextStyle(
+                                                            fontSize: 48)),
                                                   ),
                                                 ),
+                                              ),
+                                            ),
                                     ),
                                   ),
                                 ),
@@ -2210,6 +2235,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _dmSocket?.off('dm:message', _onRoomDm);
     WidgetsBinding.instance.removeObserver(this);
     RoomPrefs.instance.removeListener(_onPrefs);
     RoomPrefs.instance.talking.removeListener(_onPrefs);
@@ -2417,12 +2443,176 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     if (mounted) Navigator.of(context).pop();
   }
 
+  // --- People in the room: tap for the profile card, long press for the
+  // host's options, Message opens the chat sheet over the room.
+
+  RosterEntry? _inRoom(String userId) =>
+      _rs?.roster.where((r) => r.userId == userId).firstOrNull;
+
+  bool _isOnStage(String userId) =>
+      (_rs?.call['activeMics'] as List? ?? []).contains(userId);
+
+  void _openPerson(String userId) {
+    final rs = _rs;
+    final person = _inRoom(userId);
+    if (rs == null) return;
+    if (person == null) {
+      openProfile(context, userId);
+      return;
+    }
+    final isVoice = _room?['roomType'] == 'voice';
+    showRoomPersonCard(
+      context,
+      person: person,
+      isMe: userId == rs.myUserId,
+      status: _isOnStage(userId)
+          ? 'On mic'
+          : (isVoice ? 'Listening' : 'In the room'),
+      onMessage: () => _openDm(userId, person.name, person.avatarUrl),
+    );
+  }
+
+  Future<void> _openPersonActions(String userId, Rect anchor) async {
+    final rs = _rs;
+    final person = _inRoom(userId);
+    if (rs == null || person == null) return;
+    final type = _room?['roomType'] as String?;
+    final muted = (rs.call['mutedMics'] as List? ?? []).contains(userId);
+    final players = ((rs.game?['players'] as List?) ?? []).cast<Map>();
+    final actions = personActions(
+      iAmHost: rs.isHost,
+      iAmCoHost: rs.isCoHost,
+      iOwnRoom: rs.myUserId != null && rs.myUserId == _room?['hostId'],
+      isSelf: userId == rs.myUserId,
+      targetIsHost: userId == rs.hostId,
+      targetIsCoHost: userId == rs.coHostId,
+      voice: type == 'voice',
+      onStage: _isOnStage(userId),
+      muted: muted,
+      canInvitePlay: type == 'game' &&
+          rs.isHost &&
+          !players.any((p) => p['userId'] == userId),
+    );
+    if (actions.isEmpty) return;
+    final action = await showPersonActionsPopup(context,
+        person: person, anchor: anchor, actions: actions);
+    if (action == null || !mounted) return;
+    switch (action) {
+      case PersonAction.inviteToSpeak:
+        rs.inviteMic(userId);
+      case PersonAction.invitePlay:
+        rs.gameInvite(userId);
+      case PersonAction.mute:
+        rs.forceMuteMic(userId);
+      case PersonAction.unmute:
+        rs.forceUnmuteMic(userId);
+      case PersonAction.makeCoHost:
+        rs.setCoHost(userId);
+      case PersonAction.removeCoHost:
+        rs.setCoHost(null);
+      case PersonAction.moveToListeners:
+        rs.removeMic(userId);
+      case PersonAction.remove:
+        if (await confirmPersonAction(context, action, person.name)) {
+          rs.kick(userId);
+        }
+      case PersonAction.ban:
+        if (await confirmPersonAction(context, action, person.name)) {
+          try {
+            await ApiClient.post('/moderation/bans/$userId');
+          } catch (_) {
+            if (mounted) {
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(const SnackBar(content: Text('Action failed')));
+            }
+          }
+        }
+    }
+  }
+
+  void _openListeners() {
+    final rs = _rs;
+    if (rs == null) return;
+    List<String> mics() =>
+        (rs.call['activeMics'] as List? ?? []).cast<String>();
+    showListenersSheet(
+      context,
+      changes: rs,
+      listeners: () {
+        final seats = voiceSeatOrder(
+                inRoom: rs.roster.map((r) => r.userId),
+                hostId: rs.hostId,
+                coHostId: rs.coHostId,
+                activeMics: mics())
+            .toSet();
+        return rs.roster.where((r) => !seats.contains(r.userId)).toList();
+      },
+      pending: () => (rs.call['pendingRequests'] as List? ?? []).cast<String>(),
+      canModerate: () => rs.canApproveMics,
+      myUserId: rs.myUserId,
+      onInvite: rs.inviteMic,
+      onAllow: rs.approveMic,
+    );
+  }
+
+  ({String userId, String name, String? avatarUrl, int count})? _dmBubble;
+  String? _dmOpenFor;
+  io.Socket? _dmSocket;
+
+  Future<void> _openDm(String userId, String name, String? avatarUrl) async {
+    _dmOpenFor = userId;
+    await showRoomDmSheet(context,
+        userId: userId,
+        name: name,
+        avatarUrl: avatarUrl,
+        roomTitle: _room?['title'] as String? ?? 'the room');
+    _dmOpenFor = null;
+  }
+
+  Future<void> _onRoomDm(dynamic data) async {
+    if (!mounted || data is! Map) return;
+    final from = data['senderId'] as String?;
+    final me = context.read<AuthProvider>().user?.id;
+    if (from == null || from == me || from == _dmOpenFor) return;
+    final held = _dmBubble;
+    if (held != null && held.userId == from) {
+      setState(() => _dmBubble = (
+            userId: from,
+            name: held.name,
+            avatarUrl: held.avatarUrl,
+            count: held.count + 1
+          ));
+      return;
+    }
+    var name = _inRoom(from)?.name;
+    var avatarUrl = _inRoom(from)?.avatarUrl;
+    if (name == null) {
+      try {
+        final p = await ApiClient.get('/creators/$from/profile') as Map;
+        name = p['name'] as String?;
+        avatarUrl = p['avatarUrl'] as String?;
+      } catch (_) {
+        return;
+      }
+    }
+    if (!mounted) return;
+    setState(() => _dmBubble = (
+          userId: from,
+          name: name ?? 'Someone',
+          avatarUrl: avatarUrl,
+          count: 1
+        ));
+  }
+
   Future<void> _leaveRoom() async {
     final rs = _rs;
     final others = rs == null || !rs.isHost
         ? const <RosterEntry>[]
         : rs.roster.where((r) => r.userId != rs.myUserId).toList();
-    String? nextHost = others.isEmpty ? null : others.first.userId;
+    final coHostName = others
+        .where((r) => r.userId == rs?.coHostId)
+        .map((r) => r.name.split(' ').first)
+        .firstOrNull;
     final result = await showDialog<String>(
       context: context,
       builder: (dialog) => StatefulBuilder(
@@ -2451,52 +2641,12 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
               Text(
                   others.isEmpty
                       ? 'Everyone else stays. Just switching screens doesn’t need this — the room keeps going in the background.'
-                      : 'You’re the host. Pick who takes over before you go.',
+                      : '${coHostName ?? 'Someone here'} keeps the room going until you’re back.',
                   textAlign: TextAlign.center,
                   style:
                       const TextStyle(color: AppColors.textDim, fontSize: 14)),
-              if (others.isNotEmpty) ...[
-                const SizedBox(height: 14),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    for (final r in others.take(8))
-                      ChoiceChip(
-                        avatar: Avatar(
-                            src: r.avatarUrl,
-                            name: r.name,
-                            size: AvatarSize.sm),
-                        label: Text(r.name.split(' ').first),
-                        selected: nextHost == r.userId,
-                        showCheckmark: false,
-                        labelStyle: Theme.of(dialog)
-                            .textTheme
-                            .labelLarge
-                            ?.copyWith(
-                                color: nextHost == r.userId
-                                    ? Colors.white
-                                    : AppColors.text),
-                        onSelected: (_) => setDialog(() => nextHost = r.userId),
-                      ),
-                  ],
-                ),
-              ],
               const SizedBox(height: 18),
-              if (others.isNotEmpty && nextHost != null)
-                FilledButton(
-                  onPressed: () =>
-                      Navigator.of(dialog).pop('handover:$nextHost'),
-                  style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50)),
-                  child: Text(
-                      'Make ${others.firstWhere((r) => r.userId == nextHost).name.split(' ').first} host and leave',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                ),
               if (others.isNotEmpty) ...[
-                const SizedBox(height: 8),
                 OutlinedButton(
                   onPressed: () => Navigator.of(dialog).pop('end'),
                   style: OutlinedButton.styleFrom(
@@ -2534,12 +2684,6 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     if (result == 'end') {
       rs?.endRoom();
       await Future<void>.delayed(const Duration(milliseconds: 300));
-      if (!mounted) return;
-    }
-    if (result.startsWith('handover:')) {
-      rs?.makeHost(result.substring('handover:'.length));
-      // Give the server a moment to hand over before we disconnect.
-      await Future<void>.delayed(const Duration(milliseconds: 400));
       if (!mounted) return;
     }
     _didLeaveRoom = true;

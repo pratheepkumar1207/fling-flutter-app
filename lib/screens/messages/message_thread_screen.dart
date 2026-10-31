@@ -46,6 +46,13 @@ class MessageThreadScreen extends StatefulWidget {
   final String name;
   final String? avatarUrl;
 
+  /// Opened from a room, on a sheet over it (see showRoomDmSheet).
+  final bool inRoomSheet;
+  final VoidCallback? onExpand;
+
+  /// Opened full screen from a room: a bar on top leads back to it.
+  final String? backToRoomTitle;
+
   /// Shown instead of loading from the server (widget tests).
   @visibleForTesting
   final List<DirectMessage>? initialMessages;
@@ -55,6 +62,9 @@ class MessageThreadScreen extends StatefulWidget {
       required this.userId,
       required this.name,
       this.avatarUrl,
+      this.inRoomSheet = false,
+      this.onExpand,
+      this.backToRoomTitle,
       this.initialMessages});
 
   @override
@@ -782,7 +792,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         bottom: false,
         child: Column(
           children: [
-            _header(),
+            if (widget.backToRoomTitle != null) _backToRoomBar(),
+            if (widget.inRoomSheet) _sheetHeader() else _header(),
             const Divider(height: 1, color: Color(0xFF1E1B27)),
             Expanded(
               child: _loading
@@ -1062,6 +1073,59 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       ),
     );
   }
+
+  Widget _backToRoomBar() => Material(
+        color: AppColors.lilac.withValues(alpha: 0.16),
+        child: InkWell(
+          onTap: () => Navigator.of(context).maybePop(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: Row(children: [
+              const InIcon(InIcons.back, size: 15, color: AppColors.lilac),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text('Back to ${widget.backToRoomTitle}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: AppColors.lilac,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600)),
+              ),
+            ]),
+          ),
+        ),
+      );
+
+  Widget _sheetHeader() => Padding(
+        padding: const EdgeInsets.fromLTRB(14, 10, 6, 8),
+        child: Row(children: [
+          Avatar(src: widget.avatarUrl, name: widget.name, size: AvatarSize.sm),
+          const SizedBox(width: 10),
+          Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(widget.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w700)),
+              Text(_theyTyping ? 'typing…' : 'In this room',
+                  style:
+                      const TextStyle(color: AppColors.textDim, fontSize: 12)),
+            ]),
+          ),
+          if (widget.onExpand != null)
+            IconButton(
+                tooltip: 'Open full chat',
+                onPressed: widget.onExpand,
+                icon: const Icon(Icons.open_in_full_rounded,
+                    size: 19, color: AppColors.textDim)),
+          InIconButton(InIcons.close,
+              tooltip: 'Close',
+              onPressed: () => Navigator.of(context).maybePop()),
+        ]),
+      );
 
   Widget _header() {
     return Padding(

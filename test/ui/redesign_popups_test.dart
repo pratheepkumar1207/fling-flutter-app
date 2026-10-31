@@ -85,8 +85,6 @@ void main() {
             hostId: 'h',
             isHost: false,
             myUserId: 'me',
-            onKick: (_) {},
-            onMakeHost: (_) {},
             roomType: 'watch',
             activeMics: const ['h', 'me'],
             onInvite: () {},
