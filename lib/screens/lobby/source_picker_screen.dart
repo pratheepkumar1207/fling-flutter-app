@@ -88,6 +88,12 @@ class SourcePickerBody extends StatelessWidget {
   /// to adding the songs one by one when not given.
   final void Function(List<Map<String, dynamic>> items)? onPlayAll;
 
+  /// The Up next sheet's "Add from" row: the main sources, one line.
+  final bool quickRow;
+
+  /// The sources alone, for that sheet's "All sources" (it has its own search).
+  final bool sourcesOnly;
+
   const SourcePickerBody({
     super.key,
     this.visibility = 'public',
@@ -99,6 +105,8 @@ class SourcePickerBody extends StatelessWidget {
     this.compact = false,
     this.audioOnly = false,
     this.onPlayAll,
+    this.quickRow = false,
+    this.sourcesOnly = false,
   });
 
   bool get _inRoom => roomId != null;
@@ -122,6 +130,25 @@ class SourcePickerBody extends StatelessWidget {
                 Navigator.of(context).pop();
               }
             : null,
+      ),
+    ));
+  }
+
+  // Songs: they play in the room as songs, on the music card.
+  void _openYoutubeMusic(BuildContext context) {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (route) => YoutubeBrowseScreen(
+        visibility: visibility,
+        music: true,
+        onSelectOverride: (item) {
+          onAddToQueue!(
+            videoUrl: 'https://www.youtube.com/watch?v=${item['videoId']}',
+            title: item['title'] as String? ?? '',
+            thumbnail: item['thumbnail'] as String?,
+            mediaMode: 'audio',
+          );
+          Navigator.of(route).pop();
+        },
       ),
     ));
   }
@@ -305,12 +332,13 @@ class SourcePickerBody extends StatelessWidget {
       );
     }
     final tiles = <String, Widget>{
-      'YouTube': _SourceTile(
-          compact: c,
-          iconAsset: 'assets/icons/app/youtube.png',
-          label: 'YouTube',
-          available: true,
-          onTap: () => _openYoutube(context)),
+      if (_inRoom)
+        'YouTube Music': _SourceTile(
+            compact: c,
+            inIcon: InIcons.music,
+            label: 'YouTube Music',
+            available: true,
+            onTap: () => _openYoutubeMusic(context)),
       'Liked': _SourceTile(
           compact: c,
           inIcon: InIcons.heart,
@@ -426,6 +454,22 @@ class SourcePickerBody extends StatelessWidget {
           label: 'X',
           available: false),
     };
+    if (quickRow) {
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          for (final n in [
+            'YouTube Surf',
+            'YouTube Music',
+            'Drive',
+            'Netflix',
+            'Prime Video'
+          ])
+            SizedBox(width: 70, child: tiles[n]!),
+        ]),
+      );
+    }
     if (c) {
       return GridView.count(
         padding: const EdgeInsets.all(10),
@@ -461,6 +505,48 @@ class SourcePickerBody extends StatelessWidget {
             ),
           ]),
         );
+    final sources =
+        Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      section('FREE', [
+        'YouTube Surf',
+        if (_inRoom) 'YouTube Music',
+        'Drive',
+        'X',
+      ]),
+      section('YOUR SUBSCRIPTIONS · EACH PERSON SIGNS IN', [
+        'Netflix',
+        'Prime Video',
+        'Hotstar',
+        'SonyLIV',
+        'SunNXT',
+        'Aha',
+        'Airtel Xstream',
+        'Crunchyroll',
+      ]),
+      section('FROM YOUR LIBRARY', ['Playlists', 'Liked', 'History']),
+      Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+            color: AppColors.surface,
+            border: Border.all(color: AppColors.border),
+            borderRadius: BorderRadius.circular(16)),
+        child:
+            const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          InIcon(InIcons.info, size: 18, color: AppColors.lilac),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+                'Netflix plays in its own app, and the room keeps everyone in sync.',
+                style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+          ),
+        ]),
+      ),
+    ]);
+    if (sourcesOnly) {
+      return ListView(
+          padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
+          children: [sources]);
+    }
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
       children: [
@@ -484,40 +570,7 @@ class SourcePickerBody extends StatelessWidget {
                       thumbnail: thumbnail,
                       mediaMode: 'video',
                       sourceType: sourceType),
-          sources:
-              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            section('FREE', ['YouTube', 'YouTube Surf', 'Drive', 'X']),
-            section('YOUR SUBSCRIPTIONS · EACH PERSON SIGNS IN', [
-              'Netflix',
-              'Prime Video',
-              'Hotstar',
-              'SonyLIV',
-              'SunNXT',
-              'Aha',
-              'Airtel Xstream',
-              'Crunchyroll',
-            ]),
-            section('FROM YOUR LIBRARY', ['Playlists', 'Liked', 'History']),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  border: Border.all(color: AppColors.border),
-                  borderRadius: BorderRadius.circular(16)),
-              child: const Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    InIcon(InIcons.info, size: 18, color: AppColors.lilac),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                          'Netflix and Prime play in the Insync player. The host’s play and pause keep everyone in sync.',
-                          style: TextStyle(
-                              color: AppColors.textDim, fontSize: 13)),
-                    ),
-                  ]),
-            ),
-          ]),
+          sources: sources,
         ),
       ],
     );

@@ -1,6 +1,7 @@
 import '../../theme/insync_icons.dart';
 import 'dart:async';
 
+import '../../models/room_models.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/api_client.dart';
@@ -46,6 +47,10 @@ class DriveVideoPlayer extends StatefulWidget {
   final bool liked;
   final VoidCallback onToggleLike;
   final bool compact;
+  final String? subtitle;
+  final String? nextTitle;
+  final VoidCallback? onOpenQueue;
+  final List<RosterEntry> listeners;
 
   const DriveVideoPlayer({
     super.key,
@@ -69,6 +74,10 @@ class DriveVideoPlayer extends StatefulWidget {
     required this.liked,
     required this.onToggleLike,
     this.compact = false,
+    this.subtitle,
+    this.nextTitle,
+    this.onOpenQueue,
+    this.listeners = const [],
   });
 
   @override
@@ -744,6 +753,10 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
           onSeekChanged: _handleSeekChanged,
           onSeekEnd: _handleSeekEnd,
           compact: widget.compact,
+          subtitle: widget.subtitle,
+          nextTitle: widget.nextTitle,
+          onOpenQueue: widget.onOpenQueue,
+          listeners: widget.listeners,
           onSkip: widget.isHost ? widget.onSkip : null,
           onSkipPrevious: widget.isHost ? widget.onSkipPrevious : null,
           liked: widget.liked,

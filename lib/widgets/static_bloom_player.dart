@@ -2,9 +2,12 @@ import '../theme/insync_icons.dart';
 
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
-import '../theme/glass.dart';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+import '../core/room_person_scope.dart';
+import '../models/room_models.dart';
 import 'app_image.dart';
-import 'volume_dots.dart';
+import 'avatar.dart';
 
 /// "Static Bloom" style audio-only now-playing card — Dart port of
 /// StaticBloomPlayer.jsx. A blooming gradient halo pulses behind a slowly
@@ -30,6 +33,11 @@ class StaticBloomPlayer extends StatefulWidget {
   final bool liked;
   final VoidCallback? onToggleLike;
   final VoidCallback? onVoteSkip;
+  // The lobby card: who added the song, what's next, who's here.
+  final String? subtitle;
+  final String? nextTitle;
+  final VoidCallback? onOpenQueue;
+  final List<RosterEntry> listeners;
 
   const StaticBloomPlayer({
     super.key,
@@ -50,6 +58,10 @@ class StaticBloomPlayer extends StatefulWidget {
     this.liked = false,
     this.onToggleLike,
     this.onVoteSkip,
+    this.subtitle,
+    this.nextTitle,
+    this.onOpenQueue,
+    this.listeners = const [],
   });
 
   @override
@@ -257,203 +269,313 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
     return '$m:$s';
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (widget.compact) {
-      return _slim(context);
-    }
-    final c = widget.compact;
-    final discSize = c ? 32.0 : 56.0;
-    final bloomSize = c ? 36.0 : 64.0;
-    return GlassSurface(
-      borderRadius: BorderRadius.circular(20),
-      padding: EdgeInsets.all(c ? 8 : 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  AnimatedBuilder(
-                    animation: _controller,
-                    builder: (context, child) {
-                      final bloom = widget.playing
-                          ? 0.55 +
-                              0.3 * (0.5 - (0.5 - _controller.value).abs()) * 2
-                          : 0.35;
-                      return Container(
-                        width: bloomSize,
-                        height: bloomSize,
-                        decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppColors.accent.withValues(alpha: bloom)),
-                      );
-                    },
-                  ),
-                  RotationTransition(
-                    turns: _controller,
-                    child: Container(
-                      width: discSize,
-                      height: discSize,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.surface3,
-                        boxShadow: c
-                            ? null
-                            : [
-                                BoxShadow(
-                                    color: Colors.white.withValues(alpha: 0.4),
-                                    blurRadius: 0,
-                                    spreadRadius: 1),
-                                BoxShadow(
-                                    color: Colors.white.withValues(alpha: 0.25),
-                                    blurRadius: 16,
-                                    spreadRadius: 1),
-                              ],
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      alignment: Alignment.center,
-                      child: (widget.thumbnail != null &&
-                              widget.thumbnail!.isNotEmpty)
-                          ? AppImage(
-                              source: widget.thumbnail, fit: BoxFit.cover)
-                          : Text('🎵', style: TextStyle(fontSize: c ? 12 : 20)),
+  bool _full = false;
+
+  /// The song's thumbnail as a spinning CD; tap it for the full player.
+  Widget _cd(double size) {
+    final still = MediaQuery.disableAnimationsOf(context);
+    final thumb = widget.thumbnail;
+    return Semantics(
+      button: true,
+      label: _full ? 'Close full player' : 'Open full player',
+      child: GestureDetector(
+        onTap: () => setState(() => _full = !_full),
+        child: RotationTransition(
+          turns: still ? kAlwaysDismissedAnimation : _controller,
+          child: Container(
+            width: size,
+            height: size,
+            padding: const EdgeInsets.all(2),
+            decoration: const BoxDecoration(
+                shape: BoxShape.circle, color: AppColors.lilac),
+            child: ClipOval(
+              child: Stack(fit: StackFit.expand, children: [
+                if (thumb != null && thumb.isNotEmpty)
+                  AppImage(source: thumb, fit: BoxFit.cover)
+                else
+                  ColoredBox(
+                    color: const Color(0xFF6D3FD0),
+                    child: Align(
+                      alignment: const Alignment(0, -0.6),
+                      child: InIcon(InIcons.music,
+                          size: size * 0.2, color: Colors.white),
                     ),
                   ),
-                ],
-              ),
-              SizedBox(width: c ? 8 : 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(widget.title ?? 'Playing audio only',
-                        style: TextStyle(
-                            color: AppColors.text,
-                            fontSize: c ? 12 : 14,
-                            fontWeight: FontWeight.w600),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
-                    if (!c) ...[
-                      const SizedBox(height: 2),
-                      const Text(
-                          'Video hidden to save data — sound keeps playing',
-                          style: TextStyle(
-                              color: AppColors.textFaint, fontSize: 11),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
-                    ],
-                  ],
-                ),
-              ),
-              if (widget.isHost && widget.onSkipPrevious != null) ...[
-                SizedBox(width: c ? 6 : 10),
-                GestureDetector(
-                  onTap: widget.onSkipPrevious,
+                Center(
                   child: Container(
-                    width: c ? 28 : 40,
-                    height: c ? 28 : 40,
-                    decoration: const BoxDecoration(
-                        color: AppColors.surface3, shape: BoxShape.circle),
-                    alignment: Alignment.center,
-                    child: InIcon(InIcons.skipPrev,
-                        color: AppColors.text, size: c ? 16 : 22),
-                  ),
-                ),
-              ],
-              SizedBox(width: c ? 6 : 10),
-              GestureDetector(
-                onTap: widget.onTogglePlay,
-                child: Container(
-                  width: c ? 28 : 40,
-                  height: c ? 28 : 40,
-                  decoration: BoxDecoration(
-                      color: widget.onTogglePlay == null
-                          ? AppColors.primary.withValues(alpha: 0.4)
-                          : AppColors.primary,
-                      shape: BoxShape.circle),
-                  alignment: Alignment.center,
-                  child: InIcon(widget.playing ? InIcons.pause : InIcons.play,
-                      color: Colors.white, size: c ? 14 : 20),
-                ),
-              ),
-              if (widget.isHost && widget.onSkip != null) ...[
-                SizedBox(width: c ? 6 : 10),
-                GestureDetector(
-                  onTap: widget.onSkip,
-                  child: Container(
-                    width: c ? 28 : 40,
-                    height: c ? 28 : 40,
-                    decoration: const BoxDecoration(
-                        color: AppColors.surface3, shape: BoxShape.circle),
-                    alignment: Alignment.center,
-                    child: InIcon(InIcons.skipNext,
-                        color: AppColors.text, size: c ? 16 : 22),
-                  ),
-                ),
-              ],
-              if (!c) ...[
-                const SizedBox(width: 10),
-                Column(
-                  children: [
-                    Text('${widget.volume}',
-                        style: const TextStyle(
-                            color: AppColors.textFaint, fontSize: 10)),
-                    const SizedBox(height: 4),
-                    VolumeDots(
-                        volume: widget.volume,
-                        onVolumeChange: widget.onVolumeChange),
-                    const SizedBox(height: 4),
-                    const Text('VOL',
-                        style: TextStyle(
-                            color: AppColors.textFaint,
-                            fontSize: 9,
-                            letterSpacing: 0.5)),
-                  ],
-                ),
-              ],
-            ],
-          ),
-          if (widget.duration > 0)
-            Padding(
-              padding: EdgeInsets.only(top: c ? 4 : 10),
-              child: Row(
-                children: [
-                  SizedBox(
-                      width: 34,
-                      child: Text(_formatTime(widget.currentTime),
-                          textAlign: TextAlign.right,
-                          style: const TextStyle(
-                              color: AppColors.textFaint, fontSize: 10))),
-                  Expanded(
-                    child: SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                          trackHeight: 2,
-                          thumbShape: const RoundSliderThumbShape(
-                              enabledThumbRadius: 5)),
-                      child: Slider(
-                        value: widget.currentTime.clamp(0, widget.duration),
-                        max: widget.duration,
-                        activeColor: AppColors.primary,
-                        inactiveColor: AppColors.surface3,
-                        onChanged: widget.isHost ? widget.onSeekChanged : null,
-                        onChangeEnd: widget.isHost ? widget.onSeekEnd : null,
-                      ),
+                    width: size * 0.24,
+                    height: size * 0.24,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.bg,
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.55),
+                          width: 2),
                     ),
                   ),
-                  SizedBox(
-                      width: 34,
-                      child: Text(_formatTime(widget.duration),
-                          style: const TextStyle(
-                              color: AppColors.textFaint, fontSize: 10))),
-                ],
-              ),
+                ),
+              ]),
             ),
-        ],
+          ),
+        ),
       ),
     );
+  }
+
+  Widget _nowPlaying() {
+    final still = MediaQuery.disableAnimationsOf(context) || !_spinning;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+          color: const Color(0xFF3A2A66),
+          borderRadius: BorderRadius.circular(999)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        SizedBox(
+          width: 13,
+          height: 11,
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (_, __) => Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                for (var i = 0; i < 3; i++)
+                  Container(
+                    width: 3,
+                    height: still
+                        ? 4
+                        : 3 +
+                            8 *
+                                (0.5 +
+                                    0.5 *
+                                        math.sin(
+                                            _controller.value * math.pi * 16 +
+                                                i * 1.4)),
+                    decoration: BoxDecoration(
+                        color: AppColors.lilac,
+                        borderRadius: BorderRadius.circular(2)),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 5),
+        const Flexible(
+          child: Text('Now playing',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: Color(0xFFD8C9FF), fontSize: 11)),
+        ),
+      ]),
+    );
+  }
+
+  Widget _timeline() {
+    final hasTime = widget.duration > 0;
+    final canDrag = widget.isHost && hasTime;
+    return Column(children: [
+      SliderTheme(
+        data: SliderTheme.of(context).copyWith(
+          trackHeight: 3,
+          overlayShape: SliderComponentShape.noOverlay,
+          thumbShape:
+              RoundSliderThumbShape(enabledThumbRadius: canDrag ? 5 : 0),
+          disabledThumbColor: Colors.transparent,
+          disabledActiveTrackColor: AppColors.lilac,
+          disabledInactiveTrackColor: Colors.white24,
+        ),
+        child: Slider(
+          value: hasTime ? widget.currentTime.clamp(0, widget.duration) : 0,
+          max: hasTime ? widget.duration : 1,
+          activeColor: AppColors.lilac,
+          inactiveColor: Colors.white24,
+          onChanged: canDrag ? widget.onSeekChanged : null,
+          onChangeEnd: canDrag ? widget.onSeekEnd : null,
+        ),
+      ),
+      const SizedBox(height: 3),
+      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        Text(_formatTime(widget.currentTime),
+            style: const TextStyle(color: Colors.white70, fontSize: 11)),
+        Text(hasTime ? _formatTime(widget.duration) : '--:--',
+            style: const TextStyle(color: Colors.white70, fontSize: 11)),
+      ]),
+    ]);
+  }
+
+  Widget _controls(double playSize) {
+    Widget side(InIconData icon, String label, VoidCallback? onTap,
+            {Color color = Colors.white, bool filled = false}) =>
+        IconButton(
+          tooltip: label,
+          onPressed: onTap,
+          icon: InIcon(icon, size: 22, color: color, filled: filled),
+        );
+    final onPlay = widget.isHost ? widget.onTogglePlay : _toggleHere;
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      if (widget.onToggleLike != null)
+        side(InIcons.heart, widget.liked ? 'Unlike' : 'Like',
+            widget.onToggleLike,
+            color: widget.liked ? AppColors.pink : Colors.white,
+            filled: widget.liked),
+      Semantics(
+        button: true,
+        label: _spinning ? 'Pause' : 'Play',
+        child: GestureDetector(
+          onTap: onPlay,
+          child: Container(
+            width: playSize,
+            height: playSize,
+            decoration: const BoxDecoration(
+                color: Color(0xFFF3F0FA), shape: BoxShape.circle),
+            alignment: Alignment.center,
+            child: InIcon(_spinning ? InIcons.pause : InIcons.play,
+                size: playSize * 0.45,
+                color: const Color(0xFF17141F),
+                filled: true),
+          ),
+        ),
+      ),
+      if (widget.isHost && widget.onSkip != null)
+        side(InIcons.skipNext, 'Skip', widget.onSkip)
+      else if (widget.onVoteSkip != null)
+        side(InIcons.skipNext, 'Vote to skip', widget.onVoteSkip),
+    ]);
+  }
+
+  Widget _listeners() {
+    final people = widget.listeners;
+    if (people.isEmpty) return const SizedBox.shrink();
+    final shown = people.take(3).toList();
+    final more = people.length - shown.length;
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      for (final r in shown)
+        Padding(
+          padding: const EdgeInsets.only(right: 3),
+          child: GestureDetector(
+            onTap: () => openRoomPerson(context, r.userId),
+            child: SizedBox.square(
+              dimension: 24,
+              child: FittedBox(
+                child:
+                    Avatar(src: r.avatarUrl, name: r.name, size: AvatarSize.sm),
+              ),
+            ),
+          ),
+        ),
+      if (more > 0)
+        Text(' +$more',
+            style: const TextStyle(color: Colors.white70, fontSize: 11)),
+    ]);
+  }
+
+  /// The lobby's music card, tinted from the song's own thumbnail.
+  Widget _card(BuildContext context) {
+    final screen = MediaQuery.sizeOf(context).height;
+    final thumb = widget.thumbnail;
+    final title = Text(widget.title ?? 'Playing audio',
+        maxLines: _full ? 2 : 1,
+        overflow: TextOverflow.ellipsis,
+        textAlign: _full ? TextAlign.center : TextAlign.start,
+        style: TextStyle(
+            color: Colors.white,
+            fontSize: _full ? 18 : 16,
+            fontWeight: FontWeight.w700));
+    final subtitle = widget.subtitle == null
+        ? null
+        : Text(widget.subtitle!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.white70, fontSize: 12));
+    final next = widget.nextTitle == null
+        ? null
+        : InkWell(
+            onTap: widget.onOpenQueue,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text('Next: ${widget.nextTitle}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white70, fontSize: 12)),
+            ),
+          );
+    final body = _full
+        ? Column(mainAxisSize: MainAxisSize.min, children: [
+            _cd((screen * 0.22).clamp(120.0, 200.0)),
+            const SizedBox(height: 12),
+            title,
+            if (subtitle != null) subtitle,
+            const SizedBox(height: 10),
+            _timeline(),
+            const SizedBox(height: 6),
+            _controls(52),
+            if (next != null) next,
+          ])
+        : Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(children: [
+                _cd(92),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _nowPlaying(),
+                      const SizedBox(height: 6),
+                      title,
+                      if (subtitle != null) subtitle,
+                    ],
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 12),
+              _timeline(),
+              const SizedBox(height: 4),
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [_listeners(), _controls(42)],
+              ),
+              if (next != null) next,
+            ],
+          );
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(children: [
+          Positioned.fill(
+            child: thumb != null && thumb.isNotEmpty
+                ? ImageFiltered(
+                    imageFilter: ui.ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+                    child: AppImage(source: thumb, fit: BoxFit.cover),
+                  )
+                : const ColoredBox(color: Color(0xFF2A1F4D)),
+          ),
+          Positioned.fill(
+              child: ColoredBox(color: Colors.black.withValues(alpha: 0.55))),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: _full
+                ? ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: screen * 0.62),
+                    child: SingleChildScrollView(child: body))
+                : body,
+          ),
+        ]),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // The keyboard being up tucks the card down to the slim bar for chat.
+    if (widget.compact || MediaQuery.viewInsetsOf(context).bottom > 0) {
+      return _slim(context);
+    }
+    return _card(context);
   }
 
   @override

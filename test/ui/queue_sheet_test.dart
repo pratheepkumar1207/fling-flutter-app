@@ -41,10 +41,12 @@ void main() {
     final calls = <int>[];
     await t.pumpWidget(_sheet(host: true, calls: calls));
     expect(find.text('Up next'), findsOneWidget);
-    expect(find.text('Search YouTube or paste a link'), findsOneWidget);
+    expect(find.text('Search or paste a link'), findsOneWidget);
     expect(find.text('Queue · 4'), findsOneWidget);
-    expect(find.text('Suggested'), findsOneWidget);
-    expect(find.text('Audio only'), findsOneWidget);
+    expect(find.text('Add from'), findsOneWidget);
+    expect(find.text('YouTube Surf'), findsOneWidget);
+    expect(find.text('YouTube Music'), findsOneWidget);
+    expect(find.text('All sources'), findsOneWidget);
     expect(find.text('NOW PLAYING'), findsOneWidget);
     expect(find.text('Netflix · added by Bala'), findsOneWidget);
     expect(find.text('UP NEXT · 2'), findsOneWidget);

@@ -740,6 +740,17 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       // spot.
       final playerKey =
           _playerKeyFor('player-$playerSourceType-$playerVideoUrl');
+      final nextItem = currentIndex + 1 < items.length
+          ? items[currentIndex + 1] as Map?
+          : null;
+      final addedBy = rs.roster
+          .where((r) => r.userId == currentItem?['addedBy'])
+          .map((r) => r.name.split(' ').first)
+          .firstOrNull;
+      final musicCard = (
+        subtitle: addedBy == null ? null : 'Added by $addedBy',
+        next: nextItem?['title'] as String?,
+      );
       if (webviewSourceTypes.contains(playerSourceType)) {
         return WebviewRoomPlayer(
           key: playerKey,
@@ -769,6 +780,10 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       if (playerSourceType == 'drive') {
         return DriveVideoPlayer(
           key: playerKey,
+          subtitle: musicCard.subtitle,
+          nextTitle: musicCard.next,
+          onOpenQueue: _openQueue,
+          listeners: rs.roster,
           videoUrl: playerVideoUrl,
           roomId: widget.roomId,
           isHost: rs.isHost,
@@ -793,6 +808,10 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       }
       return SyncVideoPlayer(
         key: playerKey,
+        subtitle: musicCard.subtitle,
+        nextTitle: musicCard.next,
+        onOpenQueue: _openQueue,
+        listeners: rs.roster,
         videoUrl: playerVideoUrl,
         isHost: rs.isHost,
         playback: rs.playback,

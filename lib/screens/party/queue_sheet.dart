@@ -182,7 +182,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
   // Which chip is open: the queue itself, or suggestions/sources to add from.
   bool _suggested = false;
   // "Audio only" chip: new adds come in as audio (always on in music rooms).
-  late bool _audioOnly = widget.audioOnly;
+  late final bool _audioOnly = widget.audioOnly;
   final _search = TextEditingController();
   bool _searching = false;
   String? _searchError;
@@ -606,7 +606,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                 decoration: InputDecoration(
                   hintText: widget.audioOnly
                       ? 'Search songs on YouTube Music'
-                      : 'Search YouTube or paste a link',
+                      : 'Search or paste a link',
                   prefixIcon: const Padding(
                       padding: EdgeInsets.all(12),
                       child: InIcon(InIcons.search,
@@ -634,51 +634,103 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                 ),
               ),
             ),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(18, 0, 18, 6),
-            child: Row(children: [
-              _chip(
-                  'Queue · ${items.length}',
-                  !_suggested && !showResults,
-                  () => setState(() {
-                        _suggested = false;
-                        _results = null;
-                        _searchError = null;
-                      })),
-              if (widget.canAddSongs)
+          if (!widget.audioOnly && !showResults) ...[
+            if (widget.canAddSongs && _suggested)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 0, 18, 2),
+                child: Row(children: [
+                  IconButton(
+                    tooltip: 'Back to Up next',
+                    onPressed: () => setState(() => _suggested = false),
+                    icon: const InIcon(InIcons.back,
+                        size: 20, color: AppColors.text),
+                  ),
+                  const Text('All sources',
+                      style:
+                          TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                ]),
+              ),
+            if (widget.canAddSongs && !_suggested) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 8, 0),
+                child: Row(children: [
+                  const Expanded(
+                    child: Text('Add from',
+                        style:
+                            TextStyle(color: AppColors.textDim, fontSize: 12)),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() => _suggested = true),
+                    child: const Text('All sources',
+                        style: TextStyle(fontSize: 12.5)),
+                  ),
+                ]),
+              ),
+              SourcePickerBody(
+                quickRow: true,
+                compact: true,
+                roomId: widget.roomId,
+                onAddToQueue: _addToQueue,
+                onSwitchSource: widget.onSwitchSource,
+              ),
+            ],
+            if (!_suggested)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Queue · ${items.length}',
+                      style: const TextStyle(
+                          color: AppColors.textDim, fontSize: 12)),
+                ),
+              ),
+          ],
+          if (widget.audioOnly)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 6),
+              child: Row(children: [
                 _chip(
-                    'Suggested',
-                    _suggested && !showResults,
+                    'Queue · ${items.length}',
+                    !_suggested && !showResults,
                     () => setState(() {
-                          _suggested = true;
+                          _suggested = false;
                           _results = null;
                           _searchError = null;
                         })),
-              if (widget.canAddSongs && !widget.audioOnly)
-                _chip(
-                    'Audio only',
-                    _audioOnly,
-                    widget.audioOnly
-                        ? () {}
-                        : () => setState(() => _audioOnly = !_audioOnly),
-                    icon: InIcons.music),
-            ]),
-          ),
+                if (widget.canAddSongs)
+                  _chip(
+                      'Suggested',
+                      _suggested && !showResults,
+                      () => setState(() {
+                            _suggested = true;
+                            _results = null;
+                            _searchError = null;
+                          })),
+              ]),
+            ),
           Expanded(
             child: showResults
                 ? _resultsList()
                 : _suggested && widget.canAddSongs
-                    ? SingleChildScrollView(
-                        child: SourcePickerBody(
-                          compact: true,
-                          roomId: widget.roomId,
-                          onAddToQueue: _addToQueue,
-                          onSwitchSource: widget.onSwitchSource,
-                          audioOnly: widget.audioOnly,
-                          onPlayAll: widget.onAddMany,
-                        ),
-                      )
+                    ? widget.audioOnly
+                        ? SingleChildScrollView(
+                            child: SourcePickerBody(
+                              compact: true,
+                              roomId: widget.roomId,
+                              onAddToQueue: _addToQueue,
+                              onSwitchSource: widget.onSwitchSource,
+                              audioOnly: true,
+                              onPlayAll: widget.onAddMany,
+                            ),
+                          )
+                        : SourcePickerBody(
+                            sourcesOnly: true,
+                            roomId: widget.roomId,
+                            onAddToQueue: _addToQueue,
+                            onSwitchSource: widget.onSwitchSource,
+                            onPlayAll: widget.onAddMany,
+                          )
                     : _queueList(items, current),
           ),
         ]),

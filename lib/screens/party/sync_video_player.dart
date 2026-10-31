@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'dart:async';
 import 'dart:convert';
 
+import '../../models/room_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../../core/api_client.dart';
@@ -60,6 +61,10 @@ class SyncVideoPlayer extends StatefulWidget {
   final bool liked;
   final VoidCallback onToggleLike;
   final bool compact;
+  final String? subtitle;
+  final String? nextTitle;
+  final VoidCallback? onOpenQueue;
+  final List<RosterEntry> listeners;
   // Music rooms: see StaticBloomPlayer.
   // True for the hidden background-continuity instance (see
   // persistent_room_audio.dart) — renders no UI/chrome at all (no skip
@@ -90,6 +95,10 @@ class SyncVideoPlayer extends StatefulWidget {
     required this.liked,
     required this.onToggleLike,
     this.compact = false,
+    this.subtitle,
+    this.nextTitle,
+    this.onOpenQueue,
+    this.listeners = const [],
     this.silent = false,
   });
 
@@ -1087,6 +1096,10 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
               onSeekChanged: _handleSeekChanged,
               onSeekEnd: _handleSeekEnd,
               compact: widget.compact,
+              subtitle: widget.subtitle,
+              nextTitle: widget.nextTitle,
+              onOpenQueue: widget.onOpenQueue,
+              listeners: widget.listeners,
               onSkip: widget.isHost ? widget.onSkip : null,
               onSkipPrevious: widget.isHost ? widget.onSkipPrevious : null,
               liked: widget.liked,
