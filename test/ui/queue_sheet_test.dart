@@ -77,4 +77,29 @@ void main() {
     expect(find.text('The host picks what plays here'), findsOneWidget);
     expect(find.byTooltip('Remove'), findsNothing);
   });
+
+  testWidgets('Music rooms: search opens YouTube Music directly', (t) async {
+    await t.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: QueueSheetScreen(
+          roomId: 'r1',
+          queue: const {'currentIndex': 0, 'items': []},
+          isHost: true,
+          participantCount: 2,
+          audioOnly: true,
+          onAdd: (_, {position = 'bottom'}) {},
+          onJump: (_) {},
+          onRemove: (_) {},
+          onReorder: (_, __) {},
+          onOpenRoster: () {},
+          onSwitchSource: (a, b, {videoTitle, videoThumbnail}) async {},
+        ),
+      ),
+    ));
+    await t.tap(find.text('Search songs on YouTube Music'));
+    await t.pump();
+    await t.pump(const Duration(milliseconds: 400));
+    expect(find.text('YouTube Music'), findsWidgets);
+    expect(find.text('Search songs on YouTube Music…'), findsOneWidget);
+  });
 }

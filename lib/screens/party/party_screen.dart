@@ -37,6 +37,7 @@ import '../../widgets/share_bottom_sheet.dart';
 import '../../widgets/spinner.dart';
 import '../../widgets/voice_stage_view.dart';
 import '../lobby/invite_screen.dart';
+import '../lobby/youtube_browse_screen.dart';
 import '../../features/party/data/party_engine_impl.dart';
 import 'chat_overlay.dart';
 import 'drive_video_player.dart';
@@ -545,6 +546,33 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
             SnackBar(content: Text('Could not refresh room: $e')));
       }
     }
+  }
+
+  // Add-a-song buttons in voice, game and music rooms skip the source
+  // picker: YouTube Music is the only source there.
+  void _openYoutubeMusic() {
+    final rs = _rs!;
+    if (rs.settings['songPermission'] == 'host' && !rs.isHost) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Only the host can add songs right now')));
+      return;
+    }
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (route) => YoutubeBrowseScreen(
+        visibility: 'public',
+        music: true,
+        onSelectOverride: (item) {
+          Navigator.of(route).pop();
+          rs.queueAdd({
+            'sourceType': 'youtube',
+            'videoUrl': 'https://www.youtube.com/watch?v=${item['videoId']}',
+            'title': item['title'] as String? ?? '',
+            'thumbnail': item['thumbnail'],
+            'mediaMode': 'audio',
+          });
+        },
+      ),
+    ));
   }
 
   void _openQueue() {
@@ -1630,7 +1658,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                               songPlayer: currentItem != null
                                   ? player(mediaMode: 'audio', compact: true)
                                   : null,
-                              onAddSong: _openQueue,
+                              onAddSong: _openYoutubeMusic,
                               banners: gameBanners(),
                               board: gameBoard(),
                               messages: rs.messages,
@@ -1694,7 +1722,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                   padding:
                                       const EdgeInsets.fromLTRB(12, 6, 12, 0),
                                   child: ListTile(
-                                    onTap: _openQueue,
+                                    onTap: _openYoutubeMusic,
                                     tileColor: const Color(0xFF1A1028),
                                     shape: RoundedRectangleBorder(
                                         borderRadius:

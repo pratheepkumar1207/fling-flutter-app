@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_image.dart';
 import '../lobby/source_picker_screen.dart';
+import '../lobby/youtube_browse_screen.dart';
 
 /// Full-screen (not a bottom sheet) — "Now playing" (current track,
 /// play-icon thumbnail) and "Up next" section labels, drag-handle +
@@ -73,6 +74,24 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
   // now" when it's empty) plus a snackbar with icon actions for the two
   // things that dialog used to ask about: move it to the top instead, or
   // undo the add entirely.
+  void _openYoutubeMusic() {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (route) => YoutubeBrowseScreen(
+        visibility: 'public',
+        music: true,
+        onSelectOverride: (item) {
+          Navigator.of(route).pop();
+          _addToQueue(
+            videoUrl: 'https://www.youtube.com/watch?v=${item['videoId']}',
+            title: item['title'] as String? ?? '',
+            thumbnail: item['thumbnail'] as String?,
+            mediaMode: 'audio',
+          );
+        },
+      ),
+    ));
+  }
+
   Future<void> _addToQueue(
       {required String videoUrl,
       required String title,
@@ -576,6 +595,9 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
               padding: const EdgeInsets.fromLTRB(18, 4, 18, 10),
               child: TextField(
                 controller: _search,
+                // Voice, game and music rooms: straight to YouTube Music.
+                readOnly: widget.audioOnly,
+                onTap: widget.audioOnly ? _openYoutubeMusic : null,
                 textInputAction: TextInputAction.search,
                 onSubmitted: (_) => _runSearch(),
                 onChanged: (v) {
@@ -583,7 +605,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                 },
                 decoration: InputDecoration(
                   hintText: widget.audioOnly
-                      ? 'Search YouTube Music or paste a link'
+                      ? 'Search songs on YouTube Music'
                       : 'Search YouTube or paste a link',
                   prefixIcon: const Padding(
                       padding: EdgeInsets.all(12),
