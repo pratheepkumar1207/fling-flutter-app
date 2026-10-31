@@ -7,6 +7,7 @@ import 'package:fling/theme/app_colors.dart';
 import 'package:fling/theme/app_theme.dart';
 import 'package:fling/theme/insync_icons.dart';
 import 'package:fling/widgets/animated_logo.dart';
+import 'package:fling/screens/home/home_lobby_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -95,7 +96,7 @@ void main() {
               _room('game', theme: 'neon'),
               _room('live', theme: 'dark'),
             ]) ...[
-              HomeRoomCard(room: r, onTap: () => taps++),
+              HomeLobbyCard(room: r, onTap: () => taps++),
               const SizedBox(height: 12),
             ],
             HomeInviteCard(
@@ -111,9 +112,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.text('Take seat'));
+    await tester.tap(find.text('Movie night').first);
     await tester.tap(find.bySemanticsLabel('Create'));
-    await tester.tap(find.text('Live'));
+    await tester.tap(find.text('Live').last);
     expect(taps, 2);
     expect(navTaps, [2]);
     await tester.pumpAndSettle();
@@ -136,7 +137,7 @@ void main() {
             for (final t in ['watch', 'voice', 'game', 'live'])
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
-                child: HomeRoomCard(room: _room(t), onTap: () {}),
+                child: HomeLobbyCard(room: _room(t), onTap: () {}),
               ),
           ]),
         ),

@@ -381,7 +381,7 @@ class _PersonCardState extends State<_PersonCard> {
                       Text(
                           [
                             if (username != null) '@$username',
-                            widget.status,
+                            if (widget.status.isNotEmpty) widget.status,
                           ].join(' · '),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

@@ -486,6 +486,14 @@ class RoomSocketController extends ChangeNotifier {
         if (mentionedUserIds.isNotEmpty) 'mentionedUserIds': mentionedUserIds,
         if (replyTo != null) 'replyTo': replyTo,
       });
+
+  /// Host: the current video's length, for the room's Home card.
+  void reportDuration(double seconds) {
+    if (isHost) {
+      socket?.emit('playback:duration', {'roomId': roomId, 'seconds': seconds});
+    }
+  }
+
   void play(double position) {
     if (isHost) {
       socket?.emit('playback:play', {'roomId': roomId, 'position': position});

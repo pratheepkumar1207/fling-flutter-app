@@ -147,6 +147,54 @@ class RoomTheme {
 
   static const all = [midnight, cinema, neon, sunset, glassy, dark];
 
+  static RoomTheme _game(
+          String id, String label, Color top, Color bottom, Color primary) =>
+      RoomTheme(
+        id: id,
+        label: label,
+        bgGradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [top, bottom],
+        ),
+        surface: bottom,
+        surface2: top,
+        border: const Color(0x33FFFFFF),
+        primary: primary,
+        nameAccent: const Color(0xFFD4FF65),
+        textDim: const Color(0xFFC9C4D6),
+        textFaint: const Color(0xFFA9A3B8),
+      );
+
+  /// The look around a game room; the card on Home uses the same colour.
+  static RoomTheme forGame(String? type) => switch (type) {
+        'chess' => _game('chess', 'Chess', const Color(0xFF1C3A32),
+            const Color(0xFF0E1C18), const Color(0xFF4F9A7E)),
+        'tictactoe' => _game(
+            'tictactoe',
+            'Tic Tac Toe',
+            const Color(0xFF2A2248),
+            const Color(0xFF12102A),
+            const Color(0xFF7A62E0)),
+        'ludo' => _game('ludo', 'Ludo', const Color(0xFF40301F),
+            const Color(0xFF1E160E), const Color(0xFFC98A2E)),
+        'uno' => _game('uno', 'UNO', const Color(0xFF462222),
+            const Color(0xFF1E0E0E), const Color(0xFFD8344A)),
+        'truth_or_dare' => _game(
+            'truth_or_dare',
+            'Truth or Dare',
+            const Color(0xFF341A4C),
+            const Color(0xFF170B22),
+            const Color(0xFF9A4FD0)),
+        'would_you_rather' => _game(
+            'would_you_rather',
+            'Would You Rather',
+            const Color(0xFF16364C),
+            const Color(0xFF0A1824),
+            const Color(0xFF3E8FC9)),
+        _ => midnight,
+      };
+
   static RoomTheme byId(String? id) =>
       all.firstWhere((t) => t.id == id, orElse: () => midnight);
 

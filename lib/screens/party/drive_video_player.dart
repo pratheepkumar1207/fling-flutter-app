@@ -736,7 +736,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
       children: [
         Positioned(
             left: 28,
-            top: 0,
+            top: 12,
             width: 100,
             height: 100,
             child: IgnorePointer(child: videoTree)),

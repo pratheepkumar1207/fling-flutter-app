@@ -61,6 +61,7 @@ class SyncVideoPlayer extends StatefulWidget {
   final bool liked;
   final VoidCallback onToggleLike;
   final bool compact;
+  final void Function(double seconds)? onDuration;
   final String? subtitle;
   final String? nextTitle;
   final VoidCallback? onOpenQueue;
@@ -95,6 +96,7 @@ class SyncVideoPlayer extends StatefulWidget {
     required this.liked,
     required this.onToggleLike,
     this.compact = false,
+    this.onDuration,
     this.subtitle,
     this.nextTitle,
     this.onOpenQueue,
@@ -291,7 +293,10 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
         }
         if (d != null && d > 0) {
           final newDuration = Duration(milliseconds: (d * 1000).round());
-          if (newDuration != _duration) setState(() => _duration = newDuration);
+          if (newDuration != _duration) {
+            setState(() => _duration = newDuration);
+            widget.onDuration?.call(d);
+          }
         }
         if (t != null) _checkDrift(t);
       case 'Error':
@@ -1079,7 +1084,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
           children: [
             Positioned(
                 left: 28,
-                top: 0,
+                top: 12,
                 width: 100,
                 height: 100,
                 child: IgnorePointer(child: videoTree)),

@@ -15,8 +15,11 @@ import '../lobby/lobby_create_screen.dart';
 import '../../theme/insync_icons.dart';
 import '../shell/create_sheet.dart';
 import 'home_room_cards.dart';
+import 'home_lobby_card.dart';
 import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
+import '../../core/location_service.dart';
+import 'package:geolocator/geolocator.dart';
 import '../blend/blend_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -37,7 +40,6 @@ class _HomeScreenState extends State<HomeScreen> {
   // Reels Blends someone is watching right now.
   Map<String, dynamic>? _myRoom;
   List<Map<String, dynamic>> _liveBlends = [];
-  String? _typeFilter;
   Timer? _refreshTimer;
   Timer? _activityDebounce;
   // Never let refreshes stack up — on a slow device a new tick used to fire
@@ -164,6 +166,26 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {}
   }
 
+  // Only used to put nearby rooms higher; no distance is ever shown.
+  Future<void> _turnOnLocation() async {
+    final permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      return;
+    }
+    try {
+      await ApiClient.patch('/auth/me', body: {'locationSharingEnabled': true});
+      await LocationService.requestPermissionAndPing();
+      if (mounted) await context.read<AuthProvider>().refreshUser();
+      await _load(silent: true);
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    }
+  }
+
   Future<bool?> _toggleRemind(String id) async {
     try {
       final r = await ApiClient.post('/rooms/$id/remind');
@@ -259,13 +281,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final active = _rooms
-        .where((r) =>
-            asNum(r['memberCount']) > 0 &&
-            (_typeFilter == null || r['roomType'] == _typeFilter))
-        .toList()
-      ..sort((a, b) => (b['isBoosted'] == true ? 1 : 0)
-          .compareTo(a['isBoosted'] == true ? 1 : 0));
+    final active = _rooms.where((r) => asNum(r['memberCount']) > 0).toList();
     return RefreshIndicator(
       onRefresh: () async {
         await Future.wait([_load(), _loadLikedPlaylists()]);
@@ -295,42 +311,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 onTap: () => _openRoom(r.id)),
           ],
           const SizedBox(height: 16),
-          SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(children: [
-                for (final filter in const <(String?, String, InIconData?)>[
-                  (null, 'All', null),
-                  ('watch', 'Watch', InIcons.tv),
-                  ('voice', 'Voice', InIcons.mic),
-                  ('game', 'Games', InIcons.game),
-                  ('live', 'Live', InIcons.live),
-                ])
-                  Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                          showCheckmark: false,
-                          avatar: filter.$3 == null
-                              ? null
-                              : InIcon(filter.$3!,
-                                  size: 15,
-                                  color: _typeFilter == filter.$1
-                                      ? Colors.white
-                                      : AppColors.text),
-                          label: Text(filter.$2),
-                          selected: _typeFilter == filter.$1,
-                          labelStyle: Theme.of(context)
-                              .textTheme
-                              .labelLarge
-                              ?.copyWith(
-                                  color: _typeFilter == filter.$1
-                                      ? Colors.white
-                                      : AppColors.text,
-                                  fontWeight: FontWeight.w500),
-                          onSelected: (_) =>
-                              setState(() => _typeFilter = filter.$1))),
-              ])),
           const SizedBox(height: 14),
-          _heading('Happening now',
+          if (context.watch<AuthProvider>().user?.locationSharingEnabled ==
+              false) ...[
+            _actionRow(
+                InIcons.pin, 'See rooms near you', 'Turn on', _turnOnLocation),
+            const SizedBox(height: 12),
+          ],
+          _heading('Near you',
               trailing:
                   '${active.length} room${active.length == 1 ? '' : 's'}'),
           const SizedBox(height: 12),
@@ -345,8 +333,8 @@ class _HomeScreenState extends State<HomeScreen> {
             _EmptyRooms(onCreate: _createRoom)
           else
             for (final r in active) ...[
-              HomeRoomCard(room: r, onTap: () => _openRoom(r['id'] as String)),
-              const SizedBox(height: 12),
+              HomeLobbyCard(room: r, onTap: () => _openRoom(r['id'] as String)),
+              const SizedBox(height: 16),
             ],
           for (final b in _liveBlends) ...[
             HomeBlendCard(

@@ -3,7 +3,6 @@ import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 import '../core/room_person_scope.dart';
 import '../models/room_models.dart';
 import 'app_image.dart';
@@ -269,104 +268,67 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
     return '$m:$s';
   }
 
-  bool _full = false;
-
-  /// The song's thumbnail as a spinning CD; tap it for the full player.
+  /// The song's thumbnail as a spinning CD.
   Widget _cd(double size) {
     final still = MediaQuery.disableAnimationsOf(context);
     final thumb = widget.thumbnail;
-    return Semantics(
-      button: true,
-      label: _full ? 'Close full player' : 'Open full player',
-      child: GestureDetector(
-        onTap: () => setState(() => _full = !_full),
-        child: RotationTransition(
-          turns: still ? kAlwaysDismissedAnimation : _controller,
-          child: Container(
-            width: size,
-            height: size,
-            padding: const EdgeInsets.all(2),
-            decoration: const BoxDecoration(
-                shape: BoxShape.circle, color: AppColors.lilac),
-            child: ClipOval(
-              child: Stack(fit: StackFit.expand, children: [
-                if (thumb != null && thumb.isNotEmpty)
-                  AppImage(source: thumb, fit: BoxFit.cover)
-                else
-                  ColoredBox(
-                    color: const Color(0xFF6D3FD0),
-                    child: Align(
-                      alignment: const Alignment(0, -0.6),
-                      child: InIcon(InIcons.music,
-                          size: size * 0.2, color: Colors.white),
-                    ),
-                  ),
-                Center(
-                  child: Container(
-                    width: size * 0.24,
-                    height: size * 0.24,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.bg,
-                      border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.55),
-                          width: 2),
-                    ),
-                  ),
+    return RotationTransition(
+      turns: still ? kAlwaysDismissedAnimation : _controller,
+      child: Container(
+        width: size,
+        height: size,
+        padding: const EdgeInsets.all(2),
+        decoration:
+            const BoxDecoration(shape: BoxShape.circle, color: AppColors.lilac),
+        child: ClipOval(
+          child: Stack(fit: StackFit.expand, children: [
+            if (thumb != null && thumb.isNotEmpty)
+              AppImage(source: thumb, fit: BoxFit.cover)
+            else
+              ColoredBox(
+                color: const Color(0xFF6D3FD0),
+                child: Align(
+                  alignment: const Alignment(0, -0.6),
+                  child: InIcon(InIcons.music,
+                      size: size * 0.2, color: Colors.white),
                 ),
-              ]),
+              ),
+            Center(
+              child: Container(
+                width: size * 0.24,
+                height: size * 0.24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.bg,
+                  border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.55), width: 2),
+                ),
+              ),
             ),
-          ),
+          ]),
         ),
       ),
     );
   }
 
-  Widget _nowPlaying() {
+  /// Bars with a pattern of their own for each song. They move while it
+  /// plays and rest when paused; the sound itself isn't readable from the
+  /// player, so they don't follow the actual beat.
+  Widget _equalizer() {
     final still = MediaQuery.disableAnimationsOf(context) || !_spinning;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-          color: const Color(0xFF3A2A66),
-          borderRadius: BorderRadius.circular(999)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        SizedBox(
-          width: 13,
-          height: 11,
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (_, __) => Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                for (var i = 0; i < 3; i++)
-                  Container(
-                    width: 3,
-                    height: still
-                        ? 4
-                        : 3 +
-                            8 *
-                                (0.5 +
-                                    0.5 *
-                                        math.sin(
-                                            _controller.value * math.pi * 16 +
-                                                i * 1.4)),
-                    decoration: BoxDecoration(
-                        color: AppColors.lilac,
-                        borderRadius: BorderRadius.circular(2)),
-                  ),
-              ],
-            ),
+    return Semantics(
+      label: _spinning ? 'Now playing' : 'Paused',
+      child: SizedBox(
+        height: 24,
+        width: double.infinity,
+        child: CustomPaint(
+          painter: _EqualizerPainter(
+            progress: _controller,
+            seed: (widget.title ?? '').codeUnits.fold(7, (a, c) => a * 31 + c),
+            still: still,
           ),
         ),
-        const SizedBox(width: 5),
-        const Flexible(
-          child: Text('Now playing',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: Color(0xFFD8C9FF), fontSize: 11)),
-        ),
-      ]),
+      ),
     );
   }
 
@@ -469,102 +431,71 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
     ]);
   }
 
-  /// The lobby's music card, tinted from the song's own thumbnail.
+  /// The lobby's music card: one fixed size.
   Widget _card(BuildContext context) {
-    final screen = MediaQuery.sizeOf(context).height;
-    final thumb = widget.thumbnail;
-    final title = Text(widget.title ?? 'Playing audio',
-        maxLines: _full ? 2 : 1,
-        overflow: TextOverflow.ellipsis,
-        textAlign: _full ? TextAlign.center : TextAlign.start,
-        style: TextStyle(
-            color: Colors.white,
-            fontSize: _full ? 18 : 16,
-            fontWeight: FontWeight.w700));
-    final subtitle = widget.subtitle == null
-        ? null
-        : Text(widget.subtitle!,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white70, fontSize: 12));
-    final next = widget.nextTitle == null
-        ? null
-        : InkWell(
-            onTap: widget.onOpenQueue,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text('Next: ${widget.nextTitle}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white70, fontSize: 12)),
-            ),
-          );
-    final body = _full
-        ? Column(mainAxisSize: MainAxisSize.min, children: [
-            _cd((screen * 0.22).clamp(120.0, 200.0)),
-            const SizedBox(height: 12),
-            title,
-            if (subtitle != null) subtitle,
-            const SizedBox(height: 10),
-            _timeline(),
-            const SizedBox(height: 6),
-            _controls(52),
-            if (next != null) next,
-          ])
-        : Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(children: [
-                _cd(92),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _nowPlaying(),
-                      const SizedBox(height: 6),
-                      title,
-                      if (subtitle != null) subtitle,
-                    ],
-                  ),
-                ),
-              ]),
-              const SizedBox(height: 12),
-              _timeline(),
-              const SizedBox(height: 4),
-              Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [_listeners(), _controls(42)],
-              ),
-              if (next != null) next,
-            ],
-          );
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Stack(children: [
-          Positioned.fill(
-            child: thumb != null && thumb.isNotEmpty
-                ? ImageFiltered(
-                    imageFilter: ui.ImageFilter.blur(sigmaX: 28, sigmaY: 28),
-                    child: AppImage(source: thumb, fit: BoxFit.cover),
-                  )
-                : const ColoredBox(color: Color(0xFF2A1F4D)),
-          ),
-          Positioned.fill(
-              child: ColoredBox(color: Colors.black.withValues(alpha: 0.55))),
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: _full
-                ? ConstrainedBox(
-                    constraints: BoxConstraints(maxHeight: screen * 0.62),
-                    child: SingleChildScrollView(child: body))
-                : body,
-          ),
-        ]),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+            color: const Color(0xFF1F1A33),
+            borderRadius: BorderRadius.circular(20)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(children: [
+              _cd(84),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.title ?? 'Playing audio',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700)),
+                    if (widget.subtitle != null)
+                      Text(widget.subtitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 12)),
+                    const SizedBox(height: 8),
+                    _equalizer(),
+                  ],
+                ),
+              ),
+            ]),
+            const SizedBox(height: 12),
+            _timeline(),
+            const SizedBox(height: 4),
+            Row(children: [
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: FittedBox(fit: BoxFit.scaleDown, child: _listeners()),
+                ),
+              ),
+              _controls(42),
+            ]),
+            if (widget.nextTitle != null)
+              InkWell(
+                onTap: widget.onOpenQueue,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text('Next: ${widget.nextTitle}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 12)),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -583,4 +514,42 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
     _controller.dispose();
     super.dispose();
   }
+}
+
+class _EqualizerPainter extends CustomPainter {
+  final Animation<double> progress;
+  final int seed;
+  final bool still;
+
+  _EqualizerPainter(
+      {required this.progress, required this.seed, required this.still})
+      : super(repaint: progress);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const barWidth = 3.0;
+    const gap = 3.0;
+    final count = ((size.width + gap) / (barWidth + gap)).floor();
+    final paint = Paint()
+      ..color = AppColors.lilac
+      ..strokeWidth = barWidth
+      ..strokeCap = StrokeCap.round;
+    final t = progress.value * math.pi * 2;
+    for (var i = 0; i < count; i++) {
+      // Each song's own shape: a steady height for every bar...
+      final shape = 0.3 + 0.7 * (((seed >> (i % 16)) ^ (i * 37)) % 10) / 9;
+      // ...moving at whole turns, so the loop has no visible jump.
+      final wave = still
+          ? 0.18
+          : 0.5 + 0.5 * math.sin(t * (4 + (i + seed) % 5) + i * 0.9 + seed % 7);
+      final h = math.max(3.0, size.height * shape * wave);
+      final x = i * (barWidth + gap) + barWidth / 2;
+      final mid = size.height / 2;
+      canvas.drawLine(Offset(x, mid - h / 2), Offset(x, mid + h / 2), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_EqualizerPainter old) =>
+      old.seed != seed || old.still != still;
 }

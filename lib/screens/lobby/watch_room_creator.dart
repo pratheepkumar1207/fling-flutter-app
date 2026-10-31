@@ -43,6 +43,8 @@ Future<void> createWatchRoomAndEnter(
   String? videoTitle,
   String? videoThumbnail,
   WatchRoomOptions? options,
+  // 'audio' opens the room on the song card.
+  String mediaMode = 'video',
 }) async {
   final title = options?.title?.trim();
   try {
@@ -55,6 +57,16 @@ Future<void> createWatchRoomAndEnter(
       if (title != null && title.isNotEmpty) 'title': title,
       if (videoTitle != null) 'videoTitle': videoTitle,
       if (videoThumbnail != null) 'videoThumbnail': videoThumbnail,
+      if (mediaMode == 'audio' && videoUrl != null)
+        'queueItems': [
+          {
+            'videoUrl': videoUrl,
+            'title': videoTitle,
+            'thumbnail': videoThumbnail,
+            'sourceType': sourceType,
+            'mediaMode': 'audio',
+          }
+        ],
     }) as Map<String, dynamic>;
     // Same follow-up the voice-room path does — settings aren't part of
     // POST /rooms. Best-effort: the room still opens if this fails.

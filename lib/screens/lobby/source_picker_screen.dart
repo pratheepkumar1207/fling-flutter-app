@@ -141,12 +141,28 @@ class SourcePickerBody extends StatelessWidget {
         visibility: visibility,
         music: true,
         onSelectOverride: (item) {
+          final url = 'https://www.youtube.com/watch?v=${item['videoId']}';
+          final title = item['title'] as String? ?? '';
+          final thumb = item['thumbnail'] as String?;
+          if (!_inRoom) {
+            createWatchRoomAndEnter(
+              context,
+              sourceType: 'youtube',
+              videoUrl: url,
+              visibility: visibility,
+              topic: topic,
+              options: options,
+              videoTitle: title,
+              videoThumbnail: thumb,
+              mediaMode: 'audio',
+            );
+            return;
+          }
           onAddToQueue!(
-            videoUrl: 'https://www.youtube.com/watch?v=${item['videoId']}',
-            title: item['title'] as String? ?? '',
-            thumbnail: item['thumbnail'] as String?,
-            mediaMode: 'audio',
-          );
+              videoUrl: url,
+              title: title,
+              thumbnail: thumb,
+              mediaMode: 'audio');
           Navigator.of(route).pop();
         },
       ),
@@ -332,13 +348,12 @@ class SourcePickerBody extends StatelessWidget {
       );
     }
     final tiles = <String, Widget>{
-      if (_inRoom)
-        'YouTube Music': _SourceTile(
-            compact: c,
-            inIcon: InIcons.music,
-            label: 'YouTube Music',
-            available: true,
-            onTap: () => _openYoutubeMusic(context)),
+      'YouTube Music': _SourceTile(
+          compact: c,
+          inIcon: InIcons.music,
+          label: 'YouTube Music',
+          available: true,
+          onTap: () => _openYoutubeMusic(context)),
       'Liked': _SourceTile(
           compact: c,
           inIcon: InIcons.heart,
@@ -509,7 +524,7 @@ class SourcePickerBody extends StatelessWidget {
         Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       section('FREE', [
         'YouTube Surf',
-        if (_inRoom) 'YouTube Music',
+        'YouTube Music',
         'Drive',
         'X',
       ]),

@@ -44,27 +44,23 @@ Widget _card(
     );
 
 void main() {
-  testWidgets('CD card: lobby, slim while typing, full on tapping the CD',
-      (t) async {
+  testWidgets('Fixed CD card with an equalizer, slim while typing', (t) async {
     t.view.physicalSize = const Size(390, 844);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.resetPhysicalSize);
     addTearDown(t.view.resetDevicePixelRatio);
     await t.pumpWidget(_card());
-    expect(find.text('Now playing'), findsOneWidget);
+    expect(find.bySemanticsLabel('Now playing'), findsOneWidget);
     expect(find.text('Added by Divya'), findsOneWidget);
     expect(find.text('Next: Hukum'), findsOneWidget);
     expect(find.text('1:52'), findsOneWidget);
     expect(find.text(' +2'), findsOneWidget);
-
-    await t.tap(find.bySemanticsLabel('Open full player'));
-    await t.pump();
-    expect(find.bySemanticsLabel('Close full player'), findsOneWidget);
-    expect(find.text('Now playing'), findsNothing);
+    // The CD doesn't open anything.
+    expect(find.bySemanticsLabel('Open full player'), findsNothing);
     expect(t.takeException(), isNull);
 
     await t.pumpWidget(_card(keyboard: 300));
-    expect(find.text('Now playing'), findsNothing);
+    expect(find.bySemanticsLabel('Now playing'), findsNothing);
     expect(find.text('1:52/4:28'), findsOneWidget);
   });
 
@@ -83,7 +79,7 @@ void main() {
     addTearDown(t.view.resetPhysicalSize);
     addTearDown(t.view.resetDevicePixelRatio);
     await t.pumpWidget(_card(compact: true));
-    expect(find.text('Now playing'), findsNothing);
+    expect(find.bySemanticsLabel('Now playing'), findsNothing);
   });
 
   testWidgets('Fits a small phone with big text', (t) async {
@@ -92,9 +88,6 @@ void main() {
     addTearDown(t.view.resetPhysicalSize);
     addTearDown(t.view.resetDevicePixelRatio);
     await t.pumpWidget(_card(size: const Size(320, 640), scale: 1.6));
-    expect(t.takeException(), isNull);
-    await t.tap(find.bySemanticsLabel('Open full player'));
-    await t.pump();
     expect(t.takeException(), isNull);
   });
 }

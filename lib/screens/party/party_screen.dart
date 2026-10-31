@@ -808,6 +808,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       }
       return SyncVideoPlayer(
         key: playerKey,
+        onDuration: rs.reportDuration,
         subtitle: musicCard.subtitle,
         nextTitle: musicCard.next,
         onOpenQueue: _openQueue,
@@ -846,8 +847,12 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     final useVolaTheme = isWatch || isVoice || isGame;
     const roomBg = AppColors.bg;
     // The host's lobby theme (Room settings -> Theme); Midnight by default.
+    // Each game has its own look, unless the host picked another theme.
+    final chosenTheme = (rs.settings['theme'] ?? room['theme']) as String?;
     final roomTheme =
-        RoomTheme.byId((rs.settings['theme'] ?? room['theme']) as String?);
+        isGame && (chosenTheme == null || chosenTheme == 'midnight')
+            ? RoomTheme.forGame(room['gameType'] as String?)
+            : RoomTheme.byId(chosenTheme);
     final roomTextDim = useVolaTheme ? roomTheme.textDim : AppColors.textDim;
     final roomPrimary = useVolaTheme ? roomTheme.primary : AppColors.primary;
     final roomGold = useVolaTheme ? VolaPartyColors.gold : AppColors.gold;

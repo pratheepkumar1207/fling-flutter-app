@@ -1,4 +1,5 @@
 import 'package:fling/screens/home/home_room_cards.dart';
+import 'package:fling/screens/home/home_lobby_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -39,20 +40,20 @@ Future<void> _pump(WidgetTester tester, List<Widget> children,
 
 List<Widget> _cards({VoidCallback? onTap, Future<bool?> Function()? remind}) =>
     [
-      HomeRoomCard(
+      HomeLobbyCard(
           room: _room('voice', {
             'onMicCount': 3,
             'speakingName': 'Bala Kumar',
             'communityName': 'Chennai Movie Club',
           }),
           onTap: onTap ?? () {}),
-      HomeRoomCard(
+      HomeLobbyCard(
           room: _room('watch', {'visibility': 'friends'}), onTap: () {}),
-      HomeRoomCard(
+      HomeLobbyCard(
           room: _room(
               'live', {'giftsToday': 12800, 'dailyRank': 12, 'inPk': false}),
           onTap: () {}),
-      HomeRoomCard(
+      HomeLobbyCard(
           room: _room('live', {'inPk': true, 'pkOpponentHost': 'Ravi'}),
           onTap: () {}),
       HomeEventCard(event: {
@@ -77,13 +78,10 @@ void main() {
   testWidgets('Home card states show live room details', (tester) async {
     var reminded = false;
     await _pump(tester, _cards(remind: () async => reminded = !reminded));
-    expect(find.text('Bala is talking…'), findsNWidgets(2));
-    expect(find.text('3 on mic · 9 listening'), findsOneWidget);
-    expect(find.text('COMMUNITY ROOM · Chennai Movie Club'), findsOneWidget);
-    expect(find.text('FRIENDS OF BALA'), findsOneWidget);
-    expect(find.text('13K today · Daily #12'), findsOneWidget);
-    expect(find.text('PK BATTLE · vs Ravi'), findsOneWidget);
-    expect(find.text('Pick a side'), findsOneWidget);
+    expect(find.text('Bala is talking'), findsOneWidget);
+    expect(find.text('Chennai Movie Club'), findsOneWidget);
+    expect(find.text('PK battle · vs Ravi'), findsOneWidget);
+    expect(find.text('Join'), findsNothing);
     expect(find.text('STARTS IN 2D 4H'), findsOneWidget);
     expect(find.text('Watch party · 48 going · by Bala'), findsOneWidget);
     expect(find.text("YOU'RE IN"), findsOneWidget);
