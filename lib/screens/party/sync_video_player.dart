@@ -182,6 +182,9 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
   // Defaults to the usual 16:9 box and only changes once the real size
   // comes back (or stays put if the lookup fails) — see _loadAspectRatio.
   double _aspectRatio = 16 / 9;
+  // Zooms in for films with black bars inside the video itself. Only affects
+  // this phone's view.
+  bool _fillBox = false;
 
   String _embedUrl(String videoId) =>
       '${ApiClient.baseUrl}/youtube-embed.html?v=$videoId';
@@ -199,7 +202,10 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
       final height = (data['height'] as num?)?.toDouble();
       if (!mounted || videoId != _currentVideoId) return;
       if (width != null && height != null && width > 0 && height > 0) {
-        setState(() => _aspectRatio = width / height);
+        // Landscape videos stream as 16:9, so a different landscape size from
+        // this lookup would only add black bars above and below. Only a
+        // portrait report changes the shape.
+        setState(() => _aspectRatio = width > height ? 16 / 9 : width / height);
       }
     } catch (_) {
       // Best-effort — stays on the current (default 16:9) ratio.
@@ -677,7 +683,11 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
         child: Stack(
           fit: StackFit.expand,
           children: [
-            _buildWebView(),
+            AnimatedScale(
+              scale: _fillBox ? 1.34 : 1,
+              duration: const Duration(milliseconds: 200),
+              child: _buildWebView(),
+            ),
             // Tap-to-show only exists while controls are actually hidden —
             // doesn't compete with normal WebView interaction (scrolling,
             // etc.) the rest of the time, and disappears the instant
@@ -729,6 +739,27 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Semantics(
+                          button: true,
+                          label: _fillBox ? 'Fit video' : 'Fill video',
+                          child: GestureDetector(
+                            onTap: () => setState(() => _fillBox = !_fillBox),
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              margin: const EdgeInsets.only(bottom: 6),
+                              decoration: const BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle),
+                              child: Icon(
+                                  _fillBox
+                                      ? Icons.fit_screen_rounded
+                                      : Icons.crop_free_rounded,
+                                  color: Colors.white,
+                                  size: 19),
+                            ),
+                          ),
+                        ),
                         // Manual PIP trigger — auto-PIP-on-minimize has been
                         // unreliable (see PipService/MainActivity.kt), so this
                         // gives a direct, always-available way in rather than

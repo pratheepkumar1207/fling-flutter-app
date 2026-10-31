@@ -1,3 +1,4 @@
+import 'swipe_down_to_close.dart';
 import 'package:flutter/material.dart';
 import '../core/api_client.dart';
 import 'package:provider/provider.dart';
@@ -45,14 +46,16 @@ Future<void> showRoomSettingsSheet(BuildContext context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
     showDragHandle: false,
-    builder: (_) => _RoomSettingsSheet(
-        room: room,
-        onChanged: onChanged,
-        onMySettings: onMySettings,
-        onStartPoll: onStartPoll,
-        onMuteAll: onMuteAll,
-        onModeration: onModeration,
-        onEndRoom: onEndRoom),
+    builder: (_) => SwipeDownToClose(
+      child: _RoomSettingsSheet(
+          room: room,
+          onChanged: onChanged,
+          onMySettings: onMySettings,
+          onStartPoll: onStartPoll,
+          onMuteAll: onMuteAll,
+          onModeration: onModeration,
+          onEndRoom: onEndRoom),
+    ),
   );
 }
 
