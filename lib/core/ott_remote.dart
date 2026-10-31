@@ -55,6 +55,10 @@ class OttRemote {
   static Future<bool> launch(String package) async =>
       await _call<bool>('launch', {'package': package}) ?? false;
 
+  /// Opens this title in the app itself; false if the app won't take it.
+  static Future<bool> openTitle(String package, String url) async =>
+      await _call<bool>('openTitle', {'package': package, 'url': url}) ?? false;
+
   static Future<OttPlayerState?> state(String package) async {
     final raw = await _call<Map>('getState', {'package': package});
     if (raw == null) return null;

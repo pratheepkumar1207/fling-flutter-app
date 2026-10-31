@@ -169,7 +169,7 @@ void main() {
 
     access = true;
     await tester.pump(const Duration(milliseconds: 1600));
-    expect(find.text('Open the title in Netflix'), findsOneWidget);
+    expect(find.text('Netflix plays in its own app here'), findsOneWidget);
   });
 
   testWidgets('iPhone: falls back to "press play too"', (tester) async {

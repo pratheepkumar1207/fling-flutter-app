@@ -151,11 +151,8 @@ class OttSyncPanelState extends State<OttSyncPanel>
 
   // The same title, in the app itself where it's installed.
   Future<void> _openTitle() async {
-    var ok = false;
-    try {
-      ok = await launchUrl(Uri.parse(widget.titleUrl),
-          mode: LaunchMode.externalNonBrowserApplication);
-    } catch (_) {}
+    // Asks the app by name: phones can send these links to Chrome instead.
+    var ok = await OttRemote.openTitle(_package, widget.titleUrl);
     if (!ok) ok = await OttRemote.launch(_package);
     if (!ok) {
       await launchUrl(Uri.parse(widget.titleUrl),
@@ -225,10 +222,10 @@ class OttSyncPanelState extends State<OttSyncPanel>
         ),
       _Step.open => (
           InIcons.play,
-          'Open the title in ${widget.label}',
+          '${widget.label} plays in its own app here',
           widget.isHost
-              ? 'Sign in if it asks, then play. Everyone follows you.'
-              : 'Sign in if it asks. It’ll follow the host from there.',
+              ? 'Open it, sign in if it asks, then play. Everyone follows you.'
+              : 'Open it and sign in if it asks. It’ll follow the host.',
           'Open',
           _openTitle
         ),

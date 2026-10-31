@@ -7,6 +7,7 @@ import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import android.media.MediaMetadata
+import android.net.Uri
 import android.os.Build
 import android.os.SystemClock
 import android.provider.Settings
@@ -30,6 +31,7 @@ class OttRemoteChannel(private val context: Context, messenger: BinaryMessenger)
                 "hasAccess" -> result.success(hasAccess())
                 "openAccessSettings" -> result.success(openAccessSettings())
                 "launch" -> result.success(pkg != null && launch(pkg))
+                "openTitle" -> result.success(pkg != null && openTitle(pkg, call.argument<String>("url")))
                 "getState" -> result.success(pkg?.let { stateOf(it) })
                 "play" -> result.success(pkg?.let { controller(it)?.transportControls?.play(); true } ?: false)
                 "pause" -> result.success(pkg?.let { controller(it)?.transportControls?.pause(); true } ?: false)
@@ -86,6 +88,25 @@ class OttRemoteChannel(private val context: Context, messenger: BinaryMessenger)
         return true
     }
 
+    // The web address first, then the app's own link form.
+    private fun openTitle(pkg: String, url: String?): Boolean {
+        if (url == null) return false
+        val links = listOf(url, url.replaceFirst(Regex("^https?://"), "nflx://"))
+        for (link in links) {
+            try {
+                context.startActivity(
+                    Intent(Intent.ACTION_VIEW, Uri.parse(link))
+                        .setPackage(pkg)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+                return true
+            } catch (e: Exception) {
+                // Not a link this app takes; try the next.
+            }
+        }
+        return false
+    }
+
     private fun controller(pkg: String): MediaController? {
         if (!hasAccess()) return null
         return try {
@@ -100,9 +121,17 @@ class OttRemoteChannel(private val context: Context, messenger: BinaryMessenger)
     private fun stateOf(pkg: String): Map<String, Any?>? {
         val c = controller(pkg) ?: return null
         val s = c.playbackState ?: return null
-        val playing = s.state == PlaybackState.STATE_PLAYING
+        // A finished session isn't a player sitting at 0:00.
+        if (s.state == PlaybackState.STATE_NONE ||
+            s.state == PlaybackState.STATE_STOPPED ||
+            s.state == PlaybackState.STATE_ERROR
+        ) return null
+        // Buffering isn't the person pausing: the room shouldn't pause for it.
+        val playing = s.state == PlaybackState.STATE_PLAYING ||
+            s.state == PlaybackState.STATE_BUFFERING ||
+            s.state == PlaybackState.STATE_CONNECTING
         var position = s.position
-        if (playing && s.lastPositionUpdateTime > 0) {
+        if (s.state == PlaybackState.STATE_PLAYING && s.lastPositionUpdateTime > 0) {
             position += ((SystemClock.elapsedRealtime() - s.lastPositionUpdateTime) * s.playbackSpeed).toLong()
         }
         return mapOf(

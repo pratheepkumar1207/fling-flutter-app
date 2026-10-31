@@ -33,6 +33,19 @@ final mobileWebViewSettings = InAppWebViewSettings(
   useHybridComposition: true,
 );
 
+/// Netflix's in-room player: desktop view, since it answers a phone browser
+/// by sending it to its app. Laid out wide and fitted to the phone's width.
+/// Hybrid composition for the same protected-video reason as above.
+final desktopPlayerWebViewSettings = InAppWebViewSettings(
+  useWideViewPort: true,
+  loadWithOverviewMode: true,
+  javaScriptEnabled: true,
+  domStorageEnabled: true,
+  userAgent:
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  useHybridComposition: true,
+);
+
 /// Same WebView, presented as desktop Chrome instead of mobile Chrome.
 /// Netflix/Prime/Hotstar and similar OTT sites detect the mobile UA and
 /// push an "open in our app" interstitial that a WebView can't dismiss

@@ -121,6 +121,21 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
   String? _lastSentStatus;
   DateTime _lastSentAt = DateTime.fromMillisecondsSinceEpoch(0);
 
+  // Netflix/Prime get a real try in the room first; only if the video doesn't
+  // play here does the room move to the platform's app. Waiting at a sign-in
+  // page doesn't count against the try.
+  static const _noPlayerLimit = Duration(seconds: 25);
+  static const _noProgressLimit = Duration(seconds: 60);
+  DateTime _tryStarted = DateTime.now();
+  bool _webPlayed = false;
+  double? _firstWebPos;
+  bool _triedFallbackUrl = false;
+
+  void _moveToApp(String why) {
+    debugPrint('OTT: moving to the app: $why');
+    if (mounted && !_useApp) setState(() => _useApp = true);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -278,6 +293,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         path.contains('signin') ||
         path.contains('sign-in');
     if (looksLikeLogin != _onLoginPage) {
+      _tryStarted = DateTime.now();
       setState(() => _onLoginPage = looksLikeLogin);
     }
   }
@@ -366,8 +382,15 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     var attempt = 0;
     Timer.periodic(const Duration(milliseconds: 600), (timer) async {
       attempt++;
-      final found = await _controller?.evaluateJavascript(source: script);
-      if (found == true || attempt >= 8 || !mounted) timer.cancel();
+      // Stops first if the page has gone: its controller can't answer now.
+      if (attempt >= 8 || !mounted || _appOnly) timer.cancel();
+      if (!mounted || _appOnly) return;
+      try {
+        final found = await _controller?.evaluateJavascript(source: script);
+        if (found == true) timer.cancel();
+      } catch (_) {
+        timer.cancel();
+      }
     });
   }
 
@@ -405,14 +428,49 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
       if (!mounted) return;
       if ((sync.target as _WebPlayerTarget).error) {
         // The web player refused (an error page) — use the app instead.
-        setState(() => _useApp = true);
+        _moveToApp('the web player showed an error page: '
+            '${(sync.target as _WebPlayerTarget).errorCode}');
         return;
       }
+      _judgeWebTry(sync.local);
+      if (_useApp) return;
       if (status != _webStatus) setState(() => _webStatus = status);
       _reportStatus(status, sync.offset);
     } finally {
       _webBusy = false;
     }
+  }
+
+  void _judgeWebTry(OttPlayerState? local) {
+    if (_webPlayed) return;
+    if (local != null && local.playing) {
+      final first = _firstWebPos ??= local.positionSec;
+      if (local.positionSec - first > 1) {
+        debugPrint('OTT: the video is playing in the room');
+        setState(() => _webPlayed = true);
+        return;
+      }
+    }
+    final limit = local == null ? _noPlayerLimit : _noProgressLimit;
+    if (DateTime.now().difference(_tryStarted) > limit) {
+      _moveToApp('no video played in ${limit.inSeconds}s');
+    }
+  }
+
+  // Netflix answering with its app link: use the web address it offers
+  // alongside, if any, before giving up on playing here.
+  void _onAppLink(InAppWebViewController controller, Uri? link) {
+    final fallback = RegExp(r'S\.browser_fallback_url=([^;]+)')
+        .firstMatch(link?.toString() ?? '')
+        ?.group(1);
+    if (fallback != null && !_triedFallbackUrl) {
+      _triedFallbackUrl = true;
+      debugPrint('OTT: page offered a web address, trying it');
+      controller.loadUrl(
+          urlRequest: URLRequest(url: WebUri(Uri.decodeComponent(fallback))));
+      return;
+    }
+    _moveToApp('the page handed off to ${link?.scheme}');
   }
 
   void _reportStatus(String status, double offset) {
@@ -633,6 +691,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
             ? 'You’re driving'
             : '$inSync of ${widget.ottStatuses.length} in sync')
         : switch (_webStatus) {
+            _ when !_webPlayed => 'Checking if $label plays here…',
             'in_sync' => 'In sync',
             'behind' ||
             'ahead' =>
@@ -707,14 +766,13 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         else
           InAppWebView(
             initialUrlRequest: URLRequest(url: WebUri(url)),
-            // Mobile UA here, not desktop: actual DRM video playback
-            // (Widevine) only works reliably in this WebView when Netflix
-            // thinks it's talking to mobile Chrome — a desktop UA makes it
-            // pick a playback path the WebView can't fulfill, surfacing as
-            // Netflix error M7701-1003 (confirmed live). Desktop mode stays
-            // on the browse/catalog screen (no DRM decode happens there);
-            // only the actual playback WebView needs to stay mobile.
-            initialSettings: mobileWebViewSettings,
+            // Netflix sends a phone browser to its app, so its player tries
+            // desktop view. It has answered that with error M7701-1003 before;
+            // if it still does, the error check below moves the room to the
+            // app. Everything else stays on the mobile settings.
+            initialSettings: _drmPlatform == 'Netflix'
+                ? desktopPlayerWebViewSettings
+                : mobileWebViewSettings,
             onWebViewCreated: (controller) {
               _controller = controller;
               if (_isOtt) {
@@ -730,6 +788,9 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
                 );
               }
             },
+            // Sign-in can finish without a full page load.
+            onUpdateVisitedHistory: (controller, url, isReload) =>
+                _checkLoginUrl(url),
             onLoadStop: (controller, url) {
               _checkLoginUrl(url);
               _injectFullBleedVideoCss();
@@ -742,10 +803,9 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
               if (scheme != null && scheme != 'http' && scheme != 'https') {
                 // Netflix answers a phone browser's watch link by handing
                 // off to its app (intent:// / nflx://) — confirmed live —
-                // which left this page blank. That's Netflix saying "use
-                // the app", so switch to app sync instead.
-                if (_isOtt && mounted && !_useApp) {
-                  setState(() => _useApp = true);
+                // which left this page blank.
+                if (_isOtt && !_useApp && !_webPlayed && !_onLoginPage) {
+                  _onAppLink(controller, navigationAction.request.url);
                 }
                 return NavigationActionPolicy.CANCEL;
               }
@@ -878,6 +938,7 @@ class _WebPlayerTarget implements OttTarget {
 
   /// Set once the page shows a playback error.
   bool error = false;
+  String? errorCode;
 
   static const _setup = r"""
 (function(){
@@ -902,7 +963,10 @@ class _WebPlayerTarget implements OttTarget {
   }
   window.__insync = {
     state: function(){
-      if (hasError()) return JSON.stringify({error: true});
+      if (hasError()) {
+        var m = (document.body ? document.body.innerText : '').match(/\b[A-Z]{1,3}\d{2,5}(-\d+)?\b/);
+        return JSON.stringify({error: true, code: m ? m[0] : null});
+      }
       var v = video();
       if (!v || !(v.duration > 0)) return null;
       var p = nfPlayer();
@@ -933,6 +997,7 @@ class _WebPlayerTarget implements OttTarget {
     if (m is! Map) return null;
     if (m['error'] == true) {
       error = true;
+      errorCode = m['code'] as String?;
       return null;
     }
     return OttPlayerState(
