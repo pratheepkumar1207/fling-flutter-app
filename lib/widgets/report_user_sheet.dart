@@ -1,4 +1,5 @@
 import '../theme/insync_icons.dart';
+import '../core/api_client.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
@@ -252,4 +253,34 @@ class _ReportReasonSheetState extends State<_ReportReasonSheet> {
       ),
     );
   }
+}
+
+/// Reports one post, reel, story or comment, so moderators see the item.
+void showReportContentSheet(
+  BuildContext context, {
+  required String targetType,
+  required String targetId,
+  required String authorId,
+  required String authorName,
+}) {
+  final messenger = ScaffoldMessenger.of(context);
+  showReportReasonSheet(
+    context,
+    userName: authorName,
+    onSubmit: (reason) async {
+      try {
+        await ApiClient.post('/social/report-content', body: {
+          'targetType': targetType,
+          'targetId': targetId,
+          'reason': reason,
+        });
+        messenger
+            .showSnackBar(const SnackBar(content: Text('Report submitted')));
+      } catch (_) {
+        messenger.showSnackBar(
+            const SnackBar(content: Text('Couldn’t send your report')));
+      }
+    },
+    onAlsoBlock: () => ApiClient.post('/social/block/$authorId'),
+  );
 }

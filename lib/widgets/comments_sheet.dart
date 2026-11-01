@@ -7,6 +7,7 @@ import '../core/profile_nav.dart';
 import '../theme/app_colors.dart';
 import 'avatar.dart';
 import 'mention_text_field.dart';
+import 'report_user_sheet.dart';
 import 'spinner.dart';
 
 /// Comments, Instagram-style: half-height sheet over the post/reel (which
@@ -148,77 +149,86 @@ class _CommentsSheetState extends State<CommentsSheet> {
     final likes = (c['likesCount'] as int?) ?? 0;
     final liked = c['likedByMe'] == true;
     final created = DateTime.tryParse(c['createdAt']?.toString() ?? '');
-    return Padding(
-      padding: EdgeInsets.fromLTRB(reply ? 52 : 14, 8, 6, 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          GestureDetector(
-            onTap: () => openProfile(context, author['id'] as String?),
-            child: Avatar(
-                src: author['avatarUrl'] as String?,
-                name: author['name'] as String?,
-                size: AvatarSize.sm),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                    '${author['username'] ?? author['name'] ?? 'Someone'}  ·  ${created == null ? '' : formatRelativeTime(created)}',
-                    style: const TextStyle(
-                        color: AppColors.textFaint, fontSize: 11.5)),
-                const SizedBox(height: 2),
-                Text.rich(
-                  TextSpan(children: [
-                    for (final part in text.split(RegExp(r'(?=@)|(?<=\s)')))
-                      TextSpan(
-                          text: part,
-                          style: part.startsWith('@')
-                              ? const TextStyle(color: Color(0xFF6F9BFF))
-                              : null),
-                  ]),
-                  style: const TextStyle(
-                      color: AppColors.text, fontSize: 13.5, height: 1.35),
-                ),
-                const SizedBox(height: 4),
-                GestureDetector(
-                  onTap: () => _reply(c),
-                  child: const Text('Reply',
-                      style: TextStyle(
-                          color: AppColors.textFaint,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600)),
-                ),
-              ],
+    // Hold a comment to report it; the server refuses your own.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onLongPress: () => showReportContentSheet(context,
+          targetType: 'comment',
+          targetId: c['id'] as String,
+          authorId: author['id'] as String? ?? '',
+          authorName: author['name'] as String? ?? 'this person'),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(reply ? 52 : 14, 8, 6, 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GestureDetector(
+              onTap: () => openProfile(context, author['id'] as String?),
+              child: Avatar(
+                  src: author['avatarUrl'] as String?,
+                  name: author['name'] as String?,
+                  size: AvatarSize.sm),
             ),
-          ),
-          Semantics(
-            button: true,
-            label: liked ? 'Unlike comment' : 'Like comment',
-            child: InkWell(
-              onTap: () => _toggleLike(c),
-              borderRadius: BorderRadius.circular(20),
-              child: Padding(
-                padding: const EdgeInsets.all(6),
-                child: Column(
-                  children: [
-                    InIcon(liked ? InIcons.heart : InIcons.heart,
-                        size: 16,
-                        color: liked
-                            ? const Color(0xFFFF5C8A)
-                            : AppColors.textFaint),
-                    if (likes > 0)
-                      Text('$likes',
-                          style: const TextStyle(
-                              color: AppColors.textFaint, fontSize: 11)),
-                  ],
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                      '${author['username'] ?? author['name'] ?? 'Someone'}  ·  ${created == null ? '' : formatRelativeTime(created)}',
+                      style: const TextStyle(
+                          color: AppColors.textFaint, fontSize: 11.5)),
+                  const SizedBox(height: 2),
+                  Text.rich(
+                    TextSpan(children: [
+                      for (final part in text.split(RegExp(r'(?=@)|(?<=\s)')))
+                        TextSpan(
+                            text: part,
+                            style: part.startsWith('@')
+                                ? const TextStyle(color: Color(0xFF6F9BFF))
+                                : null),
+                    ]),
+                    style: const TextStyle(
+                        color: AppColors.text, fontSize: 13.5, height: 1.35),
+                  ),
+                  const SizedBox(height: 4),
+                  GestureDetector(
+                    onTap: () => _reply(c),
+                    child: const Text('Reply',
+                        style: TextStyle(
+                            color: AppColors.textFaint,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              ),
+            ),
+            Semantics(
+              button: true,
+              label: liked ? 'Unlike comment' : 'Like comment',
+              child: InkWell(
+                onTap: () => _toggleLike(c),
+                borderRadius: BorderRadius.circular(20),
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Column(
+                    children: [
+                      InIcon(liked ? InIcons.heart : InIcons.heart,
+                          size: 16,
+                          color: liked
+                              ? const Color(0xFFFF5C8A)
+                              : AppColors.textFaint),
+                      if (likes > 0)
+                        Text('$likes',
+                            style: const TextStyle(
+                                color: AppColors.textFaint, fontSize: 11)),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

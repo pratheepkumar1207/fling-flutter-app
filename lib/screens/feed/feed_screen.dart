@@ -596,16 +596,11 @@ class _FeedScreenState extends State<FeedScreen> {
                 tile(
                     InIcons.flame,
                     'Report',
-                    () => showReportReasonSheet(context,
-                        userName: post.author.name,
-                        onSubmit: (reason) => _postAction(
-                            () => ApiClient.post(
-                                '/social/report/${post.author.id}',
-                                body: {'reason': 'Post ${post.id}: $reason'}),
-                            'Report submitted',
-                            reload: false),
-                        onAlsoBlock: () =>
-                            ApiClient.post('/social/block/${post.author.id}')),
+                    () => showReportContentSheet(context,
+                        targetType: 'post',
+                        targetId: post.id,
+                        authorId: post.author.id,
+                        authorName: post.author.name),
                     danger: true),
               ],
               const SizedBox(height: 8),

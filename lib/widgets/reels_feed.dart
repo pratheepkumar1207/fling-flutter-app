@@ -6,6 +6,7 @@ import '../core/profile_nav.dart';
 import '../models/post.dart';
 import '../theme/app_colors.dart';
 import 'avatar.dart';
+import 'report_user_sheet.dart';
 import 'share_row.dart';
 
 // Transparent by default — a plain white outline icon sitting directly on
@@ -235,6 +236,17 @@ class _ReelCardState extends State<_ReelCard>
                 ),
                 ShareRow(
                     text: post.text, url: '${ApiClient.baseUrl}/p/${post.id}'),
+                _ReelIconButton(
+                  icon: InIcons.more,
+                  active: false,
+                  activeColor: Colors.white,
+                  onTap: () => showReportContentSheet(context,
+                      targetType: 'post',
+                      targetId: post.id,
+                      authorId: post.author.id,
+                      authorName: post.author.name),
+                  semantics: 'Report this reel',
+                ),
                 _ReelIconButton(
                   icon: post.savedByMe ? InIcons.bookmark : InIcons.bookmark,
                   active: post.savedByMe,
