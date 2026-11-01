@@ -1,14 +1,21 @@
+import 'dart:convert';
+import 'dart:io';
+
 import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:video_player/video_player.dart';
 import 'package:provider/provider.dart';
 import '../core/api_client.dart';
 import '../core/api_exception.dart';
 import '../core/auth_provider.dart';
 import '../core/format.dart';
+import '../screens/create/create_flow.dart';
 import '../theme/app_colors.dart';
 import 'app_image.dart';
 import 'avatar.dart';
 import 'story_bar.dart';
+import 'story_stickers.dart';
 
 /// Full-screen tap-through story viewer — Dart port of StoryViewer.jsx.
 /// Auto-advances through the current user's items on a timer, tap left/
@@ -156,7 +163,16 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
           },
           child: Stack(
             children: [
-              Positioned.fill(child: _buildMedia(item)),
+              Positioned.fill(
+                child: item.mediaType == 'image' || item.mediaType == 'reel'
+                    ? StoryFrame(
+                        child: Stack(fit: StackFit.expand, children: [
+                          _buildMedia(item),
+                          if (item.stickers.isNotEmpty) _stickers(item, group),
+                        ]),
+                      )
+                    : _buildMedia(item),
+              ),
               Positioned(
                 top: 8,
                 left: 8,
@@ -265,6 +281,23 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
     );
   }
 
+  Widget _stickers(StoryItem item, StoryEntry group) => StoryStickerLayer(
+        key: ValueKey(item.id),
+        storyId: item.id,
+        stickers: item.stickers,
+        isAuthor: group.userId == context.read<AuthProvider>().user?.id,
+        onPause: () => _controller.stop(),
+        onResume: () => _controller.forward(),
+        onAddYours: (prompt) {
+          _controller.stop();
+          openCreateFlow(context,
+                  mode: CreateMode.story, addYoursPrompt: prompt)
+              .then((_) {
+            if (mounted) _controller.forward();
+          });
+        },
+      );
+
   static const _reactions = ['😂', '😮', '😍', '🔥', '👏', '😢'];
 
   Widget _replyBar() {
@@ -344,11 +377,21 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
 
   Widget _buildMedia(StoryItem item) {
     if (item.mediaType == 'image' && item.imageData != null) {
-      return Center(
-          child: AppImage(source: item.imageData, fit: BoxFit.contain));
+      return AppImage(source: item.imageData, fit: BoxFit.cover);
     }
     if (item.mediaType == 'reel' && item.videoData != null) {
-      return const Center(child: Text('🎥', style: TextStyle(fontSize: 64)));
+      return _StoryVideo(
+        key: ValueKey(item.id),
+        id: item.id,
+        data: item.videoData!,
+        // The bar runs for as long as the clip does.
+        onReady: (length) {
+          if (!mounted || length <= Duration.zero) return;
+          _controller
+            ..duration = length
+            ..forward(from: 0);
+        },
+      );
     }
     if (item.mediaType == 'voice') {
       return Container(
@@ -383,6 +426,72 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
           textAlign: TextAlign.center,
           style: const TextStyle(
               color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+    );
+  }
+}
+
+/// Plays a story's clip. It arrives as text, so it's written to a file first.
+class _StoryVideo extends StatefulWidget {
+  final String id;
+  final String data;
+  final ValueChanged<Duration> onReady;
+  const _StoryVideo(
+      {super.key, required this.id, required this.data, required this.onReady});
+
+  @override
+  State<_StoryVideo> createState() => _StoryVideoState();
+}
+
+class _StoryVideoState extends State<_StoryVideo> {
+  VideoPlayerController? _video;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final comma = widget.data.indexOf(',');
+      final bytes = base64Decode(widget.data.substring(comma + 1));
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/story_${widget.id}.mp4');
+      if (!await file.exists()) await file.writeAsBytes(bytes);
+      final v = VideoPlayerController.file(file);
+      await v.initialize();
+      if (!mounted) {
+        await v.dispose();
+        return;
+      }
+      await v.play();
+      setState(() => _video = v);
+      widget.onReady(v.value.duration);
+    } catch (_) {
+      // The story's bar keeps running and moves on to the next one.
+    }
+  }
+
+  @override
+  void dispose() {
+    _video?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final v = _video;
+    if (v == null) {
+      return const Center(
+          child: CircularProgressIndicator(color: Colors.white));
+    }
+    return FittedBox(
+      fit: BoxFit.cover,
+      child: SizedBox(
+        width: v.value.size.width,
+        height: v.value.size.height,
+        child: VideoPlayer(v),
+      ),
     );
   }
 }

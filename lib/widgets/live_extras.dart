@@ -231,7 +231,10 @@ class LiveUserVideo extends StatelessWidget {
       builder: (context, _) {
         final engine = live.engine;
         Widget? surface;
-        if (engine != null && live.joined) {
+        final myUid = liveUidFor(userId);
+        final cameraOff = isMe ? !live.cameraOn : live.isCameraOff(myUid);
+        final micOff = isMe ? !live.micOn : live.isMicOff(myUid);
+        if (engine != null && live.joined && !cameraOff) {
           if (isMe) {
             surface = AgoraVideoView(
                 controller: VideoViewController(
@@ -267,6 +270,12 @@ class LiveUserVideo extends StatelessWidget {
               Center(
                   child:
                       Avatar(src: avatarUrl, name: name, size: AvatarSize.lg)),
+          if (micOff)
+            const Positioned(
+              left: 5,
+              bottom: 5,
+              child: InIcon(InIcons.micoff, color: Colors.white, size: 15),
+            ),
         ]);
       },
     );

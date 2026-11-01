@@ -55,13 +55,23 @@ class DirectCallController extends ChangeNotifier {
         await engine.disableVideo();
       }
       await engine.enableAudio();
-      await engine.setEnableSpeakerphone(_speakerEnabled);
+      // setEnableSpeakerphone is refused (-3) until the call has joined.
+      await engine.setDefaultAudioRouteToSpeakerphone(_speakerEnabled);
       engine.registerEventHandler(RtcEngineEventHandler(
         onError: (err, msg) => debugPrint('AGORA call error: $err'),
         // Shows up in the phone's log, for diagnosing connection problems.
+        onLocalVideoStateChanged: (source, state, reason) =>
+            debugPrint('AGORA call my camera: $state because $reason'),
+        onLocalAudioStateChanged: (connection, state, reason) =>
+            debugPrint('AGORA call my mic: $state because $reason'),
+        onRemoteVideoStateChanged: (connection, uid, state, reason, elapsed) =>
+            debugPrint('AGORA call their video: $state because $reason'),
+        onRemoteAudioStateChanged: (connection, uid, state, reason, elapsed) =>
+            debugPrint('AGORA call their audio: $state because $reason'),
         onConnectionStateChanged: (connection, state, reason) =>
             debugPrint('AGORA call: $state because $reason'),
         onUserJoined: (connection, remoteUid, elapsed) {
+          debugPrint('AGORA call someone joined');
           _remoteUid = remoteUid;
           notifyListeners();
         },
@@ -90,7 +100,8 @@ class DirectCallController extends ChangeNotifier {
       if (video) await engine.startPreview();
       _joined = true;
       notifyListeners();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('AGORA call could not start: $e');
       // The call just won't connect this session.
     }
   }

@@ -335,6 +335,12 @@ class RoomSocketController extends ChangeNotifier {
       call = Map<String, dynamic>.from(data);
       notifyListeners();
     });
+    s.on('call:invited', (data) {
+      if (data is Map && data['roomId'] == roomId) {
+        stageInvite = true;
+        notifyListeners();
+      }
+    });
     s.on('call:denied', (data) {
       micDenied = data['reason'] as String?;
       notifyListeners();
@@ -676,10 +682,25 @@ class RoomSocketController extends ChangeNotifier {
     }
   }
 
+  /// Live rooms ask the person before putting them on camera.
+  bool askBeforeStage = false;
+
+  /// The host has invited me on stage and I haven't answered yet.
+  bool stageInvite = false;
+
+  void answerStageInvite(bool accept) {
+    stageInvite = false;
+    socket?.emit('call:answerInvite', {'roomId': roomId, 'accept': accept});
+    notifyListeners();
+  }
+
   void inviteMic(String targetUserId) {
     if (canApproveMics) {
-      socket?.emit(
-          'call:inviteMic', {'roomId': roomId, 'targetUserId': targetUserId});
+      socket?.emit('call:inviteMic', {
+        'roomId': roomId,
+        'targetUserId': targetUserId,
+        'ask': askBeforeStage
+      });
     }
   }
 

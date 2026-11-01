@@ -37,6 +37,10 @@ android {
             )
         }
     }
+    // MediaPipe maps the face model straight from the APK.
+    androidResources {
+        noCompress += "task"
+    }
     namespace = "com.fling.app"
     // Flutter's own default (flutter.compileSdkVersion, 31 in this SDK) is
     // too old for agora_rtc_engine's transitive androidx dependencies,
@@ -125,4 +129,6 @@ dependencies {
     implementation("androidx.media3:media3-transformer:$media3Version")
     implementation("androidx.media3:media3-effect:$media3Version")
     implementation("androidx.exifinterface:exifinterface:1.3.7")
+    // Finds the face for camera filters, on the phone (FaceFilterChannel.kt).
+    implementation("com.google.mediapipe:tasks-vision:0.10.21")
 }

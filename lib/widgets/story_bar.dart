@@ -13,6 +13,7 @@ class StoryItem {
   final DateTime createdAt;
   // Shared to "Close friends" only — shown with a green ring and badge.
   final bool closeFriends;
+  final List<Map<String, dynamic>> stickers;
 
   const StoryItem({
     required this.id,
@@ -24,6 +25,7 @@ class StoryItem {
     this.videoData,
     required this.createdAt,
     this.closeFriends = false,
+    this.stickers = const [],
   });
 
   factory StoryItem.fromJson(Map<String, dynamic> json) => StoryItem(
@@ -37,6 +39,9 @@ class StoryItem {
         createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
             DateTime.now(),
         closeFriends: json['closeFriends'] == true,
+        stickers: (json['stickers'] as List? ?? [])
+            .map((s) => Map<String, dynamic>.from(s as Map))
+            .toList(),
       );
 }
 

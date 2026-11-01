@@ -43,3 +43,11 @@
 -keepclasseswithmembers class * {
   @android.webkit.JavascriptInterface <methods>;
 }
+
+# MediaPipe's native face tracker (FaceFilterChannel.kt) reaches its Java
+# classes and protobuf messages through JNI and reflection, the same shape
+# of release-only failure as Agora above.
+-keep class com.google.mediapipe.** { *; }
+-dontwarn com.google.mediapipe.**
+-keep class com.google.protobuf.** { *; }
+-dontwarn com.google.protobuf.**

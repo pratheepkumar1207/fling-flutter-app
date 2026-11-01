@@ -3,6 +3,7 @@ import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
+import '../../core/call_ring.dart';
 import '../../core/socket_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
@@ -52,8 +53,15 @@ class _CallScreenState extends State<CallScreen> {
   late final DirectCallController _controller;
   String? _endReason;
   Timer? _durationTimer;
-  Duration _elapsed = Duration.zero;
+  // Its own notifier, so the clock doesn't rebuild the video every second.
+  final _elapsed = ValueNotifier(Duration.zero);
   bool _wasConnected = false;
+  bool _controlsVisible = true;
+  Timer? _hideControlsTimer;
+  Timer? _noAnswerTimer;
+  Widget? _remoteView;
+  int? _remoteViewUid;
+  Widget? _localView;
 
   @override
   void initState() {
@@ -64,6 +72,17 @@ class _CallScreenState extends State<CallScreen> {
         uid: widget.uid,
         video: widget.video);
     _controller.addListener(_onControllerChanged);
+    if (widget.isCaller) {
+      CallRing.ringback();
+      _noAnswerTimer = Timer(const Duration(seconds: 45), () {
+        if (!mounted || _controller.remoteUid != null) return;
+        CallRing.stop();
+        setState(() => _endReason = 'No answer');
+        Future.delayed(const Duration(milliseconds: 900), () {
+          if (mounted) _hangUp();
+        });
+      });
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) => _bindSocket());
   }
 
@@ -73,20 +92,49 @@ class _CallScreenState extends State<CallScreen> {
       _wasConnected = true;
       _durationTimer?.cancel();
       _durationTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (mounted) setState(() => _elapsed += const Duration(seconds: 1));
+        _elapsed.value += const Duration(seconds: 1);
       });
+      CallRing.stop();
+      _noAnswerTimer?.cancel();
+      _showControls();
     }
   }
+
+  /// In a video call the buttons step aside so the video can be seen; a tap
+  /// brings them back.
+  void _showControls() {
+    _hideControlsTimer?.cancel();
+    if (mounted) setState(() => _controlsVisible = true);
+    if (!widget.video || _controller.remoteUid == null) return;
+    _hideControlsTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted) setState(() => _controlsVisible = false);
+    });
+  }
+
+  void _toggleControls() {
+    if (_controlsVisible) {
+      _hideControlsTimer?.cancel();
+      setState(() => _controlsVisible = false);
+    } else {
+      _showControls();
+    }
+  }
+
+  Widget _durationText(TextStyle style) => ValueListenableBuilder<Duration>(
+        valueListenable: _elapsed,
+        builder: (_, d, __) => Text(_formatDuration(d), style: style),
+      );
 
   String _formatDuration(Duration d) {
     final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$m:$s';
+    return d.inHours > 0 ? '${d.inHours}:$m:$s' : '$m:$s';
   }
 
   void _bindSocket() {
     final socket = context.read<SocketService>().socket;
     void onDone(String reason) {
+      CallRing.stop();
       if (!mounted) return;
       setState(() => _endReason = reason);
       Future.delayed(const Duration(milliseconds: 900), () {
@@ -112,6 +160,7 @@ class _CallScreenState extends State<CallScreen> {
   }
 
   Future<void> _hangUp() async {
+    CallRing.stop();
     // If I'm the caller and the other side never actually joined media
     // (_controller.remoteUid is still null), this is a cancel — the callee
     // may still be looking at their incoming-call dialog (see
@@ -210,9 +259,13 @@ class _CallScreenState extends State<CallScreen> {
                                   fontWeight: FontWeight.bold)),
                           if (!widget.video) ...[
                             const SizedBox(height: 4),
-                            const Text('Audio call',
-                                style: TextStyle(
-                                    color: Colors.white70, fontSize: 12.5)),
+                            if (connected)
+                              _durationText(const TextStyle(
+                                  color: Colors.white70, fontSize: 14))
+                            else
+                              const Text('Audio call',
+                                  style: TextStyle(
+                                      color: Colors.white70, fontSize: 12.5)),
                           ] else
                             Padding(
                               padding: const EdgeInsets.only(top: 8),
@@ -228,6 +281,13 @@ class _CallScreenState extends State<CallScreen> {
                         ],
                       ),
                     ),
+                  if (widget.video && connected)
+                    Positioned.fill(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _toggleControls,
+                      ),
+                    ),
                   if (widget.video &&
                       _controller.joined &&
                       _controller.cameraEnabled)
@@ -238,7 +298,7 @@ class _CallScreenState extends State<CallScreen> {
                       height: 136,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(16),
-                        child: AgoraVideoView(
+                        child: _localView ??= AgoraVideoView(
                             controller: VideoViewController(
                                 rtcEngine: _controller.engine!,
                                 canvas: const VideoCanvas(uid: 0))),
@@ -249,7 +309,7 @@ class _CallScreenState extends State<CallScreen> {
                       top: 18,
                       left: 20,
                       right: 20,
-                      child: Row(
+                      child: _fading(Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
@@ -273,17 +333,20 @@ class _CallScreenState extends State<CallScreen> {
                                           decoration: const BoxDecoration(
                                               color: AppColors.success,
                                               shape: BoxShape.circle)),
-                                    Text(
-                                      connected
-                                          ? _formatDuration(_elapsed)
-                                          : (_endReason ??
-                                              (widget.isCaller
-                                                  ? 'Calling…'
-                                                  : 'Connecting…')),
-                                      style: const TextStyle(
+                                    if (connected)
+                                      _durationText(const TextStyle(
                                           color: Colors.white70,
-                                          fontSize: 11.5),
-                                    ),
+                                          fontSize: 11.5))
+                                    else
+                                      Text(
+                                        _endReason ??
+                                            (widget.isCaller
+                                                ? 'Calling…'
+                                                : 'Connecting…'),
+                                        style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 11.5),
+                                      ),
                                   ],
                                 ),
                               ],
@@ -303,13 +366,13 @@ class _CallScreenState extends State<CallScreen> {
                             ),
                           ),
                         ],
-                      ),
+                      )),
                     ),
                   Positioned(
                     left: 16,
                     right: 16,
                     bottom: 24,
-                    child: Container(
+                    child: _fading(Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 16),
                       decoration: BoxDecoration(
@@ -361,7 +424,7 @@ class _CallScreenState extends State<CallScreen> {
                               onTap: _hangUp),
                         ],
                       ),
-                    ),
+                    )),
                   ),
                 ],
               );
@@ -372,14 +435,28 @@ class _CallScreenState extends State<CallScreen> {
     );
   }
 
+  Widget _fading(Widget child) => IgnorePointer(
+        ignoring: !_controlsVisible,
+        child: AnimatedOpacity(
+          opacity: _controlsVisible ? 1 : 0,
+          duration: const Duration(milliseconds: 200),
+          child: child,
+        ),
+      );
+
   Widget _remoteVideo() {
-    return AgoraVideoView(
-      controller: VideoViewController.remote(
-        rtcEngine: _controller.engine!,
-        canvas: VideoCanvas(uid: _controller.remoteUid),
-        connection: RtcConnection(channelId: widget.channelName),
-      ),
-    );
+    // Kept between builds, so hiding the buttons doesn't restart the video.
+    if (_remoteView == null || _remoteViewUid != _controller.remoteUid) {
+      _remoteViewUid = _controller.remoteUid;
+      _remoteView = AgoraVideoView(
+        controller: VideoViewController.remote(
+          rtcEngine: _controller.engine!,
+          canvas: VideoCanvas(uid: _controller.remoteUid),
+          connection: RtcConnection(channelId: widget.channelName),
+        ),
+      );
+    }
+    return _remoteView!;
   }
 
   Widget _control(
@@ -425,7 +502,12 @@ class _CallScreenState extends State<CallScreen> {
 
   @override
   void dispose() {
+    CallRing.stop();
+    CallRing.callFinished();
     _durationTimer?.cancel();
+    _hideControlsTimer?.cancel();
+    _noAnswerTimer?.cancel();
+    _elapsed.dispose();
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
     super.dispose();

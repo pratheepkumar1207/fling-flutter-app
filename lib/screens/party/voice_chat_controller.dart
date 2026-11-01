@@ -79,10 +79,10 @@ class VoiceChatController extends ChangeNotifier {
   // collision) has crashed the whole process at that exact call on some
   // devices, identically in debug and release, which a Dart try/catch
   // can't stop since it's a native-side crash, not a Dart exception.
-  // Deferring to "only when the user actually touches a mic control"
-  // means a broken Agora build no longer takes the entire app down just
-  // for opening a room — see ensureInitialized() below, called from
-  // party_screen.dart's mic tap handler instead of eagerly here.
+  // Deferring until a room actually has voice to carry (party_screen.dart:
+  // a voice room, or any room with a mic on) means a broken Agora build no
+  // longer takes the entire app down just for opening other rooms — see
+  // ensureInitialized() below.
   //
   // Note this only protects against the crash happening at all — it can't
   // make that specific failure mode catchable or reportable via `status`
@@ -98,11 +98,8 @@ class VoiceChatController extends ChangeNotifier {
 
   Future<void> _init() async {
     _setStatus(VoiceChatStatus.connecting);
+    // Listening needs no permission; only sending does (setMicEnabled).
     final micStatus = await Permission.microphone.status;
-    if (!micStatus.isGranted) {
-      _setStatus(VoiceChatStatus.permissionDenied);
-      return;
-    }
     try {
       final engine = createAgoraRtcEngine();
       await engine.initialize(RtcEngineContext(appId: kAgoraAppId));
@@ -110,6 +107,17 @@ class VoiceChatController extends ChangeNotifier {
           .setChannelProfile(ChannelProfileType.channelProfileCommunication);
       await engine.disableVideo();
       await engine.enableAudio();
+      // Communication audio otherwise plays from the earpiece, which sounds
+      // like silence with the phone in your hand. Headphones still win.
+      await engine.setDefaultAudioRouteToSpeakerphone(true);
+      // Rooms are noisier than calls: phones on loudspeaker, often with a
+      // video playing. Voice still works if a phone can't do this.
+      try {
+        await engine.setAINSMode(
+            enabled: true, mode: AudioAinsMode.ainsModeBalanced);
+      } catch (e) {
+        debugPrint('AGORA voice noise suppression off: $e');
+      }
       await engine.muteLocalAudioStream(true);
       // Previously unregistered entirely — a connection that dropped or
       // errored out *after* a successful join had no way to tell this
@@ -117,6 +125,14 @@ class VoiceChatController extends ChangeNotifier {
       // stopped working; `_joined` would stay true forever.
       engine.registerEventHandler(RtcEngineEventHandler(
         // Shows up in the phone's log, for diagnosing connection problems.
+        onLocalVideoStateChanged: (source, state, reason) =>
+            debugPrint('AGORA voice my camera: $state because $reason'),
+        onLocalAudioStateChanged: (connection, state, reason) =>
+            debugPrint('AGORA voice my mic: $state because $reason'),
+        onRemoteVideoStateChanged: (connection, uid, state, reason, elapsed) =>
+            debugPrint('AGORA voice their video: $state because $reason'),
+        onRemoteAudioStateChanged: (connection, uid, state, reason, elapsed) =>
+            debugPrint('AGORA voice their audio: $state because $reason'),
         onConnectionStateChanged: (connection, state, reason) =>
             debugPrint('AGORA voice: $state because $reason'),
         onError: (ErrorCodeType err, String msg) {
@@ -143,9 +159,11 @@ class VoiceChatController extends ChangeNotifier {
         token: data['token'] as String,
         channelId: data['channelName'] as String,
         uid: uid,
-        options: const ChannelMediaOptions(
+        options: ChannelMediaOptions(
           clientRoleType: ClientRoleType.clientRoleBroadcaster,
           channelProfile: ChannelProfileType.channelProfileCommunication,
+          publishMicrophoneTrack: micStatus.isGranted,
+          autoSubscribeAudio: true,
         ),
       );
       _joined = true;
@@ -153,7 +171,8 @@ class VoiceChatController extends ChangeNotifier {
         await engine.adjustPlaybackSignalVolume(_playbackVolume);
       }
       _setStatus(VoiceChatStatus.connected);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('AGORA voice could not start: $e');
       // Still a real possibility even with the lazy-init deferral above
       // (e.g. engine.initialize() throwing a catchable Dart exception
       // rather than crashing natively, or the token fetch/joinChannel
@@ -180,6 +199,15 @@ class VoiceChatController extends ChangeNotifier {
 
   Future<void> setMicEnabled(bool enabled) async {
     if (!_joined || enabled == _micEnabled) return;
+    debugPrint('AGORA voice mic wanted: $enabled');
+    if (enabled) {
+      if (!(await Permission.microphone.status).isGranted) {
+        _setStatus(VoiceChatStatus.permissionDenied);
+        return;
+      }
+      await _engine?.updateChannelMediaOptions(
+          const ChannelMediaOptions(publishMicrophoneTrack: true));
+    }
     _micEnabled = enabled;
     if (!enabled) {
       _quietTimer?.cancel();

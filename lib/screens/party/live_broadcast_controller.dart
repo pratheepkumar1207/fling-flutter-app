@@ -35,7 +35,7 @@ int liveUidFor(String userId) {
 /// fix this keeps).
 class LiveBroadcastController extends ChangeNotifier {
   final String roomId;
-  final bool isHost;
+  bool _isHost;
   final String? myUserId;
   RtcEngineEx? _engine;
   bool _joined = false;
@@ -48,6 +48,30 @@ class LiveBroadcastController extends ChangeNotifier {
   String? _opponentRoomId;
   int? _opponentUid;
 
+  bool get isHost => _isHost;
+
+  bool _cameraOn = true;
+  bool _micOn = true;
+  final Set<int> _cameraOffUids = {};
+  final Set<int> _micOffUids = {};
+  bool get cameraOn => _cameraOn;
+  bool get micOn => _micOn;
+  bool isCameraOff(int uid) => _cameraOffUids.contains(uid);
+  bool isMicOff(int uid) => _micOffUids.contains(uid);
+
+  Future<void> setCameraOn(bool on) async {
+    _cameraOn = on;
+    notifyListeners();
+    await _engine?.muteLocalVideoStream(!on);
+  }
+
+  Future<void> setMicOn(bool on) async {
+    _micOn = on;
+    notifyListeners();
+    await _engine?.muteLocalAudioStream(!on);
+  }
+
+  Future<void> flipCamera() async => _engine?.switchCamera();
   RtcEngine? get engine => _engine;
   bool get joined => _joined;
   bool get isGuest => _guest;
@@ -61,15 +85,17 @@ class LiveBroadcastController extends ChangeNotifier {
   int? get opponentUid => _opponentUid;
 
   LiveBroadcastController(
-      {required this.roomId, required this.isHost, this.myUserId}) {
+      {required this.roomId, required bool isHost, this.myUserId})
+      : _isHost = isHost {
     if (kAgoraAppId.isNotEmpty) _init();
   }
 
   Future<void> _init() async {
     _setStatus(VoiceChatStatus.connecting);
+    final asHost = _isHost;
     // Only the host is asked up front (they publish straight away); a
     // viewer is asked in setGuest once they join the stage.
-    if (isHost) {
+    if (asHost) {
       final camStatus = await Permission.camera.status;
       final micStatus = await Permission.microphone.status;
       if (!camStatus.isGranted || !micStatus.isGranted) {
@@ -84,9 +110,26 @@ class LiveBroadcastController extends ChangeNotifier {
       await engine.enableAudio();
       engine.registerEventHandler(RtcEngineEventHandler(
         // Shows up in the phone's log, for diagnosing connection problems.
+        onLocalVideoStateChanged: (source, state, reason) =>
+            debugPrint('AGORA live my camera: $state because $reason'),
+        onLocalAudioStateChanged: (connection, state, reason) =>
+            debugPrint('AGORA live my mic: $state because $reason'),
+        onRemoteVideoStateChanged: (connection, uid, state, reason, elapsed) =>
+            debugPrint('AGORA live their video: $state because $reason'),
+        onRemoteAudioStateChanged: (connection, uid, state, reason, elapsed) =>
+            debugPrint('AGORA live their audio: $state because $reason'),
         onConnectionStateChanged: (connection, state, reason) =>
             debugPrint('AGORA live: $state because $reason'),
+        onUserMuteVideo: (connection, uid, muted) {
+          muted ? _cameraOffUids.add(uid) : _cameraOffUids.remove(uid);
+          notifyListeners();
+        },
+        onUserMuteAudio: (connection, uid, muted) {
+          muted ? _micOffUids.add(uid) : _micOffUids.remove(uid);
+          notifyListeners();
+        },
         onUserJoined: (connection, uid, elapsed) {
+          debugPrint('AGORA live someone joined');
           if (connection.channelId == _opponentRoomId) {
             _opponentUid = uid;
           } else if (connection.channelId == roomId) {
@@ -99,6 +142,8 @@ class LiveBroadcastController extends ChangeNotifier {
             if (_opponentUid == uid) _opponentUid = null;
           } else {
             _remoteUids.remove(uid);
+            _cameraOffUids.remove(uid);
+            _micOffUids.remove(uid);
           }
           notifyListeners();
         },
@@ -119,31 +164,62 @@ class LiveBroadcastController extends ChangeNotifier {
         channelId: data['channelName'] as String,
         uid: myUid,
         options: ChannelMediaOptions(
-          clientRoleType: ClientRoleType.clientRoleBroadcaster,
+          // Only people on camera are broadcasters; a viewer joined as one
+          // would look like a performer to everyone else in the room.
+          clientRoleType: asHost
+              ? ClientRoleType.clientRoleBroadcaster
+              : ClientRoleType.clientRoleAudience,
           channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
-          publishCameraTrack: isHost,
-          publishMicrophoneTrack: isHost,
+          publishCameraTrack: asHost,
+          publishMicrophoneTrack: asHost,
           autoSubscribeVideo: true,
           autoSubscribeAudio: true,
         ),
       );
-      if (isHost) {
+      if (asHost) {
         await engine.startPreview();
       }
       _joined = true;
       _setStatus(VoiceChatStatus.connected);
-      if (_guest) await _publish(true);
-    } catch (_) {
+      if (_isHost != asHost) {
+        await _setCamera(_isHost);
+      } else if (_guest) {
+        await _publish(true);
+      }
+    } catch (e) {
+      debugPrint('AGORA live could not start: $e');
       // Video just won't work this session — not fatal to the rest of the
       // room, but now observable via `status` instead of silent.
       _setStatus(VoiceChatStatus.failed);
     }
   }
 
+  /// Follows who the room says is host: that's only known once the room's
+  /// socket reports it, which can be after this controller started, and the
+  /// host can hand over mid-live.
+  Future<void> setHost(bool on) async {
+    if (on == _isHost) return;
+    _isHost = on;
+    notifyListeners();
+    if (_joined) await _setCamera(on);
+  }
+
+  Future<void> _setCamera(bool on) async {
+    if (on) {
+      final cam = await Permission.camera.status;
+      final mic = await Permission.microphone.status;
+      if (!cam.isGranted || !mic.isGranted) {
+        _setStatus(VoiceChatStatus.permissionDenied);
+        return;
+      }
+    }
+    await _publish(on);
+  }
+
   /// Puts a viewer on (or takes them off) the video stage. Safe to call on
   /// every build: it only acts when the state actually changes.
   Future<void> setGuest(bool on) async {
-    if (isHost || on == _guest) return;
+    if (_isHost || on == _guest) return;
     _guest = on;
     notifyListeners();
     if (on) {
@@ -163,9 +239,20 @@ class LiveBroadcastController extends ChangeNotifier {
     if (engine == null) return;
     try {
       await engine.updateChannelMediaOptions(ChannelMediaOptions(
-          publishCameraTrack: on, publishMicrophoneTrack: on));
+          clientRoleType: on
+              ? ClientRoleType.clientRoleBroadcaster
+              : ClientRoleType.clientRoleAudience,
+          publishCameraTrack: on,
+          publishMicrophoneTrack: on));
+      // A new turn on stage starts with both on.
+      _cameraOn = true;
+      _micOn = true;
+      await engine.muteLocalVideoStream(false);
+      await engine.muteLocalAudioStream(false);
+      notifyListeners();
       on ? await engine.startPreview() : await engine.stopPreview();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('AGORA live could not publish: $e');
       // Stays a viewer; the stage tile shows their avatar instead.
     }
   }

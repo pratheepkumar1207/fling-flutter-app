@@ -21,6 +21,8 @@ import '../../theme/insync_icons.dart';
 import 'create_sheet.dart';
 import 'liquid_glass_bottom_nav.dart';
 import 'top_bar.dart';
+import '../../core/push_notifications.dart';
+import '../../core/call_ring.dart';
 import '../../widgets/permission_primer.dart';
 
 /// Bottom tabs Home, Feed, Live and Discover with the "+" Create sheet in
@@ -83,6 +85,12 @@ class _AppShellState extends State<AppShell> {
       final socket = context.read<SocketService>();
       if (auth.token != null) socket.connect(auth.token!);
       _bindIncomingCalls(socket);
+      CallRing.listen(_openPendingCall);
+      _openPendingCall();
+      // Tokens change, and calls to a closed app depend on this one.
+      if (auth.user?.pushNotificationsEnabled != false) {
+        requestPushPermissionAndRegister();
+      }
       // Camera, mic, location and notifications in one go, first open only.
       ensureStartupPermissions(context,
           registerPush: auth.user?.pushNotificationsEnabled != false);
@@ -93,6 +101,27 @@ class _AppShellState extends State<AppShell> {
   // under whatever screen the user navigates to, since those are pushed on
   // top of it) so an incoming call rings no matter what the user is
   // currently looking at. See calls.js's direct-invite route.
+  /// Opened from a ringing notification: the same screen as a live call.
+  Future<void> _openPendingCall() async {
+    final call = await CallRing.pendingCall();
+    if (call == null || !mounted || _handlingIncomingCall) return;
+    final sent = int.tryParse('${call['sentAt']}') ?? 0;
+    final age = DateTime.now().millisecondsSinceEpoch - sent;
+    if (age > _ringFor.inMilliseconds) {
+      CallRing.callFinished();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:
+              Text('You missed a call from ${call['fromName'] ?? 'someone'}')));
+      return;
+    }
+    if ((call['fromAvatarUrl'] as String?)?.isEmpty ?? false) {
+      call['fromAvatarUrl'] = null;
+    }
+    _showIncomingCall(call);
+  }
+
+  static const _ringFor = Duration(seconds: 45);
+
   void _bindIncomingCalls(SocketService socketService) {
     socketService.socket?.on('call:incoming', (data) {
       if (!mounted || data is! Map || _handlingIncomingCall) return;
@@ -120,10 +149,24 @@ class _AppShellState extends State<AppShell> {
     // showDialog defaults to useRootNavigator: true, so this shows above
     // whatever screen is currently pushed on top of AppShell, not just
     // AppShell's own body.
+    CallRing.incoming();
+    // Nobody rings for ever, including if the "cancelled" message was missed.
+    final channel = _activeIncomingChannelName;
+    final giveUp = Timer(_ringFor, () {
+      if (mounted &&
+          _handlingIncomingCall &&
+          _activeIncomingChannelName == channel) {
+        Navigator.of(context, rootNavigator: true).pop(null);
+      }
+    });
     final answer = await showIncomingCall(context,
         name: data['fromName'] as String? ?? 'Someone',
         avatarUrl: data['fromAvatarUrl'] as String?,
         video: data['mode'] == 'video');
+    giveUp.cancel();
+    CallRing.stop();
+    // Answering stays over the lock screen until the call ends.
+    if (answer != CallAnswer.accept) CallRing.callFinished();
     if (!mounted) return;
     final channelName = data['channelName'] as String;
     final fromId = data['fromUserId'] as String?;

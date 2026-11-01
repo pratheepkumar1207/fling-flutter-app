@@ -1,5 +1,6 @@
 package com.fling.app
 
+import android.content.Intent
 import android.app.PictureInPictureParams
 import android.content.Context
 import android.content.res.Configuration
@@ -45,6 +46,39 @@ class MainActivity : AudioServiceActivity() {
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
     }
 
+    private var callRing: CallRingChannel? = null
+
+    // Answering a call must work from the lock screen. Only then: the rest of
+    // the app stays behind the lock.
+    private fun pendingCallFrom(intent: Intent?): Map<String, String?>? {
+        if (intent?.getBooleanExtra(CallPushReceiver.EXTRA_CALL, false) != true) return null
+        intent.removeExtra(CallPushReceiver.EXTRA_CALL)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        }
+        CallPushReceiver.cancel(this)
+        return CallPushReceiver.FIELDS.associateWith { intent.getStringExtra("call_$it") }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        pendingCallFrom(intent)?.let { call ->
+            callRing?.pendingCall = call
+            callRing?.announcePendingCall()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        CallPushReceiver.inForeground = true
+    }
+
+    override fun onPause() {
+        CallPushReceiver.inForeground = false
+        super.onPause()
+    }
+
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
@@ -79,6 +113,10 @@ class MainActivity : AudioServiceActivity() {
         // Prime and Hotstar need — see core/drm_support.dart. Emulators and
         // some phones don't, and no WebView can play those services there.
         VideoEditChannel(this, flutterEngine.dartExecutor.binaryMessenger)
+        FaceFilterChannel(this, flutterEngine.dartExecutor.binaryMessenger)
+        callRing = CallRingChannel(this, flutterEngine.dartExecutor.binaryMessenger).also { ring ->
+            pendingCallFrom(intent)?.let { ring.pendingCall = it }
+        }
 
         volumeChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.fling.app/volume_keys")
         volumeChannel?.setMethodCallHandler { call, result ->

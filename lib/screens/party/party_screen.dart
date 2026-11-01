@@ -96,6 +96,10 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   RoomSocketController? _rs;
   VoiceChatController? _voice;
   LiveBroadcastController? _live;
+
+  /// Swiped away, leaving only the live's video.
+  bool _liveChromeHidden = false;
+  bool _stageInviteOpen = false;
   LiveExtrasController? _extras;
   bool _pkDialogOpen = false;
   Set<String> _likedUrls = {};
@@ -275,6 +279,48 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     } catch (_) {}
   }
 
+  Future<void> _showStageInvite(RoomSocketController rs) async {
+    _stageInviteOpen = true;
+    final join = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Join this live?'),
+        content: const Text(
+            'The host invited you on. Everyone watching will see and hear you.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Not now')),
+          FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Join')),
+        ],
+      ),
+    );
+    _stageInviteOpen = false;
+    if (!mounted) return;
+    final allowed =
+        join == true && await checkPermissionsOrExplain(context, camera: true);
+    if (!mounted) return;
+    rs.answerStageInvite(allowed);
+  }
+
+  Widget _liveToggle(
+          {required InIconData icon,
+          required String label,
+          required VoidCallback onTap,
+          bool off = false}) =>
+      Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: InIconButton(icon,
+            tooltip: label,
+            size: 42,
+            iconSize: 20,
+            background: off ? Colors.white : Colors.black54,
+            color: off ? Colors.black : Colors.white,
+            onPressed: onTap),
+      );
+
   void _maybeInitLive() {
     final runtime = ActiveRoomHolder.session;
     if (runtime == null) return;
@@ -328,6 +374,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(rs.joinError!)));
     }
+    if (rs.stageInvite && !_stageInviteOpen) _showStageInvite(rs);
     if (rs.micDenied != null) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(rs.micDenied!)));
@@ -910,6 +957,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     // voice engine on the same channel.
     final prefs = RoomPrefs.instance;
     _voice?.setPlaybackVolume(prefs.voiceVolume);
+    rs.askBeforeStage = room['roomType'] == 'live';
     if (room['roomType'] == 'live') {
       _live?.setGuest(myMicOn && !rs.isHost);
     } else if (myMicOn) {
@@ -917,6 +965,10 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       final talk = !prefs.pushToTalk || prefs.talking.value;
       _voice?.ensureInitialized().then((_) => _voice?.setMicEnabled(talk));
     } else {
+      // Listeners join too, or they'd hear nobody until their own mic is on.
+      if (room['roomType'] == 'voice' || activeMics.isNotEmpty) {
+        _voice?.ensureInitialized();
+      }
       _voice?.setMicEnabled(false);
     }
 
@@ -1303,297 +1355,369 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                 key: _scaffoldKey,
                 backgroundColor: Colors.black,
                 endDrawer: rosterSheet,
-                body: AnimatedBuilder(
-                  animation: extras,
-                  builder: (context, _) {
-                    final battle = extras.pk;
-                    final inPk = battle != null;
-                    final topInset = MediaQuery.of(context).padding.top;
-                    final width = MediaQuery.of(context).size.width;
-                    // Every child is positioned, so the Stack takes the whole
-                    // screen; one unpositioned child would shrink it to that
-                    // child's height and pull the bottom bar up to the top.
-                    return Stack(fit: StackFit.expand, children: [
-                      if (inPk)
+                body: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  // Left to right clears the screen for the video. Right to
+                  // left brings it back, then opens the people list.
+                  onHorizontalDragEnd: (d) {
+                    final v = d.primaryVelocity ?? 0;
+                    if (v > 300 && !_liveChromeHidden) {
+                      setState(() => _liveChromeHidden = true);
+                    } else if (v < -300) {
+                      if (_liveChromeHidden) {
+                        setState(() => _liveChromeHidden = false);
+                      } else {
+                        _openRoster();
+                      }
+                    }
+                  },
+                  child: AnimatedBuilder(
+                    animation: extras,
+                    builder: (context, _) {
+                      final battle = extras.pk;
+                      final inPk = battle != null;
+                      final topInset = MediaQuery.of(context).padding.top;
+                      final width = MediaQuery.of(context).size.width;
+                      // Every child is positioned, so the Stack takes the whole
+                      // screen; one unpositioned child would shrink it to that
+                      // child's height and pull the bottom bar up to the top.
+                      return Stack(fit: StackFit.expand, children: [
+                        if (inPk)
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            top: topInset + 60,
+                            height: width * 0.72,
+                            child: PkSplitView(
+                                live: _live!,
+                                pk: battle,
+                                roomId: widget.roomId,
+                                isHost: rs.isHost),
+                          )
+                        else
+                          Positioned.fill(
+                            child: LiveVideoView(
+                                controller: _live!,
+                                isHost: rs.isHost,
+                                fill: true,
+                                hostUserId: rs.hostId),
+                          ),
+                        if (!_liveChromeHidden)
+                          const Positioned(
+                            left: 0,
+                            right: 0,
+                            top: 0,
+                            height: 140,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                    Color(0x99000000),
+                                    Colors.transparent
+                                  ])),
+                            ),
+                          ),
+                        if (!_liveChromeHidden)
+                          const Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            height: 360,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                      begin: Alignment.bottomCenter,
+                                      end: Alignment.topCenter,
+                                      colors: [
+                                    Color(0xCC000000),
+                                    Colors.transparent
+                                  ])),
+                            ),
+                          ),
                         Positioned(
                           left: 0,
                           right: 0,
-                          top: topInset + 60,
-                          height: width * 0.72,
-                          child: PkSplitView(
-                              live: _live!,
-                              pk: battle,
-                              roomId: widget.roomId,
-                              isHost: rs.isHost),
-                        )
-                      else
-                        Positioned.fill(
-                          child: LiveVideoView(
-                              controller: _live!,
-                              isHost: rs.isHost,
-                              fill: true,
-                              hostUserId: rs.hostId),
-                        ),
-                      const Positioned(
-                        left: 0,
-                        right: 0,
-                        top: 0,
-                        height: 140,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                Color(0x99000000),
-                                Colors.transparent
-                              ])),
-                        ),
-                      ),
-                      const Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        height: 360,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                  begin: Alignment.bottomCenter,
-                                  end: Alignment.topCenter,
-                                  colors: [
-                                Color(0xCC000000),
-                                Colors.transparent
-                              ])),
-                        ),
-                      ),
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        top: 0,
-                        child: SafeArea(
-                          bottom: false,
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 8, 8, 0),
-                            child: Row(children: [
-                              Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  KeyedSubtree(
-                                    key: _hostKey,
-                                    child: _LiveHostChip(
-                                      name: hostName,
-                                      avatarUrl: host?.avatarUrl,
-                                      isMe: rs.isHost,
-                                      onTap: host == null || rs.isHost
-                                          ? null
-                                          : () => _openPerson(host.userId),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  LiveDiamondsPill(
-                                    diamonds: extras.diamonds,
-                                    onTap: () => showLiveFansSheet(context,
-                                        extras: extras,
-                                        hostId: hostId,
-                                        hostName: hostName,
-                                        isHost: rs.isHost),
-                                  ),
-                                ],
-                              ),
-                              const Spacer(),
-                              _LiveViewers(
-                                  viewers: viewers, onTap: _openRoster),
-                              const SizedBox(width: 4),
-                              if (rs.isHost && !inPk)
-                                InIconButton(InIcons.swords,
-                                    tooltip: extras.pendingInvite != null
-                                        ? 'Cancel the PK challenge'
-                                        : 'Start a PK battle',
-                                    size: 36,
-                                    iconSize: 18,
-                                    background: extras.pendingInvite != null
-                                        ? AppColors.pink
-                                        : Colors.black38,
-                                    color: Colors.white,
-                                    onPressed: () =>
-                                        extras.pendingInvite != null
-                                            ? _cancelPk(extras)
-                                            : showPkInviteSheet(context,
-                                                extras: extras)),
-                              if (!rs.isHost)
-                                InIconButton(InIcons.heart,
-                                    tooltip: extras.fanClub['joined'] == true
-                                        ? 'Fan club member'
-                                        : 'Join the fan club',
-                                    size: 36,
-                                    iconSize: 18,
-                                    background: Colors.black38,
-                                    color: AppColors.pink,
-                                    onPressed: () => showLiveFansSheet(context,
-                                        extras: extras,
-                                        hostId: hostId,
-                                        hostName: hostName,
-                                        isHost: false)),
-                              const SizedBox(width: 4),
-                              if (rs.isHost)
-                                FilledButton(
-                                  onPressed: _leaveRoom,
-                                  style: FilledButton.styleFrom(
-                                      backgroundColor: AppColors.danger,
-                                      minimumSize: const Size(0, 34),
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 14)),
-                                  child: const Text('End'),
-                                )
-                              else
-                                InIconButton(InIcons.close,
-                                    tooltip: 'Leave live',
-                                    size: 36,
-                                    iconSize: 18,
-                                    background: Colors.black38,
-                                    color: Colors.white,
-                                    onPressed: _leaveRoom),
-                            ]),
-                          ),
-                        ),
-                      ),
-                      if (inPk)
-                        Positioned(
-                          left: 12,
-                          right: 12,
-                          top: topInset + 60 + width * 0.72 + 8,
-                          child: PkBattleBar(pk: battle, roomId: widget.roomId),
-                        ),
-                      if (!inPk && guests.isNotEmpty)
-                        Positioned(
-                          right: 10,
-                          top: topInset + 110,
-                          child: LiveGuestTiles(
-                            live: _live!,
-                            guests: guests,
-                            myUserId: myId,
-                            isHost: rs.isHost,
-                            onRemove: (id) =>
-                                id == myId ? rs.micOff() : rs.removeMic(id),
-                          ),
-                        ),
-                      // Viewers: ask to join the host on camera.
-                      if (!rs.isHost && rs.settings['micEnabled'] != false)
-                        Positioned(
-                          right: 12,
-                          bottom: MediaQuery.paddingOf(context).bottom +
-                              (inPk ? 230 : 300) +
-                              16,
-                          child: Material(
-                            color: myMicOn
-                                ? Colors.black54
-                                : myMicRequested
-                                    ? Colors.black54
-                                    : AppColors.primary,
-                            shape: const StadiumBorder(),
-                            child: InkWell(
-                              customBorder: const StadiumBorder(),
-                              onTap: () {
-                                if (myMicOn) {
-                                  rs.micOff();
-                                } else if (myMicRequested) {
-                                  rs.cancelMicRequest();
-                                } else {
-                                  rs.requestMic();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                          content: Text(
-                                              'Asked $hostName to join the live')));
-                                }
-                              },
+                          top: 0,
+                          child: Offstage(
+                            offstage: _liveChromeHidden,
+                            child: SafeArea(
+                              bottom: false,
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 9),
-                                child: Row(
+                                padding: const EdgeInsets.fromLTRB(12, 8, 8, 0),
+                                child: Row(children: [
+                                  Column(
                                     mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      InIcon(
-                                          myMicOn
-                                              ? InIcons.logout
-                                              : InIcons.video,
-                                          size: 16,
-                                          color: Colors.white),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                          myMicOn
-                                              ? 'Leave stage'
-                                              : myMicRequested
-                                                  ? 'Requested · tap to cancel'
-                                                  : 'Ask to join',
-                                          style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w700)),
-                                    ]),
+                                      KeyedSubtree(
+                                        key: _hostKey,
+                                        child: _LiveHostChip(
+                                          name: hostName,
+                                          avatarUrl: host?.avatarUrl,
+                                          isMe: rs.isHost,
+                                          onTap: host == null || rs.isHost
+                                              ? null
+                                              : () => _openPerson(host.userId),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      LiveDiamondsPill(
+                                        diamonds: extras.diamonds,
+                                        onTap: () => showLiveFansSheet(context,
+                                            extras: extras,
+                                            hostId: hostId,
+                                            hostName: hostName,
+                                            isHost: rs.isHost),
+                                      ),
+                                    ],
+                                  ),
+                                  const Spacer(),
+                                  _LiveViewers(
+                                      viewers: viewers, onTap: _openRoster),
+                                  const SizedBox(width: 4),
+                                  if (rs.isHost && !inPk)
+                                    InIconButton(InIcons.swords,
+                                        tooltip: extras.pendingInvite != null
+                                            ? 'Cancel the PK challenge'
+                                            : 'Start a PK battle',
+                                        size: 36,
+                                        iconSize: 18,
+                                        background: extras.pendingInvite != null
+                                            ? AppColors.pink
+                                            : Colors.black38,
+                                        color: Colors.white,
+                                        onPressed: () =>
+                                            extras.pendingInvite != null
+                                                ? _cancelPk(extras)
+                                                : showPkInviteSheet(context,
+                                                    extras: extras)),
+                                  if (!rs.isHost)
+                                    InIconButton(InIcons.heart,
+                                        tooltip:
+                                            extras.fanClub['joined'] == true
+                                                ? 'Fan club member'
+                                                : 'Join the fan club',
+                                        size: 36,
+                                        iconSize: 18,
+                                        background: Colors.black38,
+                                        color: AppColors.pink,
+                                        onPressed: () => showLiveFansSheet(
+                                            context,
+                                            extras: extras,
+                                            hostId: hostId,
+                                            hostName: hostName,
+                                            isHost: false)),
+                                  const SizedBox(width: 4),
+                                  if (rs.isHost)
+                                    FilledButton(
+                                      onPressed: _leaveRoom,
+                                      style: FilledButton.styleFrom(
+                                          backgroundColor: AppColors.danger,
+                                          minimumSize: const Size(0, 34),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 14)),
+                                      child: const Text('End'),
+                                    )
+                                  else
+                                    InIconButton(InIcons.close,
+                                        tooltip: 'Leave live',
+                                        size: 36,
+                                        iconSize: 18,
+                                        background: Colors.black38,
+                                        color: Colors.white,
+                                        onPressed: _leaveRoom),
+                                ]),
                               ),
                             ),
                           ),
                         ),
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        child: SafeArea(
-                          top: false,
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-                            child: SizedBox(
-                              height: inPk ? 230 : 300,
-                              child: ChatOverlay(
-                                fanIds: extras.fanIds,
-                                messages: rs.messages,
-                                onSend: (text, mentionedUserIds, {replyTo}) =>
-                                    rs.sendMessage(text,
-                                        mentionedUserIds: mentionedUserIds,
-                                        replyTo: replyTo),
-                                myUserId: myId,
-                                primaryColor: AppColors.primary,
-                                textColor: Colors.white,
-                                roster: rs.roster,
-                                myMicOn: myMicOn,
-                                myMicRequested: myMicRequested,
-                                onMicTap: handleMicTap,
-                                onPoll: () {
-                                  if (rs.isHost) {
-                                    showPollCreatorBottomSheet(context,
-                                        onCreate: rs.createPoll);
-                                  } else if (rs.poll['active'] == true) {
-                                    showPollBottomSheet(context,
-                                        poll: rs.poll,
-                                        myUserId: myId ?? '',
-                                        isHost: rs.isHost,
-                                        roster: rs.roster,
-                                        onVote: rs.votePoll,
-                                        onReset: rs.resetPoll);
+                        if (inPk && !_liveChromeHidden)
+                          Positioned(
+                            left: 12,
+                            right: 12,
+                            top: topInset + 60 + width * 0.72 + 8,
+                            child:
+                                PkBattleBar(pk: battle, roomId: widget.roomId),
+                          ),
+                        if (!inPk && guests.isNotEmpty)
+                          Positioned(
+                            right: 10,
+                            top: topInset + 110,
+                            child: LiveGuestTiles(
+                              live: _live!,
+                              guests: guests,
+                              myUserId: myId,
+                              isHost: rs.isHost,
+                              onRemove: (id) =>
+                                  id == myId ? rs.micOff() : rs.removeMic(id),
+                            ),
+                          ),
+                        // Viewers: ask to join the host on camera.
+                        // On camera: separate camera and mic switches.
+                        if (!_liveChromeHidden && (rs.isHost || myMicOn))
+                          Positioned(
+                            right: 12,
+                            bottom: MediaQuery.paddingOf(context).bottom +
+                                (inPk ? 230 : 300) +
+                                (rs.isHost ? 16 : 62),
+                            child: AnimatedBuilder(
+                              animation: _live!,
+                              builder: (context, _) => Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _liveToggle(
+                                        icon: InIcons.flip,
+                                        label: 'Flip camera',
+                                        onTap: _live!.flipCamera),
+                                    _liveToggle(
+                                        icon: InIcons.video,
+                                        label: _live!.cameraOn
+                                            ? 'Turn camera off'
+                                            : 'Turn camera on',
+                                        off: !_live!.cameraOn,
+                                        onTap: () => _live!
+                                            .setCameraOn(!_live!.cameraOn)),
+                                    _liveToggle(
+                                        icon: _live!.micOn
+                                            ? InIcons.mic
+                                            : InIcons.micoff,
+                                        label: _live!.micOn
+                                            ? 'Turn mic off'
+                                            : 'Turn mic on',
+                                        off: !_live!.micOn,
+                                        onTap: () =>
+                                            _live!.setMicOn(!_live!.micOn)),
+                                  ]),
+                            ),
+                          ),
+                        if (!_liveChromeHidden &&
+                            !rs.isHost &&
+                            rs.settings['micEnabled'] != false)
+                          Positioned(
+                            right: 12,
+                            bottom: MediaQuery.paddingOf(context).bottom +
+                                (inPk ? 230 : 300) +
+                                16,
+                            child: Material(
+                              color: myMicOn
+                                  ? Colors.black54
+                                  : myMicRequested
+                                      ? Colors.black54
+                                      : AppColors.primary,
+                              shape: const StadiumBorder(),
+                              child: InkWell(
+                                customBorder: const StadiumBorder(),
+                                onTap: () {
+                                  if (myMicOn) {
+                                    rs.micOff();
+                                  } else if (myMicRequested) {
+                                    rs.cancelMicRequest();
+                                  } else {
+                                    rs.requestMic();
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                            content: Text(
+                                                'Asked $hostName to join the live')));
                                   }
                                 },
-                                onGift: () => showGiftBottomSheet(context,
-                                    toUserId: room['hostId'] as String? ?? '',
-                                    roomId: widget.roomId,
-                                    targetKey: _hostKey),
-                                onShare: _shareRoom,
-                                onInvite: _openInvite,
-                                onFocusChanged: _setChatFocused,
-                                pickEndsAt: rs.pickVoteEndsAt,
-                                pickWaiting: rs.pickWaiting,
-                                onViewOncePhoto: _shareViewOncePhoto,
-                                onOpenViewOnce: _openRoomViewOnce,
-                                onViewOnceSeen: _showViewOnceSeen,
-                                likedUrls: _likedUrls,
-                                onToggleLike: _toggleLike,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 9),
+                                  child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        InIcon(
+                                            myMicOn
+                                                ? InIcons.logout
+                                                : InIcons.video,
+                                            size: 16,
+                                            color: Colors.white),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                            myMicOn
+                                                ? 'Leave stage'
+                                                : myMicRequested
+                                                    ? 'Requested · tap to cancel'
+                                                    : 'Ask to join',
+                                            style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w700)),
+                                      ]),
+                                ),
+                              ),
+                            ),
+                          ),
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: Offstage(
+                            offstage: _liveChromeHidden,
+                            child: SafeArea(
+                              top: false,
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.fromLTRB(12, 0, 12, 10),
+                                child: SizedBox(
+                                  height: inPk ? 230 : 300,
+                                  child: ChatOverlay(
+                                    showMic: false,
+                                    fanIds: extras.fanIds,
+                                    messages: rs.messages,
+                                    onSend: (text, mentionedUserIds,
+                                            {replyTo}) =>
+                                        rs.sendMessage(text,
+                                            mentionedUserIds: mentionedUserIds,
+                                            replyTo: replyTo),
+                                    myUserId: myId,
+                                    primaryColor: AppColors.primary,
+                                    textColor: Colors.white,
+                                    roster: rs.roster,
+                                    myMicOn: myMicOn,
+                                    myMicRequested: myMicRequested,
+                                    onMicTap: handleMicTap,
+                                    onPoll: () {
+                                      if (rs.isHost) {
+                                        showPollCreatorBottomSheet(context,
+                                            onCreate: rs.createPoll);
+                                      } else if (rs.poll['active'] == true) {
+                                        showPollBottomSheet(context,
+                                            poll: rs.poll,
+                                            myUserId: myId ?? '',
+                                            isHost: rs.isHost,
+                                            roster: rs.roster,
+                                            onVote: rs.votePoll,
+                                            onReset: rs.resetPoll);
+                                      }
+                                    },
+                                    onGift: () => showGiftBottomSheet(context,
+                                        toUserId:
+                                            room['hostId'] as String? ?? '',
+                                        roomId: widget.roomId,
+                                        targetKey: _hostKey),
+                                    onShare: _shareRoom,
+                                    onInvite: _openInvite,
+                                    onFocusChanged: _setChatFocused,
+                                    pickEndsAt: rs.pickVoteEndsAt,
+                                    pickWaiting: rs.pickWaiting,
+                                    onViewOncePhoto: _shareViewOncePhoto,
+                                    onOpenViewOnce: _openRoomViewOnce,
+                                    onViewOnceSeen: _showViewOnceSeen,
+                                    likedUrls: _likedUrls,
+                                    onToggleLike: _toggleLike,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ]);
-                  },
+                      ]);
+                    },
+                  ),
                 ),
               );
             }

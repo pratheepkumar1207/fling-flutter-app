@@ -30,8 +30,11 @@ class LiveVideoView extends StatelessWidget {
       builder: (context, _) {
         final engine = controller.engine;
         Widget? surface;
+        var cameraOff = false;
         if (engine != null && controller.joined) {
-          if (isHost) {
+          if (isHost && !controller.cameraOn) {
+            cameraOff = true;
+          } else if (isHost) {
             surface = AgoraVideoView(
                 controller: VideoViewController(
                     rtcEngine: engine, canvas: const VideoCanvas(uid: 0)));
@@ -41,13 +44,17 @@ class LiveVideoView extends StatelessWidget {
                 hostUid != null && controller.remoteUids.contains(hostUid)
                     ? hostUid
                     : controller.remoteUid;
-            surface = AgoraVideoView(
-              controller: VideoViewController.remote(
-                rtcEngine: engine,
-                canvas: VideoCanvas(uid: uid),
-                connection: RtcConnection(channelId: controller.roomId),
-              ),
-            );
+            if (uid != null && controller.isCameraOff(uid)) {
+              cameraOff = true;
+            } else {
+              surface = AgoraVideoView(
+                controller: VideoViewController.remote(
+                  rtcEngine: engine,
+                  canvas: VideoCanvas(uid: uid),
+                  connection: RtcConnection(channelId: controller.roomId),
+                ),
+              );
+            }
           }
         }
 
@@ -66,11 +73,13 @@ class LiveVideoView extends StatelessWidget {
                         size: 44, color: Colors.white54),
                     const SizedBox(height: 8),
                     Text(
-                      !controller.joined
-                          ? 'Connecting…'
-                          : (isHost
-                              ? 'Turning on your camera…'
-                              : 'Waiting for the host to go live'),
+                      cameraOff
+                          ? 'Camera is off'
+                          : !controller.joined
+                              ? 'Connecting…'
+                              : (isHost
+                                  ? 'Turning on your camera…'
+                                  : 'Waiting for the host to go live'),
                       style:
                           const TextStyle(color: Colors.white70, fontSize: 13),
                     ),

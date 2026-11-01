@@ -82,7 +82,11 @@ class PartySessionController extends ChangeNotifier {
     if (room['roomType'] != 'live' || _live != null) return;
     _live = LiveBroadcastController(
         roomId: roomId,
-        isHost: controller.isHost,
+        // The socket hasn't reported the host yet on a fresh join, so this
+        // starts from the room itself; _onRoomStateChanged keeps it current.
+        isHost: controller.isHost ||
+            (controller.myUserId != null &&
+                room['hostId'] == controller.myUserId),
         myUserId: controller.myUserId);
     _publishSnapshot();
   }
@@ -106,7 +110,11 @@ class PartySessionController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _onRoomStateChanged() => _publishSnapshot();
+  void _onRoomStateChanged() {
+    final controller = _roomController;
+    if (controller?.hostId != null) _live?.setHost(controller!.isHost);
+    _publishSnapshot();
+  }
 
   void _publishSnapshot() {
     final roomId = _roomId;

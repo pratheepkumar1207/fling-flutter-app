@@ -79,6 +79,22 @@ class VideoEdit {
     return out!;
   }
 
+  /// Saves to the phone's gallery. [overlay] is a transparent PNG of a story's
+  /// stickers; [storyShape] crops to the story's 9:16 first, so they line up.
+  static Future<void> saveToGallery({
+    required String input,
+    required bool isVideo,
+    String? overlay,
+    bool storyShape = false,
+  }) async {
+    await _channel.invokeMethod<void>('saveToGallery', {
+      'input': input,
+      'isVideo': isVideo,
+      'overlay': overlay,
+      'storyShape': storyShape,
+    });
+  }
+
   static Future<String> processPhoto(
       {required String input, required MediaFilter filter}) async {
     final out = await _channel.invokeMethod<String>('processPhoto', {

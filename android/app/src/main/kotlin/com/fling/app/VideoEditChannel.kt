@@ -17,10 +17,13 @@ import androidx.media3.common.util.GlUtil
 import androidx.media3.common.util.Size
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.BaseGlShaderProgram
+import androidx.media3.effect.BitmapOverlay
 import androidx.media3.effect.GlEffect
 import androidx.media3.effect.GlShaderProgram
+import androidx.media3.effect.OverlayEffect
 import androidx.media3.effect.Presentation
 import androidx.media3.effect.RgbMatrix
+import androidx.media3.effect.TextureOverlay
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.DefaultEncoderFactory
 import androidx.media3.transformer.EditedMediaItem
@@ -29,6 +32,7 @@ import androidx.media3.transformer.ExportException
 import androidx.media3.transformer.ExportResult
 import androidx.media3.transformer.Transformer
 import androidx.media3.transformer.VideoEncoderSettings
+import com.google.common.collect.ImmutableList
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
@@ -60,9 +64,134 @@ class VideoEditChannel(private val context: Context, messenger: BinaryMessenger)
                         else result.error("photo", "Could not edit this photo", null)
                     }
                 }.start()
+                "saveToGallery" -> saveToGallery(call.arguments as Map<*, *>, result)
                 else -> result.notImplemented()
             }
         }
+    }
+
+    private fun saveToGallery(args: Map<*, *>, result: MethodChannel.Result) {
+        val input = args["input"] as String
+        val overlay = args["overlay"] as? String
+        val storyShape = args["storyShape"] == true
+        fun finish(done: () -> Unit) = Thread {
+            val error = try {
+                done()
+                null
+            } catch (e: Exception) {
+                e.message ?: "Could not save"
+            }
+            android.os.Handler(context.mainLooper).post {
+                if (error == null) result.success(null) else result.error("save", error, null)
+            }
+        }.start()
+
+        if (args["isVideo"] != true) {
+            finish { publish(storyPhoto(input, overlay, storyShape), "image/jpeg") }
+            return
+        }
+        if (overlay == null && !storyShape) {
+            finish { publish(File(input), "video/mp4") }
+            return
+        }
+        try {
+            val effects = ArrayList<androidx.media3.common.Effect>()
+            effects.add(
+                Presentation.createForWidthAndHeight(
+                    STORY_WIDTH, STORY_HEIGHT, Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP,
+                )
+            )
+            overlay?.let { path ->
+                val bitmap = BitmapFactory.decodeFile(path)
+                    ?: throw IllegalArgumentException("No overlay")
+                val scaled = Bitmap.createScaledBitmap(bitmap, STORY_WIDTH, STORY_HEIGHT, true)
+                effects.add(
+                    OverlayEffect(ImmutableList.of<TextureOverlay>(BitmapOverlay.createStaticBitmapOverlay(scaled)))
+                )
+            }
+            val edited = EditedMediaItem.Builder(MediaItem.fromUri(Uri.fromFile(File(input))))
+                .setEffects(Effects(emptyList(), effects))
+                .build()
+            val output = outFile("mp4")
+            Transformer.Builder(context)
+                .addListener(object : Transformer.Listener {
+                    override fun onCompleted(c: Composition, r: ExportResult) {
+                        finish { publish(output, "video/mp4") }
+                    }
+
+                    override fun onError(c: Composition, r: ExportResult, e: ExportException) {
+                        result.error("save", e.message ?: "Could not save", null)
+                    }
+                })
+                .build()
+                .start(edited, output.absolutePath)
+        } catch (e: Exception) {
+            result.error("save", e.message ?: "Could not save", null)
+        }
+    }
+
+    private fun storyPhoto(input: String, overlay: String?, storyShape: Boolean): File {
+        val decoded = BitmapFactory.decodeFile(input)
+            ?: throw IllegalArgumentException("Not a photo")
+        val photo = rotateFromExif(input, decoded)
+        val out: Bitmap
+        if (storyShape) {
+            out = Bitmap.createBitmap(STORY_WIDTH, STORY_HEIGHT, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(out)
+            // Fills the frame and crops the rest, as the editor shows it.
+            val scale = max(
+                STORY_WIDTH.toFloat() / photo.width,
+                STORY_HEIGHT.toFloat() / photo.height,
+            )
+            val w = photo.width * scale
+            val h = photo.height * scale
+            val left = (STORY_WIDTH - w) / 2
+            val top = (STORY_HEIGHT - h) / 2
+            val paint = Paint(Paint.FILTER_BITMAP_FLAG)
+            canvas.drawBitmap(photo, null, android.graphics.RectF(left, top, left + w, top + h), paint)
+            overlay?.let { path ->
+                BitmapFactory.decodeFile(path)?.let {
+                    canvas.drawBitmap(it, null, android.graphics.Rect(0, 0, STORY_WIDTH, STORY_HEIGHT), paint)
+                }
+            }
+        } else {
+            out = photo
+        }
+        val file = outFile("jpg")
+        FileOutputStream(file).use { out.compress(Bitmap.CompressFormat.JPEG, 92, it) }
+        return file
+    }
+
+    // Android 10 and later need no storage permission to add to the gallery.
+    private fun publish(file: File, mime: String) {
+        val video = mime.startsWith("video")
+        val values = android.content.ContentValues().apply {
+            put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, "Insync_${System.currentTimeMillis()}")
+            put(android.provider.MediaStore.MediaColumns.MIME_TYPE, mime)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                put(
+                    android.provider.MediaStore.MediaColumns.RELATIVE_PATH,
+                    (if (video) android.os.Environment.DIRECTORY_MOVIES else android.os.Environment.DIRECTORY_PICTURES) + "/Insync",
+                )
+            } else {
+                throw IllegalStateException("Saving needs Android 10 or later")
+            }
+        }
+        val collection = if (video) {
+            android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        } else {
+            android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        }
+        val uri = context.contentResolver.insert(collection, values)
+            ?: throw IllegalStateException("Gallery unavailable")
+        context.contentResolver.openOutputStream(uri)?.use { sink ->
+            file.inputStream().use { it.copyTo(sink) }
+        } ?: throw IllegalStateException("Gallery unavailable")
+    }
+
+    private companion object {
+        const val STORY_WIDTH = 720
+        const val STORY_HEIGHT = 1280
     }
 
     private fun outFile(ext: String) =
