@@ -83,6 +83,9 @@ class LiveBroadcastController extends ChangeNotifier {
       await engine.enableVideo();
       await engine.enableAudio();
       engine.registerEventHandler(RtcEngineEventHandler(
+        // Shows up in the phone's log, for diagnosing connection problems.
+        onConnectionStateChanged: (connection, state, reason) =>
+            debugPrint('AGORA live: $state because $reason'),
         onUserJoined: (connection, uid, elapsed) {
           if (connection.channelId == _opponentRoomId) {
             _opponentUid = uid;
@@ -102,6 +105,7 @@ class LiveBroadcastController extends ChangeNotifier {
         // A connection that errors out after a successful join must be
         // observable — see VOICE.md.
         onError: (ErrorCodeType err, String msg) {
+          debugPrint('AGORA live error: $err');
           _joined = false;
           _setStatus(VoiceChatStatus.failed);
         },

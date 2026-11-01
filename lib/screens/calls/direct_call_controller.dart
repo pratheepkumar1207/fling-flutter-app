@@ -57,6 +57,10 @@ class DirectCallController extends ChangeNotifier {
       await engine.enableAudio();
       await engine.setEnableSpeakerphone(_speakerEnabled);
       engine.registerEventHandler(RtcEngineEventHandler(
+        onError: (err, msg) => debugPrint('AGORA call error: $err'),
+        // Shows up in the phone's log, for diagnosing connection problems.
+        onConnectionStateChanged: (connection, state, reason) =>
+            debugPrint('AGORA call: $state because $reason'),
         onUserJoined: (connection, remoteUid, elapsed) {
           _remoteUid = remoteUid;
           notifyListeners();

@@ -116,7 +116,11 @@ class VoiceChatController extends ChangeNotifier {
       // controller (or anything downstream of it) that voice had actually
       // stopped working; `_joined` would stay true forever.
       engine.registerEventHandler(RtcEngineEventHandler(
+        // Shows up in the phone's log, for diagnosing connection problems.
+        onConnectionStateChanged: (connection, state, reason) =>
+            debugPrint('AGORA voice: $state because $reason'),
         onError: (ErrorCodeType err, String msg) {
+          debugPrint('AGORA voice error: $err');
           _joined = false;
           _setStatus(VoiceChatStatus.failed);
         },
