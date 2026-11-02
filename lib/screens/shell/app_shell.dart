@@ -21,6 +21,7 @@ import '../../theme/insync_icons.dart';
 import 'create_sheet.dart';
 import 'liquid_glass_bottom_nav.dart';
 import 'top_bar.dart';
+import '../settings/account_removal_screen.dart';
 import '../../core/push_notifications.dart';
 import '../../core/call_ring.dart';
 import '../../widgets/permission_primer.dart';
@@ -85,6 +86,7 @@ class _AppShellState extends State<AppShell> {
       final socket = context.read<SocketService>();
       if (auth.token != null) socket.connect(auth.token!);
       _bindIncomingCalls(socket);
+      _checkDeletionPending();
       CallRing.listen(_openPendingCall);
       _openPendingCall();
       // Tokens change, and calls to a closed app depend on this one.
@@ -101,6 +103,33 @@ class _AppShellState extends State<AppShell> {
   // under whatever screen the user navigates to, since those are pushed on
   // top of it) so an incoming call rings no matter what the user is
   // currently looking at. See calls.js's direct-invite route.
+  /// Logged back in during the 30 days: keep the account, or go on leaving.
+  Future<void> _checkDeletionPending() async {
+    final Map status;
+    try {
+      status = await ApiClient.get('/account/status') as Map;
+    } catch (_) {
+      return;
+    }
+    final on = DateTime.tryParse('${status['deleteScheduledAt']}');
+    if (on == null || !mounted) return;
+    final auth = context.read<AuthProvider>();
+    final socket = context.read<SocketService>();
+    final navigator = Navigator.of(context);
+    final keep = await showDeletionPendingDialog(
+        context, on, (status['daysLeft'] as num?)?.toInt() ?? 0);
+    if (!keep) {
+      await auth.clearSession();
+      return;
+    }
+    await ApiClient.post('/account/restore');
+    await auth.refreshUser();
+    if (auth.token != null) socket.connect(auth.token!);
+    // Everything that loaded behind the question was refused; start fresh.
+    navigator
+        .pushReplacement(MaterialPageRoute(builder: (_) => const AppShell()));
+  }
+
   /// Opened from a ringing notification: the same screen as a live call.
   Future<void> _openPendingCall() async {
     final call = await CallRing.pendingCall();

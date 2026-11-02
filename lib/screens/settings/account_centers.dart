@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'account_removal_screen.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -396,44 +397,6 @@ class _PrivacyCenterScreenState extends State<PrivacyCenterScreen> {
     }
   }
 
-  Future<void> _delete() async {
-    final c = TextEditingController();
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (d) => AlertDialog(
-        title: const Text('Delete your account?'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text(
-              'Your profile, followers and sign-ins are removed and can’t be brought back. Coins and diamonds are lost. Type DELETE to confirm.',
-              style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-          const SizedBox(height: 10),
-          TextField(controller: c, autofocus: true),
-        ]),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(d).pop(false),
-              child: const Text('Cancel')),
-          TextButton(
-              onPressed: () => Navigator.of(d).pop(c.text.trim() == 'DELETE'),
-              child: const Text('Delete',
-                  style: TextStyle(color: AppColors.danger))),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) return;
-    try {
-      await ApiClient.delete('/account', body: {'confirm': 'DELETE'});
-      if (!mounted) return;
-      await context.read<AuthProvider>().clearSession();
-      if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
-    } on ApiException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final u = _u;
@@ -533,8 +496,10 @@ class _PrivacyCenterScreenState extends State<PrivacyCenterScreen> {
                   ]),
                   const SizedBox(height: 14),
                   _Card([
-                    _Row(InIcons.close, 'Delete my account',
-                        color: AppColors.danger, onTap: _delete),
+                    _Row(InIcons.close, 'Deactivate or delete account',
+                        color: AppColors.danger,
+                        onTap: () => _push(
+                            context, AccountRemovalScreen(onExport: _export))),
                   ]),
                 ]),
     );
