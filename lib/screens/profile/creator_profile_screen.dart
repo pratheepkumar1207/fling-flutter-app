@@ -744,8 +744,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
               textColor: AppColors.textDim),
           _pillButton(
             '🎁 Gift',
-            onTap: () => showGiftBottomSheet(context,
-                toUserId: widget.userId, targetKey: _avatarKey),
+            onTap: () => showGiftBottomSheet(context, toUserId: widget.userId),
             borderColor: AppColors.gold.withValues(alpha: 0.5),
             textColor: AppColors.gold,
           ),

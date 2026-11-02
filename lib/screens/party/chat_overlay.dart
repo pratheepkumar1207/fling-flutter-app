@@ -50,6 +50,9 @@ class ChatOverlay extends StatefulWidget {
 
   /// Off in live, which has separate camera and mic buttons.
   final bool showMic;
+
+  /// The gift card with both people's photos.
+  final bool showGiftCards;
   final bool myMicRequested;
   final VoidCallback onMicTap;
   final VoidCallback onPoll;
@@ -90,6 +93,7 @@ class ChatOverlay extends StatefulWidget {
     required this.roster,
     required this.myMicOn,
     this.showMic = true,
+    this.showGiftCards = true,
     required this.myMicRequested,
     required this.onMicTap,
     required this.onPoll,
@@ -573,7 +577,10 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
     // bubble list as before — only the rich nowPlaying card is meant to
     // appear inline here.
     final visible = widget.messages
-        .where((m) => m['system'] != true || m['type'] == 'nowPlaying')
+        .where((m) =>
+            m['system'] != true ||
+            m['type'] == 'nowPlaying' ||
+            (m['gift'] == true && widget.showGiftCards))
         .toList()
         .reversed
         .toList();
@@ -590,6 +597,9 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                   itemCount: visible.length,
                   itemBuilder: (context, i) {
                     final m = visible[i];
+                    if (m['gift'] == true) {
+                      return _GiftChatCard(message: m, roster: widget.roster);
+                    }
                     if (m['type'] == 'nowPlaying') {
                       final pinnerId = m['pinnedBy'] as String?;
                       final onRoster = pinnerId == null
@@ -968,6 +978,99 @@ class _NowPlayingChatCard extends StatelessWidget {
                 ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A gift in the chat: both people's photos with the gift between them, and
+/// who got it @mentioned.
+class _GiftChatCard extends StatelessWidget {
+  final Map<String, dynamic> message;
+  final List<RosterEntry> roster;
+  const _GiftChatCard({required this.message, required this.roster});
+
+  Widget _photo(String? userId, String? name) {
+    final person = roster.where((r) => r.userId == userId).firstOrNull;
+    return SizedBox.square(
+      dimension: 30,
+      child: FittedBox(
+        child: Avatar(src: person?.avatarUrl, name: person?.name ?? name),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final from = message['fromName'] as String? ?? 'Someone';
+    final to = message['toName'] as String?;
+    final qty = (message['quantity'] as num?)?.toInt() ?? 1;
+    final diamonds = (message['diamonds'] as num?)?.round() ?? 0;
+    final gift = message['giftName'] as String? ?? 'a gift';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: 1),
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOut,
+          builder: (_, t, child) => Opacity(
+            opacity: t,
+            child: Transform.translate(
+                offset: Offset(-36 * (1 - t), 0), child: child),
+          ),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(4, 4, 12, 4),
+            decoration: BoxDecoration(
+              color: const Color(0xE62B2140),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: const Color(0x66C4A8FF)),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              _photo(message['fromUserId'] as String?, from),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(message['emoji'] as String? ?? '🎁',
+                    style: const TextStyle(fontSize: 20, height: 1)),
+              ),
+              _photo(message['toUserId'] as String?, to),
+              const SizedBox(width: 7),
+              Flexible(
+                child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text.rich(
+                        TextSpan(
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 12),
+                            children: [
+                              TextSpan(
+                                  text: from,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700)),
+                              TextSpan(
+                                  text:
+                                      ' sent $gift${qty > 1 ? ' ×$qty' : ''}${to == null ? '' : ' to '}'),
+                              if (to != null)
+                                TextSpan(
+                                    text: '@$to',
+                                    style: const TextStyle(
+                                        color: Color(0xFFC4A8FF))),
+                            ]),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (diamonds > 0)
+                        Text('+$diamonds 💎',
+                            style: const TextStyle(
+                                color: Color(0xFF7FD0FF), fontSize: 11)),
+                    ]),
+              ),
+            ]),
+          ),
         ),
       ),
     );

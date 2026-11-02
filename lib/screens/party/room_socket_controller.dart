@@ -68,6 +68,9 @@ class RoomSocketController extends ChangeNotifier {
   /// room screen once shown).
   Map<String, dynamic>? bigGift;
 
+  /// Gifts waiting to be played; the room screen takes them.
+  final List<Map<String, dynamic>> gifts = [];
+
   /// Set when the host ends the room for everyone (their name).
   String? endedBy;
 
@@ -225,12 +228,21 @@ class RoomSocketController extends ChangeNotifier {
         {
           'system': true,
           'gift': true,
+          'fromUserId': g['fromUserId'],
+          'fromName': g['fromName'],
+          'toUserId': g['toUserId'],
+          'toName': g['toName'],
+          'emoji': g['emoji'],
+          'giftName': g['name'],
+          'quantity': qty,
+          'diamonds': g['diamonds'],
           'text':
               '${g['fromName'] ?? 'Someone'} sent ${to == null ? '' : '$to '}${g['emoji'] ?? '🎁'} ${g['name'] ?? 'a gift'}${qty > 1 ? ' ×$qty' : ''}',
           'ts': DateTime.now().millisecondsSinceEpoch,
         }
       ];
       if (((g['coins'] as num?) ?? 0) >= bigGiftCoins) bigGift = g;
+      gifts.add(g);
       notifyListeners();
     });
     s.on('queue:state', (data) {

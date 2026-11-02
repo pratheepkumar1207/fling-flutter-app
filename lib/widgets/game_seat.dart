@@ -1,3 +1,4 @@
+import 'gift_fx.dart';
 import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../core/room_person_scope.dart';
@@ -86,7 +87,9 @@ class GameSeat extends StatelessWidget {
           width: size,
           height: size,
           child: FittedBox(
-            child: Avatar(src: scope?.avatarFor(userId), name: name),
+            child: GiftTarget(
+                userId: userId,
+                child: Avatar(src: scope?.avatarFor(userId), name: name)),
           ),
         ),
       ),

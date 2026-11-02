@@ -30,12 +30,11 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
   String? _kycStatus;
   String? _bankLast4;
   String? _accountHolderName;
-  double _coinsPerRupee = 10;
-  double _cashoutFraction = 0.3333;
-  int _minCashoutCoins = 500;
-  int? _coins;
+  double _rupeesPerDiamond = 0.7;
+  int _minDiamonds = 1000;
+  int? _diamonds;
   bool _submitting = false;
-  final _coinsController = TextEditingController();
+  final _amountController = TextEditingController();
   List<dynamic> _cashouts = [];
 
   @override
@@ -46,7 +45,7 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
 
   @override
   void dispose() {
-    _coinsController.dispose();
+    _amountController.dispose();
     super.dispose();
   }
 
@@ -78,28 +77,27 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
       _kycStatus = kyc['status'] as String? ?? 'none';
       _bankLast4 = kyc['bankLast4'] as String?;
       _accountHolderName = kyc['accountHolderName'] as String?;
-      _coinsPerRupee = asNum(rate['coinsPerRupee']).toDouble();
-      _cashoutFraction = asNum(rate['cashoutFraction']).toDouble();
-      _minCashoutCoins = asNum(rate['minCashoutCoins']).round();
+      _rupeesPerDiamond = asNum(rate['rupeesPerDiamond']).toDouble();
+      _minDiamonds = asNum(rate['minCashoutDiamonds']).round();
       _cashouts = (results[2] as List?) ?? [];
       _loading = false;
     });
   }
 
-  double _rupeesFor(num coins) => (coins / _coinsPerRupee) * _cashoutFraction;
+  double _rupeesFor(num diamonds) => diamonds * _rupeesPerDiamond;
 
-  void _setCoins(int? v) {
-    setState(() => _coins = v);
-    _coinsController.text = v == null ? '' : '$v';
+  void _setAmount(int? v) {
+    setState(() => _diamonds = v);
+    _amountController.text = v == null ? '' : '$v';
   }
 
   Future<void> _submit() async {
-    final coins = _coins;
-    if (coins == null || coins < _minCashoutCoins || _submitting) return;
+    final diamonds = _diamonds;
+    if (diamonds == null || diamonds < _minDiamonds || _submitting) return;
     setState(() => _submitting = true);
     try {
       final res =
-          await ApiClient.post('/wallet/cashout', body: {'coins': coins})
+          await ApiClient.post('/wallet/cashout', body: {'diamonds': diamonds})
               as Map<String, dynamic>;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -120,13 +118,14 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
-    final balance = user?.coinBalance ?? 0;
-    final canSubmit =
-        _coins != null && _coins! >= _minCashoutCoins && _coins! <= balance;
+    final balance = user?.diamondBalance ?? 0;
+    final canSubmit = _diamonds != null &&
+        _diamonds! >= _minDiamonds &&
+        _diamonds! <= balance;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const InsyncPageTitle('Cash out')),
+      appBar: AppBar(title: const InsyncPageTitle('Withdraw')),
       body: _loading
           ? const Center(child: Spinner())
           : _loadFailed
@@ -154,7 +153,7 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
                                         .withValues(alpha: 0.3)),
                                 borderRadius: BorderRadius.circular(12)),
                             child: Text(
-                                'You need verified KYC before cashing out. Current status: ${_kycStatus ?? 'none'}.',
+                                'You need verified KYC before withdrawing. Current status: ${_kycStatus ?? 'none'}.',
                                 style: const TextStyle(
                                     color: AppColors.warning, fontSize: 13)),
                           ),
@@ -197,7 +196,7 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
                                     borderRadius: BorderRadius.circular(16)),
                                 child: Column(
                                   children: [
-                                    const Text('Available to redeem',
+                                    const Text('Diamonds you can withdraw',
                                         style: TextStyle(
                                             color: AppColors.textFaint,
                                             fontSize: 11,
@@ -213,7 +212,7 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
                                                   fontWeight: FontWeight.w800,
                                                   fontSize: 26)),
                                           const TextSpan(
-                                              text: 'coins',
+                                              text: 'diamonds',
                                               style: TextStyle(
                                                   color: AppColors.textFaint,
                                                   fontWeight: FontWeight.w600,
@@ -231,7 +230,8 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
                                 ),
                               ),
                               const SizedBox(height: 20),
-                              const Text('Amount to cash out',
+                              Text(
+                                  'Diamonds to withdraw (minimum $_minDiamonds)',
                                   style: TextStyle(
                                       color: AppColors.textDim,
                                       fontSize: 11.5,
@@ -252,7 +252,7 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: TextField(
-                                        controller: _coinsController,
+                                        controller: _amountController,
                                         keyboardType: TextInputType.number,
                                         style: const TextStyle(
                                             color: AppColors.text,
@@ -263,11 +263,11 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
                                                 EdgeInsets.symmetric(
                                                     vertical: 11)),
                                         onChanged: (v) => setState(
-                                            () => _coins = int.tryParse(v)),
+                                            () => _diamonds = int.tryParse(v)),
                                       ),
                                     ),
                                     GestureDetector(
-                                      onTap: () => _setCoins(balance.floor()),
+                                      onTap: () => _setAmount(balance.floor()),
                                       child: const Padding(
                                         padding:
                                             EdgeInsets.symmetric(vertical: 11),
@@ -389,7 +389,10 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text('${c['coins']} coins',
+                                        Text(
+                                            asNum(c['diamonds']) > 0
+                                                ? '${c['diamonds']} diamonds · ₹${c['rupees']}'
+                                                : '${c['coins']} coins',
                                             style: const TextStyle(
                                                 color: AppColors.text,
                                                 fontSize: 12.5,
@@ -430,7 +433,10 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
                               child: Text(
                                 _submitting
                                     ? 'Submitting…'
-                                    : 'Request cash out',
+                                    : _diamonds != null &&
+                                            _diamonds! >= _minDiamonds
+                                        ? 'Withdraw ₹${_rupeesFor(_diamonds!).toStringAsFixed(2)}'
+                                        : 'Withdraw',
                                 style: TextStyle(
                                     color: (canSubmit && !_submitting)
                                         ? Colors.white

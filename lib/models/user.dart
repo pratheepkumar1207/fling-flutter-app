@@ -52,6 +52,7 @@ class User {
   final String? equippedCarId;
   final DateTime? carExpiresAt;
   final double coinBalance;
+  final double diamondBalance;
   final int galleryCount;
   final bool profileComplete;
   // First-time setup (name, @username, photo) done.
@@ -108,6 +109,7 @@ class User {
     this.equippedCarId,
     this.carExpiresAt,
     this.coinBalance = 0,
+    this.diamondBalance = 0,
     this.galleryCount = 0,
     this.profileComplete = true,
     this.identityComplete = true,
@@ -187,6 +189,7 @@ class User {
           ? DateTime.tryParse(json['carExpiresAt'] as String)
           : null,
       coinBalance: _parseDouble(json['coinBalance']),
+      diamondBalance: _parseDouble(json['diamondBalance']),
       galleryCount: json['galleryCount'] as int? ?? 0,
       // Older cached responses (or endpoints that don't compute it) won't
       // have this field at all — default true so we don't wrongly gate an

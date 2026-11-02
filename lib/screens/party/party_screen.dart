@@ -1,5 +1,6 @@
 import '../../widgets/chat_media.dart' show pickChatPhoto;
 import '../../widgets/view_once.dart';
+import '../../widgets/gift_fx.dart';
 import '../../widgets/permission_primer.dart';
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
@@ -321,6 +322,22 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
             onPressed: onTap),
       );
 
+  /// Everyone in the room, host first, for "To ▾" on the gift sheet.
+  List<GiftRecipient> _giftRecipients() {
+    final rs = _rs;
+    if (rs == null) return const [];
+    final me = rs.myUserId;
+    final people = [
+      for (final r in rs.roster)
+        if (r.userId != me)
+          GiftRecipient(
+              r.userId, r.userId == rs.hostId ? '${r.name} (host)' : r.name),
+    ];
+    people.sort(
+        (a, b) => (b.id == rs.hostId ? 1 : 0) - (a.id == rs.hostId ? 1 : 0));
+    return people;
+  }
+
   void _maybeInitLive() {
     final runtime = ActiveRoomHolder.session;
     if (runtime == null) return;
@@ -360,10 +377,27 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       Navigator.of(context).pop();
       return;
     }
+    final isLive = _room?['roomType'] == 'live';
     if (rs.bigGift != null) {
       final g = rs.bigGift!;
       rs.bigGift = null;
-      _showBigGift(g);
+      if (isLive) _showBigGift(g);
+    }
+    if (rs.gifts.isNotEmpty) {
+      final waiting = List.of(rs.gifts);
+      rs.gifts.clear();
+      if (!isLive) {
+        final media = MediaQuery.of(context);
+        final fullScreen = media.orientation == Orientation.landscape;
+        // A watch party's video stays clear.
+        final isWatch = _room?['roomType'] == 'watch';
+        for (final g in waiting) {
+          GiftFx.play(context, GiftEvent.fromMap(g),
+              keepTop:
+                  isWatch ? media.padding.top + media.size.width * 9 / 16 : 0,
+              bannerOnly: fullScreen);
+        }
+      }
     }
     if (rs.chatDenied != null) {
       ScaffoldMessenger.of(context)
@@ -1162,7 +1196,9 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                     width: 26,
                     height: 26,
                     child: FittedBox(
-                        child: Avatar(src: r.avatarUrl, name: r.name)),
+                        child: GiftTarget(
+                            userId: r.userId,
+                            child: Avatar(src: r.avatarUrl, name: r.name))),
                   ),
                 ),
               );
@@ -1666,6 +1702,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                   height: inPk ? 230 : 300,
                                   child: ChatOverlay(
                                     showMic: false,
+                                    showGiftCards: false,
                                     fanIds: extras.fanIds,
                                     messages: rs.messages,
                                     onSend: (text, mentionedUserIds,
@@ -1698,7 +1735,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                         toUserId:
                                             room['hostId'] as String? ?? '',
                                         roomId: widget.roomId,
-                                        targetKey: _hostKey),
+                                        recipients: _giftRecipients()),
                                     onShare: _shareRoom,
                                     onInvite: _openInvite,
                                     onFocusChanged: _setChatFocused,
@@ -1936,7 +1973,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                 onGift: () => showGiftBottomSheet(context,
                                     toUserId: room['hostId'] as String? ?? '',
                                     roomId: widget.roomId,
-                                    targetKey: _hostKey),
+                                    recipients: _giftRecipients()),
                                 onShare: _shareRoom,
                                 onInvite: _openInvite,
                                 onFocusChanged: _setChatFocused,
@@ -2047,7 +2084,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                                   room['hostId'] as String? ??
                                                       '',
                                               roomId: widget.roomId,
-                                              targetKey: _hostKey),
+                                              recipients: _giftRecipients()),
                                           onShare: _shareRoom,
                                           onInvite: _openInvite,
                                           onFocusChanged: _setChatFocused,
@@ -2157,7 +2194,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                           toUserId:
                                               room['hostId'] as String? ?? '',
                                           roomId: widget.roomId,
-                                          targetKey: _hostKey),
+                                          recipients: _giftRecipients()),
                                       onShare: _shareRoom,
                                       onInvite: _openInvite,
                                       onFocusChanged: _setChatFocused,
@@ -2321,7 +2358,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                                     room['hostId'] as String? ??
                                                         '',
                                                 roomId: widget.roomId,
-                                                targetKey: _hostKey),
+                                                recipients: _giftRecipients()),
                                             onShare: _shareRoom,
                                             onInvite: _openInvite,
                                             onFocusChanged: _setChatFocused,
@@ -2425,7 +2462,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                 onGift: () => showGiftBottomSheet(context,
                                     toUserId: room['hostId'] as String? ?? '',
                                     roomId: widget.roomId,
-                                    targetKey: _hostKey),
+                                    recipients: _giftRecipients()),
                                 onShare: _shareRoom,
                                 onInvite: _openInvite,
                                 onFocusChanged: _setChatFocused,

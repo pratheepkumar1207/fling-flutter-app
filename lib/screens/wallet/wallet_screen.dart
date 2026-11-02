@@ -189,7 +189,8 @@ class _WalletScreenState extends State<WalletScreen> {
                         ),
                         icon: const InIcon(InIcons.cash,
                             size: 18, color: Colors.white),
-                        label: const Text('Cash out'),
+                        label: Text(
+                            'Withdraw · ${formatNumber(user?.diamondBalance)} 💎'),
                       ),
                     ),
                   ],

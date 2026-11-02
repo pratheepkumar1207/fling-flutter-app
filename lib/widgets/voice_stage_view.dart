@@ -1,3 +1,4 @@
+import 'gift_fx.dart';
 import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../core/room_person_scope.dart';
@@ -344,10 +345,13 @@ class _PersonSeat extends StatelessWidget {
                     border: Border.all(color: ring, width: 2.5),
                   ),
                   child: FittedBox(
-                    child: Avatar(
-                        src: person.avatarUrl,
-                        name: person.name,
-                        size: AvatarSize.lg),
+                    child: GiftTarget(
+                      userId: person.userId,
+                      child: Avatar(
+                          src: person.avatarUrl,
+                          name: person.name,
+                          size: AvatarSize.lg),
+                    ),
                   ),
                 ),
                 if (roleColor != null)
