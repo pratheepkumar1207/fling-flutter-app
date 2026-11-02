@@ -395,7 +395,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           GiftFx.play(context, GiftEvent.fromMap(g),
               keepTop:
                   isWatch ? media.padding.top + media.size.width * 9 / 16 : 0,
-              bannerOnly: fullScreen);
+              bannerOnly: fullScreen || !RoomPrefs.instance.giftAnimations);
         }
       }
     }

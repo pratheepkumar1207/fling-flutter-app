@@ -13,6 +13,7 @@ class RoomPrefs extends ChangeNotifier {
   static const _kPip = 'room.autoPip';
   static const _kChatOver = 'room.chatOverVideo';
   static const _kMuteAlerts = 'room.muteAlerts';
+  static const _kBigGifts = 'room.bigGiftAnimations';
 
   bool _loaded = false;
   bool pushToTalk = false;
@@ -26,6 +27,9 @@ class RoomPrefs extends ChangeNotifier {
 
   /// No sound for @mentions and other room alerts.
   bool muteAlerts = false;
+
+  /// Off: gifts show only the name and the chat card.
+  bool giftAnimations = true;
 
   /// True while the mic button is held down with push to talk on.
   final talking = ValueNotifier<bool>(false);
@@ -46,6 +50,7 @@ class RoomPrefs extends ChangeNotifier {
       autoPip = p.getBool(_kPip) ?? true;
       chatOverVideo = p.getBool(_kChatOver) ?? true;
       muteAlerts = p.getBool(_kMuteAlerts) ?? false;
+      giftAnimations = p.getBool(_kBigGifts) ?? true;
       notifyListeners();
     } catch (_) {
       // Defaults are fine.
@@ -67,6 +72,11 @@ class RoomPrefs extends ChangeNotifier {
   void setBalance(double v) {
     balance = v.clamp(0.0, 1.0);
     _save((p) => p.setDouble(_kBalance, balance));
+  }
+
+  void setGiftAnimations(bool v) {
+    giftAnimations = v;
+    _save((p) => p.setBool(_kBigGifts, v));
   }
 
   void setAutoPip(bool v) {

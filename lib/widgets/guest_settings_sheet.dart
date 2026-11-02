@@ -95,6 +95,13 @@ Future<void> showGuestSettingsSheet(
                       value: prefs.muteAlerts,
                       onChanged: prefs.setMuteAlerts,
                     ),
+                    _SwitchRow(
+                      icon: InIcons.gift,
+                      title: 'Gift animations',
+                      subtitle: 'Off shows only the name and the chat card',
+                      value: prefs.giftAnimations,
+                      onChanged: prefs.setGiftAnimations,
+                    ),
                     if (onStage && onLeaveMic != null) ...[
                       const Divider(height: 1, color: AppColors.border),
                       ListTile(

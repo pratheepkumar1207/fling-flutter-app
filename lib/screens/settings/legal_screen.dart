@@ -77,7 +77,7 @@ const kPrivacyPolicySections = [
   LegalSection('3. Sharing',
       "We don't sell your personal data. Limited data may be shared with service providers (payment processing, push notifications) strictly to operate the app."),
   LegalSection('4. Your choices',
-      'You can review, edit, or delete your profile information from Settings at any time. Location sharing can be turned off at any time.'),
+      'You can review or edit your profile from Settings, and download a copy of your data. Location sharing can be turned off at any time.\n\nDeactivating hides your account until you log in again. Deleting hides it straight away and erases it after 30 days, unless you log in and keep it. That removes your profile, photos, posts, comments, identity and bank details. Coins and diamonds on the account are lost.\n\nWe keep payment records where the law requires, messages already in other people\'s chats (shown from "Deleted user"), reports and moderation records, and content held as evidence for a safety review.'),
   LegalSection('5. Security',
       'We use industry-standard measures to protect your data, but no system is 100% secure.'),
   LegalSection(
