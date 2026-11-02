@@ -67,6 +67,8 @@ class VideoEdit {
     required Duration end,
     required MediaFilter filter,
     bool mute = false,
+    double speed = 1,
+    String? overlay,
   }) async {
     final out = await _channel.invokeMethod<String>('processVideo', {
       'input': input,
@@ -75,7 +77,17 @@ class VideoEdit {
       'matrix': filter.matrix,
       'cartoon': filter.cartoon,
       'mute': mute,
+      'speed': speed,
+      'overlay': overlay,
     });
+    return out!;
+  }
+
+  /// A small picture from a clip, for its cover.
+  static Future<String> videoFrame(
+      {required String input, required Duration at}) async {
+    final out = await _channel.invokeMethod<String>(
+        'videoFrame', {'input': input, 'atMs': at.inMilliseconds});
     return out!;
   }
 

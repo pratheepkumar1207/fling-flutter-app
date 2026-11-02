@@ -1,11 +1,16 @@
+import 'dart:convert';
+import 'dart:io';
+
 import '../theme/insync_icons.dart';
 import 'package:video_player/video_player.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import '../core/api_client.dart';
 import '../core/profile_nav.dart';
 import '../models/post.dart';
 import '../theme/app_colors.dart';
 import 'avatar.dart';
+import 'app_image.dart';
 import 'report_user_sheet.dart';
 import 'share_row.dart';
 
@@ -100,31 +105,53 @@ class _ReelCard extends StatefulWidget {
 class _ReelCardState extends State<_ReelCard>
     with SingleTickerProviderStateMixin {
   VideoPlayerController? _controller;
-  bool _muted = true;
+  // Sound stays as you left it from one reel to the next.
+  static bool _soundOff = false;
   bool _held = false;
+  bool _tapPaused = false;
+
+  // A Blend keeps everyone's players in step, so one person can't pause.
+  bool get _canPause => widget.onPlayer == null;
   late final AnimationController _heart = AnimationController(
       vsync: this, duration: const Duration(milliseconds: 700));
 
   @override
   void initState() {
     super.initState();
+    _load();
+  }
+
+  // Clips arrive as text; Android's player needs a real file.
+  Future<void> _load() async {
     final data = widget.post.videoData;
-    if (data != null) {
-      // Data-URI playback works reliably on web (HTML5 <video>, same as the
-      // web app's ReelsFeed) — on native Android/iOS, base64-in-DB video is
-      // already a known scale tradeoff (see Post model's comment), so very
-      // large clips may not decode cleanly through ExoPlayer/AVPlayer.
-      _controller = VideoPlayerController.networkUrl(Uri.parse(data))
-        ..setLooping(true)
-        ..setVolume(0)
-        ..initialize().then((_) {
-          if (!mounted) return;
-          setState(() {});
-          if (widget.active) {
-            if (!widget.paused) _controller!.play();
-            widget.onPlayer?.call(_controller!);
-          }
-        });
+    if (data == null) return;
+    try {
+      final VideoPlayerController c;
+      if (data.startsWith('data:')) {
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/reel_${widget.post.id}.mp4');
+        if (!await file.exists()) {
+          await file.writeAsBytes(
+              base64Decode(data.substring(data.indexOf(',') + 1)));
+        }
+        c = VideoPlayerController.file(file);
+      } else {
+        c = VideoPlayerController.networkUrl(Uri.parse(data));
+      }
+      await c.setLooping(true);
+      await c.setVolume(_soundOff ? 0 : 1);
+      await c.initialize();
+      if (!mounted) {
+        await c.dispose();
+        return;
+      }
+      setState(() => _controller = c);
+      if (widget.active) {
+        if (!widget.paused) await c.play();
+        widget.onPlayer?.call(c);
+      }
+    } catch (_) {
+      // The cover or plain tile stays up; the next reel still works.
     }
   }
 
@@ -136,13 +163,27 @@ class _ReelCardState extends State<_ReelCard>
     if (c == null || !c.value.isInitialized) return;
     final play = widget.active && !widget.paused;
     if (play != (old.active && !old.paused)) play ? c.play() : c.pause();
-    if (widget.active && !old.active) widget.onPlayer?.call(c);
+    if (widget.active && !old.active) {
+      _tapPaused = false;
+      c.setVolume(_soundOff ? 0 : 1);
+      widget.onPlayer?.call(c);
+    }
   }
+
+  void _togglePause() {
+    final c = _controller;
+    if (c == null || !c.value.isInitialized) return;
+    setState(() => _tapPaused = !_tapPaused);
+    _tapPaused ? c.pause() : c.play();
+  }
+
+  String _clock(Duration d) =>
+      '${d.inMinutes}:${d.inSeconds.remainder(60).toString().padLeft(2, '0')}';
 
   void _toggleMute() {
     setState(() {
-      _muted = !_muted;
-      _controller?.setVolume(_muted ? 0 : 1);
+      _soundOff = !_soundOff;
+      _controller?.setVolume(_soundOff ? 0 : 1);
     });
   }
 
@@ -162,9 +203,9 @@ class _ReelCardState extends State<_ReelCard>
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Tap: mute/unmute. Hold: pause. Double-tap: like.
+          // Tap: pause. Hold: pause while held. Double-tap: like.
           GestureDetector(
-            onTap: _toggleMute,
+            onTap: _canPause ? _togglePause : _toggleMute,
             onDoubleTap: () {
               if (!post.likedByMe) widget.onLike(post);
               _heart.forward(from: 0);
@@ -175,7 +216,7 @@ class _ReelCardState extends State<_ReelCard>
             },
             onLongPressEnd: (_) {
               setState(() => _held = false);
-              if (widget.active && !widget.paused) c?.play();
+              if (widget.active && !widget.paused && !_tapPaused) c?.play();
             },
             child: c != null && c.value.isInitialized
                 ? FittedBox(
@@ -185,9 +226,11 @@ class _ReelCardState extends State<_ReelCard>
                         height: c.value.size.height,
                         child: VideoPlayer(c)),
                   )
-                : const Center(
-                    child:
-                        InIcon(InIcons.film, size: 48, color: Colors.white24)),
+                : widget.post.coverData != null
+                    ? AppImage(source: widget.post.coverData, fit: BoxFit.cover)
+                    : const Center(
+                        child: InIcon(InIcons.film,
+                            size: 48, color: Colors.white24)),
           ),
           Center(
             child: AnimatedBuilder(
@@ -208,12 +251,16 @@ class _ReelCardState extends State<_ReelCard>
           ),
           if (widget.badge != null)
             Positioned(top: 66, left: 12, child: widget.badge!),
-          if (_muted)
-            const Positioned(
-              top: 70,
-              right: 14,
-              child: InIcon(InIcons.mute, color: Colors.white70, size: 20),
+          Positioned(
+            top: 62,
+            right: 6,
+            child: IconButton(
+              tooltip: _soundOff ? 'Turn sound on' : 'Turn sound off',
+              onPressed: _toggleMute,
+              icon: InIcon(_soundOff ? InIcons.mute : InIcons.speaker,
+                  color: Colors.white, size: 20),
             ),
+          ),
           // Right rail.
           Positioned(
             right: 8,
@@ -352,9 +399,26 @@ class _ReelCardState extends State<_ReelCard>
               ),
             ),
           ),
-          if (_held)
-            const Center(
-              child: InIcon(InIcons.pause, color: Colors.white54, size: 64),
+          if (_held || _tapPaused)
+            IgnorePointer(
+              child: Center(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  const InIcon(InIcons.play,
+                      filled: true, color: Colors.white70, size: 64),
+                  if (c != null && c.value.isInitialized)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: ValueListenableBuilder<VideoPlayerValue>(
+                        valueListenable: c,
+                        builder: (_, v, __) => Text(
+                            '${_clock(v.position)} / ${_clock(v.duration)}',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                ]),
+              ),
             ),
           // Thin progress line along the bottom edge.
           if (c != null && c.value.isInitialized)
@@ -364,7 +428,7 @@ class _ReelCardState extends State<_ReelCard>
               bottom: 0,
               child: VideoProgressIndicator(
                 c,
-                allowScrubbing: false,
+                allowScrubbing: _canPause,
                 padding: EdgeInsets.zero,
                 colors: const VideoProgressColors(
                     playedColor: Colors.white,

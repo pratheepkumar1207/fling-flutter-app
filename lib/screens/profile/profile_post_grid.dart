@@ -25,8 +25,9 @@ class ProfilePostGrid extends StatelessWidget {
   // One grid tile — also used on its own by the Archive screen.
   Widget tile(BuildContext context, Post p) {
     Widget content;
-    if (p.imageData != null && p.imageData!.isNotEmpty) {
-      content = AppImage(source: p.imageData, fit: BoxFit.cover);
+    final picture = p.imageData ?? p.coverData;
+    if (picture != null && picture.isNotEmpty) {
+      content = AppImage(source: picture, fit: BoxFit.cover);
     } else {
       final (icon, label) = switch (p.mediaType) {
         'reel' => (InIcons.play, null),

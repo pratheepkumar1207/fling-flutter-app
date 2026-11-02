@@ -30,6 +30,7 @@ class Post {
   final String? voiceData;
   final String? videoUrl;
   final String? videoData;
+  final String? coverData;
   final List<dynamic>? pollOptions;
   final int? myVote;
   final int likesCount;
@@ -61,6 +62,7 @@ class Post {
     this.voiceData,
     this.videoUrl,
     this.videoData,
+    this.coverData,
     this.pollOptions,
     this.myVote,
     this.likesCount = 0,
@@ -99,6 +101,7 @@ class Post {
         voiceData: voiceData,
         videoUrl: videoUrl,
         videoData: videoData,
+        coverData: coverData,
         pollOptions: pollOptions,
         myVote: myVote ?? this.myVote,
         likesCount: likesCount ?? this.likesCount,
@@ -128,6 +131,7 @@ class Post {
       voiceData: json['voiceData'] as String?,
       videoUrl: json['videoUrl'] as String?,
       videoData: json['videoData'] as String?,
+      coverData: json['coverData'] as String?,
       pollOptions: json['pollOptions'] as List?,
       myVote: json['myVote'] as int?,
       likesCount: json['likesCount'] as int? ?? 0,

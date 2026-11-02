@@ -22,7 +22,9 @@ import androidx.media3.effect.GlEffect
 import androidx.media3.effect.GlShaderProgram
 import androidx.media3.effect.OverlayEffect
 import androidx.media3.effect.Presentation
+import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.effect.RgbMatrix
+import androidx.media3.effect.SpeedChangeEffect
 import androidx.media3.effect.TextureOverlay
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.DefaultEncoderFactory
@@ -64,9 +66,40 @@ class VideoEditChannel(private val context: Context, messenger: BinaryMessenger)
                         else result.error("photo", "Could not edit this photo", null)
                     }
                 }.start()
+                "videoFrame" -> Thread {
+                    val out = try {
+                        videoFrame(call.arguments as Map<*, *>)
+                    } catch (e: Exception) {
+                        null
+                    }
+                    android.os.Handler(context.mainLooper).post {
+                        if (out != null) result.success(out)
+                        else result.error("frame", "Could not read this clip", null)
+                    }
+                }.start()
                 "saveToGallery" -> saveToGallery(call.arguments as Map<*, *>, result)
                 else -> result.notImplemented()
             }
+        }
+    }
+
+    // One small frame, for choosing a reel's cover.
+    private fun videoFrame(args: Map<*, *>): String {
+        val r = MediaMetadataRetriever()
+        try {
+            r.setDataSource(args["input"] as String)
+            val atUs = (args["atMs"] as Number).toLong() * 1000
+            val frame = r.getFrameAtTime(atUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                ?: throw IllegalStateException("No frame")
+            val scale = min(1f, 480f / frame.width)
+            val small = Bitmap.createScaledBitmap(
+                frame, (frame.width * scale).roundToInt(), (frame.height * scale).roundToInt(), true,
+            )
+            val file = outFile("jpg")
+            FileOutputStream(file).use { small.compress(Bitmap.CompressFormat.JPEG, 70, it) }
+            return file.absolutePath
+        } finally {
+            r.release()
         }
     }
 
@@ -208,6 +241,7 @@ class VideoEditChannel(private val context: Context, messenger: BinaryMessenger)
             val matrix = matrixOf(args)
             val cartoon = args["cartoon"] == true
             val mute = args["mute"] == true
+            val speed = (args["speed"] as? Number)?.toFloat() ?: 1f
 
             val effects = ArrayList<androidx.media3.common.Effect>()
             matrix?.let { m ->
@@ -221,8 +255,29 @@ class VideoEditChannel(private val context: Context, messenger: BinaryMessenger)
                 effects.add(RgbMatrix { _, _ -> gl })
             }
             if (cartoon) effects.add(CartoonEffect())
+            val audioEffects = ArrayList<androidx.media3.common.audio.AudioProcessor>()
+            if (speed != 1f) {
+                effects.add(SpeedChangeEffect(speed))
+                audioEffects.add(SonicAudioProcessor().apply { setSpeed(speed) })
+            }
             // Always re-encodes, so every clip fits the upload limit.
-            effects.add(Presentation.createForHeight(targetHeight(input)))
+            val height = targetHeight(input)
+            effects.add(Presentation.createForHeight(height))
+            // Text on the clip: a transparent picture the clip's own size.
+            (args["overlay"] as? String)?.let { path ->
+                val bitmap = BitmapFactory.decodeFile(path)
+                    ?: throw IllegalArgumentException("No overlay")
+                val width = (height * clipAspect(input)).roundToInt() / 2 * 2
+                effects.add(
+                    OverlayEffect(
+                        ImmutableList.of<TextureOverlay>(
+                            BitmapOverlay.createStaticBitmapOverlay(
+                                Bitmap.createScaledBitmap(bitmap, width, height, true)
+                            )
+                        )
+                    )
+                )
+            }
 
             val item = MediaItem.Builder()
                 .setUri(Uri.fromFile(File(input)))
@@ -235,7 +290,7 @@ class VideoEditChannel(private val context: Context, messenger: BinaryMessenger)
                 .build()
             val edited = EditedMediaItem.Builder(item)
                 .setRemoveAudio(mute)
-                .setEffects(Effects(emptyList(), effects))
+                .setEffects(Effects(audioEffects, effects))
                 .build()
 
             val output = outFile("mp4")
@@ -260,6 +315,20 @@ class VideoEditChannel(private val context: Context, messenger: BinaryMessenger)
             transformer.start(edited, output.absolutePath)
         } catch (e: Exception) {
             result.error("video", e.message ?: "Could not edit this clip", null)
+        }
+    }
+
+    // Width over height, as the clip is watched.
+    private fun clipAspect(path: String): Float {
+        val r = MediaMetadataRetriever()
+        return try {
+            r.setDataSource(path)
+            val w = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toFloatOrNull() ?: 720f
+            val h = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toFloatOrNull() ?: 1280f
+            val rotation = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0
+            if (rotation == 90 || rotation == 270) h / w else w / h
+        } finally {
+            r.release()
         }
     }
 

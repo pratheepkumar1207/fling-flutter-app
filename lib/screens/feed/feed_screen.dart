@@ -98,6 +98,7 @@ class _FeedScreenState extends State<FeedScreen> {
           voiceData: post.voiceData,
           videoUrl: post.videoUrl,
           videoData: post.videoData,
+          coverData: post.coverData,
           pollOptions: post.pollOptions,
           myVote: post.myVote,
           likesCount:
@@ -169,6 +170,7 @@ class _FeedScreenState extends State<FeedScreen> {
         voiceData: post.voiceData,
         videoUrl: post.videoUrl,
         videoData: post.videoData,
+        coverData: post.coverData,
         pollOptions: post.pollOptions,
         myVote: post.myVote,
         likesCount: like

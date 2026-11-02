@@ -100,7 +100,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
       PageRouteBuilder(
         opaque: false,
         barrierColor: Colors.black54,
-        pageBuilder: (_, __, ___) => _TextEditor(
+        pageBuilder: (_, __, ___) => StoryTextEditor(
           text: existing?['text'] as String? ?? '',
           color: existing?['color'] as String? ?? 'white',
           font: existing?['font'] as String? ?? 'classic',
@@ -500,18 +500,18 @@ class _ColourRow extends StatelessWidget {
       );
 }
 
-class _TextEditor extends StatefulWidget {
+class StoryTextEditor extends StatefulWidget {
   final String text;
   final String color;
   final String font;
-  const _TextEditor(
-      {required this.text, required this.color, required this.font});
+  const StoryTextEditor(
+      {super.key, required this.text, required this.color, required this.font});
 
   @override
-  State<_TextEditor> createState() => _TextEditorState();
+  State<StoryTextEditor> createState() => _TextEditorState();
 }
 
-class _TextEditorState extends State<_TextEditor> {
+class _TextEditorState extends State<StoryTextEditor> {
   late final _controller = TextEditingController(text: widget.text);
   late String _color = widget.color;
   late String _font = widget.font;

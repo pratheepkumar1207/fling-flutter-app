@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/api_client.dart';
 import '../core/api_exception.dart';
+import '../core/profile_nav.dart';
+import '../screens/feed/hashtag_screen.dart';
 import '../theme/app_colors.dart';
 
 /// Stories are shown in one fixed shape, so a sticker sits in the same place
@@ -547,6 +549,12 @@ class _StoryStickerLayerState extends State<StoryStickerLayer> {
     }
   }
 
+  // The story stays paused behind whatever opens.
+  void _leaveTo(VoidCallback open) {
+    widget.onPause();
+    open();
+  }
+
   // The author taps a sticker to see who answered what.
   Future<void> _showResponses(Map<String, dynamic> s) async {
     final r = _results[s['id']] as Map?;
@@ -617,6 +625,11 @@ class _StoryStickerLayerState extends State<StoryStickerLayer> {
           : () => _askQuestion(s),
       onTap: switch (type) {
         'link' => () => _openLink(s),
+        'mention' when s['userId'] != null => () =>
+            _leaveTo(() => openProfile(context, s['userId'] as String)),
+        'hashtag' => () => _leaveTo(() => Navigator.of(context).push(
+            MaterialPageRoute(
+                builder: (_) => HashtagScreen(tag: s['tag'] as String)))),
         'addyours' => widget.onAddYours == null
             ? null
             : () => widget.onAddYours!(s['question'] as String),

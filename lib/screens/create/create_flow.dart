@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/api_client.dart';
 import '../../core/face_filters.dart';
@@ -15,6 +18,7 @@ import '../../theme/insync_icons.dart';
 import '../../widgets/in_icon_button.dart';
 import '../../widgets/mention_text_field.dart';
 import '../../widgets/people_picker_sheet.dart';
+import '../../widgets/story_stickers.dart';
 import '../../widgets/permission_primer.dart';
 import '../lobby/lobby_create_screen.dart';
 import 'story_editor_screen.dart';
@@ -704,6 +708,12 @@ class _CreateEditScreenState extends State<CreateEditScreen> {
   late MediaFilter _filter = widget.initialFilter;
   RangeValues _range = const RangeValues(0, 1);
   bool _mute = false;
+  double _speed = 1;
+  final List<Map<String, dynamic>> _texts = [];
+  final _textLayer = GlobalKey();
+  double _startScale = 1;
+  double _startRotation = 0;
+  Offset? _grab;
   bool _working = false;
   String _workingText = '';
   // Cartoon can't run live, so it's made once and shown here.
@@ -746,6 +756,100 @@ class _CreateEditScreenState extends State<CreateEditScreen> {
     }
     setState(() => _range = next);
     _video?.seekTo(Duration(milliseconds: next.start.round()));
+  }
+
+  Future<void> _editText([Map<String, dynamic>? existing]) async {
+    final result = await Navigator.of(context).push<Map<String, String>>(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black54,
+        pageBuilder: (_, __, ___) => StoryTextEditor(
+          text: existing?['text'] as String? ?? '',
+          color: existing?['color'] as String? ?? 'white',
+          font: existing?['font'] as String? ?? 'classic',
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+    setState(() {
+      final empty = result['text']!.isEmpty;
+      if (existing != null) {
+        empty ? _texts.remove(existing) : existing.addAll(result);
+      } else if (!empty) {
+        _texts.add(
+            {'x': 0.5, 'y': 0.5, 'scale': 1.0, 'rotation': 0.0, ...result});
+      }
+    });
+  }
+
+  /// The text as a transparent picture, baked into the clip by Android.
+  Future<String?> _captureText() async {
+    if (_texts.isEmpty) return null;
+    final box =
+        _textLayer.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+    if (box == null) return null;
+    final image = await box.toImage(pixelRatio: 720 / box.size.width);
+    final png = await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+    if (png == null) return null;
+    final dir = await getTemporaryDirectory();
+    final file =
+        File('${dir.path}/clip_${DateTime.now().millisecondsSinceEpoch}.png');
+    await file.writeAsBytes(png.buffer.asUint8List());
+    return file.path;
+  }
+
+  /// A clip with its text on top, sharing one box so what's seen is what's
+  /// saved.
+  Widget _clipWithText(double aspect, Widget clip) => AspectRatio(
+        aspectRatio: aspect,
+        child: Stack(fit: StackFit.expand, children: [
+          clip,
+          LayoutBuilder(builder: (context, box) {
+            final frame = box.biggest;
+            return RepaintBoundary(
+              key: _textLayer,
+              child: Stack(fit: StackFit.expand, children: [
+                for (final t in _texts)
+                  PlacedSticker(
+                    sticker: t,
+                    frame: frame,
+                    child: GestureDetector(
+                      onTap: () => _editText(t),
+                      onScaleStart: (_) {
+                        _startScale = (t['scale'] as num).toDouble();
+                        _startRotation = (t['rotation'] as num).toDouble();
+                        _grab = null;
+                      },
+                      onScaleUpdate: (d) {
+                        final layer = _textLayer.currentContext
+                            ?.findRenderObject() as RenderBox?;
+                        if (layer == null) return;
+                        final at = layer.globalToLocal(d.focalPoint);
+                        _grab ??= Offset(at.dx - (t['x'] as num) * frame.width,
+                            at.dy - (t['y'] as num) * frame.height);
+                        setState(() {
+                          t['x'] = ((at.dx - _grab!.dx) / frame.width)
+                              .clamp(0.0, 1.0);
+                          t['y'] = ((at.dy - _grab!.dy) / frame.height)
+                              .clamp(0.0, 1.0);
+                          t['scale'] = (_startScale * d.scale).clamp(0.3, 5.0);
+                          t['rotation'] = _startRotation + d.rotation;
+                        });
+                      },
+                      child: StickerBody(sticker: {'type': 'text', ...t}),
+                    ),
+                  ),
+              ]),
+            );
+          }),
+        ]),
+      );
+
+  void _setSpeed(double speed) {
+    setState(() => _speed = speed);
+    _video?.setPlaybackSpeed(speed);
+    _cartoonVideo?.setPlaybackSpeed(speed);
   }
 
   void _toggleMute() {
@@ -812,6 +916,8 @@ class _CreateEditScreenState extends State<CreateEditScreen> {
           end: Duration(milliseconds: _range.end.round()),
           filter: _filter,
           mute: _mute,
+          speed: _speed,
+          overlay: await _captureText(),
         );
       } else {
         out = await VideoEdit.processPhoto(input: widget.path, filter: _filter);
@@ -851,9 +957,8 @@ class _CreateEditScreenState extends State<CreateEditScreen> {
 
   Widget _preview() {
     if (_filter.cartoon && _cartoonVideo != null) {
-      return AspectRatio(
-          aspectRatio: _cartoonVideo!.value.aspectRatio,
-          child: VideoPlayer(_cartoonVideo!));
+      return _clipWithText(
+          _cartoonVideo!.value.aspectRatio, VideoPlayer(_cartoonVideo!));
     }
     if (_filter.cartoon && _cartoonPreview != null) {
       return Image.file(File(_cartoonPreview!), fit: BoxFit.contain);
@@ -862,8 +967,10 @@ class _CreateEditScreenState extends State<CreateEditScreen> {
     final v = _video;
     if (widget.isVideo) {
       if (v == null) return const CircularProgressIndicator();
-      base =
-          AspectRatio(aspectRatio: v.value.aspectRatio, child: VideoPlayer(v));
+      final f = _filter.preview;
+      final player = VideoPlayer(v);
+      return _clipWithText(v.value.aspectRatio,
+          f == null ? player : ColorFiltered(colorFilter: f, child: player));
     } else {
       base = Image.file(File(widget.path), fit: BoxFit.contain);
     }
@@ -879,6 +986,12 @@ class _CreateEditScreenState extends State<CreateEditScreen> {
         backgroundColor: Colors.black,
         title: const Text('Edit'),
         actions: [
+          if (widget.isVideo && widget.mode != CreateMode.story)
+            IconButton(
+              tooltip: 'Add text',
+              onPressed: _working ? null : () => _editText(),
+              icon: const Icon(Icons.text_fields_rounded),
+            ),
           TextButton(
               onPressed: _working ? null : _next, child: const Text('Next')),
         ],
@@ -912,8 +1025,24 @@ class _CreateEditScreenState extends State<CreateEditScreen> {
               child: Row(children: [
                 Expanded(
                   child: Text(
-                      'Clip: ${((_range.end - _range.start) / 1000).round()} seconds',
+                      'Clip: ${((_range.end - _range.start) / 1000 / _speed).round()} seconds',
                       style: const TextStyle(color: Colors.white70)),
+                ),
+                PopupMenuButton<double>(
+                  tooltip: 'Speed',
+                  initialValue: _speed,
+                  onSelected: _setSpeed,
+                  itemBuilder: (_) => [
+                    for (final v in const [0.5, 1.0, 1.5, 2.0])
+                      PopupMenuItem(
+                          value: v, child: Text(v == 1 ? 'Normal' : '${v}x')),
+                  ],
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(_speed == 1 ? '1x' : '${_speed}x',
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.w700)),
+                  ),
                 ),
                 IconButton(
                   tooltip: _mute ? 'Turn sound on' : 'Turn sound off',
@@ -972,6 +1101,7 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
   bool _hideLikes = false;
   bool _closeFriends = false;
   bool _sharing = false;
+  String? _cover;
 
   bool get _story => widget.mode == CreateMode.story;
 
@@ -1001,6 +1131,9 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
         'text': _caption.text.trim(),
         'isStory': _story,
         if (widget.isVideo) 'videoData': data else 'imageData': data,
+        if (_cover != null)
+          'coverData':
+              'data:image/jpeg;base64,${base64Encode(await File(_cover!).readAsBytes())}',
         if (_story && _closeFriends) 'audience': 'closeFriends',
         if (!_story) ...{
           if (_tagged.isNotEmpty)
@@ -1020,6 +1153,66 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
               'Couldn’t share this. Check your connection and try again.')));
       if (mounted) setState(() => _sharing = false);
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isVideo) _pickCoverAt(Duration.zero);
+  }
+
+  Future<void> _pickCoverAt(Duration at) async {
+    try {
+      final path = await VideoEdit.videoFrame(input: widget.path, at: at);
+      if (mounted) setState(() => _cover = path);
+    } catch (_) {
+      // The reel still posts, and just shows a plain tile while loading.
+    }
+  }
+
+  // Slide through the clip and keep the frame showing.
+  Future<void> _chooseCover() async {
+    final v = VideoPlayerController.file(File(widget.path));
+    await v.initialize();
+    if (!mounted) {
+      await v.dispose();
+      return;
+    }
+    var at = 0.0;
+    final total = v.value.duration.inMilliseconds.toDouble();
+    final chosen = await showModalBottomSheet<Duration>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, set) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              SizedBox(
+                height: 260,
+                child: AspectRatio(
+                    aspectRatio: v.value.aspectRatio, child: VideoPlayer(v)),
+              ),
+              Slider(
+                value: at,
+                max: total <= 0 ? 1 : total,
+                onChanged: (n) {
+                  set(() => at = n);
+                  v.seekTo(Duration(milliseconds: n.round()));
+                },
+              ),
+              FilledButton(
+                onPressed: () =>
+                    Navigator.of(ctx).pop(Duration(milliseconds: at.round())),
+                child: const Text('Use this as the cover'),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+    await v.dispose();
+    if (chosen != null) await _pickCoverAt(chosen);
   }
 
   Future<void> _saveToPhone() async {
@@ -1069,10 +1262,33 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
                 width: 84,
                 height: 118,
                 child: widget.isVideo
-                    ? const ColoredBox(
-                        color: Color(0xFF2A1F4D),
-                        child: Center(
-                            child: InIcon(InIcons.film, color: Colors.white)))
+                    ? Semantics(
+                        button: true,
+                        label: 'Edit cover',
+                        child: GestureDetector(
+                          onTap: _chooseCover,
+                          child: Stack(fit: StackFit.expand, children: [
+                            _cover == null
+                                ? const ColoredBox(color: Color(0xFF2A1F4D))
+                                : Image.file(File(_cover!), fit: BoxFit.cover),
+                            const Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              child: ColoredBox(
+                                color: Colors.black54,
+                                child: Padding(
+                                  padding: EdgeInsets.all(4),
+                                  child: Text('Edit cover',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                          color: Colors.white, fontSize: 11)),
+                                ),
+                              ),
+                            ),
+                          ]),
+                        ),
+                      )
                     : Image.file(File(widget.path), fit: BoxFit.cover),
               ),
             ),

@@ -15,6 +15,7 @@ import '../theme/app_colors.dart';
 import 'app_image.dart';
 import 'avatar.dart';
 import 'story_bar.dart';
+import 'report_user_sheet.dart';
 import 'story_stickers.dart';
 
 /// Full-screen tap-through story viewer — Dart port of StoryViewer.jsx.
@@ -261,6 +262,19 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
                         ],
                       ),
                     ),
+                    if (group.userId != context.watch<AuthProvider>().user?.id)
+                      IconButton(
+                          tooltip: 'Report this story',
+                          onPressed: () {
+                            _controller.stop();
+                            showReportContentSheet(context,
+                                targetType: 'post',
+                                targetId: item.id,
+                                authorId: group.userId,
+                                authorName: group.name ?? 'this person');
+                          },
+                          icon:
+                              const InIcon(InIcons.more, color: Colors.white)),
                     IconButton(
                         onPressed: () => Navigator.of(context).pop(),
                         icon: const InIcon(InIcons.close, color: Colors.white)),

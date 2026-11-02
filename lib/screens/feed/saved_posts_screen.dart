@@ -276,8 +276,10 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
-                              if (p.imageData != null)
-                                AppImage(source: p.imageData, fit: BoxFit.cover)
+                              if ((p.imageData ?? p.coverData) != null)
+                                AppImage(
+                                    source: p.imageData ?? p.coverData,
+                                    fit: BoxFit.cover)
                               else
                                 Container(
                                     decoration: BoxDecoration(
