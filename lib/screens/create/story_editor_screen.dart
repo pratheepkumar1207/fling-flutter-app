@@ -7,6 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/api_client.dart';
+import '../../core/place_lookup.dart';
 import '../../core/video_edit.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/mention_text_field.dart';
@@ -818,6 +819,21 @@ class _StickerFormState extends State<_StickerForm> {
         _ => 'https://example.com',
       };
 
+  bool _finding = false;
+
+  Future<void> _useMyLocation() async {
+    setState(() {
+      _finding = true;
+      _error = null;
+    });
+    try {
+      _main.text = await currentPlaceName();
+    } on PlaceLookupFailure catch (e) {
+      _error = e.message;
+    }
+    if (mounted) setState(() => _finding = false);
+  }
+
   void _submit() {
     final text = _main.text.trim();
     Map<String, dynamic>? out;
@@ -914,6 +930,15 @@ class _StickerFormState extends State<_StickerForm> {
                   onChanged: (_) => setState(() => _error = null),
                   decoration: InputDecoration(hintText: _hint),
                 ),
+          if (widget.type == 'location')
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _finding ? null : _useMyLocation,
+                icon: const Icon(Icons.my_location_rounded, size: 18),
+                label: Text(_finding ? 'Finding…' : 'Use my location'),
+              ),
+            ),
           if (_hasOptions) ...[
             const SizedBox(height: 10),
             for (var i = 0; i < _options.length; i++)

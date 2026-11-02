@@ -12,6 +12,7 @@ import 'package:video_player/video_player.dart';
 import '../../core/api_client.dart';
 import '../../core/face_filters.dart';
 import '../../core/face_tracker.dart';
+import '../../core/place_lookup.dart';
 import '../../core/video_edit.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
@@ -1502,6 +1503,16 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
     if (chosen != null) await _pickCoverAt(chosen);
   }
 
+  Future<void> _useMyLocation() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final place = await currentPlaceName();
+      if (mounted) _location.text = place;
+    } on PlaceLookupFailure catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
   Future<void> _saveToPhone() async {
     final messenger = ScaffoldMessenger.of(context);
     try {
@@ -1648,8 +1659,16 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
             ),
             TextField(
               controller: _location,
-              decoration: const InputDecoration(
-                  hintText: 'Add location', border: InputBorder.none),
+              maxLength: 80,
+              decoration: InputDecoration(
+                  hintText: 'Add location',
+                  counterText: '',
+                  border: InputBorder.none,
+                  suffixIcon: IconButton(
+                    tooltip: 'Use my location',
+                    onPressed: _useMyLocation,
+                    icon: const Icon(Icons.my_location_rounded),
+                  )),
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,

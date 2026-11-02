@@ -218,11 +218,23 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                       size: AvatarSize.sm),
                                   const SizedBox(width: 10),
                                   Expanded(
-                                      child: Text(post.author.name,
-                                          style: const TextStyle(
-                                              color: AppColors.text,
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 13.5))),
+                                      child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                        Text(post.author.name,
+                                            style: const TextStyle(
+                                                color: AppColors.text,
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 13.5)),
+                                        if (post.location != null)
+                                          Text(post.location!,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                  color: AppColors.textFaint,
+                                                  fontSize: 11.5)),
+                                      ])),
                                   Text(formatRelativeTime(post.createdAt),
                                       style: const TextStyle(
                                           color: AppColors.textFaint,
