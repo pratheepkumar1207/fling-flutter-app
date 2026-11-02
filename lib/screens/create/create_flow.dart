@@ -66,6 +66,10 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
   bool _noCamera = false;
   int _seconds = 0;
   Timer? _ticker;
+  // Hands-free: the shutter waits this long.
+  int _timer = 0;
+  int? _countdown;
+  bool _gridLines = false;
 
   final _tracker = FaceTracker();
   FaceFilter? _faceFilter;
@@ -223,6 +227,20 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
   Future<void> _shutter() async {
     final c = _camera;
     if (c == null) return;
+    if (_countdown != null) {
+      setState(() => _countdown = null); // A second tap cancels it.
+      return;
+    }
+    if (_timer > 0 && !_recording) {
+      for (var left = _timer; left > 0; left--) {
+        if (!mounted) return;
+        setState(() => _countdown = left);
+        await Future<void>.delayed(const Duration(seconds: 1));
+        if (_countdown == null) return;
+      }
+      if (!mounted) return;
+      setState(() => _countdown = null);
+    }
     if (_recording) {
       await _stop();
       return;
@@ -484,6 +502,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
             : ColorFiltered(colorFilter: look, child: CameraPreview(c)),
         if (f != null && visible)
           FaceFilterOverlay(filter: f, pose: pose, mirrored: _mirrored),
+        if (_gridLines) const IgnorePointer(child: _ThirdsGrid()),
       ]),
     );
   }
@@ -591,6 +610,28 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
                 ),
               const Spacer(),
               IconButton(
+                tooltip: _gridLines ? 'Grid off' : 'Grid on',
+                onPressed: () => setState(() => _gridLines = !_gridLines),
+                icon: Icon(
+                    _gridLines ? Icons.grid_on_rounded : Icons.grid_off_rounded,
+                    color: Colors.white),
+              ),
+              TextButton(
+                onPressed: _recording
+                    ? null
+                    : () => setState(() => _timer = switch (_timer) {
+                          0 => 3,
+                          3 => 10,
+                          _ => 0,
+                        }),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.timer_outlined, color: Colors.white),
+                  if (_timer > 0)
+                    Text(' ${_timer}s',
+                        style: const TextStyle(color: Colors.white)),
+                ]),
+              ),
+              IconButton(
                 tooltip: _flash ? 'Flash off' : 'Flash on',
                 onPressed: _toggleFlash,
                 icon: Icon(
@@ -673,6 +714,19 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
             ]),
           ]),
         ),
+        if (_countdown != null)
+          IgnorePointer(
+            child: Center(
+              child: Text('$_countdown',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 110,
+                      fontWeight: FontWeight.w800,
+                      shadows: [
+                        Shadow(color: Colors.black54, blurRadius: 10)
+                      ])),
+            ),
+          ),
         if (_baking)
           Container(
             color: Colors.black54,
@@ -686,6 +740,32 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
       ]),
     );
   }
+}
+
+/// Thirds lines, to help framing. Never saved in the picture.
+class _ThirdsGrid extends StatelessWidget {
+  const _ThirdsGrid();
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(painter: _ThirdsPainter());
+}
+
+class _ThirdsPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final line = Paint()
+      ..color = Colors.white54
+      ..strokeWidth = 1;
+    for (final t in const [1 / 3, 2 / 3]) {
+      canvas.drawLine(
+          Offset(size.width * t, 0), Offset(size.width * t, size.height), line);
+      canvas.drawLine(Offset(0, size.height * t),
+          Offset(size.width, size.height * t), line);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ThirdsPainter old) => false;
 }
 
 class _FaceTile extends StatelessWidget {

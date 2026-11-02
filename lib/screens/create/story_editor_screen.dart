@@ -714,6 +714,29 @@ class _StickerTray extends StatelessWidget {
               _preview(context, 'hashtag', '#hashtag', const Color(0xFFFFC35A)),
               _preview(context, 'location', 'Location', Colors.white),
               _preview(context, 'link', 'Link', const Color(0xFF5AD6A8)),
+              Semantics(
+                button: true,
+                label: 'Time',
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).pop({
+                    'type': 'text',
+                    'text': TimeOfDay.now().format(context),
+                    'color': 'white',
+                    'font': 'bold',
+                  }),
+                  child: Container(
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(11)),
+                    child: const Text('Time',
+                        style: TextStyle(
+                            color: Color(0xFF241338),
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
