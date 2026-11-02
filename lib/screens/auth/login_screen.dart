@@ -10,6 +10,7 @@ import '../../theme/insync_icons.dart';
 import '../../widgets/in_icon_button.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../splash_screen.dart';
+import 'google_sign_in_view.dart';
 import 'otp_screen.dart';
 import 'safety_guidelines_screen.dart';
 
@@ -191,6 +192,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_googleOn && !_phoneOn && !_passwordOn && !_fakeLoginMode) {
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        body: GoogleSignInView(
+          loading: _loading,
+          error: _error,
+          onGoogle: _handleGoogleSignIn,
+          googleMark: const _GoogleMark(),
+        ),
+      );
+    }
     final canPop = Navigator.of(context).canPop();
     final submitLabel = _loading
         ? 'Signing in…'
