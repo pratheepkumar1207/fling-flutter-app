@@ -1,13 +1,13 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:fling/core/auth_provider.dart';
-import 'package:fling/models/room_models.dart';
-import 'package:fling/models/user.dart';
-import 'package:fling/screens/party/roster_sheet.dart';
-import 'package:fling/theme/app_theme.dart';
-import 'package:fling/widgets/insync_attach_sheet.dart';
-import 'package:fling/widgets/room_settings_sheet.dart';
+import 'package:insync/core/auth_provider.dart';
+import 'package:insync/models/room_models.dart';
+import 'package:insync/models/user.dart';
+import 'package:insync/screens/party/roster_sheet.dart';
+import 'package:insync/theme/app_theme.dart';
+import 'package:insync/widgets/insync_attach_sheet.dart';
+import 'package:insync/widgets/room_settings_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';

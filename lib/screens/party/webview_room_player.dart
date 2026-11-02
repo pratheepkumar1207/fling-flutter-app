@@ -374,9 +374,9 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         Object.keys(props).forEach(function(k) {
           main.style.setProperty(k, props[k], 'important');
         });
-        if (!document.getElementById('__fling_fullbleed_body__')) {
+        if (!document.getElementById('__insync_fullbleed_body__')) {
           var style = document.createElement('style');
-          style.id = '__fling_fullbleed_body__';
+          style.id = '__insync_fullbleed_body__';
           style.innerHTML = `html, body { overflow: hidden !important; margin: 0 !important; padding: 0 !important; }`;
           document.head.appendChild(style);
         }

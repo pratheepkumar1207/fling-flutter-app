@@ -1,5 +1,5 @@
-import 'package:fling/widgets/insync_attach_sheet.dart';
-import 'package:fling/widgets/view_once.dart';
+import 'package:insync/widgets/insync_attach_sheet.dart';
+import 'package:insync/widgets/view_once.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

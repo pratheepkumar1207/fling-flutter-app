@@ -1,6 +1,6 @@
-import 'package:fling/core/room_prefs.dart';
-import 'package:fling/theme/app_theme.dart';
-import 'package:fling/widgets/guest_settings_sheet.dart';
+import 'package:insync/core/room_prefs.dart';
+import 'package:insync/theme/app_theme.dart';
+import 'package:insync/widgets/guest_settings_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';

@@ -1,4 +1,4 @@
-import 'package:fling/screens/lobby/source_search_area.dart';
+import 'package:insync/screens/lobby/source_search_area.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

@@ -37,11 +37,11 @@ void main() async {
   // delay the app's own startup; both listeners it registers stay valid
   // however long the actual setup takes to complete.
   unawaited(setupNotificationTapHandling());
-  runApp(const FlingApp());
+  runApp(const InsyncApp());
 }
 
-class FlingApp extends StatelessWidget {
-  const FlingApp({super.key});
+class InsyncApp extends StatelessWidget {
+  const InsyncApp({super.key});
 
   @override
   Widget build(BuildContext context) {

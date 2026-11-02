@@ -1,5 +1,5 @@
-import 'package:fling/core/video_edit.dart';
-import 'package:fling/screens/create/create_flow.dart';
+import 'package:insync/core/video_edit.dart';
+import 'package:insync/screens/create/create_flow.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

@@ -87,7 +87,7 @@ class MainActivity : AudioServiceActivity() {
         // drive_video_player.dart's native-player path creates an AndroidView
         // with.
         flutterEngine.platformViewsController.registry.registerViewFactory(
-            "fling/media3_player",
+            "insync/media3_player",
             Media3PlayerViewFactory(flutterEngine.dartExecutor.binaryMessenger),
         )
 

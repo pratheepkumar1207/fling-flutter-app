@@ -393,7 +393,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 'More ways to connect',
                 'Vibe Match, communities & your creator space',
                 () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => const FlingFeatureHubScreen()))),
+                    builder: (_) => const InsyncFeatureHubScreen()))),
             const SizedBox(height: 16),
             const BannerCarousel(placement: 'home'),
           ],

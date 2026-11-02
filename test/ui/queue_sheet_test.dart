@@ -1,4 +1,4 @@
-import 'package:fling/screens/party/queue_sheet.dart';
+import 'package:insync/screens/party/queue_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

@@ -5,7 +5,7 @@ import '../data/media3_player_adapter.dart';
 import '../domain/video_player_adapter.dart';
 
 /// Hosts the native Media3PlayerView platform view (registered in
-/// MainActivity.kt under "fling/media3_player") and hands the caller a
+/// MainActivity.kt under "insync/media3_player") and hands the caller a
 /// ready VideoPlayerAdapter once Android has actually created the
 /// underlying ExoPlayer — mirrors the existing WebView-based players'
 /// pattern (an AndroidView wrapped in a Flutter widget, real controls drawn
@@ -44,7 +44,7 @@ class _Media3PlayerViewState extends State<Media3PlayerView> {
   @override
   Widget build(BuildContext context) {
     return AndroidView(
-      viewType: 'fling/media3_player',
+      viewType: 'insync/media3_player',
       creationParamsCodec: const StandardMessageCodec(),
       onPlatformViewCreated: (int viewId) {
         final adapter = Media3PlayerAdapter(viewId);

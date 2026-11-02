@@ -16,8 +16,8 @@ import '../wallet/wallet_screen.dart';
 
 /// App bar from the approved design: profile photo, logo and wordmark on the
 /// left; coins, rankings, notifications and Messages on the right.
-class FlingTopBar extends StatelessWidget implements PreferredSizeWidget {
-  const FlingTopBar({super.key});
+class InsyncTopBar extends StatelessWidget implements PreferredSizeWidget {
+  const InsyncTopBar({super.key});
   @override
   Size get preferredSize => const Size.fromHeight(60);
 

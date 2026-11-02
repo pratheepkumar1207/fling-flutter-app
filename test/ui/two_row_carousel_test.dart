@@ -1,4 +1,4 @@
-import 'package:fling/widgets/two_row_carousel.dart';
+import 'package:insync/widgets/two_row_carousel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

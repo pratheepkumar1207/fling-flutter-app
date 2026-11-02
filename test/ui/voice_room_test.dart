@@ -1,7 +1,7 @@
-import 'package:fling/core/room_person_scope.dart';
-import 'package:fling/models/room_models.dart';
-import 'package:fling/screens/party/room_person_sheets.dart';
-import 'package:fling/widgets/voice_stage_view.dart';
+import 'package:insync/core/room_person_scope.dart';
+import 'package:insync/models/room_models.dart';
+import 'package:insync/screens/party/room_person_sheets.dart';
+import 'package:insync/widgets/voice_stage_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

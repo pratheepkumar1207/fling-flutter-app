@@ -53,8 +53,8 @@ class Media3PlayerView(
         playerView.player = it
     }
 
-    private val methodChannel = MethodChannel(messenger, "fling/media3_player_$viewId")
-    private val eventChannel = EventChannel(messenger, "fling/media3_player_events_$viewId")
+    private val methodChannel = MethodChannel(messenger, "insync/media3_player_$viewId")
+    private val eventChannel = EventChannel(messenger, "insync/media3_player_events_$viewId")
     private var eventSink: EventChannel.EventSink? = null
 
     private val tickHandler = Handler(Looper.getMainLooper())

@@ -1,4 +1,4 @@
-import 'package:fling/screens/party/ott_sync_panel.dart';
+import 'package:insync/screens/party/ott_sync_panel.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

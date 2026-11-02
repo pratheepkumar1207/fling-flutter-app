@@ -1,8 +1,8 @@
-import 'package:fling/core/auth_provider.dart';
-import 'package:fling/models/message.dart';
-import 'package:fling/models/user.dart';
-import 'package:fling/screens/messages/messages_screen.dart';
-import 'package:fling/theme/app_theme.dart';
+import 'package:insync/core/auth_provider.dart';
+import 'package:insync/models/message.dart';
+import 'package:insync/models/user.dart';
+import 'package:insync/screens/messages/messages_screen.dart';
+import 'package:insync/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';

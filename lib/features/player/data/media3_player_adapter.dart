@@ -22,8 +22,8 @@ import '../domain/video_source.dart';
 /// round-tripping the channel on every read.
 class Media3PlayerAdapter implements VideoPlayerAdapter {
   Media3PlayerAdapter(int viewId)
-      : _methodChannel = MethodChannel('fling/media3_player_$viewId'),
-        _eventChannel = EventChannel('fling/media3_player_events_$viewId') {
+      : _methodChannel = MethodChannel('insync/media3_player_$viewId'),
+        _eventChannel = EventChannel('insync/media3_player_events_$viewId') {
     _eventSubscription = _eventChannel
         .receiveBroadcastStream()
         .listen(_onEvent, onError: _onEventError);

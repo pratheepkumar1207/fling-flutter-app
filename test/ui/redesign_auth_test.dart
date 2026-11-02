@@ -1,11 +1,11 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:fling/screens/auth/login_screen.dart';
-import 'package:fling/screens/auth/onboarding_screen.dart';
-import 'package:fling/screens/auth/otp_screen.dart';
-import 'package:fling/screens/auth/safety_guidelines_screen.dart';
-import 'package:fling/theme/app_theme.dart';
+import 'package:insync/screens/auth/login_screen.dart';
+import 'package:insync/screens/auth/onboarding_screen.dart';
+import 'package:insync/screens/auth/otp_screen.dart';
+import 'package:insync/screens/auth/safety_guidelines_screen.dart';
+import 'package:insync/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
