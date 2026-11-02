@@ -1,39 +1,39 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:fling/core/auth_provider.dart';
-import 'package:fling/models/user.dart';
-import 'package:fling/theme/app_theme.dart';
-import 'package:fling/screens/achievements/achievements_screen.dart';
-import 'package:fling/screens/challenges/challenges_screen.dart';
-import 'package:fling/screens/communities/communities_screen.dart';
-import 'package:fling/screens/discover/discover_matches_screen.dart';
-import 'package:fling/screens/discover/random_match_screen.dart';
-import 'package:fling/screens/events/events_screen.dart';
-import 'package:fling/screens/experience/experience_hub.dart';
-import 'package:fling/screens/feed/saved_posts_screen.dart';
-import 'package:fling/screens/friends/friends_screen.dart';
-import 'package:fling/screens/leaderboards/leaderboards_screen.dart';
-import 'package:fling/screens/notifications/notifications_screen.dart';
-import 'package:fling/screens/profile/close_friends_screen.dart';
-import 'package:fling/screens/profile/user_list_screen.dart';
-import 'package:fling/screens/search/search_screen.dart';
-import 'package:fling/screens/settings/blocked_accounts_screen.dart';
-import 'package:fling/screens/settings/help_center_screen.dart';
-import 'package:fling/screens/settings/language_preferences_screen.dart';
-import 'package:fling/screens/settings/privacy_screen.dart';
-import 'package:fling/screens/wallet/livestream_dashboard_screen.dart';
-import 'package:fling/screens/wallet/referral_screen.dart';
-import 'package:fling/screens/wallet/spin_wheel_screen.dart';
-import 'package:fling/screens/wallet/vip_store_screen.dart';
-import 'package:fling/screens/wallet/wallet_buy_screen.dart';
-import 'package:fling/screens/wallet/wallet_cashout_screen.dart';
-import 'package:fling/screens/wallet/wallet_kyc_screen.dart';
-import 'package:fling/screens/profile/creator_profile_screen.dart';
-import 'package:fling/screens/communities/community_detail_screen.dart';
-import 'package:fling/screens/feed/post_detail_screen.dart';
-import 'package:fling/screens/feed/hashtag_screen.dart';
-import 'package:fling/screens/lobby/invite_screen.dart';
+import 'package:insync/core/auth_provider.dart';
+import 'package:insync/models/user.dart';
+import 'package:insync/theme/app_theme.dart';
+import 'package:insync/screens/achievements/achievements_screen.dart';
+import 'package:insync/screens/challenges/challenges_screen.dart';
+import 'package:insync/screens/communities/communities_screen.dart';
+import 'package:insync/screens/discover/discover_matches_screen.dart';
+import 'package:insync/screens/discover/random_match_screen.dart';
+import 'package:insync/screens/events/events_screen.dart';
+import 'package:insync/screens/experience/experience_hub.dart';
+import 'package:insync/screens/feed/saved_posts_screen.dart';
+import 'package:insync/screens/friends/friends_screen.dart';
+import 'package:insync/screens/leaderboards/leaderboards_screen.dart';
+import 'package:insync/screens/notifications/notifications_screen.dart';
+import 'package:insync/screens/profile/close_friends_screen.dart';
+import 'package:insync/screens/profile/user_list_screen.dart';
+import 'package:insync/screens/search/search_screen.dart';
+import 'package:insync/screens/settings/blocked_accounts_screen.dart';
+import 'package:insync/screens/settings/help_center_screen.dart';
+import 'package:insync/screens/settings/language_preferences_screen.dart';
+import 'package:insync/screens/settings/privacy_screen.dart';
+import 'package:insync/screens/wallet/livestream_dashboard_screen.dart';
+import 'package:insync/screens/wallet/referral_screen.dart';
+import 'package:insync/screens/wallet/spin_wheel_screen.dart';
+import 'package:insync/screens/wallet/vip_store_screen.dart';
+import 'package:insync/screens/wallet/wallet_buy_screen.dart';
+import 'package:insync/screens/wallet/wallet_cashout_screen.dart';
+import 'package:insync/screens/wallet/wallet_kyc_screen.dart';
+import 'package:insync/screens/profile/creator_profile_screen.dart';
+import 'package:insync/screens/communities/community_detail_screen.dart';
+import 'package:insync/screens/feed/post_detail_screen.dart';
+import 'package:insync/screens/feed/hashtag_screen.dart';
+import 'package:insync/screens/lobby/invite_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -105,7 +105,7 @@ void main() {
     ('LeaderboardsScreen', const LeaderboardsScreen()),
     ('AchievementsScreen', const AchievementsScreen()),
     ('ChallengesScreen', const ChallengesScreen()),
-    ('FlingFeatureHubScreen', const FlingFeatureHubScreen()),
+    ('InsyncFeatureHubScreen', const InsyncFeatureHubScreen()),
     ('VipStoreScreen', const VipStoreScreen()),
     ('SpinWheelScreen', const SpinWheelScreen()),
     ('ReferralScreen', const ReferralScreen()),

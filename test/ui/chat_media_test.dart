@@ -1,5 +1,5 @@
-import 'package:fling/theme/app_theme.dart';
-import 'package:fling/widgets/chat_media.dart';
+import 'package:insync/theme/app_theme.dart';
+import 'package:insync/widgets/chat_media.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

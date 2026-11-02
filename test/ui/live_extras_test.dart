@@ -1,8 +1,8 @@
-import 'package:fling/models/room_models.dart';
-import 'package:fling/screens/live/live_rankings_screen.dart';
-import 'package:fling/screens/party/live_broadcast_controller.dart';
-import 'package:fling/theme/app_theme.dart';
-import 'package:fling/widgets/live_extras.dart';
+import 'package:insync/models/room_models.dart';
+import 'package:insync/screens/live/live_rankings_screen.dart';
+import 'package:insync/screens/party/live_broadcast_controller.dart';
+import 'package:insync/theme/app_theme.dart';
+import 'package:insync/widgets/live_extras.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

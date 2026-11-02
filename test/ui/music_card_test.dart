@@ -1,5 +1,5 @@
-import 'package:fling/models/room_models.dart';
-import 'package:fling/widgets/static_bloom_player.dart';
+import 'package:insync/models/room_models.dart';
+import 'package:insync/widgets/static_bloom_player.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

@@ -1,13 +1,13 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:fling/screens/home/home_room_cards.dart';
-import 'package:fling/screens/shell/liquid_glass_bottom_nav.dart';
-import 'package:fling/theme/app_colors.dart';
-import 'package:fling/theme/app_theme.dart';
-import 'package:fling/theme/insync_icons.dart';
-import 'package:fling/widgets/animated_logo.dart';
-import 'package:fling/screens/home/home_lobby_card.dart';
+import 'package:insync/screens/home/home_room_cards.dart';
+import 'package:insync/screens/shell/liquid_glass_bottom_nav.dart';
+import 'package:insync/theme/app_colors.dart';
+import 'package:insync/theme/app_theme.dart';
+import 'package:insync/theme/insync_icons.dart';
+import 'package:insync/widgets/animated_logo.dart';
+import 'package:insync/screens/home/home_lobby_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';

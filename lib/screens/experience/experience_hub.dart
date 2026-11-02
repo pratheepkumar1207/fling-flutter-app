@@ -64,14 +64,14 @@ class _VibeChips extends StatelessWidget {
 
 /// "Together": pick a vibe to find people in the same mood, start
 /// something, and get to the creator and safety tools.
-class FlingFeatureHubScreen extends StatefulWidget {
-  const FlingFeatureHubScreen({super.key});
+class InsyncFeatureHubScreen extends StatefulWidget {
+  const InsyncFeatureHubScreen({super.key});
 
   @override
-  State<FlingFeatureHubScreen> createState() => _FlingFeatureHubScreenState();
+  State<InsyncFeatureHubScreen> createState() => _InsyncFeatureHubScreenState();
 }
 
-class _FlingFeatureHubScreenState extends State<FlingFeatureHubScreen> {
+class _InsyncFeatureHubScreenState extends State<InsyncFeatureHubScreen> {
   String _vibe = 'movie';
 
   @override

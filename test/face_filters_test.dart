@@ -1,7 +1,7 @@
 import 'dart:ui' as ui;
 
-import 'package:fling/core/face_filters.dart';
-import 'package:fling/core/face_tracker.dart';
+import 'package:insync/core/face_filters.dart';
+import 'package:insync/core/face_tracker.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

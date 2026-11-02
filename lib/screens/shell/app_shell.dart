@@ -27,7 +27,7 @@ import '../../core/call_ring.dart';
 import '../../widgets/permission_primer.dart';
 
 /// Bottom tabs Home, Feed, Live and Discover with the "+" Create sheet in
-/// the middle; Messages lives in the top bar (see FlingTopBar).
+/// the middle; Messages lives in the top bar (see InsyncTopBar).
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
 
@@ -285,7 +285,7 @@ class _AppShellState extends State<AppShell> {
   Widget _buildScaffold() {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: const FlingTopBar(),
+      appBar: const InsyncTopBar(),
       // Lets Home's own scroll content show (blurred) through the glass
       // bottom nav instead of the bar sitting over a dead solid-color gap —
       // see LiquidGlassBottomNav.

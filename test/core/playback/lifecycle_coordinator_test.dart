@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fling/core/playback/lifecycle_coordinator.dart';
-import 'package:fling/core/playback/playback_adapter.dart';
-import 'package:fling/core/playback/playback_session.dart';
-import 'package:fling/core/playback/playback_session_manager.dart';
-import 'package:fling/core/playback/playback_surface.dart';
+import 'package:insync/core/playback/lifecycle_coordinator.dart';
+import 'package:insync/core/playback/playback_adapter.dart';
+import 'package:insync/core/playback/playback_session.dart';
+import 'package:insync/core/playback/playback_session_manager.dart';
+import 'package:insync/core/playback/playback_surface.dart';
 
 /// Records every call made to it, so tests can assert on exactly which
 /// methods a lifecycle transition invoked — the real behavior, not a

@@ -1,15 +1,15 @@
-import 'package:fling/theme/insync_icons.dart';
+import 'package:insync/theme/insync_icons.dart';
 import 'dart:io';
-import 'package:fling/screens/auth/onboarding_screen.dart';
+import 'package:insync/screens/auth/onboarding_screen.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fling/screens/home/room_discovery_header.dart';
-import 'package:fling/theme/app_colors.dart';
-import 'package:fling/theme/clay_colors.dart';
-import 'package:fling/screens/shell/liquid_glass_bottom_nav.dart';
+import 'package:insync/screens/home/room_discovery_header.dart';
+import 'package:insync/theme/app_colors.dart';
+import 'package:insync/theme/clay_colors.dart';
+import 'package:insync/screens/shell/liquid_glass_bottom_nav.dart';
 
 void main() {
   setUpAll(() async {

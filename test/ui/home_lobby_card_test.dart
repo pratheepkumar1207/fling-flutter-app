@@ -1,5 +1,5 @@
-import 'package:fling/screens/home/home_lobby_card.dart';
-import 'package:fling/theme/room_themes.dart';
+import 'package:insync/screens/home/home_lobby_card.dart';
+import 'package:insync/theme/room_themes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

@@ -1,6 +1,6 @@
-# Fling — Flutter app
+# inSync — Flutter app
 
-Native mobile client for the same Fling backend the web app (`fling-web-app`) talks to — same REST API, same Socket.IO real-time layer, same dark pink/purple theme. Built to run alongside the web app, not replace it.
+Native mobile client for the same inSync backend (repo: `fling-backend`) the web app (`fling-web-app`) talks to — same REST API, same Socket.IO real-time layer, same dark pink/purple theme. Built to run alongside the web app, not replace it.
 
 ## Setup
 
