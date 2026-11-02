@@ -47,6 +47,10 @@
 # MediaPipe's native face tracker (FaceFilterChannel.kt) reaches its Java
 # classes and protobuf messages through JNI and reflection, the same shape
 # of release-only failure as Agora above.
+# MediaPipe logs through Flogger, which finds its caller by class name and
+# crashes on start if the release build has renamed it.
+-keep class com.google.common.flogger.** { *; }
+-dontwarn com.google.common.flogger.**
 -keep class com.google.mediapipe.** { *; }
 -dontwarn com.google.mediapipe.**
 -keep class com.google.protobuf.** { *; }

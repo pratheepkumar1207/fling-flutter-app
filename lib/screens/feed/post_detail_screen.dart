@@ -1,3 +1,4 @@
+import '../../widgets/post_images.dart';
 import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
@@ -8,7 +9,6 @@ import '../../core/youtube_util.dart';
 import '../../models/post.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/glass.dart';
-import '../../widgets/app_image.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/mention_text_field.dart';
 import '../../widgets/post_likes_sheet.dart';
@@ -91,6 +91,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         videoUrl: post.videoUrl,
         videoData: post.videoData,
         coverData: post.coverData,
+        extraImages: post.extraImages,
         pollOptions: post.pollOptions,
         myVote: post.myVote,
         likesCount: post.likedByMe ? post.likesCount - 1 : post.likesCount + 1,
@@ -123,6 +124,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         videoUrl: post.videoUrl,
         videoData: post.videoData,
         coverData: post.coverData,
+        extraImages: post.extraImages,
         pollOptions: post.pollOptions,
         myVote: post.myVote,
         likesCount: post.likesCount,
@@ -163,6 +165,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             videoUrl: post.videoUrl,
             videoData: post.videoData,
             coverData: post.coverData,
+            extraImages: post.extraImages,
             pollOptions: post.pollOptions,
             myVote: post.myVote,
             likesCount: post.likesCount,
@@ -228,8 +231,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           if (post.imageData != null)
                             AspectRatio(
                                 aspectRatio: 1,
-                                child: AppImage(
-                                    source: post.imageData, fit: BoxFit.cover)),
+                                child: PostImages(images: post.images)),
                           if (post.mediaType == 'video_link' &&
                               post.videoUrl != null)
                             _videoLinkTile(post.videoUrl!),

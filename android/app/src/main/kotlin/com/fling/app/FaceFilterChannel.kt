@@ -75,7 +75,8 @@ class FaceFilterChannel(private val context: Context, messenger: BinaryMessenger
             try {
                 val out = work()
                 main.post { result.success(out) }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
+                // Includes a library failing to load: filters stop, not the app.
                 main.post { result.error("face", e.message, null) }
             }
         }

@@ -29,6 +29,7 @@ import '../../widgets/comments_sheet.dart';
 import '../../widgets/report_user_sheet.dart';
 import '../lobby/watch_room_creator.dart';
 import 'hashtag_screen.dart';
+import '../../widgets/post_images.dart';
 import 'post_detail_screen.dart';
 import 'saved_posts_screen.dart';
 
@@ -99,6 +100,7 @@ class _FeedScreenState extends State<FeedScreen> {
           videoUrl: post.videoUrl,
           videoData: post.videoData,
           coverData: post.coverData,
+          extraImages: post.extraImages,
           pollOptions: post.pollOptions,
           myVote: post.myVote,
           likesCount:
@@ -171,6 +173,7 @@ class _FeedScreenState extends State<FeedScreen> {
         videoUrl: post.videoUrl,
         videoData: post.videoData,
         coverData: post.coverData,
+        extraImages: post.extraImages,
         pollOptions: post.pollOptions,
         myVote: post.myVote,
         likesCount: like
@@ -736,8 +739,7 @@ class _FeedScreenState extends State<FeedScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: AspectRatio(
-                    aspectRatio: 1,
-                    child: AppImage(source: post.imageData, fit: BoxFit.cover)),
+                    aspectRatio: 1, child: PostImages(images: post.images)),
               ),
             ),
           if (post.repostOf != null) _repostBlock(post.repostOf!),

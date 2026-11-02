@@ -1,4 +1,5 @@
 import '../theme/insync_icons.dart';
+import 'schedule_picker.dart';
 import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -61,6 +62,8 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
   final _textController = TextEditingController();
   final _videoUrlController = TextEditingController();
   String? _imageDataUri;
+  List<String> _extraImages = [];
+  DateTime? _publishAt;
   String? _voiceDataUri;
   String? _videoDataUri;
   late bool _isStory;
@@ -100,13 +103,37 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
     final source = await _askSource(video: false);
     if (source == null) return;
     final picker = ImagePicker();
-    final file = await picker.pickImage(source: source, imageQuality: 80);
-    if (file == null || !mounted) return;
-    final bytes = await file.readAsBytes();
-    final ext = file.name.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+    // The gallery can pick several, for a post you swipe through.
+    final many = source == ImageSource.gallery && !_isStory;
+    final files = many
+        ? await picker.pickMultiImage(imageQuality: 70, limit: 5)
+        : [
+            if (await picker.pickImage(source: source, imageQuality: 80)
+                case final one?)
+              one
+          ];
+    if (files.isEmpty || !mounted) return;
+    final uris = <String>[];
+    var tooLarge = false;
+    for (final file in files.take(5)) {
+      final bytes = await file.readAsBytes();
+      final ext = file.name.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+      final uri = 'data:image/$ext;base64,${base64Encode(bytes)}';
+      if (uris.isNotEmpty && uri.length > 2000000) {
+        tooLarge = true;
+      } else {
+        uris.add(uri);
+      }
+    }
     if (!mounted) return;
-    setState(
-        () => _imageDataUri = 'data:image/$ext;base64,${base64Encode(bytes)}');
+    if (tooLarge) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Some photos were too large and were left out.')));
+    }
+    setState(() {
+      _imageDataUri = uris.first;
+      _extraImages = uris.skip(1).toList();
+    });
   }
 
   Future<void> _pickVoice() async {
@@ -172,6 +199,7 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
       };
       if (_mediaType == 'image' && _imageDataUri != null) {
         body['imageData'] = _imageDataUri;
+        if (_extraImages.isNotEmpty) body['extraImages'] = _extraImages;
       }
       if (_mediaType == 'voice' && _voiceDataUri != null) {
         body['voiceData'] = _voiceDataUri;
@@ -188,9 +216,18 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
             .where((o) => o.isNotEmpty)
             .toList();
       }
+      final scheduled = _publishAt != null && !_isStory;
+      if (scheduled) body['publishAt'] = _publishAt!.toUtc().toIso8601String();
       await ApiClient.post('/feed', body: body);
       widget.onPosted();
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) {
+        if (scheduled) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(
+                  'Scheduled for ${postTimeLabel(context, _publishAt!)}. It waits in your archive.')));
+        }
+        Navigator.of(context).pop();
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -289,6 +326,14 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
                                 base64Decode(_imageDataUri!.split(',').last),
                                 height: 160,
                                 fit: BoxFit.cover)),
+                      ),
+                    if (_extraImages.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                            '${_extraImages.length + 1} photos · people swipe through them',
+                            style: const TextStyle(
+                                color: AppColors.textDim, fontSize: 12)),
                       ),
                   ],
                   if (_mediaType == 'voice') ...[
@@ -389,6 +434,26 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
                         (v) => setState(() => _hideLikes = v)),
                     _switchRow('Turn off comments', _commentsOff,
                         (v) => setState(() => _commentsOff = v)),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      title: Text(_publishAt == null
+                          ? 'Post now'
+                          : 'Goes out ${postTimeLabel(context, _publishAt!)}'),
+                      trailing: TextButton(
+                        onPressed: () async {
+                          if (_publishAt != null) {
+                            setState(() => _publishAt = null);
+                            return;
+                          }
+                          final t = await pickPostTime(context);
+                          if (t != null && mounted) {
+                            setState(() => _publishAt = t);
+                          }
+                        },
+                        child: Text(_publishAt == null ? 'Schedule' : 'Cancel'),
+                      ),
+                    ),
                   ],
                   if (_isStory)
                     _switchRow('Close friends only', _closeFriendsOnly,

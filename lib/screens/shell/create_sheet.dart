@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
-import '../../widgets/post_composer_sheet.dart';
+import '../create/create_flow.dart';
 import '../lobby/lobby_create_screen.dart';
 
 /// The centre "+" in the bottom bar: start any kind of room, go live, or
@@ -26,9 +26,9 @@ class _CreateSheet extends StatelessWidget {
 
   void _goLive(BuildContext sheet) => _room(sheet, 'live');
 
-  void _post(BuildContext sheet) {
+  void _create(BuildContext sheet, CreateMode mode) {
     Navigator.of(sheet).pop();
-    showPostComposerSheet(parent, onPosted: () {});
+    openCreateFlow(parent, mode: mode);
   }
 
   @override
@@ -54,9 +54,9 @@ class _CreateSheet extends StatelessWidget {
           Colors.white24, () => _goLive(context),
           highlight: true),
       _Item(InIcons.image, 'Post', 'Photo, poll, voice note', AppColors.lilac,
-          const Color(0xFF1F1A2C), () => _post(context)),
+          const Color(0xFF1F1A2C), () => _create(context, CreateMode.post)),
       _Item(InIcons.reel, 'Reel', 'Short video', const Color(0xFFFF9F5A),
-          const Color(0xFF2A1A10), () => _post(context)),
+          const Color(0xFF2A1A10), () => _create(context, CreateMode.reel)),
     ];
     return SafeArea(
       child: Padding(

@@ -18,8 +18,10 @@ import '../../theme/insync_icons.dart';
 import '../../widgets/in_icon_button.dart';
 import '../../widgets/mention_text_field.dart';
 import '../../widgets/people_picker_sheet.dart';
+import '../../widgets/schedule_picker.dart';
 import '../../widgets/story_stickers.dart';
 import '../../widgets/permission_primer.dart';
+import '../../widgets/post_composer_sheet.dart';
 import '../lobby/lobby_create_screen.dart';
 import 'story_editor_screen.dart';
 
@@ -155,28 +157,53 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
     }
   }
 
+  /// One camera at a time: closing the old one after opening the new one
+  /// shuts the new one off too, leaving a black screen.
   Future<void> _openCamera() async {
     final previous = _camera;
+    if (previous != null) {
+      setState(() {
+        _camera = null;
+        _pose = null;
+      });
+      _stream = false;
+      _flash = false;
+      await _closeCamera(previous);
+      if (!mounted) return;
+    }
     final next = CameraController(_cameras[_cameraIndex], ResolutionPreset.high,
         enableAudio: true, imageFormatGroup: ImageFormatGroup.yuv420);
     await next.initialize();
-    await previous?.dispose();
     if (!mounted) {
-      await next.dispose();
+      await _closeCamera(next);
       return;
     }
-    _stream = false;
-    setState(() {
-      _camera = next;
-      _pose = null;
-    });
+    setState(() => _camera = next);
     await _syncStream();
   }
 
-  void _flip() {
-    if (_cameras.length < 2 || _recording) return;
+  // The camera plugin can throw while closing; it's closed either way.
+  Future<void> _closeCamera(CameraController c) async {
+    try {
+      await c.dispose();
+    } catch (_) {}
+  }
+
+  bool _flipping = false;
+
+  Future<void> _flip() async {
+    if (_cameras.length < 2 || _recording || _flipping) return;
+    _flipping = true;
     _cameraIndex = (_cameraIndex + 1) % _cameras.length;
-    _openCamera();
+    try {
+      await _openCamera();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Couldn’t switch camera. Try again.')));
+      }
+    }
+    _flipping = false;
   }
 
   Future<void> _toggleFlash() async {
@@ -287,6 +314,16 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
 
   Future<void> _gallery() async {
     final picker = ImagePicker();
+    if (_mode == CreateMode.post) {
+      final photos = await picker.pickMultiImage(limit: 5);
+      if (photos.isEmpty || !mounted) return;
+      if (photos.length == 1) {
+        _edit(photos.first.path, isVideo: false);
+      } else {
+        await _shareSeveral(photos);
+      }
+      return;
+    }
     final file = switch (_mode) {
       CreateMode.reel => await picker.pickVideo(source: ImageSource.gallery),
       CreateMode.story => await picker.pickMedia(),
@@ -298,6 +335,33 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
             RegExp(r'\.(mp4|mov|m4v|3gp|webm|mkv)$', caseSensitive: false)
                 .hasMatch(file.path));
     _edit(file.path, isVideo: isVideo);
+  }
+
+  /// A set goes straight to the caption, made small enough to upload.
+  Future<void> _shareSeveral(List<XFile> photos) async {
+    setState(() => _baking = true);
+    try {
+      final paths = <String>[];
+      for (final photo in photos.take(5)) {
+        paths.add(await VideoEdit.processPhoto(
+            input: photo.path, filter: MediaFilter.none));
+      }
+      if (!mounted) return;
+      setState(() => _baking = false);
+      await Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => CreateCaptionScreen(
+                path: paths.first,
+                extraPaths: paths.skip(1).toList(),
+                isVideo: false,
+                mode: CreateMode.post,
+                onPosted: widget.onPosted,
+              )));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _baking = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Couldn’t get those photos ready. Try again.')));
+    }
   }
 
   void _edit(String path, {required bool isVideo}) {
@@ -387,7 +451,8 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
   @override
   void dispose() {
     _ticker?.cancel();
-    _camera?.dispose();
+    final camera = _camera;
+    if (camera != null) _closeCamera(camera);
     _bubbles.dispose();
     if (FaceTracker.supported) FaceTracker.release();
     super.dispose();
@@ -542,6 +607,34 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
                 ),
               ),
             const SizedBox(height: 12),
+            if (_mode == CreateMode.post && !_recording)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                  child: Material(
+                    color: const Color(0xCC0B0912),
+                    shape: const StadiumBorder(),
+                    child: InkWell(
+                      customBorder: const StadiumBorder(),
+                      onTap: () => showPostComposerSheet(context,
+                          onPosted: () => widget.onPosted?.call()),
+                      child: const Padding(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.text_fields_rounded,
+                              color: Colors.white, size: 18),
+                          SizedBox(width: 6),
+                          Text('Text, poll or voice',
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 13)),
+                        ]),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             _shutterRow(),
             Row(children: [
               IconButton(
@@ -598,8 +691,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
             child: const Column(mainAxisSize: MainAxisSize.min, children: [
               CircularProgressIndicator(),
               SizedBox(height: 10),
-              Text('Adding your filter…',
-                  style: TextStyle(color: Colors.white)),
+              Text('Getting it ready…', style: TextStyle(color: Colors.white)),
             ]),
           ),
       ]),
@@ -1081,8 +1173,12 @@ class CreateCaptionScreen extends StatefulWidget {
   final bool isVideo;
   final CreateMode mode;
   final VoidCallback? onPosted;
+
+  /// More photos in a carousel, after [path].
+  final List<String> extraPaths;
   const CreateCaptionScreen({
     super.key,
+    this.extraPaths = const [],
     required this.path,
     required this.isVideo,
     required this.mode,
@@ -1097,11 +1193,13 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
   final _caption = TextEditingController();
   final _location = TextEditingController();
   List<PickedPerson> _tagged = const [];
+  PickedPerson? _collaborator;
   bool _comments = true;
   bool _hideLikes = false;
   bool _closeFriends = false;
   bool _sharing = false;
   String? _cover;
+  DateTime? _publishAt;
 
   bool get _story => widget.mode == CreateMode.story;
 
@@ -1131,6 +1229,11 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
         'text': _caption.text.trim(),
         'isStory': _story,
         if (widget.isVideo) 'videoData': data else 'imageData': data,
+        if (widget.extraPaths.isNotEmpty)
+          'extraImages': [
+            for (final path in widget.extraPaths)
+              'data:image/jpeg;base64,${base64Encode(await File(path).readAsBytes())}',
+          ],
         if (_cover != null)
           'coverData':
               'data:image/jpeg;base64,${base64Encode(await File(_cover!).readAsBytes())}',
@@ -1138,15 +1241,21 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
         if (!_story) ...{
           if (_tagged.isNotEmpty)
             'taggedUserIds': [for (final t in _tagged) t.id],
+          if (_collaborator != null) 'collaboratorId': _collaborator!.id,
           if (_location.text.trim().isNotEmpty)
             'location': _location.text.trim(),
           'hideLikes': _hideLikes,
           'commentsDisabled': !_comments,
+          if (_publishAt != null)
+            'publishAt': _publishAt!.toUtc().toIso8601String(),
         },
       });
       widget.onPosted?.call();
       navigator.popUntil((r) => r.isFirst);
-      messenger.showSnackBar(const SnackBar(content: Text('Shared')));
+      messenger.showSnackBar(SnackBar(
+          content: Text(_publishAt == null
+              ? 'Shared'
+              : 'Scheduled. It waits in your archive.')));
     } catch (_) {
       messenger.showSnackBar(const SnackBar(
           content: Text(
@@ -1289,7 +1398,24 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
                           ]),
                         ),
                       )
-                    : Image.file(File(widget.path), fit: BoxFit.cover),
+                    : Stack(fit: StackFit.expand, children: [
+                        Image.file(File(widget.path), fit: BoxFit.cover),
+                        if (widget.extraPaths.isNotEmpty)
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                  color: Colors.black54,
+                                  borderRadius: BorderRadius.circular(9)),
+                              child: Text('1/${widget.extraPaths.length + 1}',
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 11)),
+                            ),
+                          ),
+                      ]),
               ),
             ),
             const SizedBox(width: 12),
@@ -1324,6 +1450,21 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
                 }
               },
             ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const InIcon(InIcons.users, color: AppColors.text),
+              title: const Text('Add a collaborator'),
+              trailing: Text(_collaborator?.name ?? ''),
+              onTap: () async {
+                final picked = await showPeoplePicker(context,
+                    title: 'Add a collaborator',
+                    single: true,
+                    initial: [if (_collaborator != null) _collaborator!]);
+                if (picked != null && mounted) {
+                  setState(() => _collaborator = picked.firstOrNull);
+                }
+              },
+            ),
             TextField(
               controller: _location,
               decoration: const InputDecoration(
@@ -1340,6 +1481,23 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
               value: _hideLikes,
               onChanged: (v) => setState(() => _hideLikes = v),
               title: const Text('Hide like count'),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(_publishAt == null
+                  ? 'Post now'
+                  : 'Goes out ${postTimeLabel(context, _publishAt!)}'),
+              trailing: TextButton(
+                onPressed: () async {
+                  if (_publishAt != null) {
+                    setState(() => _publishAt = null);
+                    return;
+                  }
+                  final t = await pickPostTime(context);
+                  if (t != null && mounted) setState(() => _publishAt = t);
+                },
+                child: Text(_publishAt == null ? 'Schedule' : 'Cancel'),
+              ),
             ),
           ],
           const SizedBox(height: 12),

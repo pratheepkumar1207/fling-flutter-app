@@ -31,6 +31,7 @@ class Post {
   final String? videoUrl;
   final String? videoData;
   final String? coverData;
+  final List<String> extraImages;
   final List<dynamic>? pollOptions;
   final int? myVote;
   final int likesCount;
@@ -53,6 +54,10 @@ class Post {
   final bool canShare;
   final DateTime createdAt;
 
+  /// Every photo, in order.
+  List<String> get images =>
+      [if (imageData != null) imageData!, ...extraImages];
+
   Post({
     required this.id,
     required this.author,
@@ -63,6 +68,7 @@ class Post {
     this.videoUrl,
     this.videoData,
     this.coverData,
+    this.extraImages = const [],
     this.pollOptions,
     this.myVote,
     this.likesCount = 0,
@@ -102,6 +108,7 @@ class Post {
         videoUrl: videoUrl,
         videoData: videoData,
         coverData: coverData,
+        extraImages: extraImages,
         pollOptions: pollOptions,
         myVote: myVote ?? this.myVote,
         likesCount: likesCount ?? this.likesCount,
@@ -132,6 +139,8 @@ class Post {
       videoUrl: json['videoUrl'] as String?,
       videoData: json['videoData'] as String?,
       coverData: json['coverData'] as String?,
+      extraImages:
+          (json['extraImages'] as List? ?? []).whereType<String>().toList(),
       pollOptions: json['pollOptions'] as List?,
       myVote: json['myVote'] as int?,
       likesCount: json['likesCount'] as int? ?? 0,
