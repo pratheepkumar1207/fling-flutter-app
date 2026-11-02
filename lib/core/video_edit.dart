@@ -8,16 +8,60 @@ class MediaFilter {
   final String name;
   final List<double>? matrix;
   final bool cartoon;
-  const MediaFilter(this.name, {this.matrix, this.cartoon = false});
+
+  /// Added to each colour, as a share of full brightness.
+  final double offset;
+  const MediaFilter(this.name,
+      {this.matrix, this.cartoon = false, this.offset = 0});
+
+  /// This filter with the Adjust sliders applied, each -1 to 1.
+  MediaFilter adjusted(
+      {double brightness = 0,
+      double contrast = 0,
+      double warmth = 0,
+      double saturation = 0,
+      double fade = 0}) {
+    if (brightness == 0 &&
+        contrast == 0 &&
+        warmth == 0 &&
+        saturation == 0 &&
+        fade == 0) {
+      return this;
+    }
+    final base = matrix ?? const [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0];
+    final c = (1 + contrast * .6) * (1 - fade * .35);
+    final s = 1 + saturation;
+    const lr = 0.299, lg = 0.587, lb = 0.114;
+    final sat = [
+      lr * (1 - s) + s, lg * (1 - s), lb * (1 - s), //
+      lr * (1 - s), lg * (1 - s) + s, lb * (1 - s), //
+      lr * (1 - s), lg * (1 - s), lb * (1 - s) + s,
+    ];
+    final warm = [1 + warmth * .18, 1.0, 1 - warmth * .18];
+    final out = List<double>.filled(9, 0);
+    for (var r = 0; r < 3; r++) {
+      for (var col = 0; col < 3; col++) {
+        var v = 0.0;
+        for (var k = 0; k < 3; k++) {
+          v += sat[r * 3 + k] * base[k * 3 + col];
+        }
+        out[r * 3 + col] = v * c * warm[r];
+      }
+    }
+    return MediaFilter(name,
+        matrix: out,
+        cartoon: cartoon,
+        offset: offset + brightness * .25 + (1 - c) * .5);
+  }
 
   /// Null when this filter can't be previewed on a live picture.
   ColorFilter? get preview {
     final m = matrix;
     if (m == null) return null;
     return ColorFilter.matrix([
-      m[0], m[1], m[2], 0, 0, //
-      m[3], m[4], m[5], 0, 0, //
-      m[6], m[7], m[8], 0, 0, //
+      m[0], m[1], m[2], 0, offset * 255, //
+      m[3], m[4], m[5], 0, offset * 255, //
+      m[6], m[7], m[8], 0, offset * 255, //
       0, 0, 0, 1, 0,
     ]);
   }
@@ -68,6 +112,7 @@ class VideoEdit {
     required MediaFilter filter,
     bool mute = false,
     double speed = 1,
+    double volume = 1,
     String? overlay,
   }) async {
     final out = await _channel.invokeMethod<String>('processVideo', {
@@ -78,6 +123,8 @@ class VideoEdit {
       'cartoon': filter.cartoon,
       'mute': mute,
       'speed': speed,
+      'volume': volume,
+      'offset': filter.offset,
       'overlay': overlay,
     });
     return out!;
@@ -108,9 +155,15 @@ class VideoEdit {
   }
 
   static Future<String> processPhoto(
-      {required String input, required MediaFilter filter}) async {
+      {required String input,
+      required MediaFilter filter,
+      int turns = 0,
+      double? aspect}) async {
     final out = await _channel.invokeMethod<String>('processPhoto', {
       'input': input,
+      'turns': turns,
+      'aspect': aspect,
+      'offset': filter.offset,
       'matrix': filter.matrix,
       'cartoon': filter.cartoon,
     });

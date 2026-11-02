@@ -29,6 +29,7 @@ import '../../widgets/comments_sheet.dart';
 import '../../widgets/report_user_sheet.dart';
 import '../lobby/watch_room_creator.dart';
 import 'hashtag_screen.dart';
+import '../create/text_post_screen.dart';
 import '../../widgets/post_images.dart';
 import 'post_detail_screen.dart';
 import 'saved_posts_screen.dart';
@@ -95,6 +96,7 @@ class _FeedScreenState extends State<FeedScreen> {
           author: post.author,
           mediaType: post.mediaType,
           text: post.text,
+          textBackground: post.textBackground,
           imageData: post.imageData,
           voiceData: post.voiceData,
           videoUrl: post.videoUrl,
@@ -142,6 +144,7 @@ class _FeedScreenState extends State<FeedScreen> {
           author: post.author,
           mediaType: post.mediaType,
           text: post.text,
+          textBackground: post.textBackground,
           pollOptions: post.pollOptions,
           myVote: optionIndex,
           likesCount: post.likesCount,
@@ -168,6 +171,7 @@ class _FeedScreenState extends State<FeedScreen> {
         author: post.author,
         mediaType: post.mediaType,
         text: post.text,
+        textBackground: post.textBackground,
         imageData: post.imageData,
         voiceData: post.voiceData,
         videoUrl: post.videoUrl,
@@ -720,7 +724,23 @@ class _FeedScreenState extends State<FeedScreen> {
               ],
             ),
           ),
-          if (post.text != null && post.text!.isNotEmpty && !hasMedia)
+          if (post.mediaType == 'text' &&
+              kTextPostColours[post.textBackground] != null)
+            Container(
+              width: double.infinity,
+              constraints: const BoxConstraints(minHeight: 240),
+              alignment: Alignment.center,
+              padding: const EdgeInsets.all(24),
+              color: kTextPostColours[post.textBackground],
+              child: Text(post.text ?? '',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600,
+                      height: 1.25)),
+            )
+          else if (post.text != null && post.text!.isNotEmpty && !hasMedia)
             Padding(
               padding: side,
               child: Text.rich(

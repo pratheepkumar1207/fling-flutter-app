@@ -26,6 +26,7 @@ class Post {
   final PostAuthor author;
   final String mediaType;
   final String? text;
+  final String? textBackground;
   final String? imageData;
   final String? voiceData;
   final String? videoUrl;
@@ -63,6 +64,7 @@ class Post {
     required this.author,
     required this.mediaType,
     this.text,
+    this.textBackground,
     this.imageData,
     this.voiceData,
     this.videoUrl,
@@ -103,6 +105,7 @@ class Post {
         author: author,
         mediaType: mediaType,
         text: text,
+        textBackground: textBackground,
         imageData: imageData,
         voiceData: voiceData,
         videoUrl: videoUrl,
@@ -134,6 +137,7 @@ class Post {
       author: PostAuthor.fromJson(json['author'] as Map<String, dynamic>),
       mediaType: json['mediaType'] as String? ?? 'text',
       text: json['text'] as String?,
+      textBackground: json['textBackground'] as String?,
       imageData: json['imageData'] as String?,
       voiceData: json['voiceData'] as String?,
       videoUrl: json['videoUrl'] as String?,

@@ -22,6 +22,8 @@ import androidx.media3.effect.GlEffect
 import androidx.media3.effect.GlShaderProgram
 import androidx.media3.effect.OverlayEffect
 import androidx.media3.effect.Presentation
+import androidx.media3.common.audio.ChannelMixingAudioProcessor
+import androidx.media3.common.audio.ChannelMixingMatrix
 import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.effect.RgbMatrix
 import androidx.media3.effect.SpeedChangeEffect
@@ -233,6 +235,9 @@ class VideoEditChannel(private val context: Context, messenger: BinaryMessenger)
     private fun matrixOf(args: Map<*, *>): FloatArray? =
         (args["matrix"] as? List<*>)?.map { (it as Number).toFloat() }?.toFloatArray()
 
+    // Added to every colour channel, as a share of full brightness.
+    private fun offsetOf(args: Map<*, *>): Float = (args["offset"] as? Number)?.toFloat() ?: 0f
+
     private fun processVideo(args: Map<*, *>, result: MethodChannel.Result) {
         try {
             val input = args["input"] as String
@@ -250,12 +255,19 @@ class VideoEditChannel(private val context: Context, messenger: BinaryMessenger)
                     m[0], m[3], m[6], 0f,
                     m[1], m[4], m[7], 0f,
                     m[2], m[5], m[8], 0f,
-                    0f, 0f, 0f, 1f,
+                    offsetOf(args), offsetOf(args), offsetOf(args), 1f,
                 )
                 effects.add(RgbMatrix { _, _ -> gl })
             }
             if (cartoon) effects.add(CartoonEffect())
             val audioEffects = ArrayList<androidx.media3.common.audio.AudioProcessor>()
+            val volume = (args["volume"] as? Number)?.toFloat() ?: 1f
+            if (volume != 1f) {
+                audioEffects.add(ChannelMixingAudioProcessor().apply {
+                    putChannelMixingMatrix(ChannelMixingMatrix.create(1, 1).scaleBy(volume))
+                    putChannelMixingMatrix(ChannelMixingMatrix.create(2, 2).scaleBy(volume))
+                })
+            }
             if (speed != 1f) {
                 effects.add(SpeedChangeEffect(speed))
                 audioEffects.add(SonicAudioProcessor().apply { setSpeed(speed) })
@@ -359,16 +371,16 @@ class VideoEditChannel(private val context: Context, messenger: BinaryMessenger)
         while (max(bounds.outWidth, bounds.outHeight) / sample > 1440) sample *= 2
         val decoded = BitmapFactory.decodeFile(input, BitmapFactory.Options().apply { inSampleSize = sample })
             ?: throw IllegalArgumentException("Not a photo")
-        val rotated = rotateFromExif(input, decoded)
+        val rotated = cropAndTurn(rotateFromExif(input, decoded), args)
         val out = Bitmap.createBitmap(rotated.width, rotated.height, Bitmap.Config.ARGB_8888)
         val paint = Paint(Paint.FILTER_BITMAP_FLAG)
         matrixOf(args)?.let { m ->
             paint.colorFilter = ColorMatrixColorFilter(
                 ColorMatrix(
                     floatArrayOf(
-                        m[0], m[1], m[2], 0f, 0f,
-                        m[3], m[4], m[5], 0f, 0f,
-                        m[6], m[7], m[8], 0f, 0f,
+                        m[0], m[1], m[2], 0f, offsetOf(args) * 255f,
+                        m[3], m[4], m[5], 0f, offsetOf(args) * 255f,
+                        m[6], m[7], m[8], 0f, offsetOf(args) * 255f,
                         0f, 0f, 0f, 1f, 0f,
                     )
                 )
@@ -379,6 +391,21 @@ class VideoEditChannel(private val context: Context, messenger: BinaryMessenger)
         val file = outFile("jpg")
         FileOutputStream(file).use { out.compress(Bitmap.CompressFormat.JPEG, 80, it) }
         return file.absolutePath
+    }
+
+    // Quarter turns, then the middle of the picture at the chosen shape.
+    private fun cropAndTurn(source: Bitmap, args: Map<*, *>): Bitmap {
+        val turns = (args["turns"] as? Number)?.toInt() ?: 0
+        val turned = if (turns % 4 == 0) source else {
+            val m = android.graphics.Matrix().apply { postRotate(90f * turns) }
+            Bitmap.createBitmap(source, 0, 0, source.width, source.height, m, true)
+        }
+        val aspect = (args["aspect"] as? Number)?.toFloat() ?: return turned
+        val w = turned.width
+        val h = turned.height
+        val cropW = min(w.toFloat(), h * aspect).roundToInt().coerceAtLeast(1)
+        val cropH = min(h.toFloat(), w / aspect).roundToInt().coerceAtLeast(1)
+        return Bitmap.createBitmap(turned, (w - cropW) / 2, (h - cropH) / 2, cropW, cropH)
     }
 
     private fun rotateFromExif(path: String, bitmap: Bitmap): Bitmap {

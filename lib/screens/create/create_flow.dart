@@ -21,9 +21,10 @@ import '../../widgets/people_picker_sheet.dart';
 import '../../widgets/schedule_picker.dart';
 import '../../widgets/story_stickers.dart';
 import '../../widgets/permission_primer.dart';
-import '../../widgets/post_composer_sheet.dart';
 import '../lobby/lobby_create_screen.dart';
+import 'gallery_screen.dart';
 import 'story_editor_screen.dart';
+import 'text_post_screen.dart';
 
 enum CreateMode { post, reel, story }
 
@@ -32,6 +33,11 @@ Future<void> openCreateFlow(BuildContext context,
     {CreateMode mode = CreateMode.reel,
     VoidCallback? onPosted,
     String? addYoursPrompt}) {
+  if (mode == CreateMode.post && addYoursPrompt == null) {
+    return Navigator.of(context).push(MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => CreateGalleryScreen(onPosted: onPosted)));
+  }
   return Navigator.of(context).push(MaterialPageRoute(
       fullscreenDialog: true,
       builder: (_) => CreateCameraScreen(
@@ -561,6 +567,17 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
                   tooltip: 'Close',
                   color: Colors.white,
                   onPressed: () => Navigator.of(context).maybePop()),
+              if (!_recording && _mode != CreateMode.reel)
+                TextButton(
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => TextPostScreen(
+                          mode: _mode, onPosted: widget.onPosted))),
+                  child: const Text('Aa',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700)),
+                ),
               const Spacer(),
               if (_recording)
                 Container(
@@ -607,34 +624,6 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
                 ),
               ),
             const SizedBox(height: 12),
-            if (_mode == CreateMode.post && !_recording)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                  child: Material(
-                    color: const Color(0xCC0B0912),
-                    shape: const StadiumBorder(),
-                    child: InkWell(
-                      customBorder: const StadiumBorder(),
-                      onTap: () => showPostComposerSheet(context,
-                          onPosted: () => widget.onPosted?.call()),
-                      child: const Padding(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          Icon(Icons.text_fields_rounded,
-                              color: Colors.white, size: 18),
-                          SizedBox(width: 6),
-                          Text('Text, poll or voice',
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 13)),
-                        ]),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
             _shutterRow(),
             Row(children: [
               IconButton(
@@ -801,6 +790,15 @@ class _CreateEditScreenState extends State<CreateEditScreen> {
   RangeValues _range = const RangeValues(0, 1);
   bool _mute = false;
   double _speed = 1;
+  double _volume = 1;
+  double _brightness = 0;
+  double _contrast = 0;
+  double _warmth = 0;
+  double _saturation = 0;
+  double _fade = 0;
+  int _turns = 0;
+  double? _aspect;
+  bool _showAdjust = false;
   final List<Map<String, dynamic>> _texts = [];
   final _textLayer = GlobalKey();
   double _startScale = 1;
@@ -938,6 +936,72 @@ class _CreateEditScreenState extends State<CreateEditScreen> {
         ]),
       );
 
+  MediaFilter get _look => _filter.adjusted(
+      brightness: _brightness,
+      contrast: _contrast,
+      warmth: _warmth,
+      saturation: _saturation,
+      fade: _fade);
+
+  Widget _slider(String label, double value, ValueChanged<double> onChanged,
+          {double min = -1}) =>
+      Row(children: [
+        SizedBox(
+            width: 82,
+            child: Text(label,
+                style: const TextStyle(color: Colors.white70, fontSize: 12.5))),
+        Expanded(
+          child: Slider(value: value, min: min, max: 1, onChanged: onChanged),
+        ),
+      ]);
+
+  Widget _adjustPanel() => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        constraints: const BoxConstraints(maxHeight: 220),
+        child: ListView(shrinkWrap: true, children: [
+          _slider('Brightness', _brightness,
+              (v) => setState(() => _brightness = v)),
+          _slider('Contrast', _contrast, (v) => setState(() => _contrast = v)),
+          _slider('Warmth', _warmth, (v) => setState(() => _warmth = v)),
+          _slider('Saturation', _saturation,
+              (v) => setState(() => _saturation = v)),
+          _slider('Fade', _fade, (v) => setState(() => _fade = v), min: 0),
+          if (widget.isVideo)
+            _slider('Volume', _volume, (v) {
+              setState(() => _volume = v);
+              _video?.setVolume(v);
+            }, min: 0),
+        ]),
+      );
+
+  /// Photos only: turn a quarter, or crop to a common shape.
+  Widget _cropRow() => SizedBox(
+        height: 40,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          children: [
+            IconButton(
+              tooltip: 'Rotate',
+              onPressed: () => setState(() => _turns = (_turns + 1) % 4),
+              icon: const Icon(Icons.rotate_right_rounded, color: Colors.white),
+            ),
+            for (final (label, value) in const <(String, double?)>[
+              ('Original', null),
+              ('1:1', 1.0),
+              ('4:5', 0.8),
+              ('9:16', 9 / 16),
+              ('16:9', 16 / 9),
+            ])
+              _FilterChip(
+                label: label,
+                selected: _aspect == value,
+                onTap: () => setState(() => _aspect = value),
+              ),
+          ],
+        ),
+      );
+
   void _setSpeed(double speed) {
     setState(() => _speed = speed);
     _video?.setPlaybackSpeed(speed);
@@ -1006,13 +1070,15 @@ class _CreateEditScreenState extends State<CreateEditScreen> {
           input: widget.path,
           start: Duration(milliseconds: _range.start.round()),
           end: Duration(milliseconds: _range.end.round()),
-          filter: _filter,
+          filter: _look,
           mute: _mute,
           speed: _speed,
+          volume: _volume,
           overlay: await _captureText(),
         );
       } else {
-        out = await VideoEdit.processPhoto(input: widget.path, filter: _filter);
+        out = await VideoEdit.processPhoto(
+            input: widget.path, filter: _look, turns: _turns, aspect: _aspect);
       }
       if (!mounted) return;
       setState(() => _working = false);
@@ -1059,15 +1125,22 @@ class _CreateEditScreenState extends State<CreateEditScreen> {
     final v = _video;
     if (widget.isVideo) {
       if (v == null) return const CircularProgressIndicator();
-      final f = _filter.preview;
+      final f = _look.preview;
       final player = VideoPlayer(v);
       return _clipWithText(v.value.aspectRatio,
           f == null ? player : ColorFiltered(colorFilter: f, child: player));
     } else {
       base = Image.file(File(widget.path), fit: BoxFit.contain);
     }
-    final f = _filter.preview;
-    return f == null ? base : ColorFiltered(colorFilter: f, child: base);
+    final f = _look.preview;
+    Widget shaped = RotatedBox(quarterTurns: _turns, child: base);
+    final a = _aspect;
+    if (a != null && !widget.isVideo) {
+      shaped = AspectRatio(
+          aspectRatio: a,
+          child: ClipRect(child: FittedBox(fit: BoxFit.cover, child: shaped)));
+    }
+    return f == null ? shaped : ColorFiltered(colorFilter: f, child: shaped);
   }
 
   @override
@@ -1078,6 +1151,12 @@ class _CreateEditScreenState extends State<CreateEditScreen> {
         backgroundColor: Colors.black,
         title: const Text('Edit'),
         actions: [
+          IconButton(
+            tooltip: 'Adjust',
+            onPressed: () => setState(() => _showAdjust = !_showAdjust),
+            icon: Icon(Icons.tune_rounded,
+                color: _showAdjust ? AppColors.lilac : Colors.white),
+          ),
           if (widget.isVideo && widget.mode != CreateMode.story)
             IconButton(
               tooltip: 'Add text',
@@ -1145,6 +1224,8 @@ class _CreateEditScreenState extends State<CreateEditScreen> {
               ]),
             ),
           ],
+          if (_showAdjust) _adjustPanel(),
+          if (!widget.isVideo) _cropRow(),
           SizedBox(
             height: 40,
             child: ListView(
@@ -1176,9 +1257,17 @@ class CreateCaptionScreen extends StatefulWidget {
 
   /// More photos in a carousel, after [path].
   final List<String> extraPaths;
+
+  /// From the Aa screen: what to post instead of a file.
+  final Map<String, dynamic>? textPost;
+  final String? textPostText;
+  final Color? textPostColour;
   const CreateCaptionScreen({
     super.key,
     this.extraPaths = const [],
+    this.textPost,
+    this.textPostText,
+    this.textPostColour,
     required this.path,
     required this.isVideo,
     required this.mode,
@@ -1212,7 +1301,10 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     try {
-      final bytes = await File(widget.path).readAsBytes();
+      final textPost = widget.textPost;
+      final bytes = textPost != null
+          ? const <int>[]
+          : await File(widget.path).readAsBytes();
       final data = widget.isVideo
           ? 'data:video/mp4;base64,${base64Encode(bytes)}'
           : 'data:image/jpeg;base64,${base64Encode(bytes)}';
@@ -1228,7 +1320,12 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
         'mediaType': widget.isVideo ? 'reel' : 'image',
         'text': _caption.text.trim(),
         'isStory': _story,
-        if (widget.isVideo) 'videoData': data else 'imageData': data,
+        if (textPost != null)
+          ...textPost
+        else if (widget.isVideo)
+          'videoData': data
+        else
+          'imageData': data,
         if (widget.extraPaths.isNotEmpty)
           'extraImages': [
             for (final path in widget.extraPaths)
@@ -1268,6 +1365,7 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
   void initState() {
     super.initState();
     if (widget.isVideo) _pickCoverAt(Duration.zero);
+    _caption.text = widget.textPostText ?? '';
   }
 
   Future<void> _pickCoverAt(Duration at) async {
@@ -1399,7 +1497,10 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
                         ),
                       )
                     : Stack(fit: StackFit.expand, children: [
-                        Image.file(File(widget.path), fit: BoxFit.cover),
+                        widget.textPost != null
+                            ? ColoredBox(
+                                color: widget.textPostColour ?? Colors.black)
+                            : Image.file(File(widget.path), fit: BoxFit.cover),
                         if (widget.extraPaths.isNotEmpty)
                           Positioned(
                             top: 4,
