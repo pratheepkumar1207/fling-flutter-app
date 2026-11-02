@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/api_client.dart';
 import '../../core/auth_provider.dart';
 import '../../core/firebase_service.dart';
 import '../../core/google_auth_service.dart';
@@ -8,6 +9,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
 import '../../widgets/in_icon_button.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../splash_screen.dart';
 import 'otp_screen.dart';
 import 'safety_guidelines_screen.dart';
 
@@ -34,6 +36,12 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _devMode = !firebaseConfigured;
   bool _fieldFocused = false;
   bool _fakeLoginMode = false;
+  // What the admin panel has switched on. Starts as Google alone, which is
+  // also what stays if the server can't be reached.
+  bool _googleOn = true;
+  bool _phoneOn = false;
+  bool _passwordOn = false;
+  bool _devOn = false;
 
   @override
   void initState() {
@@ -41,6 +49,39 @@ class _LoginScreenState extends State<LoginScreen> {
     _phoneFocus.addListener(() {
       setState(() => _fieldFocused = _phoneFocus.hasFocus);
     });
+    _auth = context.read<AuthProvider>()..addListener(_enterAppWhenAuthed);
+    _loadLoginOptions();
+  }
+
+  Future<void> _loadLoginOptions() async {
+    try {
+      final options =
+          await ApiClient.get('/auth/login-options', skipAuth: true);
+      if (!mounted) return;
+      setState(() {
+        _googleOn = options['google'] == true;
+        _phoneOn = options['phone'] == true;
+        _passwordOn = options['password'] == true;
+        _devOn = options['dev'] == true;
+        if (!_passwordOn) _fakeLoginMode = false;
+        if (!_devOn) _devMode = false;
+      });
+    } catch (_) {}
+  }
+
+  late final AuthProvider _auth;
+  bool _entered = false;
+
+  // After onboarding or signing out, this screen replaces SplashScreen, which
+  // is what normally moves on after a login. With nothing left to do that, a
+  // successful login would just sit here until the app was reopened.
+  void _enterAppWhenAuthed() {
+    if (_entered || !mounted || !_auth.isAuthed) return;
+    if (context.findAncestorWidgetOfExactType<SplashScreen>() != null) return;
+    _entered = true;
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const SplashScreen()),
+        (route) => false);
   }
 
   // The +91 box is shown; a number typed with its own +code is kept as is.
@@ -191,7 +232,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                         _fakeLoginMode
                             ? 'Use the username and password you were given.'
-                            : 'We’ll text you a code to check it’s you.',
+                            : (_phoneOn
+                                ? 'We’ll text you a code to check it’s you.'
+                                : 'Use your Google account to continue.'),
                         style: const TextStyle(
                             color: AppColors.textDim, fontSize: 14)),
                     const SizedBox(height: 20),
@@ -224,7 +267,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           hint: 'password',
                           icon: InIcons.lock,
                           obscureText: true),
-                    ] else ...[
+                    ] else if (_phoneOn) ...[
                       _label('Phone number'),
                       Row(children: [
                         Container(
@@ -249,18 +292,20 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ]),
                     ],
-                    const SizedBox(height: 16),
-                    FilledButton.icon(
-                      onPressed: _loading ? null : _handleSubmit,
-                      style: FilledButton.styleFrom(
-                          minimumSize: const Size.fromHeight(52)),
-                      icon: _fakeLoginMode
-                          ? const SizedBox.shrink()
-                          : const InIcon(InIcons.phone,
-                              size: 18, color: Colors.white),
-                      label: Text(submitLabel),
-                    ),
-                    if (!_fakeLoginMode) ...[
+                    if (_fakeLoginMode || _phoneOn) ...[
+                      const SizedBox(height: 16),
+                      FilledButton.icon(
+                        onPressed: _loading ? null : _handleSubmit,
+                        style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(52)),
+                        icon: _fakeLoginMode
+                            ? const SizedBox.shrink()
+                            : const InIcon(InIcons.phone,
+                                size: 18, color: Colors.white),
+                        label: Text(submitLabel),
+                      ),
+                    ],
+                    if (!_fakeLoginMode && _phoneOn && _googleOn) ...[
                       const SizedBox(height: 18),
                       const Row(children: [
                         Expanded(
@@ -274,6 +319,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         Expanded(
                             child: Divider(color: AppColors.border, height: 1)),
                       ]),
+                    ],
+                    if (!_fakeLoginMode && _googleOn) ...[
                       const SizedBox(height: 18),
                       FilledButton.icon(
                         onPressed: _loading ? null : _handleGoogleSignIn,
@@ -285,23 +332,31 @@ class _LoginScreenState extends State<LoginScreen> {
                         label: const Text('Continue with Google'),
                       ),
                     ],
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: () => setState(() {
-                        _fakeLoginMode = !_fakeLoginMode;
-                        _error = '';
-                      }),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(52),
+                    if (_passwordOn) ...[
+                      const SizedBox(height: 10),
+                      OutlinedButton.icon(
+                        onPressed: () => setState(() {
+                          _fakeLoginMode = !_fakeLoginMode;
+                          _error = '';
+                        }),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(52),
+                        ),
+                        icon: InIcon(
+                            _fakeLoginMode
+                                ? (_phoneOn ? InIcons.phone : InIcons.back)
+                                : InIcons.user,
+                            size: 18),
+                        label: Text(_fakeLoginMode
+                            ? (_phoneOn
+                                ? 'Use phone number instead'
+                                : 'Back to Google')
+                            : 'Use username and password'),
                       ),
-                      icon: InIcon(
-                          _fakeLoginMode ? InIcons.phone : InIcons.user,
-                          size: 18),
-                      label: Text(_fakeLoginMode
-                          ? 'Use phone number instead'
-                          : 'Use username and password'),
-                    ),
-                    if (!_fakeLoginMode && firebaseConfigured)
+                    ],
+                    if (!_phoneOn || !_devOn)
+                      const SizedBox.shrink()
+                    else if (!_fakeLoginMode && firebaseConfigured)
                       TextButton(
                         onPressed: () => setState(() => _devMode = !_devMode),
                         child: Text(
@@ -411,6 +466,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    _auth.removeListener(_enterAppWhenAuthed);
     _phoneController.dispose();
     _phoneFocus.dispose();
     _usernameController.dispose();

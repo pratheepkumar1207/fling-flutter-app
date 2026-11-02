@@ -3,6 +3,8 @@ import 'account_removal_screen.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import '../../core/location_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -369,6 +371,14 @@ class _PrivacyCenterScreenState extends State<PrivacyCenterScreen> {
     try {
       await ApiClient.patch('/auth/me', body: {key: value});
       if (key == 'friendsOnlyAccount') _load();
+      // Sharing needs a position saved, or nearby features still can't work.
+      if (key == 'locationSharingEnabled' && value == true) {
+        final permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          await Geolocator.requestPermission();
+        }
+        await LocationService.requestPermissionAndPing();
+      }
       if (mounted) context.read<AuthProvider>().refreshUser();
     } on ApiException catch (e) {
       if (!mounted) return;

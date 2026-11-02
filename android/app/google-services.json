@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "409464876557-t0v6nr9dv5vspvqd6no5t47djj8i7k6g.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fling.app",
+            "certificate_hash": "bb72b25213a2712d81d77462c6e9b723a60ee1cd"
+          }
+        },
+        {
           "client_id": "409464876557-jiuv41mqj3e2mg4rqb0kovk5nj1ttt1j.apps.googleusercontent.com",
           "client_type": 3
         }

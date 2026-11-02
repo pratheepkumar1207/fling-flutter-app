@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:insync/core/auth_provider.dart';
 import 'package:insync/screens/auth/login_screen.dart';
 import 'package:insync/screens/auth/onboarding_screen.dart';
 import 'package:insync/screens/auth/otp_screen.dart';
@@ -10,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 
 // The app theme, with Roboto standing in for Plus Jakarta Sans (no network
 // font fetching in tests).
@@ -22,12 +24,15 @@ Future<void> _render(WidgetTester tester, Widget screen, String name,
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
   final key = GlobalKey();
-  await tester.pumpWidget(MaterialApp(
-    theme: _theme(),
-    home: MediaQuery(
-      data:
-          MediaQueryData(size: size, textScaler: TextScaler.linear(textScale)),
-      child: RepaintBoundary(key: key, child: screen),
+  await tester.pumpWidget(ChangeNotifierProvider(
+    create: (_) => AuthProvider(),
+    child: MaterialApp(
+      theme: _theme(),
+      home: MediaQuery(
+        data: MediaQueryData(
+            size: size, textScaler: TextScaler.linear(textScale)),
+        child: RepaintBoundary(key: key, child: screen),
+      ),
     ),
   ));
   await tester
