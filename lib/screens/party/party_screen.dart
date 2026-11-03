@@ -306,20 +306,50 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     rs.answerStageInvite(allowed);
   }
 
-  Widget _liveToggle(
+  // One button in live's right-hand rail: a dark glass circle with the
+  // app's line icon, and its name underneath.
+  Widget _railButton(
           {required InIconData icon,
           required String label,
           required VoidCallback onTap,
-          bool off = false}) =>
+          bool off = false,
+          bool active = false}) =>
       Padding(
         padding: const EdgeInsets.only(top: 10),
-        child: InIconButton(icon,
-            tooltip: label,
-            size: 42,
-            iconSize: 20,
-            background: off ? Colors.white : Colors.black54,
-            color: off ? Colors.black : Colors.white,
-            onPressed: onTap),
+        child: Semantics(
+          button: true,
+          label: label,
+          excludeSemantics: true,
+          child: GestureDetector(
+            onTap: onTap,
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: off
+                      ? Colors.white
+                      : active
+                          ? AppColors.pink
+                          : Colors.black.withValues(alpha: 0.42),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                ),
+                alignment: Alignment.center,
+                child: InIcon(icon,
+                    size: 20, color: off ? Colors.black : Colors.white),
+              ),
+              const SizedBox(height: 3),
+              Text(label,
+                  style: const TextStyle(
+                      color: AppColors.inkMuted,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      shadows: [Shadow(blurRadius: 4)])),
+            ]),
+          ),
+        ),
       );
 
   /// Everyone in the room, host first, for "To ▾" on the gift sheet.
@@ -1514,39 +1544,6 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                   _LiveViewers(
                                       viewers: viewers, onTap: _openRoster),
                                   const SizedBox(width: 4),
-                                  if (rs.isHost && !inPk)
-                                    InIconButton(InIcons.swords,
-                                        tooltip: extras.pendingInvite != null
-                                            ? 'Cancel the PK challenge'
-                                            : 'Start a PK battle',
-                                        size: 36,
-                                        iconSize: 18,
-                                        background: extras.pendingInvite != null
-                                            ? AppColors.pink
-                                            : Colors.black38,
-                                        color: Colors.white,
-                                        onPressed: () =>
-                                            extras.pendingInvite != null
-                                                ? _cancelPk(extras)
-                                                : showPkInviteSheet(context,
-                                                    extras: extras)),
-                                  if (!rs.isHost)
-                                    InIconButton(InIcons.heart,
-                                        tooltip:
-                                            extras.fanClub['joined'] == true
-                                                ? 'Fan club member'
-                                                : 'Join the fan club',
-                                        size: 36,
-                                        iconSize: 18,
-                                        background: Colors.black38,
-                                        color: AppColors.pink,
-                                        onPressed: () => showLiveFansSheet(
-                                            context,
-                                            extras: extras,
-                                            hostId: hostId,
-                                            hostName: hostName,
-                                            isHost: false)),
-                                  const SizedBox(width: 4),
                                   if (rs.isHost)
                                     FilledButton(
                                       onPressed: _leaveRoom,
@@ -1570,13 +1567,34 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                             ),
                           ),
                         ),
-                        if (inPk && !_liveChromeHidden)
+                        if (inPk &&
+                            !_liveChromeHidden &&
+                            battle['status'] == 'ended')
+                          Positioned(
+                            left: 12,
+                            right: 12,
+                            top: topInset + 60,
+                            bottom: MediaQuery.paddingOf(context).bottom + 70,
+                            child: Center(
+                              child: SingleChildScrollView(
+                                child: PkResultCard(
+                                    pk: battle,
+                                    roomId: widget.roomId,
+                                    isHost: rs.isHost,
+                                    onClose: extras.closeResult),
+                              ),
+                            ),
+                          )
+                        else if (inPk && !_liveChromeHidden)
                           Positioned(
                             left: 12,
                             right: 12,
                             top: topInset + 60 + width * 0.72 + 8,
-                            child:
-                                PkBattleBar(pk: battle, roomId: widget.roomId),
+                            child: PkBattleBar(
+                                pk: battle,
+                                roomId: widget.roomId,
+                                isHost: rs.isHost,
+                                onClose: extras.closeResult),
                           ),
                         if (!inPk && guests.isNotEmpty)
                           Positioned(
@@ -1591,100 +1609,91 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                   id == myId ? rs.micOff() : rs.removeMic(id),
                             ),
                           ),
-                        // Viewers: ask to join the host on camera.
-                        // On camera: separate camera and mic switches.
-                        if (!_liveChromeHidden && (rs.isHost || myMicOn))
+                        // Actions, in one labelled column on the right,
+                        // just above the chat box: the host's camera
+                        // controls and battle; viewers' join and fan club.
+                        if (!_liveChromeHidden)
                           Positioned(
                             right: 12,
-                            bottom: MediaQuery.paddingOf(context).bottom +
-                                (inPk ? 230 : 300) +
-                                (rs.isHost ? 16 : 62),
+                            bottom: MediaQuery.paddingOf(context).bottom + 66,
                             child: AnimatedBuilder(
-                              animation: _live!,
+                              animation: Listenable.merge([_live!, extras]),
                               builder: (context, _) => Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    _liveToggle(
-                                        icon: InIcons.flip,
-                                        label: 'Flip camera',
-                                        onTap: _live!.flipCamera),
-                                    _liveToggle(
-                                        icon: InIcons.video,
-                                        label: _live!.cameraOn
-                                            ? 'Turn camera off'
-                                            : 'Turn camera on',
-                                        off: !_live!.cameraOn,
-                                        onTap: () => _live!
-                                            .setCameraOn(!_live!.cameraOn)),
-                                    _liveToggle(
-                                        icon: _live!.micOn
-                                            ? InIcons.mic
-                                            : InIcons.micoff,
-                                        label: _live!.micOn
-                                            ? 'Turn mic off'
-                                            : 'Turn mic on',
-                                        off: !_live!.micOn,
-                                        onTap: () =>
-                                            _live!.setMicOn(!_live!.micOn)),
+                                    if (!rs.isHost &&
+                                        rs.settings['micEnabled'] != false)
+                                      _railButton(
+                                          icon: myMicOn
+                                              ? InIcons.logout
+                                              : InIcons.useradd,
+                                          label: myMicOn
+                                              ? 'Leave'
+                                              : myMicRequested
+                                                  ? 'Asked'
+                                                  : 'Join',
+                                          active: myMicRequested,
+                                          onTap: () {
+                                            if (myMicOn) {
+                                              rs.micOff();
+                                            } else if (myMicRequested) {
+                                              rs.cancelMicRequest();
+                                            } else {
+                                              rs.requestMic();
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(SnackBar(
+                                                      content: Text(
+                                                          'Asked $hostName to join the live')));
+                                            }
+                                          }),
+                                    if (rs.isHost || myMicOn) ...[
+                                      _railButton(
+                                          icon: InIcons.flip,
+                                          label: 'Flip',
+                                          onTap: _live!.flipCamera),
+                                      _railButton(
+                                          icon: InIcons.video,
+                                          label: 'Camera',
+                                          off: !_live!.cameraOn,
+                                          onTap: () => _live!
+                                              .setCameraOn(!_live!.cameraOn)),
+                                      _railButton(
+                                          icon: _live!.micOn
+                                              ? InIcons.mic
+                                              : InIcons.micoff,
+                                          label: 'Mic',
+                                          off: !_live!.micOn,
+                                          onTap: () =>
+                                              _live!.setMicOn(!_live!.micOn)),
+                                    ],
+                                    if (rs.isHost && !inPk)
+                                      _railButton(
+                                          icon: InIcons.swords,
+                                          label: extras.pendingInvite != null
+                                              ? 'Cancel'
+                                              : 'Battle',
+                                          active: extras.pendingInvite != null,
+                                          onTap: () =>
+                                              extras.pendingInvite != null
+                                                  ? _cancelPk(extras)
+                                                  : showPkInviteSheet(context,
+                                                      extras: extras)),
+                                    if (!rs.isHost)
+                                      _railButton(
+                                          icon: InIcons.heart,
+                                          label:
+                                              extras.fanClub['joined'] == true
+                                                  ? 'Fan'
+                                                  : 'Fan club',
+                                          active:
+                                              extras.fanClub['joined'] == true,
+                                          onTap: () => showLiveFansSheet(
+                                              context,
+                                              extras: extras,
+                                              hostId: hostId,
+                                              hostName: hostName,
+                                              isHost: false)),
                                   ]),
-                            ),
-                          ),
-                        if (!_liveChromeHidden &&
-                            !rs.isHost &&
-                            rs.settings['micEnabled'] != false)
-                          Positioned(
-                            right: 12,
-                            bottom: MediaQuery.paddingOf(context).bottom +
-                                (inPk ? 230 : 300) +
-                                16,
-                            child: Material(
-                              color: myMicOn
-                                  ? Colors.black54
-                                  : myMicRequested
-                                      ? Colors.black54
-                                      : AppColors.primary,
-                              shape: const StadiumBorder(),
-                              child: InkWell(
-                                customBorder: const StadiumBorder(),
-                                onTap: () {
-                                  if (myMicOn) {
-                                    rs.micOff();
-                                  } else if (myMicRequested) {
-                                    rs.cancelMicRequest();
-                                  } else {
-                                    rs.requestMic();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                            content: Text(
-                                                'Asked $hostName to join the live')));
-                                  }
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 9),
-                                  child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        InIcon(
-                                            myMicOn
-                                                ? InIcons.logout
-                                                : InIcons.video,
-                                            size: 16,
-                                            color: Colors.white),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                            myMicOn
-                                                ? 'Leave stage'
-                                                : myMicRequested
-                                                    ? 'Requested · tap to cancel'
-                                                    : 'Ask to join',
-                                            style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w700)),
-                                      ]),
-                                ),
-                              ),
                             ),
                           ),
                         Positioned(
@@ -1704,6 +1713,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                     showMic: false,
                                     showGiftCards: false,
                                     fanIds: extras.fanIds,
+                                    messagesRightInset: 62,
                                     messages: rs.messages,
                                     onSend: (text, mentionedUserIds,
                                             {replyTo}) =>

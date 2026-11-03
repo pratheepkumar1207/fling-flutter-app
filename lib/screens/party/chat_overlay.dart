@@ -76,6 +76,8 @@ class ChatOverlay extends StatefulWidget {
 
   /// Live: the host's fan club members, shown with a heart badge.
   final Set<String> fanIds;
+  // Space kept clear on the right of the messages, for live's button rail.
+  final double messagesRightInset;
 
   /// View-once photos: share one (from the camera or the gallery), open
   /// one (once, for 10 seconds), and — for your own — see who saw it.
@@ -106,6 +108,7 @@ class ChatOverlay extends StatefulWidget {
     this.likedUrls = const {},
     this.onToggleLike,
     this.fanIds = const {},
+    this.messagesRightInset = 0,
     this.onViewOncePhoto,
     this.onOpenViewOnce,
     this.onViewOnceSeen,
@@ -269,6 +272,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
   /// Long-press or swipe it to reply.
   Widget _messageLine(Map<String, dynamic> m, String name, String? senderId) {
     final mine = senderId != null && senderId == widget.myUserId;
+    final vip = m['isVip'] == true;
     final text = m['text'] as String? ?? '';
     final quote = m['replyTo'] is Map
         ? Map<String, dynamic>.from(m['replyTo'] as Map)
@@ -282,6 +286,12 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
         color: mine
             ? AppColors.primary.withValues(alpha: 0.85)
             : Colors.black.withValues(alpha: 0.35),
+        gradient: vip && !mine
+            ? LinearGradient(colors: [
+                AppColors.gold.withValues(alpha: 0.25),
+                Colors.black.withValues(alpha: 0.35),
+              ])
+            : null,
         borderRadius: BorderRadius.only(
           topLeft: const Radius.circular(16),
           topRight: const Radius.circular(16),
@@ -291,7 +301,9 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
         border: Border.all(
             color: toMe
                 ? AppColors.gold.withValues(alpha: 0.8)
-                : Colors.white.withValues(alpha: 0.08),
+                : vip
+                    ? AppColors.gold.withValues(alpha: 0.6)
+                    : Colors.white.withValues(alpha: 0.08),
             width: toMe ? 1.4 : 1),
       ),
       child: Column(
@@ -328,6 +340,23 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
               text: TextSpan(
                 style: const TextStyle(fontSize: 12.5, color: Colors.white),
                 children: [
+                  if (vip)
+                    WidgetSpan(
+                      alignment: PlaceholderAlignment.middle,
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 5),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                            color: AppColors.gold,
+                            borderRadius: BorderRadius.circular(5)),
+                        child: const Text('VIP',
+                            style: TextStyle(
+                                color: Color(0xFF3A2300),
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800)),
+                      ),
+                    ),
                   if (!mine && widget.fanIds.contains(senderId))
                     const WidgetSpan(
                       alignment: PlaceholderAlignment.middle,
@@ -342,7 +371,8 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                         text: '$name  ',
                         style: TextStyle(
                             fontWeight: FontWeight.w700,
-                            color: _nameColor(senderId))),
+                            color:
+                                vip ? AppColors.gold : _nameColor(senderId))),
                   ..._textSpans(text),
                 ],
               ),
@@ -593,7 +623,8 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
               ? const SizedBox.shrink()
               : ListView.builder(
                   reverse: true,
-                  padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
+                  padding:
+                      EdgeInsets.fromLTRB(0, 8, widget.messagesRightInset, 8),
                   itemCount: visible.length,
                   itemBuilder: (context, i) {
                     final m = visible[i];

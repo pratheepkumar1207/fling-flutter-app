@@ -80,7 +80,7 @@ void main() {
     await _pump(tester, _cards(remind: () async => reminded = !reminded));
     expect(find.text('Bala is talking'), findsOneWidget);
     expect(find.text('Chennai Movie Club'), findsOneWidget);
-    expect(find.text('PK battle · vs Ravi'), findsOneWidget);
+    expect(find.text('Battle · vs Ravi'), findsOneWidget);
     expect(find.text('Join'), findsNothing);
     expect(find.text('STARTS IN 2D 4H'), findsOneWidget);
     expect(find.text('Watch party · 48 going · by Bala'), findsOneWidget);

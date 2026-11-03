@@ -79,7 +79,7 @@ class LiveExtrasController extends ChangeNotifier {
       // The result banner stays up for a few seconds, then the stage
       // goes back to the normal single-host view.
       _clearResult?.cancel();
-      _clearResult = Timer(const Duration(seconds: 8), () {
+      _clearResult = Timer(const Duration(seconds: 15), () {
         if (pkEnded) {
           pk = null;
           _notify();
@@ -151,6 +151,15 @@ class LiveExtrasController extends ChangeNotifier {
 
   void _notify() {
     if (!_disposed) notifyListeners();
+  }
+
+  /// Battle over: back to the normal single-host view now.
+  void closeResult() {
+    _clearResult?.cancel();
+    if (pkEnded) {
+      pk = null;
+      _notify();
+    }
   }
 
   @override
@@ -402,6 +411,27 @@ class PkSplitView extends StatelessWidget {
             ),
           ]),
         );
+    final ours = ((weAreA ? pk['scoreA'] : pk['scoreB']) as num?)?.toInt() ?? 0;
+    final theirs =
+        ((weAreA ? pk['scoreB'] : pk['scoreA']) as num?)?.toInt() ?? 0;
+    final active = pk['status'] == 'active';
+    Widget winning(bool left) => Positioned(
+          top: 8,
+          left: left ? 8 : null,
+          right: left ? null : 8,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            decoration: BoxDecoration(
+                color: left ? AppColors.pink : AppColors.blue,
+                borderRadius: BorderRadius.circular(6)),
+            child: const Text('WINNING',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.4)),
+          ),
+        );
     return Stack(children: [
       Row(children: [
         side(
@@ -438,15 +468,54 @@ class PkSplitView extends StatelessWidget {
                   fontSize: 13)),
         ),
       ),
+      if (active && ours > theirs) winning(true),
+      if (active && theirs > ours) winning(false),
+      // Hear the other host. Off by default for everyone.
+      Positioned(
+        right: 8,
+        bottom: 26,
+        child: AnimatedBuilder(
+          animation: live,
+          builder: (context, _) => Semantics(
+            button: true,
+            label: live.hearingOpponent
+                ? 'Mute the other host'
+                : 'Hear the other host',
+            child: GestureDetector(
+              onTap: () => live.setHearOpponent(!live.hearingOpponent),
+              child: Container(
+                width: 30,
+                height: 30,
+                decoration: const BoxDecoration(
+                    color: Colors.black54, shape: BoxShape.circle),
+                alignment: Alignment.center,
+                child: InIcon(
+                    live.hearingOpponent ? InIcons.speaker : InIcons.mute,
+                    size: 15,
+                    color: Colors.white),
+              ),
+            ),
+          ),
+        ),
+      ),
     ]);
   }
 }
 
-/// PK score bar with the countdown — or the result once it ends.
+/// Battle score bar: our side pink, theirs blue, the clock in the middle,
+/// the x2 finish banner and each side's top three supporters. Once the
+/// battle ends it turns into the result card.
 class PkBattleBar extends StatefulWidget {
   final Map<String, dynamic> pk;
   final String roomId;
-  const PkBattleBar({super.key, required this.pk, required this.roomId});
+  final bool isHost;
+  final VoidCallback? onClose;
+  const PkBattleBar(
+      {super.key,
+      required this.pk,
+      required this.roomId,
+      this.isHost = false,
+      this.onClose});
 
   @override
   State<PkBattleBar> createState() => _PkBattleBarState();
@@ -469,64 +538,112 @@ class _PkBattleBarState extends State<PkBattleBar> {
     super.dispose();
   }
 
+  Widget _fans(List fans, bool left) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < fans.length && i < 3; i++)
+            Padding(
+              padding: EdgeInsets.only(right: left ? 6 : 0, left: left ? 0 : 6),
+              child: Stack(clipBehavior: Clip.none, children: [
+                Avatar(
+                    src: (fans[i] as Map)['avatarUrl'] as String?,
+                    name: (fans[i] as Map)['name'] as String? ?? '',
+                    size: AvatarSize.sm),
+                Positioned(
+                  right: -3,
+                  bottom: -3,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                        color: AppColors.gold,
+                        borderRadius: BorderRadius.circular(6)),
+                    child: Text('${i + 1}',
+                        style: const TextStyle(
+                            color: Color(0xFF3A2300),
+                            fontSize: 8,
+                            fontWeight: FontWeight.w800)),
+                  ),
+                ),
+              ]),
+            ),
+        ],
+      );
+
   @override
   Widget build(BuildContext context) {
     final pk = widget.pk;
+    if (pk['status'] == 'ended') {
+      return PkResultCard(
+          pk: pk,
+          roomId: widget.roomId,
+          isHost: widget.isHost,
+          onClose: widget.onClose);
+    }
     final weAreA = pk['roomA'] == widget.roomId;
     final ours = ((weAreA ? pk['scoreA'] : pk['scoreB']) as num?)?.toInt() ?? 0;
     final theirs =
         ((weAreA ? pk['scoreB'] : pk['scoreA']) as num?)?.toInt() ?? 0;
     final total = ours + theirs;
     final share = total == 0 ? 0.5 : (ours / total).clamp(0.08, 0.92);
-    final ended = pk['status'] == 'ended';
-    final endsAt = DateTime.tryParse('${pk['endsAt'] ?? ''}');
-    final left = endsAt == null
+    final now = DateTime.now();
+    final endsAt = DateTime.tryParse('${pk['endsAt'] ?? ''}')?.toLocal();
+    final boostFrom = DateTime.tryParse('${pk['boostFrom'] ?? ''}')?.toLocal();
+    final left = endsAt == null || endsAt.isBefore(now)
         ? Duration.zero
-        : endsAt.difference(DateTime.now()).isNegative
-            ? Duration.zero
-            : endsAt.difference(DateTime.now());
+        : endsAt.difference(now);
+    final boosted = boostFrom != null && !now.isBefore(boostFrom);
     final clock =
-        '${left.inMinutes}:${(left.inSeconds % 60).toString().padLeft(2, '0')}';
-    String status;
-    if (!ended) {
-      status = 'PK · $clock';
-    } else if (pk['winnerRoomId'] == null) {
-      status = 'It’s a draw';
-    } else {
-      status = pk['winnerRoomId'] == widget.roomId ? 'We won!' : 'They won';
-    }
+        '${left.inMinutes.toString().padLeft(2, '0')}:${(left.inSeconds % 60).toString().padLeft(2, '0')}';
+    final ourFans = (weAreA ? pk['topA'] : pk['topB']) as List? ?? const [];
+    final theirFans = (weAreA ? pk['topB'] : pk['topA']) as List? ?? const [];
+    const score = TextStyle(
+        color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800);
     return Semantics(
-      label: 'PK battle, us $ours, them $theirs, $status',
+      label: 'Battle, us $ours, them $theirs, $clock left',
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(999),
           child: SizedBox(
-            height: 22,
+            height: 26,
             child: LayoutBuilder(builder: (context, c) {
               return Stack(children: [
                 Row(children: [
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 400),
                     width: c.maxWidth * share,
-                    color: AppColors.pink,
+                    decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                            colors: [Color(0xFFC41E45), AppColors.pink])),
                   ),
-                  const Expanded(child: ColoredBox(color: AppColors.blue)),
+                  Expanded(
+                    child: Container(
+                        decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                                colors: [AppColors.blue, Color(0xFF2A4FD6)]))),
+                  ),
                 ]),
                 Positioned.fill(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: Row(children: [
-                      Text(compactCount(ours),
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800)),
+                      Text(compactCount(ours), style: score),
                       const Spacer(),
-                      Text(compactCount(theirs),
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800)),
+                      Text(compactCount(theirs), style: score),
+                    ]),
+                  ),
+                ),
+                Center(
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                        color: AppColors.bg,
+                        borderRadius: BorderRadius.circular(10)),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const InIcon(InIcons.hourglass,
+                          size: 12, color: Colors.white),
+                      const SizedBox(width: 4),
+                      Text(clock, style: score),
                     ]),
                   ),
                 ),
@@ -534,25 +651,252 @@ class _PkBattleBarState extends State<PkBattleBar> {
             }),
           ),
         ),
-        const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(
-              color: Colors.black54, borderRadius: BorderRadius.circular(999)),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            InIcon(ended ? InIcons.crown : InIcons.swords,
-                size: 14,
-                color: ended ? AppColors.gold : Colors.white,
-                filled: ended),
-            const SizedBox(width: 6),
-            Text(status,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700)),
+        if (boosted) ...[
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                    colors: [AppColors.gold, Color(0xFFFF8A3C)]),
+                borderRadius: BorderRadius.circular(10)),
+            child: const Text('x2 · Last 30 seconds count double',
+                style: TextStyle(
+                    color: Color(0xFF3A2300),
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800)),
+          ),
+        ],
+        if (ourFans.isNotEmpty || theirFans.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Row(children: [
+            _fans(ourFans, true),
+            const Spacer(),
+            _fans(theirFans.reversed.toList(), false),
           ]),
-        ),
+        ],
       ]),
+    );
+  }
+}
+
+/// The battle result: winner, final score, MVP, top supporters, the
+/// winner's streak and rank, and a rematch for the hosts.
+class PkResultCard extends StatefulWidget {
+  final Map<String, dynamic> pk;
+  final String roomId;
+  final bool isHost;
+  final VoidCallback? onClose;
+  const PkResultCard(
+      {super.key,
+      required this.pk,
+      required this.roomId,
+      this.isHost = false,
+      this.onClose});
+
+  @override
+  State<PkResultCard> createState() => _PkResultCardState();
+}
+
+class _PkResultCardState extends State<PkResultCard> {
+  bool _asking = false;
+
+  Future<void> _rematch() async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _asking = true);
+    try {
+      await ApiClient.post('/live/pk/${widget.pk['id']}/rematch');
+      messenger.showSnackBar(
+          const SnackBar(content: Text('Rematch sent. Waiting for them.')));
+      widget.onClose?.call();
+    } on ApiException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _asking = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pk = widget.pk;
+    final weAreA = pk['roomA'] == widget.roomId;
+    final us = (weAreA ? pk['hostA'] : pk['hostB']) as Map? ?? const {};
+    final them = (weAreA ? pk['hostB'] : pk['hostA']) as Map? ?? const {};
+    final ours = ((weAreA ? pk['scoreA'] : pk['scoreB']) as num?)?.toInt() ?? 0;
+    final theirs =
+        ((weAreA ? pk['scoreB'] : pk['scoreA']) as num?)?.toInt() ?? 0;
+    final winner = pk['winnerRoomId'];
+    final weWon = winner == widget.roomId;
+    final title = winner == null
+        ? 'It’s a draw'
+        : '${(weWon ? us : them)['name'] ?? 'They'} wins';
+    final mvp = pk['mvp'] as Map?;
+    final winnerFans = (winner == null
+            ? <dynamic>[]
+            : (winner == pk['roomA'] ? pk['topA'] : pk['topB']) as List?) ??
+        const [];
+    final streak = (pk['winnerStreak'] as num?)?.toInt() ?? 0;
+    final rank = (pk['winnerDailyRank'] as num?)?.toInt();
+    Widget total(int n, String? name, Color color) => Column(children: [
+          Text(compactCount(n),
+              style: TextStyle(
+                  color: color, fontSize: 22, fontWeight: FontWeight.w800)),
+          Text(name ?? '',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: AppColors.textDim, fontSize: 11)),
+        ]);
+    return Semantics(
+      label: '$title, $ours to $theirs',
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        decoration: BoxDecoration(
+          color: AppColors.surface.withValues(alpha: 0.94),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.gold.withValues(alpha: 0.45)),
+        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Row(children: [
+            const SizedBox(width: 30),
+            const Spacer(),
+            const InIcon(InIcons.trophy, size: 26, color: AppColors.gold),
+            const Spacer(),
+            Semantics(
+              button: true,
+              label: 'Close',
+              child: GestureDetector(
+                onTap: widget.onClose,
+                child: const SizedBox(
+                    width: 30,
+                    height: 30,
+                    child: Center(
+                        child: InIcon(InIcons.close,
+                            size: 16, color: AppColors.textDim))),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 4),
+          Text(title,
+              style: const TextStyle(
+                  color: AppColors.text,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Flexible(child: total(ours, us['name'] as String?, AppColors.pink)),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 14),
+              child: Text(':',
+                  style: TextStyle(color: AppColors.textFaint, fontSize: 20)),
+            ),
+            Flexible(
+                child: total(theirs, them['name'] as String?, AppColors.blue)),
+          ]),
+          if (mvp != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
+              decoration: BoxDecoration(
+                  color: AppColors.bg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                      color: AppColors.gold.withValues(alpha: 0.45))),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Avatar(
+                    src: mvp['avatarUrl'] as String?,
+                    name: mvp['name'] as String? ?? '',
+                    size: AvatarSize.md),
+                const SizedBox(width: 10),
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('MVP',
+                      style: TextStyle(
+                          color: AppColors.gold,
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.6)),
+                  Text(mvp['name'] as String? ?? '',
+                      style: const TextStyle(
+                          color: AppColors.text,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700)),
+                  Text(
+                      '${compactCount(((mvp['points'] as num?) ?? 0).toInt())} points',
+                      style: const TextStyle(
+                          color: AppColors.textDim, fontSize: 11)),
+                ]),
+              ]),
+            ),
+          ],
+          if (winnerFans.length > 1) ...[
+            const SizedBox(height: 12),
+            const Text('TOP SUPPORTERS',
+                style: TextStyle(
+                    color: AppColors.textFaint,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.6)),
+            const SizedBox(height: 6),
+            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              for (final f in winnerFans.take(3))
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 9),
+                  child: Column(children: [
+                    Avatar(
+                        src: (f as Map)['avatarUrl'] as String?,
+                        name: f['name'] as String? ?? '',
+                        size: AvatarSize.sm),
+                    const SizedBox(height: 3),
+                    Text(f['name'] as String? ?? '',
+                        style: const TextStyle(
+                            color: AppColors.text, fontSize: 11)),
+                    Text(compactCount(((f['points'] as num?) ?? 0).toInt()),
+                        style: const TextStyle(
+                            color: AppColors.gold,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+            ]),
+          ],
+          if (winner != null && (streak > 1 || rank != null)) ...[
+            const SizedBox(height: 10),
+            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              const InIcon(InIcons.flame, size: 14, color: AppColors.gold),
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                    [
+                      if (streak > 1) '$streak wins in a row',
+                      if (rank != null) 'Daily rank #$rank',
+                    ].join(' · '),
+                    style: const TextStyle(
+                        color: AppColors.inkMuted, fontSize: 11.5)),
+              ),
+            ]),
+          ],
+          const SizedBox(height: 12),
+          Row(children: [
+            if (widget.isHost) ...[
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: _asking ? null : _rematch,
+                  icon: const InIcon(InIcons.repeat,
+                      size: 16, color: Colors.white),
+                  label: const Text('Rematch'),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const LiveRankingsScreen())),
+                icon: const InIcon(InIcons.trophy, size: 16),
+                label: const Text('Rankings'),
+              ),
+            ),
+          ]),
+        ]),
+      ),
     );
   }
 }
@@ -965,11 +1309,32 @@ class _PkInviteSheetState extends State<_PkInviteSheet> {
   List<Map<String, dynamic>>? _rooms;
   String? _error;
   String? _sending;
+  int _minutes = 5;
+  bool _searching = false;
 
   @override
   void initState() {
     super.initState();
+    widget.extras.addListener(_closeWhenStarted);
     _load();
+  }
+
+  @override
+  void dispose() {
+    widget.extras.removeListener(_closeWhenStarted);
+    if (_searching) {
+      ApiClient.delete('/live/${widget.extras.roomId}/pk/random')
+          .catchError((_) => null);
+    }
+    super.dispose();
+  }
+
+  // A random match starts for both hosts at once, through the socket.
+  void _closeWhenStarted() {
+    if (widget.extras.pkActive && mounted) {
+      _searching = false;
+      Navigator.of(context).pop();
+    }
   }
 
   Future<void> _load() async {
@@ -983,115 +1348,249 @@ class _PkInviteSheetState extends State<_PkInviteSheet> {
     }
   }
 
+  void _snack(String text) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+    }
+  }
+
+  Future<void> _random() async {
+    if (_searching) {
+      setState(() => _searching = false);
+      await ApiClient.delete('/live/${widget.extras.roomId}/pk/random')
+          .catchError((_) => null);
+      return;
+    }
+    setState(() => _searching = true);
+    try {
+      final res = await ApiClient.post(
+          '/live/${widget.extras.roomId}/pk/random',
+          body: {'minutes': _minutes}) as Map<String, dynamic>;
+      if (res['battle'] != null) {
+        widget.extras.load();
+        if (mounted) Navigator.of(context).pop();
+        return;
+      }
+      // Waiting: give up after a minute, the same as the server.
+      Future.delayed(const Duration(seconds: 60), () {
+        if (mounted && _searching) {
+          setState(() => _searching = false);
+          _snack('Nobody free right now. Try again in a bit.');
+        }
+      });
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _searching = false);
+      _snack(e.message);
+    } catch (_) {
+      if (mounted) setState(() => _searching = false);
+      _snack('Couldn’t look for a match.');
+    }
+  }
+
   Future<void> _invite(Map<String, dynamic> r) async {
     setState(() => _sending = r['roomId'] as String?);
     try {
       final view = await ApiClient.post(
-          '/live/${widget.extras.roomId}/pk/invite',
-          body: {'targetRoomId': r['roomId']}) as Map<String, dynamic>;
+              '/live/${widget.extras.roomId}/pk/invite',
+              body: {'targetRoomId': r['roomId'], 'minutes': _minutes})
+          as Map<String, dynamic>;
       widget.extras.pendingInvite = view;
       widget.extras.load();
       if (mounted) Navigator.of(context).pop();
     } on ApiException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
-      }
+      _snack(e.message);
     } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Couldn’t send the challenge.')));
-      }
+      _snack('Couldn’t send the invite.');
     } finally {
       if (mounted) setState(() => _sending = null);
     }
   }
+
+  Widget _randomCard() => Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: _random,
+          child: Ink(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(colors: [
+                AppColors.pink.withValues(alpha: 0.25),
+                AppColors.blue.withValues(alpha: 0.25),
+              ]),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            ),
+            child: Row(children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    gradient: const LinearGradient(
+                        colors: [AppColors.pink, AppColors.blue])),
+                alignment: Alignment.center,
+                child: _searching
+                    ? const Spinner(size: 20)
+                    : const InIcon(InIcons.shuffle,
+                        size: 22, color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(_searching ? 'Finding a match…' : 'Random match',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 14)),
+                      Text(
+                          _searching
+                              ? 'Tap to stop looking'
+                              : 'Battle a live host near your level',
+                          style: const TextStyle(
+                              color: AppColors.inkMuted, fontSize: 11.5)),
+                    ]),
+              ),
+              if (!_searching)
+                const InIcon(InIcons.right,
+                    size: 18, color: AppColors.textFaint),
+            ]),
+          ),
+        ),
+      );
+
+  Widget _length() => Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+            color: AppColors.surface2, borderRadius: BorderRadius.circular(12)),
+        child: Row(children: [
+          for (final m in const [3, 5, 10])
+            Expanded(
+              child: GestureDetector(
+                onTap: _searching ? null : () => setState(() => _minutes = m),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                      color: m == _minutes
+                          ? AppColors.surface3
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(9)),
+                  alignment: Alignment.center,
+                  child: Text('$m min',
+                      style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: m == _minutes
+                              ? AppColors.text
+                              : AppColors.textDim)),
+                ),
+              ),
+            ),
+        ]),
+      );
+
+  static const _label = TextStyle(
+      color: AppColors.textFaint,
+      fontSize: 10.5,
+      fontWeight: FontWeight.w800,
+      letterSpacing: 0.6);
 
   @override
   Widget build(BuildContext context) {
     final rooms = _rooms;
     return ConstrainedBox(
       constraints:
-          BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.75),
-      child: _sheetFrame(context, [
+          BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+      child: _sheetFrame(context, scroll: true, [
         Row(children: [
-          const InIcon(InIcons.swords, size: 22, color: AppColors.pink),
+          const InIcon(InIcons.swords, size: 22, color: AppColors.gold),
           const SizedBox(width: 8),
           Expanded(
-            child: Text('Start a PK battle',
+            child: Text('Battle',
                 style: Theme.of(context)
                     .textTheme
                     .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w700)),
+                    ?.copyWith(fontWeight: FontWeight.w800)),
           ),
         ]),
         const SizedBox(height: 4),
-        const Text(
-            'Five minutes. Every gift in your live counts for you — the most coins wins.',
+        const Text('Gifts in the battle count as points. Highest score wins.',
             style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
+        _randomCard(),
+        const SizedBox(height: 16),
+        const Text('LENGTH', style: _label),
+        const SizedBox(height: 8),
+        _length(),
+        const SizedBox(height: 16),
+        const Text('INVITE A HOST', style: _label),
+        const SizedBox(height: 4),
         if (_error != null || rooms == null || rooms.isEmpty)
-          Flexible(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                child: rooms == null && _error == null
-                    ? const Center(child: Spinner(size: 24))
-                    : Text(_error ?? 'No one else is live right now.',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: AppColors.textFaint)),
-              ),
-            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: rooms == null && _error == null
+                ? const Center(child: Spinner(size: 24))
+                : Text(_error ?? 'No one else is live right now.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppColors.textFaint)),
           )
         else
-          Flexible(
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: rooms.length,
-              itemBuilder: (context, i) {
-                final r = rooms[i];
-                final host = (r['host'] as Map?) ?? const {};
-                final busy = r['inBattle'] == true;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Row(children: [
-                    Avatar(
-                        src: host['avatarUrl'] as String?,
-                        name: host['name'] as String? ?? '',
-                        size: AvatarSize.md,
-                        ring: true),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(host['name'] as String? ?? '',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w700)),
-                            Text(r['title'] as String? ?? '',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    color: AppColors.textDim, fontSize: 12.5)),
-                          ]),
-                    ),
-                    const SizedBox(width: 8),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: rooms.length,
+            separatorBuilder: (_, __) =>
+                const Divider(height: 1, color: AppColors.border),
+            itemBuilder: (context, i) {
+              final r = rooms[i];
+              final host = (r['host'] as Map?) ?? const {};
+              final busy = r['inBattle'] == true;
+              final level = (host['level'] as num?)?.toInt() ?? 1;
+              final watching = (r['watching'] as num?)?.toInt() ?? 0;
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(children: [
+                  Avatar(
+                      src: host['avatarUrl'] as String?,
+                      name: host['name'] as String? ?? '',
+                      size: AvatarSize.md,
+                      ring: true),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(host['name'] as String? ?? '',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w700)),
+                          Text('Lv $level · ${compactCount(watching)} watching',
+                              style: const TextStyle(
+                                  color: AppColors.textDim, fontSize: 12)),
+                        ]),
+                  ),
+                  const SizedBox(width: 8),
+                  if (busy)
+                    const Text('In a battle',
+                        style:
+                            TextStyle(color: AppColors.textFaint, fontSize: 12))
+                  else
                     FilledButton(
-                      onPressed:
-                          busy || _sending != null ? null : () => _invite(r),
+                      onPressed: _sending != null || _searching
+                          ? null
+                          : () => _invite(r),
                       style: FilledButton.styleFrom(
-                          minimumSize: const Size(0, 36),
-                          padding: const EdgeInsets.symmetric(horizontal: 14)),
+                          backgroundColor: AppColors.pink,
+                          minimumSize: const Size(0, 34),
+                          padding: const EdgeInsets.symmetric(horizontal: 16)),
                       child: _sending == r['roomId']
                           ? const Spinner(size: 16)
-                          : Text(busy ? 'In a PK' : 'Challenge'),
+                          : const Text('Invite'),
                     ),
-                  ]),
-                );
-              },
-            ),
+                ]),
+              );
+            },
           ),
       ]),
     );
@@ -1121,7 +1620,7 @@ Future<void> showIncomingPkDialog(BuildContext context,
   return showDialog(
     context: context,
     builder: (d) => AlertDialog(
-      title: const Text('PK challenge'),
+      title: const Text('Battle invite'),
       content: Row(children: [
         Avatar(
             src: from['avatarUrl'] as String?,
@@ -1130,7 +1629,7 @@ Future<void> showIncomingPkDialog(BuildContext context,
         const SizedBox(width: 12),
         Expanded(
           child: Text(
-              '${from['name'] ?? 'Someone'} wants a 5-minute PK battle with you.'),
+              '${from['name'] ?? 'Someone'} wants a ${invite['minutes'] ?? 5}-minute battle with you.'),
         ),
       ]),
       actions: [

@@ -264,6 +264,7 @@ class LiveBroadcastController extends ChangeNotifier {
     final previous = _opponentRoomId;
     _opponentRoomId = otherRoomId;
     _opponentUid = null;
+    hearingOpponent = false;
     notifyListeners();
     if (engine == null) return;
     try {
@@ -291,6 +292,28 @@ class LiveBroadcastController extends ChangeNotifier {
     } catch (_) {
       // The PK bar still works; the other side shows their avatar.
     }
+  }
+
+  /// Battle: whether we hear the other live's host. Off unless asked, so
+  /// two lives don't talk over each other.
+  bool hearingOpponent = false;
+
+  Future<void> setHearOpponent(bool on) async {
+    final engine = _engine;
+    final room = _opponentRoomId;
+    hearingOpponent = on;
+    notifyListeners();
+    if (engine == null || room == null) return;
+    try {
+      await engine.updateChannelMediaOptionsEx(
+        options: ChannelMediaOptions(autoSubscribeAudio: on),
+        connection: RtcConnection(channelId: room, localUid: myUid),
+      );
+      await engine.muteAllRemoteAudioStreamsEx(
+        mute: !on,
+        connection: RtcConnection(channelId: room, localUid: myUid),
+      );
+    } catch (_) {}
   }
 
   void _setStatus(VoiceChatStatus next) {

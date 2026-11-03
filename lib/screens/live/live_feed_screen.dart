@@ -137,7 +137,7 @@ class _LiveFeedScreenState extends State<LiveFeedScreen> {
                 (_LiveSort.forYou, 'For you'),
                 (_LiveSort.following, 'Following'),
                 (_LiveSort.nearby, 'Nearby'),
-                (_LiveSort.pk, 'PK'),
+                (_LiveSort.pk, 'Battles'),
                 (_LiveSort.newest, 'New'),
               ])
                 _SortChip(label, _sort == s, () => setState(() => _sort = s)),
@@ -174,7 +174,7 @@ class _LiveFeedScreenState extends State<LiveFeedScreen> {
                               'Nobody you follow is live right now.',
                             _LiveSort.nearby =>
                               'No one nearby is live. Turn on location to see lives near you.',
-                            _LiveSort.pk => 'No PK battles right now.',
+                            _LiveSort.pk => 'No battles right now.',
                             _ => 'Nothing here right now.',
                           },
                           textAlign: TextAlign.center,
@@ -391,7 +391,7 @@ class LiveCover extends StatelessWidget {
                 if (room['inPk'] == true) ...[
                   const SizedBox(width: 6),
                   const _GlassPill(children: [
-                    Text('PK',
+                    Text('BATTLE',
                         style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w900,

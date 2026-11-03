@@ -346,8 +346,8 @@ class HomeLobbyCard extends StatelessWidget {
               _Pill(
                   room['inPk'] == true
                       ? (room['pkOpponentHost'] != null
-                          ? 'PK battle · vs ${room['pkOpponentHost']}'
-                          : 'PK battle')
+                          ? 'Battle · vs ${room['pkOpponentHost']}'
+                          : 'Battle')
                       : 'Live',
                   icon: room['inPk'] == true ? InIcons.bolt : InIcons.live,
                   color: const Color(0xFFD8344A)),

@@ -36,6 +36,16 @@ Map<String, dynamic> _battle(String status, {String? winner}) => {
       'endsAt':
           DateTime.now().add(const Duration(minutes: 3)).toIso8601String(),
       'winnerRoomId': winner,
+      'topA': [
+        {'id': 'f1', 'name': 'Kabir', 'points': 900},
+        {'id': 'f2', 'name': 'Priya', 'points': 300}
+      ],
+      'topB': [
+        {'id': 'f3', 'name': 'Rohan', 'points': 450}
+      ],
+      if (status == 'ended')
+        'mvp': {'id': 'f1', 'name': 'Kabir', 'points': 900},
+      if (status == 'ended') 'winnerStreak': 3,
     };
 
 void main() {
@@ -58,41 +68,44 @@ void main() {
         t,
         Scaffold(
           backgroundColor: Colors.black,
-          body: Column(children: [
-            SizedBox(
-                height: 230,
-                child: PkSplitView(
-                    live: live,
-                    pk: _battle('active'),
-                    roomId: 'r1',
-                    isHost: false)),
-            PkBattleBar(pk: _battle('active'), roomId: 'r1'),
-            PkBattleBar(pk: _battle('ended', winner: 'r1'), roomId: 'r1'),
-            Row(children: [
-              LiveDiamondsPill(diamonds: 12000, onTap: () {}),
-              const Spacer(),
-              LiveGuestTiles(
-                live: live,
-                guests: [
-                  RosterEntry(
-                      userId: 'g1',
-                      name: 'Guest One',
-                      isHost: false,
-                      micOn: true),
-                ],
-                myUserId: 'me',
-                isHost: true,
-                onRemove: (_) {},
-              ),
+          body: SingleChildScrollView(
+            child: Column(children: [
+              SizedBox(
+                  height: 230,
+                  child: PkSplitView(
+                      live: live,
+                      pk: _battle('active'),
+                      roomId: 'r1',
+                      isHost: false)),
+              PkBattleBar(pk: _battle('active'), roomId: 'r1'),
+              PkBattleBar(pk: _battle('ended', winner: 'r1'), roomId: 'r1'),
+              Row(children: [
+                LiveDiamondsPill(diamonds: 12000, onTap: () {}),
+                const Spacer(),
+                LiveGuestTiles(
+                  live: live,
+                  guests: [
+                    RosterEntry(
+                        userId: 'g1',
+                        name: 'Guest One',
+                        isHost: false,
+                        micOn: true),
+                  ],
+                  myUserId: 'me',
+                  isHost: true,
+                  onRemove: (_) {},
+                ),
+              ]),
             ]),
-          ]),
+          ),
         ),
         size,
         scale,
       );
       expect(t.takeException(), isNull);
       expect(find.text('VS'), findsOneWidget);
-      expect(find.text('We won!'), findsOneWidget);
+      expect(find.text('Asha Raman with a long name wins'), findsOneWidget);
+      expect(find.text('MVP'), findsOneWidget);
       expect(find.text('12K'), findsOneWidget);
       expect(find.bySemanticsLabel('Remove Guest One from the stage'),
           findsOneWidget);
@@ -149,7 +162,8 @@ void main() {
       await t.pump();
       await t.pump(const Duration(milliseconds: 500));
       expect(t.takeException(), isNull);
-      expect(find.text('Start a PK battle'), findsOneWidget);
+      expect(find.text('Random match'), findsOneWidget);
+      expect(find.text('5 min'), findsOneWidget);
     });
 
     testWidgets('rankings screen without a server $tag', (t) async {
