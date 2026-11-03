@@ -9,7 +9,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.6
   # Bricolage Grotesque (display) + Plus Jakarta Sans (body) — matches the
   # Claude Design redesign's type pairing (fling-redesign design canvas).
   google_fonts: ^6.2.1
@@ -138,7 +137,6 @@ flutter:
     - assets/icon/insync-logo.png
     - assets/icon/insync-symbol.png
     - assets/logo/
-    - assets/icons/rooms/
     - assets/icons/app/
     - assets/sounds/
 
