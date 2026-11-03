@@ -5,6 +5,7 @@ import 'dart:convert';
 
 import '../../models/room_models.dart';
 import 'package:flutter/services.dart';
+import '../../widgets/fit_video_box.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../../core/api_client.dart';
@@ -748,7 +749,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     // hidden behind the Static Bloom card instead.
     // No rounded-corner card/box — the video now runs edge-to-edge at full
     // screen width right under the header, so a "boxed" look doesn't apply.
-    final videoTree = AspectRatio(
+    final videoTree = FitVideoBox(
       aspectRatio: _aspectRatio,
       child: ClipRect(
         child: Stack(

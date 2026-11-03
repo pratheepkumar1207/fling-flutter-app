@@ -2,6 +2,7 @@ import '../../theme/insync_icons.dart';
 import 'dart:async';
 import 'dart:convert';
 
+import '../../widgets/fit_video_box.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -105,6 +106,9 @@ class WebviewRoomPlayer extends StatefulWidget {
 
 class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
   InAppWebViewController? _controller;
+  // Keeps the page (and what's playing) alive when the player moves, as it
+  // does when the phone is turned to full screen.
+  final _keepAlive = InAppWebViewKeepAlive();
   Timer? _tickTimer;
   Timer? _nudgeDismissTimer;
   String? _nudgeBanner;
@@ -493,6 +497,11 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
           Navigator.of(ctx).pop();
           if (!_showSiteControls) _toggleSiteControls();
         },
+        fill: _fill,
+        onFill: (v) {
+          setState(() => _fill = v);
+          _injectFullBleedVideoCss();
+        },
       ),
     );
   }
@@ -538,16 +547,25 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         });
         var main = candidates[0];
         if (!main || (!main.offsetWidth && !main.videoWidth)) return false;
+        var fit = window.__insyncFit || 'cover';
+        if (main.getAttribute('data-insync-full') === fit) return true;
+        videos.forEach(function(v) {
+          if (v !== main && v.hasAttribute('data-insync-full')) {
+            ['position','top','left','width','height','object-fit','background','z-index']
+              .forEach(function(k) { v.style.removeProperty(k); });
+            v.removeAttribute('data-insync-full');
+          }
+        });
         var props = {
           position: 'fixed', top: '0', left: '0',
           width: '100vw', height: '100vh',
-          'object-fit': 'contain', background: '#000',
+          'object-fit': fit, background: '#000',
           'z-index': '2147483647',
         };
         Object.keys(props).forEach(function(k) {
           main.style.setProperty(k, props[k], 'important');
         });
-        main.setAttribute('data-insync-full', '1');
+        main.setAttribute('data-insync-full', fit);
         if (!document.getElementById('__insync_fullbleed_body__')) {
           var style = document.createElement('style');
           style.id = '__insync_fullbleed_body__';
@@ -557,20 +575,26 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         return true;
       })();
     ''';
-    var attempt = 0;
-    Timer.periodic(const Duration(milliseconds: 600), (timer) async {
-      attempt++;
-      // Stops first if the page has gone: its controller can't answer now.
-      if (attempt >= 8 || !mounted || _appOnly) timer.cancel();
-      if (!mounted || _appOnly) return;
-      try {
-        final found = await _controller?.evaluateJavascript(source: script);
-        if (found == true) timer.cancel();
-      } catch (_) {
+    _stretchTimer?.cancel();
+    _stretchTimer =
+        Timer.periodic(const Duration(milliseconds: 1500), (timer) async {
+      if (!mounted || _appOnly) {
         timer.cancel();
+        return;
       }
+      if (_showSiteControls) return;
+      try {
+        await _controller?.evaluateJavascript(
+            source:
+                "window.__insyncFit = '${_fill ? 'cover' : 'contain'}';\n$script");
+      } catch (_) {}
     });
   }
+
+  Timer? _stretchTimer;
+  // Fill zooms the picture to the whole box (no black bands, edges
+  // trimmed); Fit shows all of it. Each person's own choice.
+  bool _fill = false;
 
   // Hosts whose video needs Widevine — the only ones worth checking.
   static const _drmHosts = {
@@ -597,11 +621,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
   // Only the host touches the video; others only to log in or while the
   // site's own settings are open.
   bool get _blockTouch =>
-      _isOtt &&
-      !widget.isHost &&
-      !_needsLogin &&
-      !_onLoginPage &&
-      !_showSiteControls;
+      _isOtt && !_needsLogin && !_onLoginPage && !_showSiteControls;
 
   // Netflix and Prime also have an app the room can drive instead.
   bool get _hasApp =>
@@ -967,6 +987,8 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
 
   @override
   void dispose() {
+    _stretchTimer?.cancel();
+    InAppWebViewController.disposeKeepAlive(_keepAlive);
     _loginCheck?.cancel();
     _webSyncTimer?.cancel();
     _tickTimer?.cancel();
@@ -999,6 +1021,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
           IgnorePointer(
             ignoring: _blockTouch,
             child: InAppWebView(
+              keepAlive: _keepAlive,
               initialUrlRequest: URLRequest(url: WebUri(url)),
               // The desktop website, the same as where the title was picked
               // (webview_browse_screen.dart), so it opens on the same player.
@@ -1260,7 +1283,12 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     // The controls sit under the picture, never over it. Where there's no
     // room for them (the small floating window), just the picture.
     const stripHeight = 60.0;
-    final ratio = widget.compact ? 21 / 9 : 16 / 9;
+    // The title's own shape once its video reports one (ads included), so
+    // it fits exactly; 16:9 until then.
+    final seen = _webSync?.local?.aspect;
+    final ratio = widget.compact
+        ? 21 / 9
+        : (seen != null && seen >= 0.5 && seen <= 2.6 ? seen : 16 / 9);
     return LayoutBuilder(builder: (context, box) {
       if (widget.fillHeight) {
         final room = !box.hasBoundedHeight || box.maxHeight >= stripHeight * 2;
@@ -1271,7 +1299,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
       final pictureHeight = box.maxWidth / ratio;
       final room =
           !box.hasBoundedHeight || box.maxHeight >= pictureHeight + stripHeight;
-      final picture = AspectRatio(aspectRatio: ratio, child: webview);
+      final picture = FitVideoBox(aspectRatio: ratio, child: webview);
       if (!room) return picture;
       return Column(
           mainAxisSize: MainAxisSize.min, children: [picture, _controlStrip()]);
@@ -1329,7 +1357,7 @@ class _WebPlayerTarget implements OttTarget {
       var p = nfPlayer();
       var pos = p && p.getCurrentTime ? p.getCurrentTime() / 1000 : v.currentTime;
       var dur = p && p.getDuration ? p.getDuration() / 1000 : v.duration;
-      return JSON.stringify({playing: !v.paused, pos: pos, dur: isFinite(dur) ? dur : 0, canSeek: true, ad: inAd()});
+      return JSON.stringify({playing: !v.paused, pos: pos, dur: isFinite(dur) ? dur : 0, canSeek: true, ad: inAd(), ar: (v.videoWidth && v.videoHeight) ? v.videoWidth / v.videoHeight : 0});
     },
     play: function(){ var p = nfPlayer(); if (p && p.play) p.play(); else { var v = video(); if (v) v.play(); } },
     pause: function(){ var p = nfPlayer(); if (p && p.pause) p.pause(); else { var v = video(); if (v) v.pause(); } },
@@ -1364,6 +1392,7 @@ class _WebPlayerTarget implements OttTarget {
       durationSec:
           ((m['dur'] as num?) ?? 0) > 0 ? (m['dur'] as num).toDouble() : null,
       inAd: m['ad'] == true,
+      aspect: ((m['ar'] as num?) ?? 0) > 0 ? (m['ar'] as num).toDouble() : null,
     );
   }
 
@@ -1388,7 +1417,11 @@ class _OttSettingsSheet extends StatefulWidget {
   final ValueChanged<int> onAudio;
   final ValueChanged<int> onText;
   final VoidCallback onMore;
+  final bool fill;
+  final ValueChanged<bool> onFill;
   const _OttSettingsSheet({
+    required this.fill,
+    required this.onFill,
     required this.label,
     required this.rate,
     required this.audio,
@@ -1514,18 +1547,22 @@ class _OttSettingsSheetState extends State<_OttSettingsSheet> {
             () => setState(() => _page = 'speed')),
         // Quality is chosen in the site's own menu on these players.
         _row(InIcons.tv, 'Quality', 'On ${widget.label}', widget.onMore),
-        if (widget.audio.length > 1)
-          _row(
-              InIcons.speaker,
-              'Audio language',
-              _labelOf(widget.audio, _audio, 'Default'),
-              () => setState(() => _page = 'audio')),
-        if (widget.text.isNotEmpty)
-          _row(
-              InIcons.comment,
-              'Subtitles',
-              _labelOf(widget.text, _text, 'Off'),
-              () => setState(() => _page = 'text')),
+        widget.audio.length > 1
+            ? _row(
+                InIcons.speaker,
+                'Audio language',
+                _labelOf(widget.audio, _audio, 'Default'),
+                () => setState(() => _page = 'audio'))
+            : _row(InIcons.speaker, 'Audio language', 'On ${widget.label}',
+                widget.onMore),
+        widget.text.isNotEmpty
+            ? _row(
+                InIcons.comment,
+                'Subtitles',
+                _labelOf(widget.text, _text, 'Off'),
+                () => setState(() => _page = 'text'))
+            : _row(InIcons.comment, 'Subtitles', 'On ${widget.label}',
+                widget.onMore),
         const Divider(color: AppColors.border, height: 16),
         InkWell(
           borderRadius: BorderRadius.circular(12),
@@ -1544,6 +1581,18 @@ class _OttSettingsSheetState extends State<_OttSettingsSheet> {
             ]),
           ),
         ),
+      ];
+
+  List<Widget> _picture() => [
+        _header('Picture', back: true),
+        _pick('Fill · no black bands', widget.fill, () {
+          widget.onFill(true);
+          setState(() => _page = null);
+        }),
+        _pick('Fit · show the whole picture', !widget.fill, () {
+          widget.onFill(false);
+          setState(() => _page = null);
+        }),
       ];
 
   List<Widget> _speed() => [
@@ -1597,6 +1646,7 @@ class _OttSettingsSheetState extends State<_OttSettingsSheet> {
       'speed' => _speed(),
       'audio' => _audioPage(),
       'text' => _textPage(),
+      'picture' => _picture(),
       _ => _main(),
     };
     return SafeArea(

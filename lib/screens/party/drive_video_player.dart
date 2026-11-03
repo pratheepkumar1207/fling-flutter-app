@@ -2,6 +2,7 @@ import '../../theme/insync_icons.dart';
 import 'dart:async';
 
 import '../../models/room_models.dart';
+import '../../widgets/fit_video_box.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/api_client.dart';
@@ -475,7 +476,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
 
     // No rounded-corner card/box — the video now runs edge-to-edge at full
     // screen width right under the header, so a "boxed" look doesn't apply.
-    final videoTree = AspectRatio(
+    final videoTree = FitVideoBox(
       // The real native aspect ratio (video_player exposes this once
       // initialized from the actual stream's metadata) — was hardcoded
       // 16:9, which pillarboxed/letterboxed anything else (e.g. a portrait

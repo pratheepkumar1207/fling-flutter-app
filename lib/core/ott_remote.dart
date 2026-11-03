@@ -11,13 +11,16 @@ class OttPlayerState {
   final double? durationSec;
   // The site is showing an ad instead of the title.
   final bool inAd;
+  // The picture's width over its height, when the player reports it.
+  final double? aspect;
   const OttPlayerState(
       {required this.playing,
       required this.positionSec,
       required this.canSeek,
       this.title,
       this.durationSec,
-      this.inAd = false});
+      this.inAd = false,
+      this.aspect});
 }
 
 /// Plays, pauses and seeks the Netflix / Prime Video app's own player for
