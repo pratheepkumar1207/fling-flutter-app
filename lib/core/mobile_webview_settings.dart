@@ -31,6 +31,11 @@ final mobileWebViewSettings = InAppWebViewSettings(
   // reach the screen. Confirmed live: Aha's video area was solid black
   // without this.
   useHybridComposition: true,
+  // The room presses play on the title for everyone (see
+  // webview_room_player.dart). Android blocks a page's own play() until
+  // someone taps, so without this the title loaded but never started.
+  mediaPlaybackRequiresUserGesture: false,
+  allowsInlineMediaPlayback: true,
 );
 
 /// Same WebView, presented as desktop Chrome instead of mobile Chrome.
@@ -39,13 +44,11 @@ final mobileWebViewSettings = InAppWebViewSettings(
 /// (there's no app to hand off to) — their desktop site skips that
 /// entirely and goes straight to browsing.
 ///
-/// Browsing/catalog pages only — NOT for actual DRM video playback.
-/// Confirmed live: using this for the in-room player breaks Netflix
-/// (error M7701-1003) because the WebView's Widevine path only works when
-/// the site thinks it's mobile Chrome. See webview_room_player.dart, which
-/// deliberately stays on [mobileWebViewSettings] for that reason. The
-/// sign-in bot-detection limitation documented in webview_browse_screen.dart
-/// is unrelated to either UA choice.
+/// Used for every OTT web view: picking a title and the room's own player,
+/// so the title opens on the same desktop player it was picked from.
+/// Earlier testing saw Netflix refuse its desktop player in a WebView
+/// (error M7701-1003); when a site refuses, the room shows a note with an
+/// Open app button (see webview_room_player.dart).
 final desktopWebViewSettings = InAppWebViewSettings(
   useWideViewPort: true,
   loadWithOverviewMode: true,
@@ -53,4 +56,8 @@ final desktopWebViewSettings = InAppWebViewSettings(
   domStorageEnabled: true,
   userAgent:
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  // Needed to show protected (DRM) video at all — see the mobile settings.
+  useHybridComposition: true,
+  mediaPlaybackRequiresUserGesture: false,
+  allowsInlineMediaPlayback: true,
 );

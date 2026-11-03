@@ -165,7 +165,7 @@ void main() {
     installed = true;
     access = false;
     await tester.pump(const Duration(milliseconds: 1600));
-    expect(find.text('Let Insync play/pause Netflix'), findsOneWidget);
+    expect(find.text('Let this app play/pause Netflix'), findsOneWidget);
 
     access = true;
     await tester.pump(const Duration(milliseconds: 1600));

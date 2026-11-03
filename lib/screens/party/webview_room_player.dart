@@ -11,7 +11,6 @@ import '../../theme/app_colors.dart';
 import 'ott_sync_engine.dart';
 import 'ott_sync_panel.dart';
 import '../../core/ott_remote.dart';
-import '../../theme/room_themes.dart';
 
 /// Netflix/Prime "browse together" sibling of sync_video_player.dart /
 /// drive_video_player.dart. Unlike those two there is still no *real* sync
@@ -67,6 +66,14 @@ class WebviewRoomPlayer extends StatefulWidget {
   // status, and how this phone reports its own.
   final Map<String, Map<String, dynamic>> ottStatuses;
   final void Function(String status, double offsetSec)? onOttStatus;
+  // The room's like for what's playing (same as the YouTube player).
+  final bool liked;
+  final VoidCallback? onToggleLike;
+  // Host only: they moved to another title or episode on the site; the
+  // room switches everyone to it.
+  final void Function(String videoUrl, String? title)? onHostNavigate;
+  // Room setting: hold everyone while anyone's player shows an ad.
+  final bool waitForAds;
 
   const WebviewRoomPlayer({
     super.key,
@@ -86,6 +93,10 @@ class WebviewRoomPlayer extends StatefulWidget {
     this.skipVoteRequired = 1,
     this.ottStatuses = const {},
     this.onOttStatus,
+    this.liked = false,
+    this.onToggleLike,
+    this.onHostNavigate,
+    this.waitForAds = true,
   });
 
   @override
@@ -149,10 +160,9 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     // state on join so a late joiner's elapsed-time estimate starts
     // correct instead of at zero.
     if (!widget.isHost) widget.onRequestState();
-    // Netflix sends phones to its app and doesn't keep a sign-in in a web
-    // view (confirmed live), so its rooms go straight to the app. The room
-    // keeps everyone in sync with it.
-    _useApp = _drmPlatform == 'Netflix';
+    // Every platform, Netflix included, gets a real try in the room's own
+    // view first. If it won't play here, a note offers the app instead of
+    // sending people there.
     _checkWidevine();
     if (_isOtt) {
       _webSyncTimer = Timer.periodic(
@@ -294,6 +304,88 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     _hostSeekTo(value);
   }
 
+  // Everyone watches with their own account. Set when this person's page is
+  // asking them to log in (a login page, or a login wall over the title).
+  bool _needsLogin = false;
+  Timer? _loginCheck;
+
+  static const _loginWallScript = r'''
+    (function() {
+      var v = Array.from(document.querySelectorAll('video'))
+          .some(function(x) { return x.duration > 0 || x.currentTime > 0; });
+      if (v) return false;
+      var re = /^\s*(log\s*in|sign\s*in|login|signin|subscribe|subscribe now|watch with (a )?subscription)\s*$/i;
+      var els = document.querySelectorAll('a, button, [role="button"]');
+      for (var i = 0; i < els.length; i++) {
+        var e = els[i], r = e.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0 && re.test(e.innerText || '')) return true;
+      }
+      return false;
+    })();
+  ''';
+
+  void _watchForLoginWall() {
+    _loginCheck?.cancel();
+    if (!_isOtt) return;
+    var checks = 0;
+    _loginCheck = Timer.periodic(const Duration(seconds: 3), (timer) async {
+      checks++;
+      if (!mounted || _appOnly || _webPlayed || checks > 20) {
+        timer.cancel();
+        return;
+      }
+      // A few seconds for the player to appear before asking anyone.
+      if (checks < 3) return;
+      try {
+        final wall =
+            await _controller?.evaluateJavascript(source: _loginWallScript);
+        if (mounted && (wall == true) != _needsLogin && !_onLoginPage) {
+          setState(() => _needsLogin = wall == true);
+        }
+      } catch (_) {}
+    });
+  }
+
+  // Opens the site's own Log in button; if there isn't one, its home page,
+  // where the login is.
+  Future<void> _openLogin() async {
+    final c = _controller;
+    if (c == null) return;
+    setState(() => _needsLogin = false);
+    final clicked = await c.evaluateJavascript(source: r'''
+      (function() {
+        var re = /^\s*(log\s*in|sign\s*in|login|signin)\s*$/i;
+        var els = document.querySelectorAll('a, button, [role="button"]');
+        for (var i = 0; i < els.length; i++) {
+          var e = els[i], r = e.getBoundingClientRect();
+          if (r.width > 0 && r.height > 0 && re.test(e.innerText || '')) { e.click(); return true; }
+        }
+        return false;
+      })();
+    ''').catchError((_) => false);
+    if (clicked != true) {
+      final home = Uri.tryParse(widget.videoUrl ?? '');
+      if (home != null && home.hasScheme) {
+        await c.loadUrl(
+            urlRequest:
+                URLRequest(url: WebUri('${home.scheme}://${home.host}/')));
+      }
+    }
+  }
+
+  // Logged in: back to the room's title, which then catches up with the room.
+  Future<void> _backToShow() async {
+    final url = widget.videoUrl;
+    if (url == null) return;
+    setState(() {
+      _needsLogin = false;
+      _onLoginPage = false;
+    });
+    _tryStarted = DateTime.now();
+    await _controller?.loadUrl(urlRequest: URLRequest(url: WebUri(url)));
+    _watchForLoginWall();
+  }
+
   // Best-effort only — platforms don't expose a stable "you're logged out"
   // signal, so this just looks for the obvious login/signin URL patterns
   // most of them share.
@@ -306,24 +398,6 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
       _tryStarted = DateTime.now();
       setState(() => _onLoginPage = looksLikeLogin);
     }
-  }
-
-  // Asks the page's own <video> element to go fullscreen, so the site's
-  // surrounding chrome (nav bar, recommendations, search UI — whatever page
-  // the room's URL happens to be) visually disappears and only the video
-  // itself is left on screen. NOT guaranteed to work: browsers generally
-  // require the Fullscreen API to be triggered by a genuine on-page user
-  // gesture, and a script injected from Flutter isn't always treated as
-  // one — this is the best available attempt without DRM-level access to
-  // the video itself, but confirm on a real device before relying on it.
-  Future<void> _requestFullscreen() async {
-    await _controller?.evaluateJavascript(source: '''
-      (function() {
-        var v = document.querySelector('video');
-        if (v && v.requestFullscreen) { v.requestFullscreen(); }
-        else if (v && v.webkitRequestFullscreen) { v.webkitRequestFullscreen(); }
-      })();
-    ''');
   }
 
   // Pins the page's own <video> element edge-to-edge over everything else,
@@ -357,6 +431,99 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
   // what actually guarantees the win. Retried a few times after load since
   // the real player's <video> element is frequently attached
   // asynchronously, after this page's load event.
+  static const _settingsRead = r'''
+    (function() {
+      var vs = Array.from(document.querySelectorAll('video'));
+      vs.sort(function(a,b){ return (b.offsetWidth*b.offsetHeight) - (a.offsetWidth*a.offsetHeight); });
+      var v = vs[0];
+      if (!v) return null;
+      var audio = [], text = [];
+      try {
+        var at = v.audioTracks;
+        if (at) for (var i = 0; i < at.length; i++)
+          audio.push({i: i, label: at[i].label || at[i].language || ('Track ' + (i + 1)), on: at[i].enabled});
+      } catch (e) {}
+      try {
+        var tt = v.textTracks;
+        if (tt) for (var j = 0; j < tt.length; j++)
+          if (tt[j].kind === 'subtitles' || tt[j].kind === 'captions')
+            text.push({i: j, label: tt[j].label || tt[j].language || ('Subtitles ' + (j + 1)), on: tt[j].mode === 'showing'});
+      } catch (e) {}
+      return JSON.stringify({rate: v.playbackRate || 1, audio: audio, text: text});
+    })();
+  ''';
+
+  Future<void> _settingsCall(String body) async {
+    try {
+      await _controller?.evaluateJavascript(source: '''
+        (function() {
+          var vs = Array.from(document.querySelectorAll('video'));
+          vs.sort(function(a,b){ return (b.offsetWidth*b.offsetHeight) - (a.offsetWidth*a.offsetHeight); });
+          var v = vs[0];
+          if (!v) return;
+          $body
+        })();
+      ''');
+    } catch (_) {}
+  }
+
+  Future<void> _openSettingsSheet() async {
+    Map<String, dynamic> info = const {};
+    try {
+      final raw = await _controller?.evaluateJavascript(source: _settingsRead);
+      if (raw is String) info = Map<String, dynamic>.from(jsonDecode(raw));
+    } catch (_) {}
+    if (!mounted) return;
+    final label = _drmPlatform ?? 'this site';
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      isScrollControlled: true,
+      builder: (ctx) => _OttSettingsSheet(
+        label: label,
+        rate: (info['rate'] as num?)?.toDouble() ?? 1,
+        audio: ((info['audio'] as List?) ?? const []).cast<Map>(),
+        text: ((info['text'] as List?) ?? const []).cast<Map>(),
+        onRate: (r) => _settingsCall('v.playbackRate = $r;'),
+        onAudio: (i) => _settingsCall(
+            'for (var k = 0; k < v.audioTracks.length; k++) v.audioTracks[k].enabled = (k === $i);'),
+        onText: (i) => _settingsCall(
+            'for (var k = 0; k < v.textTracks.length; k++) v.textTracks[k].mode = (k === $i) ? "showing" : "disabled";'),
+        onMore: () {
+          Navigator.of(ctx).pop();
+          if (!_showSiteControls) _toggleSiteControls();
+        },
+      ),
+    );
+  }
+
+  // Language, subtitles and quality are in the site's own control bar,
+  // which the stretched video covers. This uncovers the page so each
+  // person can change their own, and covers it again after.
+  bool _showSiteControls = false;
+
+  Future<void> _toggleSiteControls() async {
+    final show = !_showSiteControls;
+    setState(() => _showSiteControls = show);
+    if (!show) {
+      _injectFullBleedVideoCss();
+      return;
+    }
+    try {
+      await _controller?.evaluateJavascript(source: '''
+        (function() {
+          document.querySelectorAll('video[data-insync-full]').forEach(function(v) {
+            ['position','top','left','width','height','object-fit','background','z-index']
+              .forEach(function(k) { v.style.removeProperty(k); });
+            v.removeAttribute('data-insync-full');
+          });
+          var s = document.getElementById('__insync_fullbleed_body__');
+          if (s) s.remove();
+        })();
+      ''');
+    } catch (_) {}
+  }
+
   void _injectFullBleedVideoCss() {
     const script = '''
       (function() {
@@ -380,6 +547,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         Object.keys(props).forEach(function(k) {
           main.style.setProperty(k, props[k], 'important');
         });
+        main.setAttribute('data-insync-full', '1');
         if (!document.getElementById('__insync_fullbleed_body__')) {
           var style = document.createElement('style');
           style.id = '__insync_fullbleed_body__';
@@ -424,10 +592,77 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     return null;
   }
 
-  bool get _isOtt => _drmPlatform == 'Netflix' || _drmPlatform == 'Prime Video';
+  bool get _isOtt => _drmPlatform != null;
+
+  // Only the host touches the video; others only to log in or while the
+  // site's own settings are open.
+  bool get _blockTouch =>
+      _isOtt &&
+      !widget.isHost &&
+      !_needsLogin &&
+      !_onLoginPage &&
+      !_showSiteControls;
+
+  // Netflix and Prime also have an app the room can drive instead.
+  bool get _hasApp =>
+      _drmPlatform == 'Netflix' || _drmPlatform == 'Prime Video';
 
   // In app mode the page isn't shown; the platform's own app plays instead.
-  bool get _appOnly => _isOtt && _useApp;
+  bool get _appOnly => _hasApp && _useApp;
+
+  // The address the host's page settled on, seen twice in a row before it
+  // counts, so a redirect on the way doesn't switch the room.
+  String? _hostSeenUrl;
+  String? _hostSentUrl;
+
+  // Host only: while anyone in the room (the host included) is in an ad,
+  // and the room's "Wait for ads" is on, the room pauses; it carries on
+  // when every ad is over.
+  bool _heldForAds = false;
+
+  void _holdForAds(OttPlayerState? local) {
+    final adNow = (local?.inAd ?? false) ||
+        widget.ottStatuses.values.any((s) => s['status'] == 'ad');
+    if (widget.waitForAds && adNow && !_heldForAds && _isPlaying) {
+      _heldForAds = true;
+      _emitPause(_elapsedSeconds);
+      if (!(local?.inAd ?? false)) _hostCommand(playing: false);
+      if (mounted) setState(() {});
+    } else if (_heldForAds && (!adNow || !widget.waitForAds)) {
+      _heldForAds = false;
+      _emitPlay(_elapsedSeconds);
+      _hostCommand(playing: true);
+      if (mounted) setState(() {});
+    }
+  }
+
+  int get _screensInAds =>
+      widget.ottStatuses.values.where((s) => s['status'] == 'ad').length;
+
+  Future<void> _followHostTitle(OttPlayerState? local) async {
+    final onNav = widget.onHostNavigate;
+    final c = _controller;
+    if (onNav == null || c == null || local == null || !local.playing) return;
+    final url = (await c.getUrl())?.toString();
+    if (url == null) return;
+    String key(String? u) {
+      final p = Uri.tryParse(u ?? '');
+      return p == null ? '' : '${p.host}${p.path}';
+    }
+
+    if (key(url) == key(widget.videoUrl) || key(url) == key(_hostSentUrl)) {
+      _hostSeenUrl = null;
+      return;
+    }
+    if (_hostSeenUrl != url) {
+      _hostSeenUrl = url;
+      return;
+    }
+    _hostSentUrl = url;
+    _hostSeenUrl = null;
+    final title = (await c.getTitle())?.trim();
+    onNav(url, (title == null || title.isEmpty) ? null : title);
+  }
 
   Future<void> _webSyncTick() async {
     final sync = _webSync;
@@ -442,6 +677,8 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
             '${(sync.target as _WebPlayerTarget).errorCode}');
         return;
       }
+      if (widget.isHost) await _followHostTitle(sync.local);
+      if (widget.isHost) _holdForAds(sync.local);
       if (_webTrouble == null) _judgeWebTry(sync.local);
       if (_useApp) return;
       if (_webTrouble != null && sync.local?.playing == true) {
@@ -501,7 +738,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
 
   // The host used the room's own controls: move their player too.
   void _hostCommand({required bool playing, double? seekTo}) {
-    if (_useApp) {
+    if (_appOnly) {
       _ottPanel.currentState?.hostCommand(playing: playing, seekTo: seekTo);
     } else {
       _webSync?.hostCommand(playing: playing, seekTo: seekTo);
@@ -582,176 +819,155 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
   // in-queue stays on the right (vote to skip for everyone else). Each
   // person's own subtitle/audio/quality settings stay in the site's own
   // player; only play/pause and position are shared.
+  // The YouTube watch party's look: controls, then the times, then a thin
+  // edge-to-edge bar. Only the host plays, pauses, jumps and drags; everyone
+  // can like, open settings, and vote to skip.
   Widget _controlStrip() {
     final elapsed = _dragPosition ?? _elapsedSeconds;
     final duration = _durationSec;
     final max =
         duration != null && duration > elapsed ? duration : _maxDragSeconds;
     const timeStyle = TextStyle(
-        color: Colors.white,
+        color: AppColors.inkMuted,
         fontSize: 10.5,
         fontFeatures: [FontFeature.tabularFigures()]);
     Widget icon(InIconData i, String label, VoidCallback onTap,
-            {double size = 24}) =>
+            {double size = 22, Color color = Colors.white}) =>
         Semantics(
           button: true,
           label: label,
+          excludeSemantics: true,
           child: InkResponse(
             onTap: onTap,
             radius: size,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: InIcon(i, color: Colors.white, size: size),
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+              child: InIcon(i, color: color, size: size),
             ),
           ),
         );
-    final skip = widget.isHost && widget.onSkip != null
-        ? icon(InIcons.skipNext, 'Next in queue', widget.onSkip!, size: 20)
-        : (!widget.isHost && widget.onVoteSkip != null)
-            ? GestureDetector(
-                onTap: widget.onVoteSkip,
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const InIcon(InIcons.skipNext, color: Colors.white, size: 18),
-                  const SizedBox(width: 3),
-                  Text('${widget.skipVoteCount}/${widget.skipVoteRequired}',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600)),
-                ]),
-              )
-            : null;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(10, 2, 10, 4),
-      color: Colors.black54,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
+    final like = widget.onToggleLike == null
+        ? null
+        : icon(InIcons.heart, widget.liked ? 'Unlike' : 'Like',
+            widget.onToggleLike!,
+            color: widget.liked ? AppColors.pink : Colors.white);
+    final settings =
+        icon(InIcons.gear, 'Player settings', _openSettingsSheet, size: 20);
+    final right = widget.isHost
+        ? Row(mainAxisSize: MainAxisSize.min, children: [
+            settings,
+            if (widget.onSkip != null)
+              icon(InIcons.skipNext, 'Next in queue', widget.onSkip!, size: 20),
+          ])
+        : Row(mainAxisSize: MainAxisSize.min, children: [
+            if (like != null) like,
+            settings,
+            if (widget.onVoteSkip != null)
+              Semantics(
+                button: true,
+                label:
+                    'Vote to skip, ${widget.skipVoteCount} of ${widget.skipVoteRequired}',
+                excludeSemantics: true,
+                child: GestureDetector(
+                  onTap: widget.onVoteSkip,
+                  child: Container(
+                    margin: const EdgeInsets.only(left: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(14)),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const InIcon(InIcons.skipNext,
+                          color: Colors.white, size: 15),
+                      const SizedBox(width: 4),
+                      Text(
+                          'Vote skip · ${widget.skipVoteCount}/${widget.skipVoteRequired}',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700)),
+                    ]),
+                  ),
+                ),
+              ),
+          ]);
+    return ColoredBox(
+      color: Colors.black,
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        // The bar runs along the bottom edge of the picture, as on YouTube.
+        SizedBox(
+          height: 14,
+          child: SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 3,
+              thumbShape: RoundSliderThumbShape(
+                  enabledThumbRadius: widget.isHost ? 6 : 0,
+                  disabledThumbRadius: 0),
+              overlayShape: SliderComponentShape.noOverlay,
+              trackShape: const RectangularSliderTrackShape(),
+              disabledActiveTrackColor: AppColors.primary,
+              disabledInactiveTrackColor: Colors.white24,
+            ),
+            child: Slider(
+              value: elapsed.clamp(0, max),
+              max: max,
+              activeColor: AppColors.primary,
+              inactiveColor: Colors.white24,
+              onChanged: widget.isHost && widget.onSeek != null
+                  ? _handleSeekChanged
+                  : null,
+              onChangeEnd: widget.isHost && widget.onSeek != null
+                  ? _handleSeekEnd
+                  : null,
+            ),
+          ),
+        ),
+        // One row: elapsed on the left, every button in the middle, the
+        // full length on the right.
+        SizedBox(
+          height: 44,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Row(children: [
               Text(_formatTime(elapsed), style: timeStyle),
               Expanded(
-                child: SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    trackHeight: 2,
-                    thumbShape: RoundSliderThumbShape(
-                        enabledThumbRadius: widget.isHost ? 5 : 0,
-                        disabledThumbRadius: 0),
-                    overlayShape: SliderComponentShape.noOverlay,
-                    disabledActiveTrackColor: RoomTheme.of(context).primary,
-                    disabledInactiveTrackColor: Colors.white24,
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Slider(
-                      value: elapsed.clamp(0, max),
-                      max: max,
-                      activeColor: RoomTheme.of(context).primary,
-                      inactiveColor: Colors.white24,
-                      onChanged: widget.isHost && widget.onSeek != null
-                          ? _handleSeekChanged
-                          : null,
-                      onChangeEnd: widget.isHost && widget.onSeek != null
-                          ? _handleSeekEnd
-                          : null,
-                    ),
+                child: Center(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      if (widget.isHost) ...[
+                        if (widget.onSeek != null)
+                          icon(InIcons.back10, 'Back 10 seconds',
+                              () => _hostSeekTo(_elapsedSeconds - 10)),
+                        icon(
+                            _isPlaying ? InIcons.pause : InIcons.play,
+                            _isPlaying
+                                ? 'Pause for everyone'
+                                : 'Play for everyone',
+                            _hostTogglePlay,
+                            size: 28),
+                        if (widget.onSeek != null)
+                          icon(InIcons.forward10, 'Forward 10 seconds',
+                              () => _hostSeekTo(_elapsedSeconds + 10)),
+                      ],
+                      right,
+                    ]),
                   ),
                 ),
               ),
               Text(duration != null ? _formatTime(duration) : '--:--',
                   style: timeStyle),
-            ],
+            ]),
           ),
-          SizedBox(
-            height: 32,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                if (widget.isHost)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (widget.onSeek != null)
-                        icon(InIcons.back10, 'Back 10 seconds',
-                            () => _hostSeekTo(_elapsedSeconds - 10)),
-                      icon(
-                          _isPlaying ? InIcons.pause : InIcons.play,
-                          _isPlaying
-                              ? 'Pause for everyone'
-                              : 'Play for everyone',
-                          _hostTogglePlay,
-                          size: 32),
-                      if (widget.onSeek != null)
-                        icon(InIcons.forward10, 'Forward 10 seconds',
-                            () => _hostSeekTo(_elapsedSeconds + 10)),
-                    ],
-                  ),
-                if (skip != null)
-                  Align(alignment: Alignment.centerRight, child: skip),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Web mode: a small status pill over the video, and the way out to the
-  // platform's app.
-  Widget _webSyncChip() {
-    final label = _drmPlatform ?? 'the app';
-    final inSync =
-        widget.ottStatuses.values.where((e) => e['status'] == 'in_sync').length;
-    final text = widget.isHost
-        ? (widget.ottStatuses.isEmpty
-            ? 'You’re driving'
-            : '$inSync of ${widget.ottStatuses.length} in sync')
-        : switch (_webStatus) {
-            _ when !_webPlayed => 'Checking if $label plays here…',
-            'in_sync' => 'In sync',
-            'behind' ||
-            'ahead' =>
-              '${(_webSync?.offset.abs() ?? 0).round()}s $_webStatus · fixing',
-            _ => 'Press play to start',
-          };
-    Widget pill(String s, VoidCallback onTap) => GestureDetector(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-            decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(999)),
-            child: Text(s,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600)),
-          ),
-        );
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Flexible(
-          child: pill(
-              text,
-              widget.isHost
-                  ? () => showOttPeople(context, widget.ottStatuses, label)
-                  : () {}),
         ),
-        if (OttRemote.supported) ...[
-          const SizedBox(width: 6),
-          Flexible(
-              child:
-                  pill('Use $label app', () => setState(() => _useApp = true))),
-        ],
-      ],
+      ]),
     );
   }
 
   @override
   void dispose() {
+    _loginCheck?.cancel();
     _webSyncTimer?.cancel();
     _tickTimer?.cancel();
     _nudgeDismissTimer?.cancel();
@@ -780,58 +996,63 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         if (_appOnly)
           const ColoredBox(color: Colors.black)
         else
-          InAppWebView(
-            initialUrlRequest: URLRequest(url: WebUri(url)),
-            // Netflix itself never gets here: see initState.
-            initialSettings: mobileWebViewSettings,
-            onWebViewCreated: (controller) {
-              _controller = controller;
-              if (_isOtt) {
-                _webSync = OttSyncEngine(
-                  target: _WebPlayerTarget(controller),
-                  isHost: () => widget.isHost,
-                  roomPlaying: () => _isPlaying,
-                  hasRoomState: () => _playback != null,
-                  roomPosition: () => _elapsedSeconds,
-                  onPlay: _emitPlay,
-                  onPause: _emitPause,
-                  onSeek: widget.onSeek == null ? null : _emitSeek,
-                );
-              }
-            },
-            // Sign-in can finish without a full page load.
-            onUpdateVisitedHistory: (controller, url, isReload) =>
-                _checkLoginUrl(url),
-            onLoadStop: (controller, url) {
-              _checkLoginUrl(url);
-              _injectFullBleedVideoCss();
-              _checkWidevine();
-            },
-            // Same "don't error out on a custom app-deeplink scheme" guard
-            // as webview_browse_screen.dart — see its comment for why.
-            shouldOverrideUrlLoading: (controller, navigationAction) async {
-              final scheme = navigationAction.request.url?.scheme;
-              if (scheme != null && scheme != 'http' && scheme != 'https') {
-                // Netflix answers a phone browser's watch link by handing
-                // off to its app (intent:// / nflx://) — confirmed live —
-                // which left this page blank.
-                if (_isOtt && !_useApp && !_webPlayed && !_onLoginPage) {
-                  _onAppLink(controller, navigationAction.request.url);
+          IgnorePointer(
+            ignoring: _blockTouch,
+            child: InAppWebView(
+              initialUrlRequest: URLRequest(url: WebUri(url)),
+              // The desktop website, the same as where the title was picked
+              // (webview_browse_screen.dart), so it opens on the same player.
+              initialSettings: desktopWebViewSettings,
+              onWebViewCreated: (controller) {
+                _controller = controller;
+                if (_isOtt) {
+                  _webSync = OttSyncEngine(
+                    target: _WebPlayerTarget(controller),
+                    isHost: () => widget.isHost,
+                    roomPlaying: () => _isPlaying,
+                    hasRoomState: () => _playback != null,
+                    roomPosition: () => _elapsedSeconds,
+                    onPlay: _emitPlay,
+                    onPause: _emitPause,
+                    onSeek: widget.onSeek == null ? null : _emitSeek,
+                  );
                 }
-                return NavigationActionPolicy.CANCEL;
-              }
-              return NavigationActionPolicy.ALLOW;
-            },
-            // Android WebView denies DRM (Widevine) permission requests by
-            // default — without granting this, Netflix/Prime's player
-            // can't initialize EME at all and fails with a generic
-            // HTML5-player error (confirmed live: Netflix's M7701-1003)
-            // regardless of user agent or anything else being right.
-            onPermissionRequest: (controller, request) async {
-              return PermissionResponse(
-                  resources: request.resources,
-                  action: PermissionResponseAction.GRANT);
-            },
+              },
+              // Sign-in can finish without a full page load.
+              onUpdateVisitedHistory: (controller, url, isReload) =>
+                  _checkLoginUrl(url),
+              onLoadStop: (controller, url) {
+                _checkLoginUrl(url);
+                _injectFullBleedVideoCss();
+                _checkWidevine();
+                _watchForLoginWall();
+              },
+              // Same "don't error out on a custom app-deeplink scheme" guard
+              // as webview_browse_screen.dart — see its comment for why.
+              shouldOverrideUrlLoading: (controller, navigationAction) async {
+                final scheme = navigationAction.request.url?.scheme;
+                if (scheme != null && scheme != 'http' && scheme != 'https') {
+                  // Netflix answers a phone browser's watch link by handing
+                  // off to its app (intent:// / nflx://) — confirmed live —
+                  // which left this page blank.
+                  if (_isOtt && !_useApp && !_webPlayed && !_onLoginPage) {
+                    _onAppLink(controller, navigationAction.request.url);
+                  }
+                  return NavigationActionPolicy.CANCEL;
+                }
+                return NavigationActionPolicy.ALLOW;
+              },
+              // Android WebView denies DRM (Widevine) permission requests by
+              // default — without granting this, Netflix/Prime's player
+              // can't initialize EME at all and fails with a generic
+              // HTML5-player error (confirmed live: Netflix's M7701-1003)
+              // regardless of user agent or anything else being right.
+              onPermissionRequest: (controller, request) async {
+                return PermissionResponse(
+                    resources: request.resources,
+                    action: PermissionResponseAction.GRANT);
+              },
+            ),
           ),
         if ((_webTrouble ?? '').isNotEmpty && !_useApp)
           Positioned(
@@ -850,7 +1071,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
                       'or open the app.',
                       style: TextStyle(color: Colors.white, fontSize: 12.5)),
                 ),
-                if (OttRemote.supported)
+                if (OttRemote.supported && _hasApp)
                   TextButton(
                     onPressed: () => setState(() => _useApp = true),
                     child: const Text('Open app'),
@@ -864,31 +1085,49 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
               ]),
             ),
           ),
-        if (!_appOnly)
+        if (_isOtt && _showSiteControls)
           Positioned(
-            top: 8,
+            top: 52,
             right: 8,
-            child: GestureDetector(
-              onTap: _requestFullscreen,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    shape: BoxShape.circle),
-                child: const InIcon(InIcons.fullscreen,
-                    color: Colors.white, size: 18),
+            child: Semantics(
+              button: true,
+              label: 'Done with player settings',
+              child: GestureDetector(
+                onTap: _toggleSiteControls,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                      color: _showSiteControls
+                          ? AppColors.primary
+                          : Colors.black.withValues(alpha: 0.5),
+                      shape: BoxShape.circle),
+                  child: InIcon(
+                      _showSiteControls ? InIcons.check : InIcons.gear,
+                      color: Colors.white,
+                      size: 18),
+                ),
               ),
             ),
           ),
-        // Compact so it fits the 16:9 box above the room's own control
-        // strip, which covers the bottom ~90px of this player.
-        if (_isOtt && !_useApp && !_onLoginPage)
+        if (_showSiteControls)
           Positioned(
-              top: 8,
-              left: 8,
-              right: 52,
-              child: Align(
-                  alignment: Alignment.centerLeft, child: _webSyncChip())),
+            left: 8,
+            right: 52,
+            top: 8,
+            child: IgnorePointer(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.75),
+                    borderRadius: BorderRadius.circular(10)),
+                child: const Text(
+                    'Change language, subtitles or quality in the player, '
+                    'then tap ✓. Only your phone changes.',
+                    style: TextStyle(color: Colors.white, fontSize: 11)),
+              ),
+            ),
+          ),
         if (_noWidevine || _appOnly)
           Positioned.fill(
             child: LayoutBuilder(builder: (context, box) {
@@ -918,21 +1157,78 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
               );
             }),
           ),
+        if (_needsLogin && !_onLoginPage)
+          Positioned.fill(
+            child: ColoredBox(
+              color: Colors.black.withValues(alpha: 0.72),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    const InIcon(InIcons.lock, size: 26, color: Colors.white),
+                    const SizedBox(height: 8),
+                    Text('Log in to ${_drmPlatform ?? 'watch'}',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 4),
+                    const Text(
+                        'Everyone watches with their own account. Log in, '
+                        'then you’ll catch up with the room.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: _openLogin,
+                      child: const Text('Log in'),
+                    ),
+                  ]),
+                ),
+              ),
+            ),
+          ),
         if (_onLoginPage)
+          Positioned(
+            left: 8,
+            right: 8,
+            bottom: 96,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
+              decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.8),
+                  borderRadius: BorderRadius.circular(14)),
+              child: Row(children: [
+                const Expanded(
+                  child: Text('Log in with your own account, then go back.',
+                      style: TextStyle(color: Colors.white, fontSize: 12)),
+                ),
+                TextButton(
+                  onPressed: _backToShow,
+                  child: const Text('Back to the show'),
+                ),
+              ]),
+            ),
+          ),
+        if (_heldForAds || (_webStatus == 'ad'))
           Positioned(
             top: 8,
             left: 8,
-            right: 48,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.75),
-                  borderRadius: BorderRadius.circular(999)),
-              child: const Text(
-                'Log in here, then come back to catch up with the room.',
-                style: TextStyle(color: Colors.white, fontSize: 10),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+            child: IgnorePointer(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.7),
+                    borderRadius: BorderRadius.circular(10)),
+                child: Text(
+                    _webStatus == 'ad'
+                        ? 'Ad playing · the room will wait'
+                        : 'Waiting for ads on ${_screensInAds == 0 ? 1 : _screensInAds} screen${_screensInAds > 1 ? 's' : ''}',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600)),
               ),
             ),
           ),
@@ -959,13 +1255,27 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
               ),
             ),
           ),
-        Positioned(left: 0, right: 0, bottom: 0, child: _controlStrip()),
       ],
     ));
-    return widget.fillHeight
-        ? SizedBox.expand(child: webview)
-        : AspectRatio(
-            aspectRatio: widget.compact ? 21 / 9 : 16 / 9, child: webview);
+    // The controls sit under the picture, never over it. Where there's no
+    // room for them (the small floating window), just the picture.
+    const stripHeight = 60.0;
+    final ratio = widget.compact ? 21 / 9 : 16 / 9;
+    return LayoutBuilder(builder: (context, box) {
+      if (widget.fillHeight) {
+        final room = !box.hasBoundedHeight || box.maxHeight >= stripHeight * 2;
+        return room
+            ? Column(children: [Expanded(child: webview), _controlStrip()])
+            : SizedBox.expand(child: webview);
+      }
+      final pictureHeight = box.maxWidth / ratio;
+      final room =
+          !box.hasBoundedHeight || box.maxHeight >= pictureHeight + stripHeight;
+      final picture = AspectRatio(aspectRatio: ratio, child: webview);
+      if (!room) return picture;
+      return Column(
+          mainAxisSize: MainAxisSize.min, children: [picture, _controlStrip()]);
+    });
   }
 }
 
@@ -998,6 +1308,11 @@ class _WebPlayerTarget implements OttTarget {
     vs.sort(function(a,b){ return (b.offsetWidth*b.offsetHeight) - (a.offsetWidth*a.offsetHeight); });
     return vs[0] || null;
   }
+  function inAd(){
+    if (document.querySelector('.ad-showing, .ad-interrupting, [class*="ad-badge"], [class*="adBadge"], [class*="AdBadge"], [class*="ad-countdown"], [data-testid*="ad-badge"], [aria-label*="Advertisement"]')) return true;
+    var t = document.body ? document.body.innerText.slice(0, 3000) : '';
+    return /(^|\n)\s*(Ad|Advertisement)\s*([·•:|]|\d+\s*(of|\/)\s*\d+)/i.test(t) || /Skip Ads?\b|Ad will end in|Your video will (play|resume) after/i.test(t);
+  }
   function hasError(){
     if (document.querySelector('.nf-error, .error-page, [data-uia="error-page"], [data-uia="player-error"]')) return true;
     var t = document.body ? document.body.innerText.slice(0, 4000) : '';
@@ -1014,7 +1329,7 @@ class _WebPlayerTarget implements OttTarget {
       var p = nfPlayer();
       var pos = p && p.getCurrentTime ? p.getCurrentTime() / 1000 : v.currentTime;
       var dur = p && p.getDuration ? p.getDuration() / 1000 : v.duration;
-      return JSON.stringify({playing: !v.paused, pos: pos, dur: isFinite(dur) ? dur : 0, canSeek: true});
+      return JSON.stringify({playing: !v.paused, pos: pos, dur: isFinite(dur) ? dur : 0, canSeek: true, ad: inAd()});
     },
     play: function(){ var p = nfPlayer(); if (p && p.play) p.play(); else { var v = video(); if (v) v.play(); } },
     pause: function(){ var p = nfPlayer(); if (p && p.pause) p.pause(); else { var v = video(); if (v) v.pause(); } },
@@ -1048,6 +1363,7 @@ class _WebPlayerTarget implements OttTarget {
       canSeek: m['canSeek'] == true,
       durationSec:
           ((m['dur'] as num?) ?? 0) > 0 ? (m['dur'] as num).toDouble() : null,
+      inAd: m['ad'] == true,
     );
   }
 
@@ -1057,4 +1373,255 @@ class _WebPlayerTarget implements OttTarget {
   Future<void> pause() => _run('window.__insync.pause()');
   @override
   Future<void> seekTo(double seconds) => _run('window.__insync.seek($seconds)');
+}
+
+/// Bottom sheet for the person's own player settings: speed, and the
+/// title's audio languages and subtitles where the site's video lists them.
+/// Anything else (quality on most sites) is in the site's own menu, which
+/// "More settings" opens.
+class _OttSettingsSheet extends StatefulWidget {
+  final String label;
+  final double rate;
+  final List<Map> audio;
+  final List<Map> text;
+  final ValueChanged<double> onRate;
+  final ValueChanged<int> onAudio;
+  final ValueChanged<int> onText;
+  final VoidCallback onMore;
+  const _OttSettingsSheet({
+    required this.label,
+    required this.rate,
+    required this.audio,
+    required this.text,
+    required this.onRate,
+    required this.onAudio,
+    required this.onText,
+    required this.onMore,
+  });
+
+  @override
+  State<_OttSettingsSheet> createState() => _OttSettingsSheetState();
+}
+
+class _OttSettingsSheetState extends State<_OttSettingsSheet> {
+  static const _rates = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+  late double _rate = widget.rate;
+  late int? _audio = _onIndex(widget.audio);
+  late int _text = _onIndex(widget.text) ?? -1;
+  // Which list is open: null for the main settings list.
+  String? _page;
+
+  static int? _onIndex(List<Map> list) {
+    for (final m in list) {
+      if (m['on'] == true) return (m['i'] as num).toInt();
+    }
+    return null;
+  }
+
+  String _rateLabel(double r) => r == 1.0
+      ? 'Normal'
+      : (r == r.roundToDouble() ? '${r.toInt()}x' : '${r}x');
+
+  String _labelOf(List<Map> list, int? i, String none) {
+    for (final m in list) {
+      if ((m['i'] as num).toInt() == i) return '${m['label']}';
+    }
+    return none;
+  }
+
+  Widget _row(
+          InIconData icon, String label, String value, VoidCallback onTap) =>
+      InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+          child: Row(children: [
+            InIcon(icon, size: 18, color: AppColors.textDim),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(label,
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w600)),
+            ),
+            Text(value,
+                style: const TextStyle(color: AppColors.textDim, fontSize: 13)),
+            const SizedBox(width: 6),
+            const InIcon(InIcons.right, size: 16, color: AppColors.textFaint),
+          ]),
+        ),
+      );
+
+  Widget _pick(String label, bool on, VoidCallback onTap) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 1),
+        child: Material(
+          color: on
+              ? AppColors.primary.withValues(alpha: 0.16)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(children: [
+                Expanded(
+                  child: Text(label,
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: on ? FontWeight.w800 : FontWeight.w600)),
+                ),
+                if (on)
+                  const InIcon(InIcons.check, size: 18, color: AppColors.lilac),
+              ]),
+            ),
+          ),
+        ),
+      );
+
+  Widget _header(String title, {bool back = false}) => Padding(
+        padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+        child: Row(children: [
+          if (back)
+            IconButton(
+              tooltip: 'Back',
+              onPressed: () => setState(() => _page = null),
+              icon: const InIcon(InIcons.back,
+                  size: 18, color: AppColors.inkMuted),
+            )
+          else
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10),
+              child: InIcon(InIcons.gear, size: 18, color: AppColors.lilac),
+            ),
+          Expanded(
+            child: Text(title,
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          ),
+          if (!back)
+            const Padding(
+              padding: EdgeInsets.only(right: 8),
+              child: Text('Only your phone changes',
+                  style: TextStyle(color: AppColors.textFaint, fontSize: 11)),
+            ),
+        ]),
+      );
+
+  List<Widget> _main() => [
+        _header('Player settings'),
+        _row(InIcons.play, 'Speed', _rateLabel(_rate),
+            () => setState(() => _page = 'speed')),
+        // Quality is chosen in the site's own menu on these players.
+        _row(InIcons.tv, 'Quality', 'On ${widget.label}', widget.onMore),
+        if (widget.audio.length > 1)
+          _row(
+              InIcons.speaker,
+              'Audio language',
+              _labelOf(widget.audio, _audio, 'Default'),
+              () => setState(() => _page = 'audio')),
+        if (widget.text.isNotEmpty)
+          _row(
+              InIcons.comment,
+              'Subtitles',
+              _labelOf(widget.text, _text, 'Off'),
+              () => setState(() => _page = 'text')),
+        const Divider(color: AppColors.border, height: 16),
+        InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: widget.onMore,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            child: Row(children: [
+              const InIcon(InIcons.more, size: 16, color: AppColors.inkMuted),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('More settings on ${widget.label}',
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w600)),
+              ),
+              const InIcon(InIcons.right, size: 16, color: AppColors.textFaint),
+            ]),
+          ),
+        ),
+      ];
+
+  List<Widget> _speed() => [
+        _header('Speed', back: true),
+        for (final r in _rates)
+          _pick(_rateLabel(r), (_rate - r).abs() < 0.01, () {
+            widget.onRate(r);
+            setState(() {
+              _rate = r;
+              _page = null;
+            });
+          }),
+      ];
+
+  List<Widget> _audioPage() => [
+        _header('Audio language', back: true),
+        for (final a in widget.audio)
+          _pick('${a['label']}', _audio == (a['i'] as num).toInt(), () {
+            final i = (a['i'] as num).toInt();
+            widget.onAudio(i);
+            setState(() {
+              _audio = i;
+              _page = null;
+            });
+          }),
+      ];
+
+  List<Widget> _textPage() => [
+        _header('Subtitles', back: true),
+        _pick('Off', _text == -1, () {
+          widget.onText(-1);
+          setState(() {
+            _text = -1;
+            _page = null;
+          });
+        }),
+        for (final s in widget.text)
+          _pick('${s['label']}', _text == (s['i'] as num).toInt(), () {
+            final i = (s['i'] as num).toInt();
+            widget.onText(i);
+            setState(() {
+              _text = i;
+              _page = null;
+            });
+          }),
+      ];
+
+  @override
+  Widget build(BuildContext context) {
+    final children = switch (_page) {
+      'speed' => _speed(),
+      'audio' => _audioPage(),
+      'text' => _textPage(),
+      _ => _main(),
+    };
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(8, 10, 8, 12),
+        child: AnimatedSize(
+          duration: const Duration(milliseconds: 180),
+          alignment: Alignment.topCenter,
+          child: Column(
+              key: ValueKey(_page),
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                          color: AppColors.border,
+                          borderRadius: BorderRadius.circular(2))),
+                ),
+                ...children,
+              ]),
+        ),
+      ),
+    );
+  }
 }

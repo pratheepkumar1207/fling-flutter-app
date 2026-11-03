@@ -125,6 +125,13 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
   static const _watchPageFallback = Duration(seconds: 8);
   DateTime? _playingSince;
   DateTime? _watchPageSince;
+  // Shows the Pin to room button: a title is playing or its watch page is open.
+  bool _canPin = false;
+
+  void _updateCanPin() {
+    final can = _playingSince != null || _watchPageSince != null;
+    if (can != _canPin && mounted) setState(() => _canPin = can);
+  }
 
   @override
   void initState() {
@@ -148,7 +155,11 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
       // on the page yet" catches that case too — this only checks
       // presence (a plain boolean), never reads, plays, or otherwise
       // touches the element or its content.
-      final playing = await _controller?.evaluateJavascript(source: '''
+      // Netflix plays trailers on its title pages, which aren't a pick:
+      // for Netflix only its watch page counts (handled above).
+      final playing = widget.platform == 'netflix'
+          ? false
+          : await _controller?.evaluateJavascript(source: '''
         (function() {
           var vids = Array.from(document.querySelectorAll('video'));
           var frames = document.querySelectorAll('iframe');
@@ -170,6 +181,8 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
       ''');
       if (!mounted || _autoStarted || _creatingRoom) return;
       final now = DateTime.now();
+      _playingSince = playing == true ? (_playingSince ?? now) : null;
+      _updateCanPin();
       if (playing == true) {
         _playingSince ??= now;
         if (now.difference(_playingSince!) >= _playFor) {
@@ -231,7 +244,10 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
   // onLoadStop alone would never see that).
   void _maybeAutoStart(String? url) {
     if (_autoStarted || _creatingRoom || url == null) return;
-    if (_looksReadyToStart(url)) _watchPageSince ??= DateTime.now();
+    if (_looksReadyToStart(url)) {
+      _watchPageSince ??= DateTime.now();
+      _updateCanPin();
+    }
   }
 
   // The actual "we're ready, go" action — split out of _maybeAutoStart so
@@ -551,33 +567,46 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
                 ),
               ),
             ),
-          // No start button: picking something and pressing play is what
-          // opens the room with it pinned (see _maybeAutoStart).
+          // Playing a title pins it to the room after 3 seconds (see
+          // _urlPoll); the button does it straight away.
           if (!_creatingRoom)
             Positioned(
               left: 16,
               right: 16,
               bottom: 16,
-              child: IgnorePointer(
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.72),
-                      borderRadius: BorderRadius.circular(999)),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    const InIcon(InIcons.play,
-                        size: 15, color: Colors.white, filled: true),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(_hint,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 12.5)),
+              child: _canPin
+                  ? FilledButton.icon(
+                      onPressed: () async {
+                        final url = await _controller?.getUrl();
+                        if (url != null) _triggerAutoStart(url.toString());
+                      },
+                      style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(50),
+                          shape: const StadiumBorder()),
+                      icon: const InIcon(InIcons.pin,
+                          size: 18, color: Colors.white),
+                      label: const Text('Pin to room'),
+                    )
+                  : IgnorePointer(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.72),
+                            borderRadius: BorderRadius.circular(999)),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          const InIcon(InIcons.play,
+                              size: 15, color: Colors.white, filled: true),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(_hint,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 12.5)),
+                          ),
+                        ]),
+                      ),
                     ),
-                  ]),
-                ),
-              ),
             ),
         ],
       ),

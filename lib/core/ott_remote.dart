@@ -9,12 +9,15 @@ class OttPlayerState {
   final String? title;
   // Total length, when the player reports one.
   final double? durationSec;
+  // The site is showing an ad instead of the title.
+  final bool inAd;
   const OttPlayerState(
       {required this.playing,
       required this.positionSec,
       required this.canSeek,
       this.title,
-      this.durationSec});
+      this.durationSec,
+      this.inAd = false});
 }
 
 /// Plays, pauses and seeks the Netflix / Prime Video app's own player for

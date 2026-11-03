@@ -62,6 +62,9 @@ class OttSyncEngine {
 
   OttPlayerState? local;
   double offset = 0;
+  // A host coming back (or taking over) first lines their own player up
+  // with the room, instead of dragging everyone to wherever theirs is.
+  bool _hostAligned = false;
   DateTime _lastCommand = DateTime.fromMillisecondsSinceEpoch(0);
 
   bool get _settling => DateTime.now().difference(_lastCommand) < grace;
@@ -72,8 +75,35 @@ class OttSyncEngine {
     final now = await target.state();
     local = now;
     if (now == null) return 'not_playing';
+    // An ad has its own clock: don't move anyone because of it.
+    if (now.inAd) return 'ad';
 
     final roomPos = roomPosition();
+    if (isHost() && !_hostAligned && hasRoomState()) {
+      final off = now.positionSec - roomPos;
+      // Only a page that has just loaded from the start while the room is
+      // further on (a host coming back); any other difference is the host
+      // really moving their player.
+      final freshPage = now.positionSec < 5 && roomPos > tolerance + 5;
+      if (!freshPage ||
+          (off.abs() <= tolerance && now.playing == roomPlaying())) {
+        _hostAligned = true;
+      } else {
+        if (!_settling) {
+          if (off.abs() > tolerance && now.canSeek) {
+            await target.seekTo(roomPos);
+          }
+          if (now.playing != roomPlaying()) {
+            roomPlaying() ? await target.play() : await target.pause();
+          }
+          _lastCommand = DateTime.now();
+        }
+        offset = off;
+        return 'in_sync';
+      }
+    } else if (isHost() && !hasRoomState()) {
+      _hostAligned = true;
+    }
     if (isHost()) {
       if (!_settling) {
         if (!hasRoomState() || now.playing != roomPlaying()) {

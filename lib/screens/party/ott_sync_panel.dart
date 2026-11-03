@@ -215,8 +215,8 @@ class OttSyncPanelState extends State<OttSyncPanel>
         ),
       _Step.allow => (
           InIcons.remote,
-          'Let Insync play/pause ${widget.label}',
-          'One-time Android permission: turn on Insync under Notification access.',
+          'Let this app play/pause ${widget.label}',
+          'One-time Android permission: turn this app on under Notification access.',
           'Allow',
           OttRemote.openAccessSettings
         ),
@@ -332,7 +332,7 @@ void showOttPeople(BuildContext context,
                     fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
             Text(
-                'Everyone’s $label follows yours. Members appear here once Insync is open on their phone.',
+                'Everyone’s $label follows yours. Members appear here once the room is open on their phone.',
                 style:
                     const TextStyle(color: AppColors.textFaint, fontSize: 12)),
             const SizedBox(height: 8),

@@ -913,6 +913,21 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           skipVoteRequired: (rs.skipVote['required'] as int?) ?? 1,
           ottStatuses: rs.ottStatuses,
           onOttStatus: rs.sendOttStatus,
+          waitForAds: rs.settings['waitForAds'] != false,
+          liked: _likedUrls.contains(currentItem?['videoUrl']),
+          onToggleLike: () => _toggleLike(currentItem),
+          // The host moved to another title or episode on the site: every
+          // phone switches to it.
+          onHostNavigate: rs.isHost
+              ? (url, title) => rs.queueAddMany([
+                    {
+                      'videoUrl': url,
+                      'title': title ?? currentItem?['title'] ?? '',
+                      'sourceType': playerSourceType,
+                      'mediaMode': 'video',
+                    }
+                  ], playNow: true)
+              : null,
         );
       }
       if (playerSourceType == 'drive') {
@@ -1929,12 +1944,17 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                   child: _maybeBackdrop(
                     useVolaTheme ? roomTheme : null,
                     // Glass blurs what's playing, else the host's photo.
-                    (currentItem?['thumbnail'] ?? room['videoThumbnail'])
-                            as String? ??
-                        rs.roster
-                            .where((r) => r.userId == rs.hostId)
-                            .map((r) => r.avatarUrl)
-                            .firstOrNull,
+                    // Streaming sites' pictures are usually their own logo,
+                    // which looked messy blurred behind the room, so those
+                    // rooms keep the plain background.
+                    webviewSourceTypes.contains(playerSourceType)
+                        ? null
+                        : (currentItem?['thumbnail'] ?? room['videoThumbnail'])
+                                as String? ??
+                            rs.roster
+                                .where((r) => r.userId == rs.hostId)
+                                .map((r) => r.avatarUrl)
+                                .firstOrNull,
                     Column(
                       children: [
                         // Room-type-specific content — free to change shape however it

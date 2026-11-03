@@ -100,6 +100,7 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
   late String _theme = widget.room['theme'] as String? ?? 'midnight';
   late bool _openMics = widget.room['micApproval'] == 'everyone';
   late bool _chatOn = widget.room['chatEnabled'] != false;
+  late bool _waitForAds = widget.room['waitForAds'] != false;
   late final _name =
       TextEditingController(text: widget.room['title'] as String? ?? '');
 
@@ -122,6 +123,9 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
 
   void _setChat(bool v) =>
       _saveSettings({'chatEnabled': v}, () => _chatOn = v, () => _chatOn = !v);
+
+  void _setWaitForAds(bool v) => _saveSettings(
+      {'waitForAds': v}, () => _waitForAds = v, () => _waitForAds = !v);
 
   /// A tappable row that runs an action (poll, moderation, end room).
   Widget _actionRow(InIconData icon, String label, VoidCallback onTap,
@@ -655,6 +659,16 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
                     Switch(
                       value: _chatOn,
                       onChanged: _saving ? null : _setChat,
+                      activeThumbColor: AppColors.accent,
+                    ),
+                  ),
+                  // Streaming rooms: hold everyone while someone's ad plays.
+                  _row(
+                    InIcons.hourglass,
+                    'Wait for ads',
+                    Switch(
+                      value: _waitForAds,
+                      onChanged: _saving ? null : _setWaitForAds,
                       activeThumbColor: AppColors.accent,
                     ),
                   ),
