@@ -131,9 +131,15 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
   double? _firstWebPos;
   bool _triedFallbackUrl = false;
 
+  // Set when the video won't play in the room's own view. The room stays
+  // here (no jumping off to the platform's app); a note offers the app.
+  String? _webTrouble;
+
   void _moveToApp(String why) {
-    debugPrint('OTT: moving to the app: $why');
-    if (mounted && !_useApp) setState(() => _useApp = true);
+    debugPrint('OTT: video not playing in the room: $why');
+    if (mounted && _webTrouble == null && !_useApp) {
+      setState(() => _webTrouble = why);
+    }
   }
 
   @override
@@ -436,8 +442,14 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
             '${(sync.target as _WebPlayerTarget).errorCode}');
         return;
       }
-      _judgeWebTry(sync.local);
+      if (_webTrouble == null) _judgeWebTry(sync.local);
       if (_useApp) return;
+      if (_webTrouble != null && sync.local?.playing == true) {
+        setState(() {
+          _webTrouble = null;
+          _webPlayed = true;
+        });
+      }
       if (status != _webStatus) setState(() => _webStatus = status);
       _reportStatus(status, sync.offset);
     } finally {
@@ -820,6 +832,37 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
                   resources: request.resources,
                   action: PermissionResponseAction.GRANT);
             },
+          ),
+        if ((_webTrouble ?? '').isNotEmpty && !_useApp)
+          Positioned(
+            left: 12,
+            right: 12,
+            bottom: 12,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+              decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.75),
+                  borderRadius: BorderRadius.circular(14)),
+              child: Row(children: [
+                const Expanded(
+                  child: Text(
+                      'It isn’t playing here yet. Press play on the video, '
+                      'or open the app.',
+                      style: TextStyle(color: Colors.white, fontSize: 12.5)),
+                ),
+                if (OttRemote.supported)
+                  TextButton(
+                    onPressed: () => setState(() => _useApp = true),
+                    child: const Text('Open app'),
+                  ),
+                IconButton(
+                  tooltip: 'Dismiss',
+                  onPressed: () => setState(() => _webTrouble = ''),
+                  icon: const InIcon(InIcons.close,
+                      size: 16, color: Colors.white70),
+                ),
+              ]),
+            ),
           ),
         if (!_appOnly)
           Positioned(

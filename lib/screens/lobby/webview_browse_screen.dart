@@ -83,10 +83,7 @@ class WebviewBrowseScreen extends StatefulWidget {
 // reliably /watch/<numeric id>; others are less certain, so they fall back
 // to the generic pattern below rather than guessing a specific shape wrong.
 final _platformWatchPatterns = <String, RegExp>{
-  // A title page is enough: the title plays in the Netflix app, and these
-  // pages open without signing in here.
-  'netflix': RegExp(
-      r'netflix\.com/(?:[a-z]{2}(?:-[a-z]{2})?/)?(?:watch|title)/\d+',
+  'netflix': RegExp(r'netflix\.com/(?:[a-z]{2}(?:-[a-z]{2})?/)?watch/\d+',
       caseSensitive: false),
   'hotstar': RegExp(r'hotstar\.com/.+/watch(?:[/?]|$)', caseSensitive: false),
   'sonyliv': RegExp(r'sonyliv\.com/watch/', caseSensitive: false),
@@ -121,6 +118,14 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
   // firing.
   Timer? _urlPoll;
 
+  // The rule: once the picked video has really played here for 3 seconds,
+  // go back to the lobby with it pinned. A watch page that never plays in
+  // this view (some sites refuse DRM in it) still goes back after 8.
+  static const _playFor = Duration(seconds: 3);
+  static const _watchPageFallback = Duration(seconds: 8);
+  DateTime? _playingSince;
+  DateTime? _watchPageSince;
+
   @override
   void initState() {
     super.initState();
@@ -130,8 +135,9 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
       if (!mounted || url == null) return;
       final urlStr = url.toString();
       if (_looksReadyToStart(urlStr)) {
-        _triggerAutoStart(urlStr);
-        return;
+        _watchPageSince ??= DateTime.now();
+      } else {
+        _watchPageSince = null;
       }
       // Prime Video's play button doesn't reliably touch the URL at all —
       // it can open the video as an in-page overlay with no ?autoplay=1
@@ -142,8 +148,6 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
       // on the page yet" catches that case too — this only checks
       // presence (a plain boolean), never reads, plays, or otherwise
       // touches the element or its content.
-      // Netflix's title pages play trailers, which aren't a pick.
-      if (widget.platform == 'netflix') return;
       final playing = await _controller?.evaluateJavascript(source: '''
         (function() {
           var vids = Array.from(document.querySelectorAll('video'));
@@ -164,7 +168,18 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
           });
         })();
       ''');
-      if (playing == true && mounted && !_autoStarted && !_creatingRoom) {
+      if (!mounted || _autoStarted || _creatingRoom) return;
+      final now = DateTime.now();
+      if (playing == true) {
+        _playingSince ??= now;
+        if (now.difference(_playingSince!) >= _playFor) {
+          _triggerAutoStart(urlStr);
+        }
+        return;
+      }
+      _playingSince = null;
+      final since = _watchPageSince;
+      if (since != null && now.difference(since) >= _watchPageFallback) {
         _triggerAutoStart(urlStr);
         return;
       }
@@ -189,9 +204,9 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
             return false;
           })();
         ''');
-        if (hasVideo == true && mounted && !_autoStarted && !_creatingRoom) {
-          _triggerAutoStart(urlStr);
-        }
+        // A player on the page counts as a watch page: it gets its 3
+        // seconds of playing, or goes back after the fallback wait.
+        if (hasVideo == true && mounted) _watchPageSince ??= DateTime.now();
       }
     });
   }
@@ -216,7 +231,7 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
   // onLoadStop alone would never see that).
   void _maybeAutoStart(String? url) {
     if (_autoStarted || _creatingRoom || url == null) return;
-    if (_looksReadyToStart(url)) _triggerAutoStart(url);
+    if (_looksReadyToStart(url)) _watchPageSince ??= DateTime.now();
   }
 
   // The actual "we're ready, go" action — split out of _maybeAutoStart so
@@ -442,16 +457,13 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
   }
 
   String get _hint {
-    if (widget.platform == 'netflix') {
-      return 'Pick a title. It plays in the Netflix app, in sync with your room';
-    }
     if (widget.onAddToQueue != null) {
-      return 'Pick something and press play to add it to the queue';
+      return 'Press play. After 3 seconds it goes to your room’s queue';
     }
     if (widget.onConfirmOverride != null) {
-      return 'Pick something and press play to switch the room to it';
+      return 'Press play. After 3 seconds the room switches to it';
     }
-    return 'Pick something and press play — your room opens with it';
+    return 'Press play. After 3 seconds your room opens with it';
   }
 
   String get _buttonLabel {
