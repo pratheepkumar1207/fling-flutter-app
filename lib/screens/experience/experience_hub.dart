@@ -19,6 +19,7 @@ import '../messages/message_thread_screen.dart';
 import '../settings/account_centers.dart';
 import '../settings/room_moderation_screen.dart';
 import '../wallet/livestream_dashboard_screen.dart';
+import '../wallet/subscriptions_screen.dart';
 import '../wallet/wallet_cashout_screen.dart';
 import '../wallet/wallet_screen.dart';
 
@@ -177,6 +178,8 @@ class _InsyncFeatureHubScreenState extends State<InsyncFeatureHubScreen> {
                   () => _push(context, const CreatorStudioScreen())),
               tile(InIcons.live, 'Live dashboard', 'Your streams and gifts',
                   () => _push(context, const LivestreamDashboardScreen())),
+              tile(InIcons.star, 'Subscriptions', 'Monthly fans, your price',
+                  () => _push(context, const SubscriptionsScreen())),
             ]),
             label('SAFETY AND ACCOUNT'),
             card([

@@ -302,10 +302,12 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
         isAuthor: group.userId == context.read<AuthProvider>().user?.id,
         onPause: () => _controller.stop(),
         onResume: () => _controller.forward(),
-        onAddYours: (prompt) {
+        onAddYours: (prompt, chainId) {
           _controller.stop();
           openCreateFlow(context,
-                  mode: CreateMode.story, addYoursPrompt: prompt)
+                  mode: CreateMode.story,
+                  addYoursPrompt: prompt,
+                  addYoursChainId: chainId)
               .then((_) {
             if (mounted) _controller.forward();
           });

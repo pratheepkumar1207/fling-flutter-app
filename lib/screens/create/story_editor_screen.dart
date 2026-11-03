@@ -5,6 +5,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
+import '../../core/auth_provider.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/api_client.dart';
 import '../../core/place_lookup.dart';
@@ -22,12 +24,14 @@ class StoryEditorScreen extends StatefulWidget {
 
   /// Set when answering someone's Add Yours sticker.
   final String? addYoursPrompt;
+  final String? addYoursChainId;
   const StoryEditorScreen({
     super.key,
     required this.path,
     required this.isVideo,
     this.onPosted,
     this.addYoursPrompt,
+    this.addYoursChainId,
   });
 
   @override
@@ -60,7 +64,12 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
     super.initState();
     final prompt = widget.addYoursPrompt;
     if (prompt != null) {
-      _add({'type': 'addyours', 'question': prompt, 'y': 0.2});
+      _add({
+        'type': 'addyours',
+        'question': prompt,
+        if (widget.addYoursChainId != null) 'chainId': widget.addYoursChainId,
+        'y': 0.2,
+      });
     }
     if (widget.isVideo) _loadVideo();
   }
@@ -199,7 +208,8 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
     if (mounted) setState(() => _busy = false);
   }
 
-  Future<void> _share({required bool closeFriends}) async {
+  Future<void> _share(
+      {required bool closeFriends, bool subscribers = false}) async {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     setState(() => _busy = true);
@@ -222,6 +232,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
         'isStory': true,
         if (widget.isVideo) 'videoData': data else 'imageData': data,
         if (closeFriends) 'audience': 'closeFriends',
+        if (subscribers) 'audience': 'subscribers',
         'stickers': _stickers,
       });
       widget.onPosted?.call();
@@ -432,6 +443,22 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                     onTap: _busy ? null : () => _share(closeFriends: true),
                   ),
                 ),
+                if (context
+                        .watch<AuthProvider>()
+                        .user
+                        ?.subscriptionPriceCoins !=
+                    null) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _ShareButton(
+                      label: 'Subscribers',
+                      onTap: _busy
+                          ? null
+                          : () =>
+                              _share(closeFriends: false, subscribers: true),
+                    ),
+                  ),
+                ],
               ]),
             ),
           ],

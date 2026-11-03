@@ -24,6 +24,7 @@ import '../auth/safety_guidelines_screen.dart';
 import '../wallet/wallet_kyc_screen.dart';
 import 'blocked_accounts_screen.dart';
 import 'help_center_screen.dart';
+import 'legal_screen.dart';
 import 'privacy_screen.dart';
 
 // Safety centre, Privacy centre, Security and Verification — each backed
@@ -298,6 +299,12 @@ class _SafetyCenterScreenState extends State<SafetyCenterScreen> {
                     _Row(InIcons.doc, 'Safety guidelines',
                         onTap: () => _push(context,
                             const SafetyGuidelinesScreen(previewOnly: true))),
+                    _Row(InIcons.shield, 'Community rules',
+                        onTap: () => _push(
+                            context,
+                            const LegalScreen(
+                                title: 'Community rules',
+                                sections: kCommunityRulesSections))),
                   ]),
                   const _Label('GET URGENT HELP'),
                   _Card([

@@ -62,11 +62,40 @@ const kTermsOfServiceSections = [
   LegalSection('2. Your account',
       "You're responsible for keeping your login secure and for everything that happens under your account. You must be 18 or older to use Insync."),
   LegalSection('3. Community standards',
-      "Harassment, hate speech, impersonation, and sharing others' private information are never allowed — see our Safety Guidelines for the full list."),
+      "Harassment, hate speech, impersonation, and sharing others' private information are never allowed — see our Community Rules for the full list."),
   LegalSection('4. Coins & purchases',
       'Coins are a virtual item for use within the app only. Purchases are generally non-refundable except where required by law.'),
   LegalSection('5. Termination',
       'We may suspend or remove accounts that violate these terms, at our discretion, with or without notice.'),
+];
+
+// What's allowed on Insync and what happens when a rule is broken. The steps
+// at the end are the ones moderators actually have in the admin panel.
+const kCommunityRulesSections = [
+  LegalSection('1. Adults only',
+      "Insync is for people 18 and over. Accounts that belong to someone younger are removed. Anything that sexualises a minor is reported to the police, and the account is banned straight away."),
+  LegalSection('2. Be real',
+      "Use your own photos, your real age and your own name. Don't pretend to be someone else, run fake accounts or buy followers."),
+  LegalSection('3. Respect people',
+      "No bullying, threats, hate or slurs about anyone's religion, caste, race, gender, sexuality or disability. If someone says no or stops replying, leave it there."),
+  LegalSection('4. Nudity and sexual content',
+      "No nudity or sexual acts in photos, reels, stories, rooms, live streams or your profile. Don't send explicit photos to anyone who hasn't asked for them. Never share intimate images of someone else."),
+  LegalSection('5. Violence and dangerous acts',
+      "No violence, gore, weapons for sale, drugs, or content that encourages self-harm. If you're struggling, Support in Settings can point you to help."),
+  LegalSection('6. Live streams and rooms',
+      "Hosts are responsible for what happens on their stream or room. Don't stream while driving, don't show people who haven't agreed to be on camera, and don't play films, matches or music you don't have the rights to."),
+  LegalSection('7. Gifts, coins and diamonds',
+      "Don't ask for gifts in exchange for anything sexual or off-app. Don't sell coins, diamonds or accounts outside the app. Gifts gained through fraud, chargebacks or fake accounts are taken back."),
+  LegalSection('8. Scams and spam',
+      "No fake giveaways, loan or investment offers, or links that ask for logins. Insync staff will never ask for your OTP, password or bank details in chat."),
+  LegalSection('9. Privacy',
+      "Don't share anyone's phone number, address, private chats or location without their permission. Don't record calls or rooms without telling everyone."),
+  LegalSection("10. Other people's work",
+      "Only post photos, videos and music you made or have the right to use. We remove content when the owner reports it."),
+  LegalSection('11. What happens if a rule is broken',
+      "Depending on how serious it is, we remove the post, message or stream, give the account a warning, suspend it for a number of days, or ban it. Serious harm, like anything involving a minor, means an instant ban. Gifts and diamonds earned by breaking these rules can be taken back."),
+  LegalSection('12. Reporting and appeals',
+      "Tap ••• on any profile, post, message, room or stream to report it. Reports are private. If you think we got a decision wrong, write to Support in Settings and someone will look at it again."),
 ];
 
 const kPrivacyPolicySections = [

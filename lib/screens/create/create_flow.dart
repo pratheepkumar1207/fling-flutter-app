@@ -33,7 +33,8 @@ enum CreateMode { post, reel, story }
 Future<void> openCreateFlow(BuildContext context,
     {CreateMode mode = CreateMode.reel,
     VoidCallback? onPosted,
-    String? addYoursPrompt}) {
+    String? addYoursPrompt,
+    String? addYoursChainId}) {
   if (mode == CreateMode.post && addYoursPrompt == null) {
     return Navigator.of(context).push(MaterialPageRoute(
         fullscreenDialog: true,
@@ -42,15 +43,23 @@ Future<void> openCreateFlow(BuildContext context,
   return Navigator.of(context).push(MaterialPageRoute(
       fullscreenDialog: true,
       builder: (_) => CreateCameraScreen(
-          mode: mode, onPosted: onPosted, addYoursPrompt: addYoursPrompt)));
+          mode: mode,
+          onPosted: onPosted,
+          addYoursPrompt: addYoursPrompt,
+          addYoursChainId: addYoursChainId)));
 }
 
 class CreateCameraScreen extends StatefulWidget {
   final CreateMode mode;
   final VoidCallback? onPosted;
   final String? addYoursPrompt;
+  final String? addYoursChainId;
   const CreateCameraScreen(
-      {super.key, required this.mode, this.onPosted, this.addYoursPrompt});
+      {super.key,
+      required this.mode,
+      this.onPosted,
+      this.addYoursPrompt,
+      this.addYoursChainId});
 
   @override
   State<CreateCameraScreen> createState() => _CreateCameraScreenState();
@@ -398,6 +407,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
               initialFilter: _look,
               onPosted: widget.onPosted,
               addYoursPrompt: widget.addYoursPrompt,
+              addYoursChainId: widget.addYoursChainId,
             )));
   }
 
@@ -851,6 +861,7 @@ class CreateEditScreen extends StatefulWidget {
   final MediaFilter initialFilter;
   final VoidCallback? onPosted;
   final String? addYoursPrompt;
+  final String? addYoursChainId;
   const CreateEditScreen({
     super.key,
     required this.path,
@@ -859,6 +870,7 @@ class CreateEditScreen extends StatefulWidget {
     this.initialFilter = MediaFilter.none,
     this.onPosted,
     this.addYoursPrompt,
+    this.addYoursChainId,
   });
 
   @override
@@ -1172,6 +1184,7 @@ class _CreateEditScreenState extends State<CreateEditScreen> {
                   isVideo: widget.isVideo,
                   onPosted: widget.onPosted,
                   addYoursPrompt: widget.addYoursPrompt,
+                  addYoursChainId: widget.addYoursChainId,
                 )
               : CreateCaptionScreen(
                   path: out,

@@ -5,6 +5,7 @@ import '../core/api_exception.dart';
 import '../core/profile_nav.dart';
 import '../screens/feed/hashtag_screen.dart';
 import '../theme/app_colors.dart';
+import 'avatar.dart';
 
 /// Stories are shown in one fixed shape, so a sticker sits in the same place
 /// on every phone. Sticker positions are shares of this frame.
@@ -93,6 +94,8 @@ class StickerBody extends StatelessWidget {
   final void Function(Object value)? onAnswer;
   final VoidCallback? onAskQuestion;
   final VoidCallback? onTap;
+  // Add Yours: the list of people who joined.
+  final VoidCallback? onSeeAll;
   const StickerBody({
     super.key,
     required this.sticker,
@@ -100,6 +103,7 @@ class StickerBody extends StatelessWidget {
     this.onAnswer,
     this.onAskQuestion,
     this.onTap,
+    this.onSeeAll,
   });
 
   static const _ink = Color(0xFF241338);
@@ -265,17 +269,38 @@ class StickerBody extends StatelessWidget {
           ),
         );
       case 'addyours':
-        return GestureDetector(
-          onTap: onTap,
-          child: _card(
-            title: sticker['question'] as String?,
-            header: const Color(0xFFFF7AA8),
-            child: const Padding(
-              padding: EdgeInsets.all(11),
-              child: Text('Add yours',
-                  style: TextStyle(color: _ink, fontWeight: FontWeight.w700)),
+        final joined = (result?['total'] as num?)?.toInt() ?? 0;
+        return _card(
+          title: sticker['question'] as String?,
+          header: const Color(0xFFFF7AA8),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onTap,
+              child: const Padding(
+                padding: EdgeInsets.all(11),
+                child: Center(
+                  child: Text('Add yours',
+                      style:
+                          TextStyle(color: _ink, fontWeight: FontWeight.w700)),
+                ),
+              ),
             ),
-          ),
+            if (joined > 0)
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onSeeAll,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Text(
+                      joined == 1 ? '1 person joined' : '$joined people joined',
+                      style: const TextStyle(
+                          color: Color(0xFF6B6480),
+                          fontSize: 12,
+                          decoration: TextDecoration.underline)),
+                ),
+              ),
+          ]),
         );
       case 'countdown':
         return _card(
@@ -431,7 +456,7 @@ class StoryStickerLayer extends StatefulWidget {
   /// Holds the story's timer while someone is typing or reading.
   final VoidCallback onPause;
   final VoidCallback onResume;
-  final void Function(String prompt)? onAddYours;
+  final void Function(String prompt, String? chainId)? onAddYours;
   const StoryStickerLayer({
     super.key,
     required this.storyId,
@@ -556,6 +581,50 @@ class _StoryStickerLayerState extends State<StoryStickerLayer> {
   }
 
   // The author taps a sticker to see who answered what.
+  // Everyone who answered this Add Yours prompt; tap someone for their
+  // profile.
+  Future<void> _showJoined(Map<String, dynamic> s) async {
+    final people =
+        ((_results[s['id']] as Map?)?['people'] as List? ?? []).cast<Map>();
+    widget.onPause();
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      builder: (ctx) => SafeArea(
+        child: ListView(shrinkWrap: true, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
+            child: Text('${s['question']}',
+                style: const TextStyle(
+                    color: AppColors.text,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700)),
+          ),
+          if (people.isEmpty)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 6, 20, 24),
+              child: Text('Nobody has joined yet. Be the first.',
+                  style: TextStyle(color: AppColors.textDim)),
+            ),
+          for (final p in people)
+            ListTile(
+              leading: Avatar(
+                  src: p['avatarUrl'] as String?,
+                  name: p['name'] as String?,
+                  size: AvatarSize.sm),
+              title: Text('${p['name']}',
+                  style: const TextStyle(color: AppColors.text)),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _leaveTo(() => openProfile(context, p['userId'] as String));
+              },
+            ),
+        ]),
+      ),
+    );
+    widget.onResume();
+  }
+
   Future<void> _showResponses(Map<String, dynamic> s) async {
     final r = _results[s['id']] as Map?;
     final rows = (r?['responses'] as List? ?? []).cast<Map>();
@@ -632,9 +701,11 @@ class _StoryStickerLayerState extends State<StoryStickerLayer> {
                 builder: (_) => HashtagScreen(tag: s['tag'] as String)))),
         'addyours' => widget.onAddYours == null
             ? null
-            : () => widget.onAddYours!(s['question'] as String),
+            : () => widget.onAddYours!(
+                s['question'] as String, s['chainId'] as String?),
         _ => null,
       },
+      onSeeAll: type == 'addyours' ? () => _showJoined(s) : null,
     );
     if (widget.isAuthor && answerable) {
       return GestureDetector(

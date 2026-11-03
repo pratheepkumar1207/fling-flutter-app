@@ -191,11 +191,30 @@ class _FeedScreenState extends State<FeedScreen> {
         createdAt: post.createdAt,
       );
 
+  // A page of the ranked Reels tab (everyone's reels, not just people you
+  // follow).
+  Future<List<Post>> _reelsPage(int page) async {
+    final data =
+        await ApiClient.get('/feed/reels?page=$page') as Map<String, dynamic>;
+    return (data['reels'] as List)
+        .map((e) => Post.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   // Full-screen reels; likes/saves made there update this feed too.
-  void _openReels() {
+  Future<void> _openReels() async {
+    var reels = _reels;
+    try {
+      final ranked = await _reelsPage(0);
+      if (ranked.isNotEmpty) reels = ranked;
+    } catch (_) {
+      // Fall back to the reels already in the feed.
+    }
+    if (!mounted) return;
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => ReelsScreen(
-        reels: _reels,
+        reels: reels,
+        loadPage: _reelsPage,
         onLike: (post) async {
           final next = _flipped(post, like: true);
           await _toggleLike(post);

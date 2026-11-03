@@ -5,6 +5,7 @@ import '../../core/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
 import '../../widgets/in_icon_button.dart';
+import '../settings/legal_screen.dart';
 
 const _kRules = [
   (
@@ -164,8 +165,16 @@ class _SafetyGuidelinesScreenState extends State<SafetyGuidelinesScreen> {
                 ),
               ),
             ),
+            TextButton(
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const LegalScreen(
+                      title: 'Community rules',
+                      sections: kCommunityRulesSections))),
+              child: const Text('Read the full community rules',
+                  style: TextStyle(color: AppColors.lilac, fontSize: 13)),
+            ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
+              padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
               child: FilledButton(
                 onPressed: _continuing ? null : _continue,
                 style: FilledButton.styleFrom(

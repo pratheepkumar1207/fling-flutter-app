@@ -490,6 +490,24 @@ class ReelsFeed extends StatefulWidget {
 
 class _ReelsFeedState extends State<ReelsFeed> {
   int _page = 0;
+  // How long the reel on screen has been watched; sent when it leaves,
+  // for the Reels ranking.
+  final _watch = Stopwatch()..start();
+
+  void _reportView(int index) {
+    if (index >= widget.reels.length) return;
+    final watchedMs = _watch.elapsedMilliseconds;
+    _watch.reset();
+    if (watchedMs < 300) return;
+    ApiClient.post('/feed/${widget.reels[index].id}/view',
+        body: {'watchedMs': watchedMs}).catchError((_) => null);
+  }
+
+  @override
+  void dispose() {
+    _reportView(_page);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -508,6 +526,7 @@ class _ReelsFeedState extends State<ReelsFeed> {
       scrollDirection: Axis.vertical,
       itemCount: widget.reels.length,
       onPageChanged: (i) {
+        _reportView(_page);
         setState(() => _page = i);
         widget.onPageChanged?.call(i);
       },
@@ -539,6 +558,8 @@ class ReelsScreen extends StatefulWidget {
   final Future<Post?> Function(Post post) onSave;
   final ValueChanged<Post> onOpenComments;
   final VoidCallback onCreate;
+  // The next page of the ranked Reels tab, or empty when there's no more.
+  final Future<List<Post>> Function(int page)? loadPage;
 
   const ReelsScreen(
       {super.key,
@@ -546,7 +567,8 @@ class ReelsScreen extends StatefulWidget {
       required this.onLike,
       required this.onSave,
       required this.onOpenComments,
-      required this.onCreate});
+      required this.onCreate,
+      this.loadPage});
 
   @override
   State<ReelsScreen> createState() => _ReelsScreenState();
@@ -554,6 +576,29 @@ class ReelsScreen extends StatefulWidget {
 
 class _ReelsScreenState extends State<ReelsScreen> {
   late final List<Post> _reels = [...widget.reels];
+  int _nextPage = 1;
+  bool _loading = false;
+  bool _done = false;
+
+  Future<void> _maybeLoadMore(int index) async {
+    final load = widget.loadPage;
+    if (load == null || _loading || _done || index < _reels.length - 3) return;
+    _loading = true;
+    try {
+      final more = await load(_nextPage);
+      if (!mounted) return;
+      final have = _reels.map((p) => p.id).toSet();
+      setState(() {
+        _nextPage++;
+        _reels.addAll(more.where((p) => !have.contains(p.id)));
+        _done = more.isEmpty;
+      });
+    } catch (_) {
+      // Try again on the next swipe.
+    } finally {
+      _loading = false;
+    }
+  }
 
   Future<void> _replace(Future<Post?> Function(Post) action, Post post) async {
     final next = await action(post);
@@ -572,6 +617,7 @@ class _ReelsScreenState extends State<ReelsScreen> {
         children: [
           ReelsFeed(
             reels: _reels,
+            onPageChanged: _maybeLoadMore,
             onLike: (p) => _replace(widget.onLike, p),
             onSave: (p) => _replace(widget.onSave, p),
             onOpenComments: widget.onOpenComments,

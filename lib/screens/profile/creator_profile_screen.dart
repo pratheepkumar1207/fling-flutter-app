@@ -42,6 +42,8 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
   List<Song> _history = [];
   List<Song> _liked = [];
   List<Map<String, dynamic>> _topSupporters = [];
+  // Their monthly subscription offer and whether I'm subscribed.
+  Map<String, dynamic> _subscription = const {};
   List<Post> _posts = [];
   List<Post> _reels = [];
   List<Post> _tagged = [];
@@ -78,6 +80,8 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
         ApiClient.get('/notes/user/${widget.userId}').catchError((_) => null),
         ApiClient.get('/relationship/${widget.userId}')
             .catchError((_) => <String, dynamic>{}),
+        ApiClient.get('/creators/${widget.userId}/subscription')
+            .catchError((_) => <String, dynamic>{}),
       ]);
       if (!mounted) return;
       setState(() {
@@ -110,6 +114,9 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
             : null;
         _relationship = results[10] is Map
             ? Map<String, dynamic>.from(results[10] as Map)
+            : const {};
+        _subscription = results[11] is Map
+            ? Map<String, dynamic>.from(results[11] as Map)
             : const {};
         _loading = false;
       });
@@ -742,6 +749,22 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
               onTap: _addFriend,
               borderColor: AppColors.border,
               textColor: AppColors.textDim),
+          if (_subscription['priceCoins'] != null)
+            _pillButton(
+              _subscription['subscribed'] == true
+                  ? '⭐ Subscribed'
+                  : '⭐ Subscribe · ${_subscription['priceCoins']}/mo',
+              onTap: _subscriptionSheet,
+              gradient: _subscription['subscribed'] == true
+                  ? null
+                  : const LinearGradient(colors: AppGradients.brand),
+              fill: _subscription['subscribed'] == true
+                  ? AppColors.surface2
+                  : null,
+              textColor: _subscription['subscribed'] == true
+                  ? AppColors.lilac
+                  : Colors.white,
+            ),
           _pillButton(
             '🎁 Gift',
             onTap: () => showGiftBottomSheet(context, toUserId: widget.userId),
@@ -808,6 +831,83 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
         ),
       ),
     );
+  }
+
+  // Subscribe, or manage an existing subscription.
+  Future<void> _subscriptionSheet() async {
+    final sub = _subscription;
+    final price = sub['priceCoins'];
+    final subscribed = sub['subscribed'] == true;
+    final renews = sub['autoRenew'] == true;
+    final until = sub['expiresAt'] == null
+        ? null
+        : DateTime.parse(sub['expiresAt'] as String).toLocal();
+    final untilText =
+        until == null ? '' : '${until.day}/${until.month}/${until.year}';
+    final name = _profile?['name'] as String? ?? 'this creator';
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 20, 22, 16),
+          child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(subscribed ? 'Subscribed to $name' : 'Subscribe to $name',
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                Text(
+                    subscribed
+                        ? (renews
+                            ? 'Renews on $untilText for $price coins.'
+                            : 'Ends on $untilText. It won’t renew.')
+                        : '$price coins a month. You’ll see their subscriber-only '
+                            'stories. Renews each month from your coins; cancel '
+                            'any time.',
+                    style: const TextStyle(
+                        color: AppColors.textDim, fontSize: 14, height: 1.4)),
+                const SizedBox(height: 18),
+                if (!subscribed || !renews)
+                  FilledButton(
+                    onPressed: () => Navigator.of(ctx).pop('subscribe'),
+                    style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(50)),
+                    child: Text(subscribed
+                        ? 'Turn renewal back on'
+                        : 'Subscribe for $price coins'),
+                  )
+                else
+                  OutlinedButton(
+                    onPressed: () => Navigator.of(ctx).pop('cancel'),
+                    style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(50)),
+                    child: const Text('Cancel renewal'),
+                  ),
+              ]),
+        ),
+      ),
+    );
+    if (action == null || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final res = await ApiClient.post(action == 'subscribe'
+          ? '/creators/${widget.userId}/subscribe'
+          : '/creators/${widget.userId}/subscription/cancel');
+      if (!mounted) return;
+      setState(() => _subscription = {
+            ..._subscription,
+            ...Map<String, dynamic>.from(res as Map),
+          });
+      messenger.showSnackBar(SnackBar(
+          content: Text(action == 'subscribe'
+              ? 'Subscribed to $name'
+              : 'Renewal cancelled. You keep access until $untilText.')));
+    } on ApiException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    }
   }
 
   Widget _pillButton(String label,

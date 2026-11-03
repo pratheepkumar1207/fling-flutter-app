@@ -27,6 +27,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
   late bool _hideLikeCounts = _user?.hideLikeCounts ?? false;
   late bool _hideLikedSongs = _user?.hideLikedSongs ?? false;
   late bool _hideOnline = _user?.hideOnlineStatus ?? false;
+  late bool _hideAgeOnMap = _user?.hideAgeOnMap ?? false;
   bool _saving = false;
 
   Future<void> _save(Map<String, dynamic> body, VoidCallback apply,
@@ -189,6 +190,12 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
               _hideOnline,
               (v) => _save({'hideOnlineStatus': v}, () => _hideOnline = v,
                   () => _hideOnline = !v)),
+          _switch(
+              'Hide my age on the map',
+              'Your pin on Map Explore shows only your name',
+              _hideAgeOnMap,
+              (v) => _save({'hideAgeOnMap': v}, () => _hideAgeOnMap = v,
+                  () => _hideAgeOnMap = !v)),
           const SizedBox(height: 24),
         ],
       ),

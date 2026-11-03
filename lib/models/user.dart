@@ -25,6 +25,9 @@ class User {
   final String? verificationSelfieUrl;
   final String livestreamStatus;
   final bool hideOnlineStatus;
+  final bool hideAgeOnMap;
+  // Monthly creator subscription price; null when not offered.
+  final int? subscriptionPriceCoins;
   // Who sees the room I'm in: 'everyone' | 'friends' | 'nobody'.
   final String roomActivityVisibility;
   final bool showNowPlaying;
@@ -87,6 +90,8 @@ class User {
     this.verificationSelfieUrl,
     this.livestreamStatus = 'none',
     this.hideOnlineStatus = false,
+    this.hideAgeOnMap = false,
+    this.subscriptionPriceCoins,
     this.roomActivityVisibility = 'everyone',
     this.showNowPlaying = true,
     this.allowJoinFromProfile = true,
@@ -155,6 +160,8 @@ class User {
       verificationSelfieUrl: json['verificationSelfieUrl'] as String?,
       livestreamStatus: json['livestreamStatus'] as String? ?? 'none',
       hideOnlineStatus: json['hideOnlineStatus'] as bool? ?? false,
+      hideAgeOnMap: json['hideAgeOnMap'] as bool? ?? false,
+      subscriptionPriceCoins: (json['subscriptionPriceCoins'] as num?)?.toInt(),
       roomActivityVisibility:
           json['roomActivityVisibility'] as String? ?? 'everyone',
       showNowPlaying: json['showNowPlaying'] as bool? ?? true,
