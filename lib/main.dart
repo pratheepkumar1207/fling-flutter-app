@@ -16,6 +16,14 @@ import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Release builds don't print Flutter's own errors, so a screen that
+  // freezes left nothing in the phone's log. Write them out, short.
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    debugPrint('APP ERROR: ${details.exceptionAsString()}');
+    final stack = details.stack?.toString().split('\n').take(12).join('\n');
+    if (stack != null) debugPrint(stack);
+  };
   // Lets Chrome DevTools inspect in-app web pages (Netflix rooms etc.) on a
   // test build: flutter build ... --dart-define=WEBVIEW_DEBUG=true. Off in
   // every normal build.

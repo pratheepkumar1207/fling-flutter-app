@@ -112,6 +112,9 @@ class SyncVideoPlayer extends StatefulWidget {
 class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     with WidgetsBindingObserver {
   InAppWebViewController? _controller;
+  // Keeps the YouTube page (and what's playing) alive when the player
+  // moves: to full screen, or into the suggestions list's tile.
+  final _keepAlive = InAppWebViewKeepAlive();
   String? _currentVideoId;
   bool _ready = false;
   // Raw YouTube IFrame API state codes: -1 unstarted, 0 ended, 1 playing,
@@ -502,8 +505,6 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
       );
 
   void _openMore() {
-    final landscape =
-        MediaQuery.orientationOf(context) == Orientation.landscape;
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: AppColors.surface,
@@ -518,24 +519,6 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                 setState(() => _fillBox = !_fillBox);
               },
             ),
-            if (widget.isHost && landscape) ...[
-              ListTile(
-                leading: const InIcon(InIcons.back10, color: Colors.white),
-                title: const Text('Back 10 seconds'),
-                onTap: () {
-                  Navigator.of(sheet).pop();
-                  _seekBy(-10);
-                },
-              ),
-              ListTile(
-                leading: const InIcon(InIcons.forward10, color: Colors.white),
-                title: const Text('Forward 10 seconds'),
-                onTap: () {
-                  Navigator.of(sheet).pop();
-                  _seekBy(10);
-                },
-              ),
-            ],
           ]),
         ),
       ),
@@ -657,6 +640,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
   InAppWebView _buildWebView() {
     final videoId = _currentVideoId!;
     return InAppWebView(
+      keepAlive: _keepAlive,
       initialUrlRequest: URLRequest(url: WebUri(_embedUrl(videoId))),
       initialUserScripts: UnmodifiableListView([
         UserScript(
@@ -807,30 +791,25 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                   // that's a "move to a different song" action, not a seek, so
                   // it doesn't belong in this cluster anymore).
                   if (widget.isHost)
+                    // Centred, with back and forward 10s, in full screen
+                    // too: the chat over the video sits at the left edge.
                     Align(
-                      // Clear of the chat panel in full screen.
-                      alignment: landscape
-                          ? const Alignment(0.16, 0)
-                          : Alignment.center,
+                      alignment: Alignment.center,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (!landscape) ...[
-                            RoomSeekTenButton(
-                              forward: false,
-                              onTap: () => _seekBy(-10),
-                            ),
-                            const SizedBox(width: 20),
-                          ],
+                          RoomSeekTenButton(
+                            forward: false,
+                            onTap: () => _seekBy(-10),
+                          ),
+                          SizedBox(width: landscape ? 36 : 20),
                           RoomPlayPauseButton(
                               playing: _isPlaying, onTap: _handleTap),
-                          if (!landscape) ...[
-                            const SizedBox(width: 20),
-                            RoomSeekTenButton(
-                              forward: true,
-                              onTap: () => _seekBy(10),
-                            ),
-                          ],
+                          SizedBox(width: landscape ? 36 : 20),
+                          RoomSeekTenButton(
+                            forward: true,
+                            onTap: () => _seekBy(10),
+                          ),
                         ],
                       ),
                     ),
@@ -1072,6 +1051,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
 
   @override
   void dispose() {
+    InAppWebViewController.disposeKeepAlive(_keepAlive);
     if (_forcedLandscape) SystemChrome.setPreferredOrientations([]);
     WidgetsBinding.instance.removeObserver(this);
     PipService.isInPip.removeListener(_onPipChanged);

@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 /// and for tall videos (reels, Shorts) no taller than [maxScreenShare] of
 /// the screen, centred with black at the sides, so chat always has room.
 /// Shared by the YouTube, Drive and streaming-site players.
+///
+/// Always the same widgets around [child], whatever the size: a player's
+/// web page is rebuilt (the video reloads) if its place in the tree changes,
+/// which a different layout for the limited case did on rotating.
 class FitVideoBox extends StatelessWidget {
   final double aspectRatio;
   final Widget child;
@@ -22,20 +26,20 @@ class FitVideoBox extends StatelessWidget {
     // The limit only applies upright; turned sideways the video gets the
     // whole screen.
     final upright = MediaQuery.orientationOf(context) == Orientation.portrait;
-    final maxHeight =
-        MediaQuery.sizeOf(context).height * (upright ? maxScreenShare : 1);
+    final screen = MediaQuery.sizeOf(context);
+    final maxHeight = screen.height * (upright ? maxScreenShare : 1);
     return LayoutBuilder(builder: (context, box) {
-      final width = box.maxWidth.isFinite
-          ? box.maxWidth
-          : MediaQuery.sizeOf(context).width;
-      if (width / ratio <= maxHeight) {
-        return AspectRatio(aspectRatio: ratio, child: child);
+      final width = box.maxWidth.isFinite ? box.maxWidth : screen.width;
+      var height = width / ratio;
+      if (height > maxHeight) height = maxHeight;
+      if (box.maxHeight.isFinite && height > box.maxHeight) {
+        height = box.maxHeight;
       }
       return ColoredBox(
         color: Colors.black,
         child: SizedBox(
           width: width,
-          height: maxHeight,
+          height: height,
           child: Center(
             child: AspectRatio(aspectRatio: ratio, child: child),
           ),

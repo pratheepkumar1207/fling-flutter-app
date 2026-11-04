@@ -1289,20 +1289,24 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     final ratio = widget.compact
         ? 21 / 9
         : (seen != null && seen >= 0.5 && seen <= 2.6 ? seen : 16 / 9);
+    // Same widgets around the page either way (only the strip comes and
+    // goes after it), so turning the phone never moves the page and makes
+    // it load again.
     return LayoutBuilder(builder: (context, box) {
       if (widget.fillHeight) {
         final room = !box.hasBoundedHeight || box.maxHeight >= stripHeight * 2;
-        return room
-            ? Column(children: [Expanded(child: webview), _controlStrip()])
-            : SizedBox.expand(child: webview);
+        return Column(children: [
+          Expanded(child: webview),
+          if (room) _controlStrip(),
+        ]);
       }
       final pictureHeight = box.maxWidth / ratio;
       final room =
           !box.hasBoundedHeight || box.maxHeight >= pictureHeight + stripHeight;
-      final picture = FitVideoBox(aspectRatio: ratio, child: webview);
-      if (!room) return picture;
-      return Column(
-          mainAxisSize: MainAxisSize.min, children: [picture, _controlStrip()]);
+      return Column(mainAxisSize: MainAxisSize.min, children: [
+        Flexible(child: FitVideoBox(aspectRatio: ratio, child: webview)),
+        if (room) _controlStrip(),
+      ]);
     });
   }
 }

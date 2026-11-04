@@ -199,10 +199,13 @@ class _VideoSuggestionsPanelState extends State<VideoSuggestionsPanel> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Center(child: Spinner());
     final rosterById = {for (final r in widget.roster) r.userId: r};
     final leading = widget.showNowPlaying ? 1 : 0;
-    final count = _suggestions.length + leading;
+    // While suggestions load, the now-playing tile is already there (with a
+    // loading tile beside it): if the player left the screen for that
+    // moment its page was dropped and the video restarted.
+    if (_loading && leading == 0) return const Center(child: Spinner());
+    final count = (_loading ? 1 : _suggestions.length) + leading;
     if (count == 0) {
       return const Center(
         child: Padding(
@@ -241,6 +244,9 @@ class _VideoSuggestionsPanelState extends State<VideoSuggestionsPanel> {
                     onTap: widget.onRestore,
                   ),
                 );
+              }
+              if (_loading) {
+                return const Center(child: Spinner(size: 22));
               }
               final item = _suggestions[i - leading];
               final videoUrl = item['videoUrl'] as String;
@@ -313,22 +319,6 @@ class _NowPlayingTile extends StatelessWidget {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                     border: Border.all(color: AppColors.primary, width: 2)),
-              ),
-            ),
-            Positioned(
-              top: 6,
-              left: 6,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(4)),
-                child: const Text('NOW PLAYING',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.4)),
               ),
             ),
           ],
