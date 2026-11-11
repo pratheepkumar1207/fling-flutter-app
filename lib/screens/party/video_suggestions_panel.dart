@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
+import '../../core/ott_page_suggestions.dart';
 import '../../core/youtube_util.dart';
 import '../../models/room_models.dart';
 import '../../theme/app_colors.dart';
@@ -90,11 +91,34 @@ class _VideoSuggestionsPanelState extends State<VideoSuggestionsPanel> {
   @override
   void initState() {
     super.initState();
+    OttPageSuggestions.current.addListener(_onPageList);
     _load();
+  }
+
+  @override
+  void dispose() {
+    OttPageSuggestions.current.removeListener(_onPageList);
+    super.dispose();
+  }
+
+  // Prime Video's, Netflix's or Hotstar's own list (next episodes, then similar
+  // titles) arrives once the room's player has read the title's page; it replaces
+  // the liked/history fallback as soon as it does.
+  void _onPageList() {
+    final items = OttPageSuggestions.itemsFor(widget.videoUrl);
+    if (mounted && items.isNotEmpty) {
+      setState(() {
+        _suggestions = items;
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _load() async {
     var items = <Map<String, dynamic>>[];
+    if (const {'amazon', 'netflix', 'hotstar'}.contains(widget.sourceType)) {
+      items = OttPageSuggestions.itemsFor(widget.videoUrl);
+    }
     if (widget.sourceType == 'youtube') {
       try {
         items = await _loadYoutubeSuggestions();
@@ -110,6 +134,9 @@ class _VideoSuggestionsPanelState extends State<VideoSuggestionsPanel> {
         items = await _loadLikedHistoryFallback();
       } catch (_) {}
     }
+    // The page's own list may have come in while this was loading.
+    final page = OttPageSuggestions.itemsFor(widget.videoUrl);
+    if (page.isNotEmpty) items = page;
     if (mounted) {
       setState(() {
         _suggestions = items;
@@ -364,7 +391,46 @@ class _SuggestionTile extends StatelessWidget {
           children: [
             const ColoredBox(color: AppColors.surface2),
             if (item['thumbnail'] != null)
-              AppImage(source: item['thumbnail'] as String?, fit: BoxFit.cover),
+              AppImage(source: item['thumbnail'] as String?, fit: BoxFit.cover)
+            else
+              // Prime's similar titles can arrive before their poster has
+              // loaded on the page: the name stands in for it.
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Text(
+                    item['title'] as String? ?? '',
+                    textAlign: TextAlign.center,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            // Prime episodes: which one, e.g. S2 E3.
+            if (item['badge'] is String)
+              Positioned(
+                right: 6,
+                top: 6,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.7),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    item['badge'] as String,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
             if (pinnedByMe)
               IgnorePointer(
                 child: DecoratedBox(

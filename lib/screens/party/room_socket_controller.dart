@@ -548,6 +548,14 @@ class RoomSocketController extends ChangeNotifier {
     }
   }
 
+  // The host's speed, for the whole room (syncHandler.js's playback:rate).
+  void setRate(double rate, double position) {
+    if (isHost) {
+      socket?.emit('playback:rate',
+          {'roomId': roomId, 'rate': rate, 'position': position});
+    }
+  }
+
   // Netflix/Prime rooms: tell the room how this phone's player is doing.
   void sendOttStatus(String status, double offsetSec) => socket?.emit(
       'ott:status',

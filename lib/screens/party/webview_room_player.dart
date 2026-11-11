@@ -4,6 +4,7 @@ import 'dart:convert';
 
 import '../../widgets/fit_video_box.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/drm_support.dart';
@@ -12,6 +13,14 @@ import '../../theme/app_colors.dart';
 import 'ott_sync_engine.dart';
 import 'ott_sync_panel.dart';
 import '../../core/ott_remote.dart';
+import '../../core/ott_page_suggestions.dart';
+import '../../core/title_page_list.dart';
+import '../../core/room_playback.dart';
+import '../../core/room_prefs.dart';
+import '../../core/prime_player_menu.dart';
+import '../../core/hotstar_player_menu.dart';
+import 'full_screen_controls.dart';
+import 'player_settings_sheet.dart';
 
 /// Netflix/Prime "browse together" sibling of sync_video_player.dart /
 /// drive_video_player.dart. Unlike those two there is still no *real* sync
@@ -34,6 +43,27 @@ import '../../core/ott_remote.dart';
 ///    remote control. Each participant still has to tap their own video.
 ///  - A simple heuristic ("does the current URL look like a login page?")
 ///    to nudge someone who hasn't signed into this platform yet.
+
+/// The address that opens straight on the title's player. Prime Video
+/// drops `autoplay=1` from its address once a title starts (it becomes
+/// `?ref_=atv_plr_detail_play`), and its trailer button uses
+/// `autoplay=trailer`; either way a pinned link would open the title's
+/// info page, where nothing plays. Other sites are left as they are.
+String playableOttUrl(String url) {
+  final u = Uri.tryParse(url);
+  if (u == null ||
+      !u.host.contains('primevideo.') ||
+      !u.path.contains('/detail/')) {
+    return url;
+  }
+  if (u.queryParameters['autoplay'] == '1') return url;
+  final q = Map<String, String>.from(u.queryParameters)
+    ..remove('ref_')
+    ..['autoplay'] = '1';
+  q.putIfAbsent('t', () => '0');
+  return u.replace(queryParameters: q).toString();
+}
+
 class WebviewRoomPlayer extends StatefulWidget {
   final String? videoUrl;
   final String? title;
@@ -52,6 +82,8 @@ class WebviewRoomPlayer extends StatefulWidget {
   // Host-only drag on the elapsed-time bar below — see _buildProgressBar's
   // doc comment for exactly what this does and doesn't do.
   final void Function(double position)? onSeek;
+  // Host only: the room's speed for everyone (playback:rate).
+  final void Function(double rate, double position)? onRate;
   final VoidCallback onRequestState;
   // Same skip contract as sync_video_player.dart/drive_video_player.dart —
   // "skip" here just means "move to the next queued item" (a real,
@@ -87,6 +119,7 @@ class WebviewRoomPlayer extends StatefulWidget {
     required this.onPlay,
     required this.onPause,
     this.onSeek,
+    this.onRate,
     required this.onRequestState,
     this.onSkip,
     this.onVoteSkip,
@@ -224,11 +257,29 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         : local;
   }
 
-  void _record(double position, bool playing) => _hostLocal = {
+  void _record(double position, bool playing, {double? rate}) => _hostLocal = {
         'position': position,
         'isPlaying': playing,
         'updatedAt': DateTime.now().millisecondsSinceEpoch,
+        'rate': rate ?? roomRate(_playback),
       };
+
+  void _emitRate(double rate) {
+    final at = _elapsedSeconds;
+    _record(at, _isPlaying, rate: rate);
+    widget.onRate?.call(rate, at);
+    _applyRoomRate();
+  }
+
+  // Everyone's video runs at the room's speed (the host's choice).
+  double? _appliedRate;
+  void _applyRoomRate() {
+    final r = roomRate(_playback);
+    if (_appliedRate == r) return;
+    _appliedRate = r;
+    _settingsCall(
+        'if (Math.abs(v.playbackRate - $r) > 0.01) v.playbackRate = $r;');
+  }
 
   void _emitPlay(double position) {
     _record(position, true);
@@ -245,18 +296,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     widget.onSeek?.call(position);
   }
 
-  double get _elapsedSeconds {
-    final p = _playback;
-    if (p == null) return 0;
-    var position = (p['position'] as num?)?.toDouble() ?? 0;
-    final updatedAt = p['updatedAt'] == null ? null : (p['updatedAt'] as num);
-    if (p['isPlaying'] == true && updatedAt != null) {
-      final elapsed =
-          (DateTime.now().millisecondsSinceEpoch - updatedAt) / 1000;
-      if (elapsed > 0) position += elapsed;
-    }
-    return position;
-  }
+  double get _elapsedSeconds => roomPosition(_playback);
 
   bool get _isPlaying => _playback?['isPlaying'] == true;
 
@@ -386,7 +426,8 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
       _onLoginPage = false;
     });
     _tryStarted = DateTime.now();
-    await _controller?.loadUrl(urlRequest: URLRequest(url: WebUri(url)));
+    await _controller?.loadUrl(
+        urlRequest: URLRequest(url: WebUri(playableOttUrl(url))));
     _watchForLoginWall();
   }
 
@@ -453,7 +494,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
           if (tt[j].kind === 'subtitles' || tt[j].kind === 'captions')
             text.push({i: j, label: tt[j].label || tt[j].language || ('Subtitles ' + (j + 1)), on: tt[j].mode === 'showing'});
       } catch (e) {}
-      return JSON.stringify({rate: v.playbackRate || 1, audio: audio, text: text});
+      return JSON.stringify({rate: v.playbackRate || 1, volume: v.muted ? 0 : v.volume, audio: audio, text: text});
     })();
   ''';
 
@@ -471,39 +512,137 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     } catch (_) {}
   }
 
+  // Prime Video and Hotstar: the lists from their own menus, kept per
+  // title so the sheet shows them straight away next time, refreshed each
+  // time it opens. One menu job at a time on the page.
+  final _siteLists = ValueNotifier<Map<String, List<Map>>?>(null);
+  String? _siteListsFor;
+  Future<void> _menuWork = Future.value();
+  bool _settingsOpen = false;
+
+  Future<T> _onMenu<T>(Future<T> Function() job) {
+    final next = _menuWork.then((_) => job());
+    _menuWork = next.then((_) {}, onError: (_) {});
+    return next;
+  }
+
   Future<void> _openSettingsSheet() async {
+    // A second tap while it's opening or open does nothing.
+    if (_settingsOpen) return;
+    _settingsOpen = true;
+    try {
+      await _showSettingsSheet();
+    } finally {
+      _settingsOpen = false;
+    }
+  }
+
+  Future<void> _showSettingsSheet() async {
     Map<String, dynamic> info = const {};
     try {
       final raw = await _controller?.evaluateJavascript(source: _settingsRead);
       if (raw is String) info = Map<String, dynamic>.from(jsonDecode(raw));
     } catch (_) {}
     if (!mounted) return;
+    final c = _controller;
+    final isPrime = _drmPlatform == 'Prime Video';
+    final isHotstar = _drmPlatform == 'Hotstar';
+    final siteMenus = c != null && (isPrime || isHotstar);
+    if (_siteListsFor != widget.videoUrl) {
+      _siteListsFor = widget.videoUrl;
+      _siteLists.value = null;
+    }
+    if (siteMenus) {
+      // The sheet opens now; the lists fill in when the page answers.
+      _onMenu(() async {
+        final lists = isPrime
+            ? await PrimePlayerMenu.read(c)
+            : await HotstarPlayerMenu.read(c);
+        if (mounted && lists != null) _siteLists.value = lists;
+        if (mounted && lists == null && _siteLists.value == null) {
+          _siteLists.value = const {};
+        }
+      });
+    }
     final label = _drmPlatform ?? 'this site';
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.surface,
-      isScrollControlled: true,
-      builder: (ctx) => _OttSettingsSheet(
-        label: label,
-        rate: (info['rate'] as num?)?.toDouble() ?? 1,
-        audio: ((info['audio'] as List?) ?? const []).cast<Map>(),
-        text: ((info['text'] as List?) ?? const []).cast<Map>(),
-        onRate: (r) => _settingsCall('v.playbackRate = $r;'),
-        onAudio: (i) => _settingsCall(
-            'for (var k = 0; k < v.audioTracks.length; k++) v.audioTracks[k].enabled = (k === $i);'),
-        onText: (i) => _settingsCall(
-            'for (var k = 0; k < v.textTracks.length; k++) v.textTracks[k].mode = (k === $i) ? "showing" : "disabled";'),
-        onMore: () {
-          Navigator.of(ctx).pop();
-          if (!_showSiteControls) _toggleSiteControls();
-        },
-        fill: _fill,
-        onFill: (v) {
-          setState(() => _fill = v);
-          _injectFullBleedVideoCss();
-        },
+    void siteMenu() {
+      if (!_showSiteControls) _toggleSiteControls();
+    }
+
+    ValueChanged<int>? sitePick(
+        Map<String, List<Map>>? lists, String key, String row, String name) {
+      final list = lists?[key] ?? const <Map>[];
+      if (c == null || list.isEmpty) return null;
+      return (i) {
+        final value =
+            i < 0 ? null : '${list.firstWhere((m) => m['i'] == i)['value']}';
+        // The tick moves now; the page follows a moment later.
+        _siteLists.value = {
+          ...?lists,
+          key: [
+            for (final m in list) {...m, 'on': m['i'] == i}
+          ],
+        };
+        _onMenu(() => isHotstar
+            ? HotstarPlayerMenu.pick(c, kind: key, value: value ?? 'Off')
+            : PrimePlayerMenu.pick(c,
+                row: row, name: name, value: value ?? 'off'));
+      };
+    }
+
+    final ownAudio = ((info['audio'] as List?) ?? const []).cast<Map>();
+    final ownText = ((info['text'] as List?) ?? const []).cast<Map>();
+    await showPlayerSettings(
+      context,
+      (ctx) => ValueListenableBuilder<Map<String, List<Map>>?>(
+        valueListenable: _siteLists,
+        builder: (ctx, lists, _) => PlayerSettingsSheet(
+          label: label,
+          isHost: widget.isHost,
+          rate: roomRate(_playback),
+          onRate: widget.isHost && widget.onRate != null ? _emitRate : null,
+          // Still reading the site's own menu.
+          loadingSiteLists: siteMenus && lists == null,
+          // Quality is chosen in the site's own menu on these players,
+          // except Prime and Hotstar, whose choices are listed here.
+          onQuality: () {
+            Navigator.of(ctx).pop();
+            siteMenu();
+          },
+          qualities: lists?['quality'] ?? const [],
+          onQualityPick:
+              sitePick(lists, 'quality', 'Video Quality', 'videoQuality'),
+          audio: (lists?['audio']?.isNotEmpty ?? false)
+              ? lists!['audio']!
+              : ownAudio,
+          text:
+              (lists?['text']?.isNotEmpty ?? false) ? lists!['text']! : ownText,
+          onAudio: sitePick(lists, 'audio', 'Audio', 'Audio') ??
+              (i) => _settingsCall(
+                  'for (var k = 0; k < v.audioTracks.length; k++) v.audioTracks[k].enabled = (k === $i);'),
+          onText: sitePick(lists, 'text', 'Subtitles', 'subtitle') ??
+              (i) => _settingsCall(
+                  'for (var k = 0; k < v.textTracks.length; k++) v.textTracks[k].mode = (k === $i) ? "showing" : "disabled";'),
+          volume: ((info['volume'] as num?)?.toDouble() ?? 1) * 100 ~/ 1,
+          onVolume: (v) =>
+              _settingsCall('v.muted = false; v.volume = ${v / 100};'),
+          offsetSec: _webSync?.offset,
+          onCatchUp: _catchUp,
+          onSiteMenu: siteMenu,
+        ),
       ),
     );
+  }
+
+  // A viewer's own jump to where the host is (after their network fell
+  // behind, say) — their phone only.
+  Future<void> _catchUp() async {
+    final sync = _webSync;
+    if (sync == null) return;
+    try {
+      await sync.target.seekTo(_elapsedSeconds);
+      if (_isPlaying) await sync.target.play();
+    } catch (_) {}
   }
 
   // Language, subtitles and quality are in the site's own control bar,
@@ -522,7 +661,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
       await _controller?.evaluateJavascript(source: '''
         (function() {
           document.querySelectorAll('video[data-insync-full]').forEach(function(v) {
-            ['position','top','left','width','height','object-fit','background','z-index']
+            ['position','top','left','width','height','object-fit','background','z-index','pointer-events']
               .forEach(function(k) { v.style.removeProperty(k); });
             v.removeAttribute('data-insync-full');
           });
@@ -551,7 +690,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         if (main.getAttribute('data-insync-full') === fit) return true;
         videos.forEach(function(v) {
           if (v !== main && v.hasAttribute('data-insync-full')) {
-            ['position','top','left','width','height','object-fit','background','z-index']
+            ['position','top','left','width','height','object-fit','background','z-index','pointer-events']
               .forEach(function(k) { v.style.removeProperty(k); });
             v.removeAttribute('data-insync-full');
           }
@@ -561,6 +700,10 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
           width: '100vw', height: '100vh',
           'object-fit': fit, background: '#000',
           'z-index': '2147483647',
+          // Touches and the room's pointer pass through to the site's own
+          // control layer under the stretched video (prime_player_menu.dart
+          // needs Prime's buttons to appear).
+          'pointer-events': 'none',
         };
         Object.keys(props).forEach(function(k) {
           main.style.setProperty(k, props[k], 'important');
@@ -586,15 +729,22 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
       try {
         await _controller?.evaluateJavascript(
             source:
-                "window.__insyncFit = '${_fill ? 'cover' : 'contain'}';\n$script");
+                "window.__insyncFit = '${_fillsScreen ? 'cover' : 'contain'}';\n$script");
       } catch (_) {}
     });
   }
 
   Timer? _stretchTimer;
-  // Fill zooms the picture to the whole box (no black bands, edges
-  // trimmed); Fit shows all of it. Each person's own choice.
-  bool _fill = false;
+  // Upright the box already has the video's own shape. In full screen the
+  // picture zooms to fill the screen (edges trimmed) unless this person
+  // picked Fit; a tall video (a reel) always shows whole there.
+  bool _fullScreen = false;
+  bool get _fillsScreen {
+    final ar = _webSync?.local?.aspect;
+    return _fullScreen &&
+        RoomPrefs.instance.fillScreen &&
+        (ar == null || ar >= 1);
+  }
 
   // Hosts whose video needs Widevine — the only ones worth checking.
   static const _drmHosts = {
@@ -700,6 +850,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
       if (widget.isHost) await _followHostTitle(sync.local);
       if (widget.isHost) _holdForAds(sync.local);
       if (_webTrouble == null) _judgeWebTry(sync.local);
+      _applyRoomRate();
       if (_useApp) return;
       if (_webTrouble != null && sync.local?.playing == true) {
         setState(() {
@@ -709,9 +860,119 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
       }
       if (status != _webStatus) setState(() => _webStatus = status);
       _reportStatus(status, sync.offset);
+      unawaited(_readPageSuggestions());
     } finally {
       _webBusy = false;
     }
+  }
+
+  // Prime Video: the title's own page stays loaded behind its player, with
+  // the season's episodes and "Customers also watched". Read every so often
+  // for the suggestions panel (video_suggestions_panel.dart).
+  DateTime _pageListReadAt = DateTime.fromMillisecondsSinceEpoch(0);
+  static const _pageListEvery = Duration(seconds: 15);
+
+  static const _readPageList = r"""
+(function(){
+  function abs(h){ try { return new URL(h, location.href).href; } catch(e){ return null; } }
+  function pic(root){ var im = root && root.querySelector('img'); if (!im) return null; var s = im.currentSrc || im.src || im.getAttribute('data-src') || ''; return /^https?:/.test(s) ? s : null; }
+  var out = [], seen = {}, here = location.pathname, eps = [];
+  document.querySelectorAll('a[data-testid="episodes-playbutton"]').forEach(function(a){
+    var u = abs(a.getAttribute('href')); if (!u) return; var k = new URL(u).pathname; if (seen[k]) return; seen[k] = 1;
+    var card = a.closest('li') || a.parentElement;
+    var h = card && card.querySelector('h3');
+    var m = (a.getAttribute('aria-label') || '').match(/S\d+\s*E\d+/i);
+    eps.push({videoUrl: u, title: (h ? h.textContent.trim() : 'Episode').slice(0, 120), badge: m ? m[0].toUpperCase() : null, thumbnail: pic(card), path: k});
+  });
+  var at = eps.findIndex(function(e){ return e.path === here; });
+  (at >= 0 ? eps.slice(at + 1) : eps).forEach(function(e){ delete e.path; out.push(e); });
+  seen[here] = 1;
+  document.querySelectorAll('section, [data-testid*="carousel"]').forEach(function(s){
+    var hd = s.querySelector('h2, h3');
+    if (!hd || !/also watched|more like this|you may also like|related/i.test(hd.textContent)) return;
+    s.querySelectorAll('a[href*="/detail/"]').forEach(function(a){
+      var u = abs(a.getAttribute('href')); if (!u) return; var k = new URL(u).pathname; if (seen[k]) return; seen[k] = 1;
+      var card = a.closest('li') || a.parentElement;
+      var b = card && card.querySelector('button[aria-label]');
+      var t = (b && b.getAttribute('aria-label')) || a.textContent.trim();
+      out.push({videoUrl: u, title: (t || 'Prime Video').slice(0, 120), thumbnail: pic(card)});
+    });
+  });
+  return JSON.stringify(out.slice(0, 40));
+})()
+""";
+
+  // Netflix/Hotstar: read once per title from its own page in a hidden
+  // view (TitlePageList). A page that gave nothing is tried again after a
+  // while, not on every tick.
+  String? _titleListFor;
+  DateTime _titleListTriedAt = DateTime.fromMillisecondsSinceEpoch(0);
+
+  Future<void> _readTitlePageList() async {
+    final url = widget.videoUrl;
+    final now = DateTime.now();
+    if (url == null ||
+        _titleListFor == url ||
+        now.difference(_titleListTriedAt) < const Duration(minutes: 2)) {
+      return;
+    }
+    _titleListFor = url;
+    _titleListTriedAt = now;
+    final items = await TitlePageList.read(url);
+    if (items.isEmpty) {
+      _titleListFor = null;
+      return;
+    }
+    OttPageSuggestions.current.value = (
+      key: OttPageSuggestions.keyFor(url),
+      items: [
+        for (final e in items)
+          {
+            ...e,
+            'thumbnail':
+                OttPageSuggestions.jpegThumbnail(e['thumbnail'] as String?),
+          }
+      ],
+    );
+  }
+
+  Future<void> _readPageSuggestions() async {
+    if (_drmPlatform == 'Netflix' || _drmPlatform == 'Hotstar') {
+      // After the title has started, so the hidden page doesn't compete
+      // with the player while it loads.
+      if (_webPlayed ||
+          DateTime.now().difference(_tryStarted) >
+              const Duration(seconds: 20)) {
+        await _readTitlePageList();
+      }
+      return;
+    }
+    final c = _controller;
+    final now = DateTime.now();
+    if (c == null ||
+        _drmPlatform != 'Prime Video' ||
+        now.difference(_pageListReadAt) < _pageListEvery) {
+      return;
+    }
+    _pageListReadAt = now;
+    try {
+      final raw = await c.evaluateJavascript(source: _readPageList);
+      if (raw is! String) return;
+      final items = [
+        for (final e in (jsonDecode(raw) as List).whereType<Map>())
+          {
+            'videoUrl': playableOttUrl(e['videoUrl'] as String),
+            'title': e['title'] as String? ?? 'Prime Video',
+            'thumbnail':
+                OttPageSuggestions.jpegThumbnail(e['thumbnail'] as String?),
+            'badge': e['badge'],
+            'sourceType': 'amazon',
+          }
+      ];
+      if (items.isEmpty) return;
+      OttPageSuggestions.current.value =
+          (key: OttPageSuggestions.keyFor(widget.videoUrl), items: items);
+    } catch (_) {}
   }
 
   void _judgeWebTry(OttPlayerState? local) {
@@ -833,160 +1094,200 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         ),
       );
 
-  // Music-player style: elapsed / total and a progress bar (draggable by
-  // the host), then the host's back-10s / play-pause / forward-10s in the
-  // middle. No title or instructions — the picture is the content. Next-
-  // in-queue stays on the right (vote to skip for everyone else). Each
-  // person's own subtitle/audio/quality settings stay in the site's own
-  // player; only play/pause and position are shared.
-  // The YouTube watch party's look: controls, then the times, then a thin
-  // edge-to-edge bar. Only the host plays, pauses, jumps and drags; everyone
-  // can like, open settings, and vote to skip.
-  Widget _controlStrip() {
+  // Upright: nothing under the video. A tap on the picture shows the
+  // controls over it for 3 seconds (the tap reaches the room, never the
+  // site's own player); a thin light line along the bottom edge shows how
+  // far it has played, as on YouTube Shorts.
+  bool _tapControls = false;
+  Timer? _tapHide;
+
+  void _showTapControls() {
+    _tapHide?.cancel();
+    setState(() => _tapControls = true);
+    _tapHide = Timer(const Duration(seconds: 3), () {
+      if (mounted && _dragPosition == null) {
+        setState(() => _tapControls = false);
+      }
+    });
+  }
+
+  void _toggleTapControls() {
+    if (_tapControls) {
+      _tapHide?.cancel();
+      setState(() => _tapControls = false);
+    } else {
+      _showTapControls();
+    }
+  }
+
+  // A button on the overlay: does its job and keeps the controls up.
+  Widget _overlayIcon(InIconData i, String label, VoidCallback? onTap,
+          {double size = 22, Color color = Colors.white}) =>
+      Semantics(
+        button: true,
+        label: label,
+        excludeSemantics: true,
+        child: InkResponse(
+          onTap: onTap == null
+              ? null
+              : () {
+                  onTap();
+                  _showTapControls();
+                },
+          radius: size + 4,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: InIcon(i, size: size, color: color),
+          ),
+        ),
+      );
+
+  void _enterFullScreen() => SystemChrome.setPreferredOrientations(
+      [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+
+  Widget _progressLine() {
+    final elapsed = _dragPosition ?? _elapsedSeconds;
+    final duration = _durationSec;
+    final value = duration != null && duration > 0
+        ? (elapsed / duration).clamp(0.0, 1.0)
+        : 0.0;
+    return IgnorePointer(
+      child: SizedBox(
+        height: 2,
+        child: Stack(fit: StackFit.expand, children: [
+          const ColoredBox(color: Colors.white24),
+          FractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: value,
+            child: const ColoredBox(color: Color(0xE6FFFFFF)),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _tapOverlay() {
     final elapsed = _dragPosition ?? _elapsedSeconds;
     final duration = _durationSec;
     final max =
         duration != null && duration > elapsed ? duration : _maxDragSeconds;
     const timeStyle = TextStyle(
-        color: AppColors.inkMuted,
-        fontSize: 10.5,
+        color: Colors.white,
+        fontSize: 11,
         fontFeatures: [FontFeature.tabularFigures()]);
-    Widget icon(InIconData i, String label, VoidCallback onTap,
-            {double size = 22, Color color = Colors.white}) =>
-        Semantics(
-          button: true,
-          label: label,
-          excludeSemantics: true,
-          child: InkResponse(
-            onTap: onTap,
-            radius: size,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-              child: InIcon(i, color: color, size: size),
-            ),
-          ),
-        );
     final like = widget.onToggleLike == null
         ? null
-        : icon(InIcons.heart, widget.liked ? 'Unlike' : 'Like',
-            widget.onToggleLike!,
+        : _overlayIcon(InIcons.heart, widget.liked ? 'Unlike' : 'Like',
+            widget.onToggleLike,
             color: widget.liked ? AppColors.pink : Colors.white);
-    final settings =
-        icon(InIcons.gear, 'Player settings', _openSettingsSheet, size: 20);
-    final right = widget.isHost
-        ? Row(mainAxisSize: MainAxisSize.min, children: [
-            settings,
-            if (widget.onSkip != null)
-              icon(InIcons.skipNext, 'Next in queue', widget.onSkip!, size: 20),
-          ])
-        : Row(mainAxisSize: MainAxisSize.min, children: [
-            if (like != null) like,
-            settings,
-            if (widget.onVoteSkip != null)
-              Semantics(
-                button: true,
-                label:
-                    'Vote to skip, ${widget.skipVoteCount} of ${widget.skipVoteRequired}',
-                excludeSemantics: true,
-                child: GestureDetector(
-                  onTap: widget.onVoteSkip,
-                  child: Container(
-                    margin: const EdgeInsets.only(left: 4),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(14)),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      const InIcon(InIcons.skipNext,
-                          color: Colors.white, size: 15),
-                      const SizedBox(width: 4),
-                      Text(
-                          'Vote skip · ${widget.skipVoteCount}/${widget.skipVoteRequired}',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700)),
-                    ]),
-                  ),
+    return Stack(children: [
+      const Positioned.fill(child: ColoredBox(color: Color(0x61000000))),
+      Positioned(
+        top: 0,
+        right: 2,
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (like != null) like,
+          _overlayIcon(InIcons.more, 'Player settings', _openSettingsSheet,
+              size: 20),
+        ]),
+      ),
+      if (widget.isHost)
+        Center(
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            if (widget.onSeek != null)
+              _overlayIcon(InIcons.back10, 'Back 10 seconds',
+                  () => _hostSeekTo(_elapsedSeconds - 10)),
+            const SizedBox(width: 18),
+            _overlayIcon(
+                _isPlaying ? InIcons.pause : InIcons.play,
+                _isPlaying ? 'Pause for everyone' : 'Play for everyone',
+                _hostTogglePlay,
+                size: 34),
+            const SizedBox(width: 18),
+            if (widget.onSeek != null)
+              _overlayIcon(InIcons.forward10, 'Forward 10 seconds',
+                  () => _hostSeekTo(_elapsedSeconds + 10)),
+          ]),
+        ),
+      Positioned(
+        left: 10,
+        right: 2,
+        bottom: 6,
+        child: Row(children: [
+          Text(
+              '${_formatTime(elapsed)} / ${duration != null ? _formatTime(duration) : '--:--'}',
+              style: timeStyle),
+          const Spacer(),
+          if (widget.isHost && widget.onSkip != null)
+            _overlayIcon(InIcons.skipNext, 'Next in queue', widget.onSkip,
+                size: 20),
+          if (!widget.isHost && widget.onVoteSkip != null)
+            Semantics(
+              button: true,
+              label:
+                  'Vote to skip, ${widget.skipVoteCount} of ${widget.skipVoteRequired}',
+              excludeSemantics: true,
+              child: GestureDetector(
+                onTap: () {
+                  widget.onVoteSkip!();
+                  _showTapControls();
+                },
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(14)),
+                  child: Text(
+                      'Vote skip ${widget.skipVoteCount}/${widget.skipVoteRequired}',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700)),
                 ),
               ),
-          ]);
-    return ColoredBox(
-      color: Colors.black,
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        // The bar runs along the bottom edge of the picture, as on YouTube.
-        SizedBox(
-          height: 14,
+            ),
+          _overlayIcon(InIcons.fullscreen, 'Full screen', _enterFullScreen,
+              size: 20),
+        ]),
+      ),
+      // The host drags the line itself to move the room.
+      if (widget.isHost && widget.onSeek != null)
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: -6,
+          height: 16,
           child: SliderTheme(
             data: SliderTheme.of(context).copyWith(
-              trackHeight: 3,
-              thumbShape: RoundSliderThumbShape(
-                  enabledThumbRadius: widget.isHost ? 6 : 0,
-                  disabledThumbRadius: 0),
+              trackHeight: 2,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
               overlayShape: SliderComponentShape.noOverlay,
               trackShape: const RectangularSliderTrackShape(),
-              disabledActiveTrackColor: AppColors.primary,
-              disabledInactiveTrackColor: Colors.white24,
             ),
             child: Slider(
               value: elapsed.clamp(0, max),
               max: max,
-              activeColor: AppColors.primary,
+              activeColor: const Color(0xE6FFFFFF),
               inactiveColor: Colors.white24,
-              onChanged: widget.isHost && widget.onSeek != null
-                  ? _handleSeekChanged
-                  : null,
-              onChangeEnd: widget.isHost && widget.onSeek != null
-                  ? _handleSeekEnd
-                  : null,
+              onChanged: (v) {
+                _tapHide?.cancel();
+                _handleSeekChanged(v);
+              },
+              onChangeEnd: (v) {
+                _handleSeekEnd(v);
+                _showTapControls();
+              },
             ),
           ),
         ),
-        // One row: elapsed on the left, every button in the middle, the
-        // full length on the right.
-        SizedBox(
-          height: 44,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Row(children: [
-              Text(_formatTime(elapsed), style: timeStyle),
-              Expanded(
-                child: Center(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      if (widget.isHost) ...[
-                        if (widget.onSeek != null)
-                          icon(InIcons.back10, 'Back 10 seconds',
-                              () => _hostSeekTo(_elapsedSeconds - 10)),
-                        icon(
-                            _isPlaying ? InIcons.pause : InIcons.play,
-                            _isPlaying
-                                ? 'Pause for everyone'
-                                : 'Play for everyone',
-                            _hostTogglePlay,
-                            size: 28),
-                        if (widget.onSeek != null)
-                          icon(InIcons.forward10, 'Forward 10 seconds',
-                              () => _hostSeekTo(_elapsedSeconds + 10)),
-                      ],
-                      right,
-                    ]),
-                  ),
-                ),
-              ),
-              Text(duration != null ? _formatTime(duration) : '--:--',
-                  style: timeStyle),
-            ]),
-          ),
-        ),
-      ]),
-    );
+    ]);
   }
 
   @override
   void dispose() {
+    _tapHide?.cancel();
+    _siteLists.dispose();
     _stretchTimer?.cancel();
     InAppWebViewController.disposeKeepAlive(_keepAlive);
     _loginCheck?.cancel();
@@ -998,6 +1299,9 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
 
   @override
   Widget build(BuildContext context) {
+    _fullScreen = !widget.compact &&
+        !widget.fillHeight &&
+        MediaQuery.orientationOf(context) == Orientation.landscape;
     final url = widget.videoUrl;
     if (url == null) {
       final placeholder = Container(
@@ -1022,7 +1326,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
             ignoring: _blockTouch,
             child: InAppWebView(
               keepAlive: _keepAlive,
-              initialUrlRequest: URLRequest(url: WebUri(url)),
+              initialUrlRequest: URLRequest(url: WebUri(playableOttUrl(url))),
               // The desktop website, the same as where the title was picked
               // (webview_browse_screen.dart), so it opens on the same player.
               initialSettings: desktopWebViewSettings,
@@ -1255,6 +1559,49 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
               ),
             ),
           ),
+        if (!_fullScreen &&
+            !widget.compact &&
+            !_showSiteControls &&
+            !_needsLogin &&
+            !_onLoginPage &&
+            !_appOnly &&
+            !_noWidevine) ...[
+          Positioned(left: 0, right: 0, bottom: 0, child: _progressLine()),
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _toggleTapControls,
+            ),
+          ),
+          if (_tapControls) Positioned.fill(child: _tapOverlay()),
+        ],
+        // Not while the site's own menu, its sign-in or the app note is up:
+        // those need the touch.
+        if (_fullScreen &&
+            !_showSiteControls &&
+            !_needsLogin &&
+            !_onLoginPage &&
+            !_appOnly &&
+            !_noWidevine)
+          Positioned.fill(
+            child: RoomFullScreenControls(
+              title: widget.title,
+              isHost: widget.isHost,
+              playing: _isPlaying,
+              elapsed: _dragPosition ?? _elapsedSeconds,
+              duration: _durationSec,
+              onTogglePlay: _hostTogglePlay,
+              onSeekTo: widget.onSeek != null ? _hostSeekTo : null,
+              onSkip: widget.onSkip,
+              liked: widget.liked,
+              onToggleLike: widget.onToggleLike,
+              onVoteSkip: widget.onVoteSkip,
+              skipVoteCount: widget.skipVoteCount,
+              skipVoteRequired: widget.skipVoteRequired,
+              onSettings: _openSettingsSheet,
+              onCatchUp: _webSync == null ? null : _catchUp,
+            ),
+          ),
         if (_nudgeBanner != null)
           Positioned(
             top: 44,
@@ -1280,34 +1627,22 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
           ),
       ],
     ));
-    // The controls sit under the picture, never over it. Where there's no
-    // room for them (the small floating window), just the picture.
-    const stripHeight = 60.0;
     // The title's own shape once its video reports one (ads included), so
     // it fits exactly; 16:9 until then.
     final seen = _webSync?.local?.aspect;
+    final screen = MediaQuery.sizeOf(context);
+    // Full screen: the box is the whole screen; the page itself fits or
+    // fills the picture inside it (see _fillsScreen).
     final ratio = widget.compact
         ? 21 / 9
-        : (seen != null && seen >= 0.5 && seen <= 2.6 ? seen : 16 / 9);
+        : _fullScreen
+            ? screen.width / screen.height
+            : (seen != null && seen >= 0.5 && seen <= 2.6 ? seen : 16 / 9);
     // Same widgets around the page either way (only the strip comes and
     // goes after it), so turning the phone never moves the page and makes
     // it load again.
-    return LayoutBuilder(builder: (context, box) {
-      if (widget.fillHeight) {
-        final room = !box.hasBoundedHeight || box.maxHeight >= stripHeight * 2;
-        return Column(children: [
-          Expanded(child: webview),
-          if (room) _controlStrip(),
-        ]);
-      }
-      final pictureHeight = box.maxWidth / ratio;
-      final room =
-          !box.hasBoundedHeight || box.maxHeight >= pictureHeight + stripHeight;
-      return Column(mainAxisSize: MainAxisSize.min, children: [
-        Flexible(child: FitVideoBox(aspectRatio: ratio, child: webview)),
-        if (room) _controlStrip(),
-      ]);
-    });
+    if (widget.fillHeight) return webview;
+    return FitVideoBox(aspectRatio: ratio, child: webview);
   }
 }
 
@@ -1412,270 +1747,3 @@ class _WebPlayerTarget implements OttTarget {
 /// title's audio languages and subtitles where the site's video lists them.
 /// Anything else (quality on most sites) is in the site's own menu, which
 /// "More settings" opens.
-class _OttSettingsSheet extends StatefulWidget {
-  final String label;
-  final double rate;
-  final List<Map> audio;
-  final List<Map> text;
-  final ValueChanged<double> onRate;
-  final ValueChanged<int> onAudio;
-  final ValueChanged<int> onText;
-  final VoidCallback onMore;
-  final bool fill;
-  final ValueChanged<bool> onFill;
-  const _OttSettingsSheet({
-    required this.fill,
-    required this.onFill,
-    required this.label,
-    required this.rate,
-    required this.audio,
-    required this.text,
-    required this.onRate,
-    required this.onAudio,
-    required this.onText,
-    required this.onMore,
-  });
-
-  @override
-  State<_OttSettingsSheet> createState() => _OttSettingsSheetState();
-}
-
-class _OttSettingsSheetState extends State<_OttSettingsSheet> {
-  static const _rates = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
-  late double _rate = widget.rate;
-  late int? _audio = _onIndex(widget.audio);
-  late int _text = _onIndex(widget.text) ?? -1;
-  // Which list is open: null for the main settings list.
-  String? _page;
-
-  static int? _onIndex(List<Map> list) {
-    for (final m in list) {
-      if (m['on'] == true) return (m['i'] as num).toInt();
-    }
-    return null;
-  }
-
-  String _rateLabel(double r) => r == 1.0
-      ? 'Normal'
-      : (r == r.roundToDouble() ? '${r.toInt()}x' : '${r}x');
-
-  String _labelOf(List<Map> list, int? i, String none) {
-    for (final m in list) {
-      if ((m['i'] as num).toInt() == i) return '${m['label']}';
-    }
-    return none;
-  }
-
-  Widget _row(
-          InIconData icon, String label, String value, VoidCallback onTap) =>
-      InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
-          child: Row(children: [
-            InIcon(icon, size: 18, color: AppColors.textDim),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(label,
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w600)),
-            ),
-            Text(value,
-                style: const TextStyle(color: AppColors.textDim, fontSize: 13)),
-            const SizedBox(width: 6),
-            const InIcon(InIcons.right, size: 16, color: AppColors.textFaint),
-          ]),
-        ),
-      );
-
-  Widget _pick(String label, bool on, VoidCallback onTap) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 1),
-        child: Material(
-          color: on
-              ? AppColors.primary.withValues(alpha: 0.16)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Row(children: [
-                Expanded(
-                  child: Text(label,
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: on ? FontWeight.w800 : FontWeight.w600)),
-                ),
-                if (on)
-                  const InIcon(InIcons.check, size: 18, color: AppColors.lilac),
-              ]),
-            ),
-          ),
-        ),
-      );
-
-  Widget _header(String title, {bool back = false}) => Padding(
-        padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
-        child: Row(children: [
-          if (back)
-            IconButton(
-              tooltip: 'Back',
-              onPressed: () => setState(() => _page = null),
-              icon: const InIcon(InIcons.back,
-                  size: 18, color: AppColors.inkMuted),
-            )
-          else
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10),
-              child: InIcon(InIcons.gear, size: 18, color: AppColors.lilac),
-            ),
-          Expanded(
-            child: Text(title,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-          ),
-          if (!back)
-            const Padding(
-              padding: EdgeInsets.only(right: 8),
-              child: Text('Only your phone changes',
-                  style: TextStyle(color: AppColors.textFaint, fontSize: 11)),
-            ),
-        ]),
-      );
-
-  List<Widget> _main() => [
-        _header('Player settings'),
-        _row(InIcons.play, 'Speed', _rateLabel(_rate),
-            () => setState(() => _page = 'speed')),
-        // Quality is chosen in the site's own menu on these players.
-        _row(InIcons.tv, 'Quality', 'On ${widget.label}', widget.onMore),
-        widget.audio.length > 1
-            ? _row(
-                InIcons.speaker,
-                'Audio language',
-                _labelOf(widget.audio, _audio, 'Default'),
-                () => setState(() => _page = 'audio'))
-            : _row(InIcons.speaker, 'Audio language', 'On ${widget.label}',
-                widget.onMore),
-        widget.text.isNotEmpty
-            ? _row(
-                InIcons.comment,
-                'Subtitles',
-                _labelOf(widget.text, _text, 'Off'),
-                () => setState(() => _page = 'text'))
-            : _row(InIcons.comment, 'Subtitles', 'On ${widget.label}',
-                widget.onMore),
-        const Divider(color: AppColors.border, height: 16),
-        InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: widget.onMore,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-            child: Row(children: [
-              const InIcon(InIcons.more, size: 16, color: AppColors.inkMuted),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text('More settings on ${widget.label}',
-                    style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600)),
-              ),
-              const InIcon(InIcons.right, size: 16, color: AppColors.textFaint),
-            ]),
-          ),
-        ),
-      ];
-
-  List<Widget> _picture() => [
-        _header('Picture', back: true),
-        _pick('Fill · no black bands', widget.fill, () {
-          widget.onFill(true);
-          setState(() => _page = null);
-        }),
-        _pick('Fit · show the whole picture', !widget.fill, () {
-          widget.onFill(false);
-          setState(() => _page = null);
-        }),
-      ];
-
-  List<Widget> _speed() => [
-        _header('Speed', back: true),
-        for (final r in _rates)
-          _pick(_rateLabel(r), (_rate - r).abs() < 0.01, () {
-            widget.onRate(r);
-            setState(() {
-              _rate = r;
-              _page = null;
-            });
-          }),
-      ];
-
-  List<Widget> _audioPage() => [
-        _header('Audio language', back: true),
-        for (final a in widget.audio)
-          _pick('${a['label']}', _audio == (a['i'] as num).toInt(), () {
-            final i = (a['i'] as num).toInt();
-            widget.onAudio(i);
-            setState(() {
-              _audio = i;
-              _page = null;
-            });
-          }),
-      ];
-
-  List<Widget> _textPage() => [
-        _header('Subtitles', back: true),
-        _pick('Off', _text == -1, () {
-          widget.onText(-1);
-          setState(() {
-            _text = -1;
-            _page = null;
-          });
-        }),
-        for (final s in widget.text)
-          _pick('${s['label']}', _text == (s['i'] as num).toInt(), () {
-            final i = (s['i'] as num).toInt();
-            widget.onText(i);
-            setState(() {
-              _text = i;
-              _page = null;
-            });
-          }),
-      ];
-
-  @override
-  Widget build(BuildContext context) {
-    final children = switch (_page) {
-      'speed' => _speed(),
-      'audio' => _audioPage(),
-      'text' => _textPage(),
-      'picture' => _picture(),
-      _ => _main(),
-    };
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(8, 10, 8, 12),
-        child: AnimatedSize(
-          duration: const Duration(milliseconds: 180),
-          alignment: Alignment.topCenter,
-          child: Column(
-              key: ValueKey(_page),
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                      width: 36,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                          color: AppColors.border,
-                          borderRadius: BorderRadius.circular(2))),
-                ),
-                ...children,
-              ]),
-        ),
-      ),
-    );
-  }
-}

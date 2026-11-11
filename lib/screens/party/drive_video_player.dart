@@ -10,6 +10,7 @@ import '../../core/background_audio_handler.dart';
 import '../../core/format.dart';
 import '../../core/pip_service.dart';
 import '../../core/room_prefs.dart';
+import '../../core/room_playback.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/room_play_pause_button.dart';
 import '../../widgets/room_seek_ten_button.dart';
@@ -214,9 +215,8 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
     if (p == null || p['isPlaying'] != true) return;
     final updatedAt = p['updatedAt'] == null ? null : asNum(p['updatedAt']);
     if (updatedAt == null) return;
-    var expected = asNum(p['position']).toDouble();
-    final elapsed = (DateTime.now().millisecondsSinceEpoch - updatedAt) / 1000;
-    if (elapsed > 0) expected += elapsed;
+    final expected = roomPosition(p);
+    final rate = roomRate(p);
 
     final local = c.value.position.inMilliseconds / 1000;
     final drift = local - expected;
@@ -225,12 +225,12 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
     double targetRate;
     if (absDrift >= 1.5) {
       c.seekTo(Duration(milliseconds: (expected * 1000).round()));
-      targetRate = 1.0;
+      targetRate = rate;
     } else if (absDrift >= 0.3) {
       // Behind (drift negative) speeds up to catch up; ahead slows down.
-      targetRate = drift < 0 ? 1.05 : 0.95;
+      targetRate = rate * (drift < 0 ? 1.05 : 0.95);
     } else {
-      targetRate = 1.0;
+      targetRate = rate;
     }
     if (targetRate != _currentPlaybackRate) {
       _currentPlaybackRate = targetRate;
@@ -264,7 +264,12 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
     if (p['isPlaying'] == true && updatedAt != null) {
       final elapsedSeconds =
           (DateTime.now().millisecondsSinceEpoch - updatedAt) / 1000;
-      if (elapsedSeconds > 0) position += elapsedSeconds;
+      if (elapsedSeconds > 0) position += elapsedSeconds * roomRate(p);
+    }
+    // The room's speed (the host's choice), for the host's own video too.
+    if (_currentPlaybackRate != roomRate(p)) {
+      _currentPlaybackRate = roomRate(p);
+      c.setPlaybackSpeed(_currentPlaybackRate);
     }
     // Only correct drift beyond 1.5s so local buffering doesn't fight the
     // remote sync tick — same guardrail called for in the original spec.

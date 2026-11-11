@@ -12,6 +12,9 @@ import '../../core/api_client.dart';
 import '../../core/format.dart';
 import '../../core/pip_service.dart';
 import '../../core/room_prefs.dart';
+import '../../core/room_playback.dart';
+import 'full_screen_controls.dart';
+import 'player_settings_sheet.dart';
 import '../../core/youtube_util.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/room_play_pause_button.dart';
@@ -49,6 +52,8 @@ class SyncVideoPlayer extends StatefulWidget {
   final void Function(double position) onPlay;
   final void Function(double position) onPause;
   final void Function(double position) onSeek;
+  // Host only: the room's speed for everyone (playback:rate).
+  final void Function(double rate, double position)? onRate;
   final VoidCallback onRequestState;
   final VoidCallback onEnded;
   final VoidCallback onSkip;
@@ -87,6 +92,7 @@ class SyncVideoPlayer extends StatefulWidget {
     required this.onPlay,
     required this.onPause,
     required this.onSeek,
+    this.onRate,
     required this.onRequestState,
     required this.onEnded,
     required this.onSkip,
@@ -185,9 +191,6 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
   // Defaults to the usual 16:9 box and only changes once the real size
   // comes back (or stays put if the lookup fails) — see _loadAspectRatio.
   double _aspectRatio = 16 / 9;
-  // Zooms in for films with black bars inside the video itself. Only affects
-  // this phone's view.
-  bool _fillBox = false;
 
   String _embedUrl(String videoId) =>
       '${ApiClient.baseUrl}/youtube-embed.html?v=$videoId';
@@ -383,8 +386,10 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     if (p['isPlaying'] == true && updatedAt != null) {
       final elapsedSeconds =
           (DateTime.now().millisecondsSinceEpoch - updatedAt) / 1000;
-      if (elapsedSeconds > 0) position += elapsedSeconds;
+      if (elapsedSeconds > 0) position += elapsedSeconds * roomRate(p);
     }
+    _currentPlaybackRate = roomRate(p);
+    c.evaluateJavascript(source: 'ytSetPlaybackRate($_currentPlaybackRate);');
     c.evaluateJavascript(source: 'ytSeek($position);');
     if (p['isPlaying'] == true) {
       c.evaluateJavascript(source: 'ytPlay();');
@@ -504,23 +509,84 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
         icon: InIcon(icon, size: 24, color: color, filled: filled),
       );
 
-  void _openMore() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.surface,
-      builder: (sheet) => SafeArea(
-        child: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            ListTile(
-              leading: const InIcon(InIcons.fillWidth, color: Colors.white),
-              title: Text(_fillBox ? 'Fit video' : 'Fill width'),
-              onTap: () {
-                Navigator.of(sheet).pop();
-                setState(() => _fillBox = !_fillBox);
-              },
-            ),
-          ]),
-        ),
+  // YouTube's own subtitles, through the IFrame player on the page.
+  int _ccSize = 0;
+  static const _ccList = r'''
+    (function() {
+      try {
+        player.loadModule('captions');
+        var list = player.getOption('captions', 'tracklist') || [];
+        var cur = player.getOption('captions', 'track') || {};
+        return JSON.stringify(list.map(function(t, i) {
+          return {i: i, code: t.languageCode,
+            label: t.displayName || t.languageName || t.languageCode,
+            on: !!cur.languageCode && cur.languageCode === t.languageCode};
+        }));
+      } catch (e) { return '[]'; }
+    })();
+  ''';
+
+  Future<List<Map>> _readCaptions() async {
+    for (var i = 0; i < 3; i++) {
+      try {
+        final raw = await _controller?.evaluateJavascript(source: _ccList);
+        final list = raw is String
+            ? (jsonDecode(raw) as List).cast<Map>()
+            : const <Map>[];
+        if (list.isNotEmpty) return list;
+      } catch (_) {}
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    }
+    return const [];
+  }
+
+  // Where the room is now, at its speed.
+  double get _roomNow => roomPosition(widget.playback);
+
+  Future<void> _openSettings() async {
+    final captions = await _readCaptions();
+    if (!mounted) return;
+    await showPlayerSettings(
+      context,
+      (ctx) => PlayerSettingsSheet(
+        label: 'YouTube',
+        isHost: widget.isHost,
+        rate: roomRate(widget.playback),
+        onRate: widget.isHost && widget.onRate != null
+            ? (r) {
+                _currentPlaybackRate = r;
+                _controller?.evaluateJavascript(
+                    source: 'ytSetPlaybackRate($r);');
+                widget.onRate!(r, _positionSeconds);
+              }
+            : null,
+        // YouTube picks the quality itself; apps can't set it.
+        qualityValue: 'Auto',
+        text: captions,
+        onText: (i) {
+          final code =
+              i < 0 ? null : captions.firstWhere((c) => c['i'] == i)['code'];
+          _controller?.evaluateJavascript(
+              source: code == null
+                  ? "try { player.unloadModule('captions'); } catch (e) {}"
+                  : "try { player.loadModule('captions'); player.setOption('captions', 'track', {languageCode: ${jsonEncode(code)}}); } catch (e) {}");
+        },
+        subtitleSize: captions.isEmpty ? null : _ccSize,
+        onSubtitleSize: (n) {
+          _ccSize = n;
+          _controller?.evaluateJavascript(
+              source:
+                  "try { player.setOption('captions', 'fontSize', $n); } catch (e) {}");
+        },
+        volume: _volume,
+        onVolume: _handleVolumeChange,
+        offsetSec: widget.isHost || widget.playback?['isPlaying'] != true
+            ? null
+            : _positionSeconds - _roomNow,
+        onCatchUp: widget.isHost
+            ? null
+            : () =>
+                _controller?.evaluateJavascript(source: 'ytSeek($_roomNow);'),
       ),
     );
   }
@@ -579,9 +645,8 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     if (p == null || p['isPlaying'] != true) return;
     final updatedAt = p['updatedAt'] == null ? null : asNum(p['updatedAt']);
     if (updatedAt == null) return;
-    var expected = asNum(p['position']).toDouble();
-    final elapsed = (DateTime.now().millisecondsSinceEpoch - updatedAt) / 1000;
-    if (elapsed > 0) expected += elapsed;
+    final expected = roomPosition(p);
+    final rate = roomRate(p);
 
     final drift = localT - expected;
     final absDrift = drift.abs();
@@ -589,11 +654,11 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     double targetRate;
     if (absDrift >= 1.5) {
       _controller?.evaluateJavascript(source: 'ytSeek($expected);');
-      targetRate = 1.0;
+      targetRate = rate;
     } else if (absDrift >= 0.3) {
-      targetRate = drift < 0 ? 1.05 : 0.95;
+      targetRate = rate * (drift < 0 ? 1.05 : 0.95);
     } else {
-      targetRate = 1.0;
+      targetRate = rate;
     }
     if (targetRate != _currentPlaybackRate) {
       _currentPlaybackRate = targetRate;
@@ -733,22 +798,63 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     // hidden behind the Static Bloom card instead.
     // No rounded-corner card/box — the video now runs edge-to-edge at full
     // screen width right under the header, so a "boxed" look doesn't apply.
+    final fullScreen = landscape && !widget.compact;
+    final screen = MediaQuery.sizeOf(context);
+    final screenRatio = screen.width / screen.height;
+    // The page letterboxes the video into the screen-shaped box; zooming by
+    // the difference in shape fills it, trimming the edges. Tall videos
+    // (reels) always show whole.
+    final zoom =
+        fullScreen && RoomPrefs.instance.fillScreen && _aspectRatio >= 1
+            ? (screenRatio > _aspectRatio
+                ? screenRatio / _aspectRatio
+                : _aspectRatio / screenRatio)
+            : 1.0;
     final videoTree = FitVideoBox(
-      aspectRatio: _aspectRatio,
+      aspectRatio: fullScreen ? screenRatio : _aspectRatio,
       child: ClipRect(
         child: Stack(
           fit: StackFit.expand,
           children: [
             AnimatedScale(
-              scale: _fillBox ? 1.34 : 1,
+              scale: zoom,
               duration: const Duration(milliseconds: 200),
               child: _buildWebView(),
             ),
+            if (fullScreen)
+              Positioned.fill(
+                child: ListenableBuilder(
+                  listenable:
+                      Listenable.merge([_positionNotifier, RoomPrefs.instance]),
+                  builder: (context, _) => RoomFullScreenControls(
+                    title: widget.title,
+                    isHost: widget.isHost,
+                    playing: _isPlaying,
+                    elapsed: _positionSeconds,
+                    duration: _duration.inSeconds > 0
+                        ? _duration.inSeconds.toDouble()
+                        : null,
+                    onTogglePlay: _handleTap,
+                    onSeekTo: _handleSeekEnd,
+                    onSkip: widget.onSkip,
+                    liked: widget.liked,
+                    onToggleLike: widget.onToggleLike,
+                    onVoteSkip: widget.onVoteSkip,
+                    skipVoteCount: widget.skipVoteCount,
+                    skipVoteRequired: widget.skipVoteRequired,
+                    onSettings: _openSettings,
+                    onCatchUp: widget.isHost
+                        ? null
+                        : () => _controller?.evaluateJavascript(
+                            source: 'ytSeek($_roomNow);'),
+                  ),
+                ),
+              ),
             // Tap-to-show only exists while controls are actually hidden —
             // doesn't compete with normal WebView interaction (scrolling,
             // etc.) the rest of the time, and disappears the instant
             // controls come back so it never blocks a real button tap.
-            if (!_controlsVisible)
+            if (!_controlsVisible && !fullScreen)
               Positioned.fill(
                 child: GestureDetector(
                   behavior: HitTestBehavior.translucent,
@@ -759,7 +865,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
             // _scheduleHideControls) — a standard player convention so the
             // video itself is what's visible most of the time, not chrome.
             // A thin line along the bottom while the controls are hidden.
-            if (!_controlsVisible)
+            if (!_controlsVisible && !fullScreen)
               Positioned(
                 left: 0,
                 right: 0,
@@ -779,7 +885,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                   ),
                 ),
               ),
-            if (_controlsVisible)
+            if (_controlsVisible && !fullScreen)
               Listener(
                 onPointerDown: (_) => _scheduleHideControls(),
                 child: Stack(children: [
@@ -841,7 +947,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                       ),
                       _controlIcon(InIcons.pip, 'Picture in picture',
                           PipService.enterPip),
-                      _controlIcon(InIcons.more, 'More', _openMore),
+                      _controlIcon(InIcons.gear, 'Settings', _openSettings),
                     ]),
                   ),
                   if (_justResumed)

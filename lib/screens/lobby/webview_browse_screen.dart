@@ -125,6 +125,26 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
   static const _watchPageFallback = Duration(seconds: 8);
   DateTime? _playingSince;
   DateTime? _watchPageSince;
+  // Prime Video: the Play or Resume link that was tapped. Prime's player
+  // opens with an ad, so the room is started the moment Play is tapped
+  // rather than after 3 seconds of playing — any ad then plays once, in
+  // the room. Nothing is skipped.
+  String? _pickedUrl;
+  static const _watchPrimeTaps = r'''
+    (function() {
+      if (!window.__insyncTaps) {
+        window.__insyncTaps = true;
+        document.addEventListener('click', function(e) {
+          var a = e.target && e.target.closest &&
+            e.target.closest('a[href*="autoplay=1"]');
+          if (a) window.__insyncPlayHref = a.href;
+        }, true);
+      }
+      var h = window.__insyncPlayHref || null;
+      window.__insyncPlayHref = null;
+      return h;
+    })();
+  ''';
   // Shows the Pin to room button: a title is playing or its watch page is open.
   bool _canPin = false;
 
@@ -141,6 +161,21 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
       final url = await _controller?.getUrl();
       if (!mounted || url == null) return;
       final urlStr = url.toString();
+      if (widget.platform == 'amazon') {
+        final tapped =
+            await _controller?.evaluateJavascript(source: _watchPrimeTaps);
+        if (!mounted || _autoStarted || _creatingRoom) return;
+        if (tapped is String && tapped.isNotEmpty) {
+          _pickedUrl = tapped;
+          _triggerAutoStart(tapped);
+          return;
+        }
+        if (_looksReadyToStart(urlStr)) {
+          _pickedUrl = urlStr;
+          _triggerAutoStart(urlStr);
+          return;
+        }
+      }
       if (_looksReadyToStart(urlStr)) {
         _watchPageSince ??= DateTime.now();
       } else {
@@ -267,6 +302,11 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
     // visible for however long the room-creation call takes, instead of
     // a plain loading state.
     setState(() => _creatingRoom = true);
+    if (widget.platform == 'amazon') {
+      _controller?.evaluateJavascript(
+          source: "document.querySelectorAll('video').forEach(function(v) "
+              "{ v.muted = true; v.pause(); });");
+    }
     _startHere();
   }
 
@@ -291,7 +331,7 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
     if (url == null || !mounted) return;
 
     var sourceType = widget.platform;
-    var videoUrl = url.toString();
+    var videoUrl = _pickedUrl ?? url.toString();
     String? videoTitle;
     String? videoThumbnail;
     if (widget.platform == 'youtube_surf') {

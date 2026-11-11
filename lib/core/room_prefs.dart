@@ -14,6 +14,7 @@ class RoomPrefs extends ChangeNotifier {
   static const _kChatOver = 'room.chatOverVideo';
   static const _kMuteAlerts = 'room.muteAlerts';
   static const _kBigGifts = 'room.bigGiftAnimations';
+  static const _kFillScreen = 'room.fillScreen';
 
   bool _loaded = false;
   bool pushToTalk = false;
@@ -30,6 +31,10 @@ class RoomPrefs extends ChangeNotifier {
 
   /// Off: gifts show only the name and the chat card.
   bool giftAnimations = true;
+
+  /// Full screen: the video zooms to fill the screen (edges trimmed)
+  /// instead of showing all of it with black bars.
+  bool fillScreen = true;
 
   /// True while the mic button is held down with push to talk on.
   final talking = ValueNotifier<bool>(false);
@@ -51,6 +56,7 @@ class RoomPrefs extends ChangeNotifier {
       chatOverVideo = p.getBool(_kChatOver) ?? true;
       muteAlerts = p.getBool(_kMuteAlerts) ?? false;
       giftAnimations = p.getBool(_kBigGifts) ?? true;
+      fillScreen = p.getBool(_kFillScreen) ?? true;
       notifyListeners();
     } catch (_) {
       // Defaults are fine.
@@ -87,6 +93,11 @@ class RoomPrefs extends ChangeNotifier {
   void setChatOverVideo(bool v) {
     chatOverVideo = v;
     _save((p) => p.setBool(_kChatOver, v));
+  }
+
+  void setFillScreen(bool v) {
+    fillScreen = v;
+    _save((p) => p.setBool(_kFillScreen, v));
   }
 
   void setMuteAlerts(bool v) {

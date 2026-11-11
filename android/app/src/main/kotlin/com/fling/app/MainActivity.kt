@@ -8,7 +8,14 @@ import android.media.AudioManager
 import android.media.MediaDrm
 import android.os.Build
 import android.os.Bundle
+import android.graphics.Rect
+import android.os.SystemClock
+import android.view.InputDevice
 import android.view.KeyEvent
+import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
+import android.webkit.WebView
 import android.view.WindowManager
 import android.util.Log
 import android.util.Rational
@@ -128,6 +135,20 @@ class MainActivity : AudioServiceActivity() {
             }
         }
 
+        // Some streaming players (Prime Video) only show their own menus for
+        // a real pointer, never for a page script's made-up one. This moves
+        // a mouse pointer over the room's player (the largest web view on
+        // screen) without a click, so its menu buttons appear and the room
+        // can pick a person's audio, subtitles or quality for them.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.fling.app/webview_pointer")
+            .setMethodCallHandler { call, result ->
+                if (call.method == "hover") {
+                    result.success(hoverLargestWebView())
+                } else {
+                    result.notImplemented()
+                }
+            }
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.fling.app/drm")
             .setMethodCallHandler { call, result ->
                 if (call.method == "hasWidevine") {
@@ -141,6 +162,45 @@ class MainActivity : AudioServiceActivity() {
                     result.notImplemented()
                 }
             }
+    }
+
+    private fun findWebViews(v: View, out: MutableList<WebView>) {
+        if (v is WebView) out.add(v)
+        if (v is ViewGroup) for (i in 0 until v.childCount) findWebViews(v.getChildAt(i), out)
+    }
+
+    private var hoverTurn = 0
+
+    private fun hoverLargestWebView(): Boolean {
+        val views = mutableListOf<WebView>()
+        findWebViews(window.decorView, views)
+        val rect = Rect()
+        val target = views
+            .filter { it.isShown && it.getGlobalVisibleRect(rect) }
+            .maxByOrNull { v -> v.getGlobalVisibleRect(rect); rect.width() * rect.height() }
+            ?: return false
+        // The player only reacts when the pointer really moves, so each
+        // call travels a short path from a spot different from last time's.
+        hoverTurn = (hoverTurn + 1) % 4
+        val x = target.width * (0.35f + 0.1f * hoverTurn)
+        val y = target.height * (0.4f + 0.05f * hoverTurn)
+        val props = arrayOf(MotionEvent.PointerProperties().apply {
+            id = 0
+            toolType = MotionEvent.TOOL_TYPE_MOUSE
+        })
+        val now = SystemClock.uptimeMillis()
+        val steps = listOf(MotionEvent.ACTION_HOVER_ENTER) + List(5) { MotionEvent.ACTION_HOVER_MOVE }
+        for ((i, action) in steps.withIndex()) {
+            val coords = arrayOf(MotionEvent.PointerCoords().apply {
+                this.x = x + i * 24
+                this.y = y + i * 12
+            })
+            val e = MotionEvent.obtain(now, now + i * 16, action, 1, props, coords,
+                0, 0, 1f, 1f, 0, 0, InputDevice.SOURCE_MOUSE, 0)
+            target.dispatchGenericMotionEvent(e)
+            e.recycle()
+        }
+        return true
     }
 
     private val widevineUuid = UUID.fromString("edef8ba9-79d6-4ace-a3c8-27dcd51d21ed")
