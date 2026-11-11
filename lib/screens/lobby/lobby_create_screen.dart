@@ -113,7 +113,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
   bool _micEnabled = true;
   bool _hostApprovesMics = true;
   bool _songPermission = true;
-  String _theme = RoomTheme.midnight.id;
+  String _theme = RoomTheme.dark.id;
   bool _saving = false;
   bool _moreOptions = false;
   String _selectedGame = _kGames.first.value;
@@ -124,6 +124,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
       final room = await ApiClient.post('/rooms', body: {
         'roomType': _roomType,
         'visibility': _visibility,
+        if (_visibility == 'public') 'askPrivacy': true,
         if (_nameController.text.trim().isNotEmpty)
           'title': _nameController.text.trim(),
         if (_topicController.text.trim().isNotEmpty)
@@ -157,6 +158,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
         'roomType': 'game',
         'gameType': _selectedGame,
         'visibility': 'public',
+        'askPrivacy': true,
       }) as Map<String, dynamic>;
       await ApiClient.patch('/rooms/${room['id']}/settings',
           body: {'theme': _theme}).catchError((_) => null);

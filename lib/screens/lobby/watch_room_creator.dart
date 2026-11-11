@@ -53,6 +53,8 @@ Future<void> createWatchRoomAndEnter(
       'sourceType': sourceType,
       if (videoUrl != null) 'videoUrl': videoUrl,
       'visibility': visibility,
+      // The host picks who can join in the room's chat.
+      if (visibility == 'public') 'askPrivacy': true,
       if (topic != null && topic.trim().isNotEmpty) 'topic': topic.trim(),
       if (title != null && title.isNotEmpty) 'title': title,
       if (videoTitle != null) 'videoTitle': videoTitle,

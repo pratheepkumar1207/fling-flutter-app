@@ -57,6 +57,7 @@ Future<void> playSongSmart(BuildContext context, Song s) async {
       'videoTitle': s.title,
       'videoThumbnail': s.thumbnail,
       'visibility': 'public',
+      'askPrivacy': true,
     }) as Map<String, dynamic>;
     if (context.mounted) {
       ScaffoldMessenger.of(context)
@@ -127,6 +128,7 @@ Future<void> playPlaylistSmart(BuildContext context, List<Song> songs) async {
       'videoTitle': first.title,
       'videoThumbnail': first.thumbnail,
       'visibility': 'public',
+      'askPrivacy': true,
       // The whole playlist, in order, is the room's queue from the start.
       'queueItems': [for (final s in songs) toItem(s)],
     }) as Map<String, dynamic>;

@@ -37,6 +37,14 @@ class RosterSheet extends StatefulWidget {
   final List<String>? activeMics;
   final List<String>? mutedMics;
   final VoidCallback? onInvite;
+
+  /// The right half of the room screen (party_screen.dart's people panel)
+  /// instead of a drawer: black, no glass, closes through [onClose].
+  final bool inline;
+  final VoidCallback? onClose;
+
+  /// 0 closed .. 1 open; rows slide in one after another as it opens.
+  final Animation<double>? reveal;
   const RosterSheet({
     super.key,
     required this.roster,
@@ -47,6 +55,9 @@ class RosterSheet extends StatefulWidget {
     this.activeMics,
     this.mutedMics,
     this.onInvite,
+    this.inline = false,
+    this.onClose,
+    this.reveal,
   });
 
   @override
@@ -94,17 +105,17 @@ class _RosterSheetState extends State<RosterSheet> {
       ..sort((a, b) => (a.userId == widget.myUserId ? 0 : 1)
           .compareTo(b.userId == widget.myUserId ? 0 : 1));
     final shownHost = host.where(_matches).toList();
-    final shownOthers = others.where(_matches).toList();
+    final shownOnMic = others.where((r) => _onMic(r) && _matches(r)).toList();
+    final shownOthers =
+        others.where((r) => !_onMic(r) && _matches(r)).toList();
     final othersLabel = widget.roomType == 'voice' ? 'Listening' : 'Watching';
-    return Drawer(
-      backgroundColor: Colors.transparent,
-      width: MediaQuery.sizeOf(context).width * 0.5,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.horizontal(left: Radius.circular(24))),
-      child: GlassPanel(
-        borderRadius: const BorderRadius.horizontal(left: Radius.circular(24)),
-        tintAlpha: 0.6,
-        child: SafeArea(
+    var rowIndex = 0;
+    Widget row(RosterEntry r) => _Reveal(
+        index: rowIndex++, animation: widget.reveal, child: _row(context, r));
+    void close() =>
+        widget.onClose != null ? widget.onClose!() : Navigator.of(context).pop();
+    final body = SafeArea(
+          left: !widget.inline,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 2, 12),
             child: Column(
@@ -128,8 +139,9 @@ class _RosterSheetState extends State<RosterSheet> {
                       ),
                     ),
                     IconButton(
+                        tooltip: 'Close',
                         visualDensity: VisualDensity.compact,
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: close,
                         icon: const InIcon(InIcons.close,
                             color: AppColors.textFaint, size: 20)),
                   ],
@@ -162,13 +174,19 @@ class _RosterSheetState extends State<RosterSheet> {
                     children: [
                       if (shownHost.isNotEmpty) ...[
                         _sectionLabel('Host'),
-                        for (final r in shownHost) _row(context, r),
+                        for (final r in shownHost) row(r),
+                      ],
+                      if (shownOnMic.isNotEmpty) ...[
+                        _sectionLabel('On mic · ${shownOnMic.length}'),
+                        for (final r in shownOnMic) row(r),
                       ],
                       if (shownOthers.isNotEmpty) ...[
-                        _sectionLabel('$othersLabel · ${others.length}'),
-                        for (final r in shownOthers) _row(context, r),
+                        _sectionLabel('$othersLabel · ${shownOthers.length}'),
+                        for (final r in shownOthers) row(r),
                       ],
-                      if (shownHost.isEmpty && shownOthers.isEmpty)
+                      if (shownHost.isEmpty &&
+                          shownOnMic.isEmpty &&
+                          shownOthers.isEmpty)
                         const Padding(
                           padding: EdgeInsets.only(top: 24),
                           child: Center(
@@ -187,7 +205,7 @@ class _RosterSheetState extends State<RosterSheet> {
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         onPressed: () {
-                          Navigator.of(context).pop();
+                          close();
                           widget.onInvite!();
                         },
                         icon: const InIcon(InIcons.useradd, size: 18),
@@ -204,7 +222,19 @@ class _RosterSheetState extends State<RosterSheet> {
               ],
             ),
           ),
-        ),
+        );
+    if (widget.inline) {
+      return Material(color: Colors.black, child: body);
+    }
+    return Drawer(
+      backgroundColor: Colors.transparent,
+      width: MediaQuery.sizeOf(context).width * 0.5,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.horizontal(left: Radius.circular(24))),
+      child: GlassPanel(
+        borderRadius: const BorderRadius.horizontal(left: Radius.circular(24)),
+        tintAlpha: 0.6,
+        child: body,
       ),
     );
   }
@@ -311,9 +341,46 @@ class _RosterSheetState extends State<RosterSheet> {
                 ],
               ),
             ),
+            if (onMic && !isRowHost)
+              Padding(
+                padding: const EdgeInsets.only(left: 4, right: 8),
+                child: InIcon(muted ? InIcons.micoff : InIcons.mic,
+                    size: 15,
+                    color: muted ? AppColors.textFaint : AppColors.success),
+              ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// A row sliding in from the right as the panel opens, each a moment
+/// after the one above it.
+class _Reveal extends StatelessWidget {
+  final int index;
+  final Animation<double>? animation;
+  final Widget child;
+  const _Reveal(
+      {required this.index, required this.animation, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final a = animation;
+    if (a == null) return child;
+    return AnimatedBuilder(
+      animation: a,
+      child: child,
+      builder: (context, child) {
+        final start = 0.25 + (index * 0.06).clamp(0.0, 0.4);
+        final t = ((a.value - start) / 0.35).clamp(0.0, 1.0);
+        final eased = Curves.easeOutBack.transform(t);
+        return Opacity(
+          opacity: Curves.easeOut.transform(t),
+          child: Transform.translate(
+              offset: Offset(28 * (1 - eased), 0), child: child),
+        );
+      },
     );
   }
 }

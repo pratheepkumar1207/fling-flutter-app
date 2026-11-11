@@ -95,6 +95,12 @@ class ChatOverlay extends StatefulWidget {
   final int skipVoteCount;
   final int skipVoteRequired;
 
+  /// Shown as the newest line in chat (the host's "Who can join?" card).
+  final Widget? newestCard;
+
+  /// Narrow (the people panel is open): gift, invite and attach hide.
+  final bool compact;
+
   const ChatOverlay({
     super.key,
     required this.messages,
@@ -128,6 +134,8 @@ class ChatOverlay extends StatefulWidget {
     this.onVoteSkip,
     this.skipVoteCount = 0,
     this.skipVoteRequired = 1,
+    this.newestCard,
+    this.compact = false,
   });
 
   @override
@@ -441,6 +449,43 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
   }
 
   /// Joins, leaves, removals and other room notes: small and centred.
+  Widget _queuedLine(Map<String, dynamic> m) {
+    const dim = Color(0xFFB0ADC2);
+    final by = m['addedBy'] as String?;
+    final name = by != null && by == widget.myUserId
+        ? 'You'
+        : m['addedByName'] as String? ?? _person(by)?.name;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Padding(
+          padding: EdgeInsets.only(top: 1, right: 6),
+          child: InIcon(InIcons.pin, size: 13, color: dim),
+        ),
+        Expanded(
+          child: Text.rich(
+            TextSpan(
+              style: const TextStyle(
+                  color: dim, fontSize: 12.5, shadows: _textShadow),
+              children: [
+                WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: _NowPlayingLine._source(m['sourceType'] as String?)),
+                const TextSpan(text: 'Queued · '),
+                TextSpan(
+                    text: m['title'] as String? ?? 'A song',
+                    style: const TextStyle(color: Color(0xFFE4E1EC))),
+                if (name != null) TextSpan(text: ' · $name'),
+              ],
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ]),
+    );
+  }
+
   Widget _eventLine(Map<String, dynamic> m) {
     final event = m['event'] as String?;
     final text = m['text'] as String? ?? '';
@@ -750,15 +795,20 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(
-          child: visible.isEmpty
+          child: visible.isEmpty && widget.newestCard == null
               ? const SizedBox.shrink()
               : ListView.builder(
                   reverse: true,
                   padding:
                       EdgeInsets.fromLTRB(0, 8, widget.messagesRightInset, 8),
-                  itemCount: visible.length,
+                  itemCount: visible.length + (widget.newestCard != null ? 1 : 0),
                   itemBuilder: (context, i) {
+                    if (widget.newestCard != null) {
+                      if (i == 0) return widget.newestCard!;
+                      i -= 1;
+                    }
                     final m = visible[i];
+                    if (m['type'] == 'queued') return _queuedLine(m);
                     if (m['gift'] == true) {
                       return _GiftChatCard(message: m, roster: widget.roster);
                     }
@@ -993,11 +1043,13 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                 ),
               ),
             Expanded(
-              child: GlassPanel(
-                borderRadius: BorderRadius.circular(100),
-                child: Container(
+              child: Container(
                   constraints: const BoxConstraints(minHeight: 42),
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  padding: const EdgeInsets.only(left: 14, right: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(100),
+                  ),
                   child: Row(
                     children: [
                       Expanded(
@@ -1015,22 +1067,30 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                           decoration: const InputDecoration(
                             hintText: 'Message…',
                             hintStyle: TextStyle(color: Colors.white54),
+                            // No second box inside the bar: the app's
+                            // filled field style is switched off here.
+                            filled: false,
                             border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            disabledBorder: InputBorder.none,
                             isDense: true,
                             contentPadding: EdgeInsets.symmetric(vertical: 9),
                           ),
                         ),
                       ),
                       _inlineIcon(InIcons.smile, 'Emoji', _openEmoji),
-                      _inlineIcon(InIcons.clip, 'Attach', _openAttach),
+                      if (!widget.compact)
+                        _inlineIcon(InIcons.clip, 'Attach', _openAttach),
                     ],
                   ),
-                ),
               ),
             ),
             const SizedBox(width: 6),
             // While typing: just Send. Otherwise gift and invite.
-            if (_focused)
+            if (widget.compact && !_focused)
+              const SizedBox.shrink()
+            else if (_focused)
               GlassCircleButton(
                 size: 42,
                 onTap: _send,

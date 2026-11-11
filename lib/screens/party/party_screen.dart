@@ -6,6 +6,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import '../../core/volume_keys.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
+import 'privacy_pick_card.dart';
 import 'package:image_picker/image_picker.dart' show ImageSource;
 import 'package:provider/provider.dart';
 import '../../core/active_room_holder.dart';
@@ -69,7 +71,16 @@ class PartyScreen extends StatefulWidget {
   State<PartyScreen> createState() => _PartyScreenState();
 }
 
-class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
+class _PartyScreenState extends State<PartyScreen>
+    with WidgetsBindingObserver, TickerProviderStateMixin {
+  // The people panel: 0 closed, 1 open (the room in the left half, the
+  // list in the right). Unbounded so the spring can overshoot a little.
+  late final AnimationController _people =
+      AnimationController.unbounded(vsync: this);
+  bool _peopleOpen = false;
+  bool _peopleDragging = false;
+  // The host chose who can join (or the time ran out).
+  bool _privacyHandled = false;
   final _hostKey = GlobalKey();
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   // The player widget (WebviewRoomPlayer/DriveVideoPlayer/SyncVideoPlayer)
@@ -624,7 +635,137 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   }
 
   void _openRoster() {
-    _scaffoldKey.currentState?.openEndDrawer();
+    if (_room?['roomType'] == 'live') {
+      _scaffoldKey.currentState?.openEndDrawer();
+    } else {
+      _setPeople(true);
+    }
+  }
+
+  void _togglePeople() => _setPeople(!_peopleOpen);
+
+  // Settle the panel open or shut on a spring, carrying the finger's speed.
+  void _setPeople(bool open, {double velocity = 0}) {
+    if (_peopleOpen != open) setState(() => _peopleOpen = open);
+    _people.animateWith(SpringSimulation(
+      const SpringDescription(mass: 1, stiffness: 400, damping: 32),
+      _people.value,
+      open ? 1 : 0,
+      velocity,
+    ));
+  }
+
+  // The room narrows into the left half (top bar and video on top, chat at
+  // the bottom, all laid out again for the width) and the people list fills
+  // the right half.
+  Widget _peopleSplit(Widget panel, Widget room) {
+    return PopScope(
+      canPop: !_peopleOpen,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _peopleOpen) _setPeople(false);
+      },
+      child: LayoutBuilder(builder: (context, box) {
+        final full = box.maxWidth;
+        final half = full / 2;
+        return ColoredBox(
+          color: Colors.black,
+          child: AnimatedBuilder(
+            animation: _people,
+            builder: (context, _) {
+              final p = _people.value.clamp(-0.06, 1.05);
+              final shown = p.clamp(0.0, 1.0);
+              final roomWidth = full - p * half;
+              final mq = MediaQuery.of(context);
+              return Stack(children: [
+                if (shown > 0.001)
+                  Positioned(
+                    top: 0,
+                    bottom: 0,
+                    right: 0,
+                    width: half,
+                    // Drag the list right to put it away.
+                    child: GestureDetector(
+                      onHorizontalDragStart: (_) => _people.stop(),
+                      onHorizontalDragUpdate: (d) {
+                        var next = _people.value - d.delta.dx / half;
+                        if (next > 1) next = 1 + (next - 1) * 0.25;
+                        _people.value = next < 0 ? 0 : next;
+                      },
+                      onHorizontalDragEnd: (d) {
+                        final v = d.primaryVelocity ?? 0;
+                        _setPeople(
+                            v.abs() > 500 ? v < 0 : _people.value > 0.5,
+                            velocity: -v / half);
+                      },
+                      child: MediaQuery(
+                        data: mq.copyWith(size: Size(half, mq.size.height)),
+                        child: panel,
+                      ),
+                    ),
+                  ),
+                Positioned(
+                  top: 0,
+                  bottom: 0,
+                  left: 0,
+                  width: roomWidth,
+                  child: DecoratedBox(
+                    position: DecorationPosition.foreground,
+                    decoration: BoxDecoration(
+                      border: Border(
+                          right: BorderSide(
+                              color: Colors.white
+                                  .withValues(alpha: 0.1 * shown))),
+                    ),
+                    child: MediaQuery(
+                      data: mq.copyWith(size: Size(roomWidth, mq.size.height)),
+                      child: room,
+                    ),
+                  ),
+                ),
+              ]);
+            },
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget? _privacyCard(bool isHost, Map<String, dynamic> room,
+      Map<String, dynamic> settings) {
+    if (!isHost || _privacyHandled || settings['privacyPending'] == false) {
+      return null;
+    }
+    final until =
+        DateTime.tryParse(room['privacyPendingUntil'] as String? ?? '')
+            ?.toLocal();
+    if (until == null || !until.isAfter(DateTime.now())) return null;
+    return PrivacyPickCard(
+      key: const ValueKey('privacy-pick'),
+      until: until,
+      onTimeUp: () {
+        if (mounted) setState(() => _privacyHandled = true);
+      },
+      onPick: (visibility) async {
+        try {
+          await ApiClient.patch('/rooms/${widget.roomId}/settings',
+              body: {'visibility': visibility});
+          if (!mounted) return;
+          setState(() => _privacyHandled = true);
+          final label = switch (visibility) {
+            'friends' => 'Friends only',
+            'private' => 'Private',
+            _ => 'Public',
+          };
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('Room is now $label')));
+          _refreshRoom();
+        } on ApiException catch (e) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(e.message)));
+        }
+      },
+    );
   }
 
   // Lets the unified source picker's in-room "switch source" tiles (see
@@ -1007,7 +1148,10 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
     // Each game has its own look, unless the host picked another theme.
     final chosenTheme = (rs.settings['theme'] ?? room['theme']) as String?;
     final roomTheme =
-        isGame && (chosenTheme == null || chosenTheme == 'midnight')
+        isGame &&
+                (chosenTheme == null ||
+                    chosenTheme == 'midnight' ||
+                    chosenTheme == 'dark')
             ? RoomTheme.forGame(room['gameType'] as String?)
             : RoomTheme.byId(chosenTheme);
     final roomTextDim = useVolaTheme ? roomTheme.textDim : AppColors.textDim;
@@ -1408,6 +1552,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
             // does, regardless of what focus state Flutter thinks it's in.
             final hideChromeForChat =
                 _chatFocused && MediaQuery.of(context).viewInsets.bottom > 0;
+            final privacyCard = _privacyCard(rs.isHost, room, rs.settings);
             final rosterSheet = RosterSheet(
               roster: rs.roster,
               hostId: rs.hostId,
@@ -1736,6 +1881,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                 child: SizedBox(
                                   height: inPk ? 230 : 300,
                                   child: ChatOverlay(
+                                    newestCard: privacyCard,
+                                    compact: _peopleOpen,
                                     showMic: false,
                                     showGiftCards: false,
                                     fanIds: extras.fanIds,
@@ -1794,10 +1941,23 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                 ),
               );
             }
-            return Scaffold(
+            return _peopleSplit(
+                RosterSheet(
+                  roster: rs.roster,
+                  hostId: rs.hostId,
+                  isHost: rs.isHost,
+                  myUserId: myId,
+                  roomType: room['roomType'] as String?,
+                  activeMics: activeMics,
+                  mutedMics: mutedMics,
+                  onInvite: _openInvite,
+                  inline: true,
+                  onClose: () => _setPeople(false),
+                  reveal: _people,
+                ),
+                Scaffold(
               key: _scaffoldKey,
               backgroundColor: useVolaTheme ? Colors.transparent : roomBg,
-              endDrawer: rosterSheet,
               // Hidden while composing a chat message — see hideChromeForChat —
               // so chat gets the full screen instead of sharing it with chrome
               // nobody's looking at mid-type.
@@ -1806,7 +1966,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                   : AppBar(
                       // Plain: a blurred picture of whatever played before
                       // used to show through here.
-                      backgroundColor: const Color(0xFF14121B),
+                      backgroundColor: Colors.black,
                       surfaceTintColor: Colors.transparent,
                       elevation: 0,
                       shape: const Border(
@@ -1851,7 +2011,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                           else if (rs.isHost && room['roomType'] != 'live')
                             InIconButton(InIcons.gear,
                                 tooltip: 'Room settings',
-                                color: roomTextDim,
+                                color: Colors.white,
                                 onPressed: () => showRoomSettingsSheet(context,
                                     room: room,
                                     onChanged: _refreshRoom,
@@ -1868,7 +2028,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                           else if (room['roomType'] != 'live')
                             InIconButton(InIcons.gear,
                                 tooltip: 'Your settings',
-                                color: roomTextDim,
+                                color: Colors.white,
                                 onPressed: () =>
                                     showGuestSettingsSheet(context, onStage: myMicOn || myMicForceMuted, onLeaveMic: rs.micOff, hasVideo: isWatch, roomTitle: room['title'] as String?, hostName: (rs.hostId == null ? null : rs.roster.where((r) => r.userId == rs.hostId).firstOrNull?.name)?.split(' ').first, onReport: () => _reportRoom(room))),
                         ],
@@ -1879,17 +2039,11 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                       centerTitle: true,
                       title: GestureDetector(
                         onTap: _openRoster,
-                        child:
-                            Column(mainAxisSize: MainAxisSize.min, children: [
-                          Text(room['title'] as String? ?? '',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700)),
-                          KeyedSubtree(key: _hostKey, child: micSpeakers()),
-                        ]),
+                        child: KeyedSubtree(
+                            key: _hostKey,
+                            child: _peopleOpen
+                                ? const SizedBox.shrink()
+                                : micSpeakers()),
                       ),
                       actions: [
                         // The single search+queue entry point for every room type —
@@ -1898,7 +2052,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                         // this one (search icon, still opens the same _openQueue
                         // screen) so there's one obvious place to add a song and see
                         // what's queued, not two icons doing overlapping things.
-                        if (isWatch || isGame || isVoice)
+                        if ((isWatch || isGame || isVoice) && !_peopleOpen)
                           Padding(
                             padding: const EdgeInsets.only(right: 4),
                             child: GestureDetector(
@@ -1908,7 +2062,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                 children: [
                                   InIconButton(InIcons.queue,
                                       tooltip: 'Search & queue',
-                                      color: roomTextDim,
+                                      color: Colors.white,
                                       onPressed: _openQueue),
                                   if (items.isNotEmpty)
                                     Positioned(
@@ -1939,9 +2093,9 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                           padding: const EdgeInsets.only(right: 6),
                           child: InIconButton(InIcons.users,
                               tooltip: 'People in the room',
-                              color: roomTextDim,
+                              color: Colors.white,
                               badge: rs.roster.length,
-                              onPressed: _openRoster),
+                              onPressed: _togglePeople),
                         ),
                       ],
                     ),
@@ -1960,11 +2114,42 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                   // the player itself still shrinks it and shows suggestions
                   // (see _suggestionsMode). Swiping a chat message stays Reply,
                   // and scrolling stays with whatever scrolls.
-                  onHorizontalDragStart: (details) =>
-                      _dragStartGlobal = details.globalPosition,
+                  onHorizontalDragStart: (details) {
+                    _dragStartGlobal = details.globalPosition;
+                    _people.stop();
+                    // The player keeps its own swipe (suggestions) while
+                    // the panel is shut.
+                    _peopleDragging = !hideChromeForChat &&
+                        (_peopleOpen ||
+                            !(isWatch &&
+                                !_suggestionsMode &&
+                                _dragStartedOnPlayer()));
+                  },
+                  onHorizontalDragUpdate: (details) {
+                    if (!_peopleDragging) return;
+                    final half = MediaQuery.sizeOf(this.context).width / 2;
+                    var next = _people.value - details.delta.dx / half;
+                    // A little stretch past either end.
+                    if (next > 1) next = 1 + (next - 1) * 0.25;
+                    if (next < 0) next = _people.value > 0 ? 0 : next * 0.25;
+                    _people.value = next;
+                    final open = _people.value > 0.08;
+                    if (open != _peopleOpen) {
+                      setState(() => _peopleOpen = open);
+                    }
+                  },
                   onHorizontalDragEnd: (details) {
                     if (hideChromeForChat) return;
                     final v = details.primaryVelocity ?? 0;
+                    final half = MediaQuery.sizeOf(this.context).width / 2;
+                    if (_peopleDragging && (_people.value > 0.02 || _peopleOpen)) {
+                      _peopleDragging = false;
+                      final open = v.abs() > 500 ? v < 0 : _people.value > 0.5;
+                      _setPeople(open, velocity: -v / half);
+                      return;
+                    }
+                    _peopleDragging = false;
+                    if (_people.value != 0) _setPeople(false);
                     if (v > 250) {
                       Navigator.of(context).maybePop();
                     } else if (v < -250) {
@@ -2020,6 +2205,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                               board: gameBoard(),
                               messages: rs.messages,
                               chat: ChatOverlay(
+                                newestCard: privacyCard,
+                                compact: _peopleOpen,
                                 messages: rs.messages,
                                 onSend: (text, mentionedUserIds, {replyTo}) =>
                                     rs.sendMessage(text,
@@ -2137,6 +2324,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                         padding: const EdgeInsets.fromLTRB(
                                             12, 4, 12, 12),
                                         child: ChatOverlay(
+                                          newestCard: privacyCard,
+                                          compact: _peopleOpen,
                                           messages: rs.messages,
                                           onSend: (text, mentionedUserIds,
                                                   {replyTo}) =>
@@ -2269,6 +2458,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                     padding: const EdgeInsets.fromLTRB(
                                         12, 0, 12, 12),
                                     child: ChatOverlay(
+                                      newestCard: privacyCard,
+                                      compact: _peopleOpen,
                                       messages: rs.messages,
                                       onSend: (text, mentionedUserIds,
                                               {replyTo}) =>
@@ -2444,6 +2635,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                           padding: const EdgeInsets.fromLTRB(
                                               12, 4, 12, 12),
                                           child: ChatOverlay(
+                                            newestCard: privacyCard,
+                                            compact: _peopleOpen,
                                             messages: rs.messages,
                                             onSend: (text, mentionedUserIds,
                                                     {replyTo}) =>
@@ -2575,6 +2768,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
                               child: ChatOverlay(
+                                newestCard: privacyCard,
+                                compact: _peopleOpen,
                                 messages: rs.messages,
                                 onSend: (text, mentionedUserIds, {replyTo}) =>
                                     rs.sendMessage(text,
@@ -2634,13 +2829,14 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                   ),
                 ),
               ),
-            );
+            ));
           },
         ));
   }
 
   @override
   void dispose() {
+    _people.dispose();
     _dmSocket?.off('dm:message', _onRoomDm);
     WidgetsBinding.instance.removeObserver(this);
     RoomPrefs.instance.removeListener(_onPrefs);

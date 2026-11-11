@@ -127,25 +127,25 @@ class RoomTheme {
     glass: true,
   );
 
-  // True black for AMOLED screens and night viewing.
+  // Pure black: the default for new rooms.
   static const dark = RoomTheme(
     id: 'dark',
-    label: 'Dark',
+    label: 'Black',
     bgGradient: LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [Color(0xFF0B0B0F), Color(0xFF000000)],
+      colors: [Color(0xFF000000), Color(0xFF000000)],
     ),
-    surface: Color(0xFF141418),
+    surface: Color(0xFF111114),
     surface2: Color(0xFF1C1C22),
     border: Color(0x26FFFFFF),
-    primary: Color(0xFF52525B),
+    primary: Color(0xFF7F77DD),
     nameAccent: Color(0xFFE4E4E7),
     textDim: Color(0xFFA1A1AA),
     textFaint: Color(0xFF71717A),
   );
 
-  static const all = [midnight, cinema, neon, sunset, glassy, dark];
+  static const all = [dark, midnight, cinema, neon, sunset, glassy];
 
   static RoomTheme _game(
           String id, String label, Color top, Color bottom, Color primary) =>
@@ -196,12 +196,12 @@ class RoomTheme {
       };
 
   static RoomTheme byId(String? id) =>
-      all.firstWhere((t) => t.id == id, orElse: () => midnight);
+      all.firstWhere((t) => t.id == id, orElse: () => dark);
 
   /// The room theme around [context], or Midnight outside a room.
   static RoomTheme of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<RoomThemeScope>()?.theme ??
-      midnight;
+      dark;
 }
 
 /// Makes the room's theme available to everything inside the room screen.

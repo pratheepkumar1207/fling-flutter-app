@@ -97,7 +97,7 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
   late bool _autoPlay = widget.room['autoPlay'] != false;
   late String _nextTrackMode =
       widget.room['nextTrackMode'] as String? ?? 'justPlay';
-  late String _theme = widget.room['theme'] as String? ?? 'midnight';
+  late String _theme = widget.room['theme'] as String? ?? 'dark';
   late bool _openMics = widget.room['micApproval'] == 'everyone';
   late bool _chatOn = widget.room['chatEnabled'] != false;
   late bool _waitForAds = widget.room['waitForAds'] != false;
