@@ -106,7 +106,7 @@ Future<PersonAction?> showPersonActionsPopup(
           top: top,
           width: width,
           child: Material(
-            color: AppColors.surface,
+            color: AppColors.sheet,
             borderRadius: BorderRadius.circular(16),
             clipBehavior: Clip.antiAlias,
             child: ConstrainedBox(
@@ -183,7 +183,7 @@ Future<void> showRoomPersonCard(
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.surface,
+    backgroundColor: AppColors.sheet,
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
     builder: (sheet) => _PersonCard(
@@ -442,7 +442,7 @@ Future<void> showListenersSheet(
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.surface,
+    backgroundColor: AppColors.sheet,
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
     builder: (sheet) => ConstrainedBox(

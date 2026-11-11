@@ -37,7 +37,7 @@ Future<List<PickedPerson>?> showPeoplePicker(
 }) {
   return showModalBottomSheet<List<PickedPerson>>(
     context: context,
-    backgroundColor: AppColors.surface,
+    backgroundColor: AppColors.sheet,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20))),

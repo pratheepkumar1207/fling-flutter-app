@@ -75,7 +75,7 @@ Future<AttachKind?> showInsyncAttachSheet(BuildContext context,
     {required List<AttachKind> options, String title = 'Share'}) {
   return showModalBottomSheet<AttachKind>(
     context: context,
-    backgroundColor: AppColors.surface,
+    backgroundColor: AppColors.sheet,
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
     builder: (sheet) => SafeArea(

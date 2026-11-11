@@ -531,6 +531,7 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
         child: GlassPanel(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           tintAlpha: 0.8,
+          color: AppColors.sheet,
           child: ConstrainedBox(
             constraints: BoxConstraints(
                 maxHeight: MediaQuery.sizeOf(context).height * 0.85),

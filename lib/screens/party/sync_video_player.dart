@@ -211,7 +211,14 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
         // Landscape videos stream as 16:9, so a different landscape size from
         // this lookup would only add black bars above and below. Only a
         // portrait report changes the shape.
-        setState(() => _aspectRatio = width > height ? 16 / 9 : width / height);
+        // The Data API's player size ("exact") follows the real shape, so
+        // a wide film gets a shorter box with no bands; oEmbed's guess only
+        // counts for tall videos.
+        final ratio = width / height;
+        final exact = data['exact'] == true;
+        setState(() => _aspectRatio = exact
+            ? ratio.clamp(0.5, 2.6)
+            : (width > height ? 16 / 9 : ratio));
       }
     } catch (_) {
       // Best-effort — stays on the current (default 16:9) ratio.

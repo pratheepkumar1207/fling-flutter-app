@@ -63,7 +63,7 @@ class _ShareBottomSheet extends StatelessWidget {
         margin: const EdgeInsets.all(12),
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: AppColors.sheet,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: AppColors.border)),
         child: Column(

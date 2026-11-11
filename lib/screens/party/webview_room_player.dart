@@ -3,6 +3,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import '../../widgets/fit_video_box.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -776,6 +778,8 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
   }
 
   Timer? _stretchTimer;
+  // The video shape the box was last laid out for.
+  double? _shownAspect;
   // Upright the box already has the video's own shape. In full screen the
   // picture zooms to fill the screen (edges trimmed) unless this person
   // picked Fit; a tall video (a reel) always shows whole there.
@@ -901,6 +905,13 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         });
       }
       if (status != _webStatus) setState(() => _webStatus = status);
+      // The box takes the video's own shape as soon as the page reports it
+      // (and again when it changes, e.g. an ad then the film), so there are
+      // no black bands above and below eating into the chat.
+      final ar = sync.local?.aspect;
+      if (ar != null && (_shownAspect == null || (ar - _shownAspect!).abs() > 0.02)) {
+        setState(() => _shownAspect = ar);
+      }
       _reportStatus(status, sync.offset);
       unawaited(_readPageSuggestions());
     } finally {
@@ -1368,6 +1379,13 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
             ignoring: _blockTouch,
             child: InAppWebView(
               keepAlive: _keepAlive,
+              // Every touch on the player goes to the site, so its seek bar
+              // and volume can be dragged; the room's own sideways swipe
+              // (people list / Home) would otherwise take the drag.
+              gestureRecognizers: {
+                Factory<OneSequenceGestureRecognizer>(
+                    () => EagerGestureRecognizer()),
+              },
               initialUrlRequest: URLRequest(url: WebUri(playableOttUrl(url))),
               // The desktop website, the same as where the title was picked
               // (webview_browse_screen.dart), so it opens on the same player.
@@ -1680,7 +1698,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     ));
     // The title's own shape once its video reports one (ads included), so
     // it fits exactly; 16:9 until then.
-    final seen = _webSync?.local?.aspect;
+    final seen = _shownAspect ?? _webSync?.local?.aspect;
     final screen = MediaQuery.sizeOf(context);
     // Full screen: the box is the whole screen; the page itself fits or
     // fills the picture inside it (see _fillsScreen).

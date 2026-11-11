@@ -202,7 +202,7 @@ class _GiftSheetState extends State<_GiftSheet> {
     final pick = widget.requirePick;
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xE80B0912),
+        color: AppColors.sheet,
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
       child: SafeArea(

@@ -11,6 +11,8 @@ class AppColors {
 
   static const bg = Color(0xFF0A0A0D);
   static const surface = Color(0xFF16141D);
+  // Bottom sheets: plain black, matching the black room.
+  static const sheet = Color(0xFF000000);
   static const surface2 = Color(0xFF1F1C29);
   static const surface3 = Color(0xFF2A2436);
   static const border = Color(0xFF2E2A3A);

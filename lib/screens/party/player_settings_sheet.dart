@@ -13,7 +13,7 @@ Future<void> showPlayerSettings(BuildContext context, WidgetBuilder builder) {
   if (!landscape) {
     return showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.sheet,
       isScrollControlled: true,
       builder: builder,
     );

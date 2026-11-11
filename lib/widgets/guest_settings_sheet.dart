@@ -37,7 +37,7 @@ Future<void> showGuestSettingsSheet(
             constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(context).size.height * 0.85),
             decoration: const BoxDecoration(
-              color: AppColors.surface,
+              color: AppColors.sheet,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: SingleChildScrollView(

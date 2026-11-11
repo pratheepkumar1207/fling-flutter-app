@@ -569,7 +569,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
 
   void _openEmoji() => showModalBottomSheet(
         context: context,
-        backgroundColor: AppColors.surface,
+        backgroundColor: AppColors.sheet,
         builder: (sheet) => SafeArea(
           child: GridView.count(
             crossAxisCount: 8,

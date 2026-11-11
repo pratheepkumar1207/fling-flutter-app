@@ -26,7 +26,11 @@ class GlassPanel extends StatelessWidget {
     this.opacity = 0.12,
     this.border,
     this.tintAlpha = .94,
+    this.color,
   });
+
+  // A solid fill in place of the frosted tint.
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -36,13 +40,16 @@ class GlassPanel extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.surface3.withValues(alpha: tintAlpha),
-                  AppColors.surface.withValues(alpha: tintAlpha)
-                ]),
+            color: color,
+            gradient: color != null
+                ? null
+                : LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.surface3.withValues(alpha: tintAlpha),
+                      AppColors.surface.withValues(alpha: tintAlpha)
+                    ]),
             borderRadius: borderRadius,
             border: border ??
                 Border.all(color: Colors.white.withValues(alpha: 0.16)),

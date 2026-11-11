@@ -1592,6 +1592,7 @@ class _PartyScreenState extends State<PartyScreen>
                 key: _scaffoldKey,
                 backgroundColor: Colors.black,
                 endDrawer: rosterSheet,
+                endDrawerEnableOpenDragGesture: false,
                 body: GestureDetector(
                   behavior: HitTestBehavior.translucent,
                   // Left to right clears the screen for the video. Right to
@@ -2108,8 +2109,9 @@ class _PartyScreenState extends State<PartyScreen>
                 top: hideChromeForChat,
                 bottom: false,
                 child: GestureDetector(
-                  // Left to right goes Home with the room still running, right
-                  // to left opens the people list, and an upward swipe starting
+                  // Left to right goes Home with the room still running (or
+                  // closes the people list when it's open; it opens only from
+                  // the count in the top bar), and an upward swipe starting
                   // around the chat box opens Search & queue. Right to left on
                   // the player itself still shrinks it and shows suggestions
                   // (see _suggestionsMode). Swiping a chat message stays Reply,
@@ -2117,13 +2119,9 @@ class _PartyScreenState extends State<PartyScreen>
                   onHorizontalDragStart: (details) {
                     _dragStartGlobal = details.globalPosition;
                     _people.stop();
-                    // The player keeps its own swipe (suggestions) while
-                    // the panel is shut.
-                    _peopleDragging = !hideChromeForChat &&
-                        (_peopleOpen ||
-                            !(isWatch &&
-                                !_suggestionsMode &&
-                                _dragStartedOnPlayer()));
+                    // The people list opens only from the count in the top
+                    // bar; a swipe can only close it.
+                    _peopleDragging = !hideChromeForChat && _peopleOpen;
                   },
                   onHorizontalDragUpdate: (details) {
                     if (!_peopleDragging) return;
@@ -2157,8 +2155,6 @@ class _PartyScreenState extends State<PartyScreen>
                           !_suggestionsMode &&
                           _dragStartedOnPlayer()) {
                         setState(() => _suggestionsMode = true);
-                      } else {
-                        _openRoster();
                       }
                     }
                   },
@@ -2889,7 +2885,7 @@ class _PartyScreenState extends State<PartyScreen>
                 : '${n}th';
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.sheet,
       builder: (sheet) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(22, 8, 22, 20),
