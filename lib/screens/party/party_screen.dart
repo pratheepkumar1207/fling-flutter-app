@@ -361,7 +361,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
       for (final r in rs.roster)
         if (r.userId != me)
           GiftRecipient(
-              r.userId, r.userId == rs.hostId ? '${r.name} (host)' : r.name),
+              r.userId, r.userId == rs.hostId ? '${r.name} (host)' : r.name,
+              avatarUrl: r.avatarUrl),
     ];
     people.sort(
         (a, b) => (b.id == rs.hostId ? 1 : 0) - (a.id == rs.hostId ? 1 : 0));
@@ -590,8 +591,9 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
   }
 
   void _openInvite() {
-    Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => InviteScreen(roomId: widget.roomId)));
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => InviteScreen(
+            roomId: widget.roomId, roomTitle: _room?['title'] as String?)));
   }
 
   /// Live rooms only: diamonds, fans, fan club and PK (see live_extras.dart).
@@ -1219,7 +1221,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
           if (rosterById[id] != null) rosterById[id]!
       ];
       if (onMic.isEmpty) return const SizedBox.shrink();
-      const maxShown = 4;
+      const maxShown = 3;
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1240,8 +1242,8 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                         width: 2),
                   ),
                   child: SizedBox(
-                    width: 26,
-                    height: 26,
+                    width: 20,
+                    height: 20,
                     child: FittedBox(
                         child: GiftTarget(
                             userId: r.userId,
@@ -1251,8 +1253,15 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
               );
             }),
           if (onMic.length > maxShown)
-            Text(' +${onMic.length - maxShown}',
-                style: TextStyle(color: roomTextDim, fontSize: 11.5)),
+            Container(
+              margin: const EdgeInsets.only(left: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(10)),
+              child: Text('+${onMic.length - maxShown}',
+                  style: const TextStyle(color: Colors.white, fontSize: 10.5)),
+            ),
         ],
       );
     }
@@ -1795,9 +1804,13 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
               appBar: hideChromeForChat
                   ? null
                   : AppBar(
-                      backgroundColor: Colors.transparent,
+                      // Plain: a blurred picture of whatever played before
+                      // used to show through here.
+                      backgroundColor: const Color(0xFF14121B),
+                      surfaceTintColor: Colors.transparent,
                       elevation: 0,
-                      flexibleSpace: const GlassAppBarBackground(),
+                      shape: const Border(
+                          bottom: BorderSide(color: Color(0x14FFFFFF))),
                       foregroundColor:
                           useVolaTheme ? VolaPartyColors.text : null,
                       // Leave, not back — a plain pop/minimize still works via the
@@ -1806,14 +1819,33 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                       // always-visible way to actually leave.
                       // Leave first, settings (host) right beside it — the
                       // two "room" controls together on the left.
-                      leadingWidth: room['roomType'] != 'live' ? 96 : 56,
+                      leadingWidth: room['roomType'] != 'live' ? 118 : 78,
                       leading: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          InIconButton(InIcons.logout,
-                              tooltip: 'Leave room',
-                              color: const Color(0xFFFF8AA0),
-                              onPressed: _leaveRoom),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 10),
+                            child: Semantics(
+                              button: true,
+                              label: 'Leave room',
+                              excludeSemantics: true,
+                              child: GestureDetector(
+                                onTap: _leaveRoom,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 11, vertical: 6),
+                                  decoration: BoxDecoration(
+                                      color: const Color(0x33FF8AA0),
+                                      borderRadius: BorderRadius.circular(14)),
+                                  child: const Text('Leave',
+                                      style: TextStyle(
+                                          color: Color(0xFFFF8AA0),
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w700)),
+                                ),
+                              ),
+                            ),
+                          ),
                           if (rs.isHost && isVoice)
                             const SizedBox.shrink()
                           else if (rs.isHost && room['roomType'] != 'live')
@@ -1845,7 +1877,20 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                       // slot — showGiftBottomSheet flies gift animations toward
                       // it, so it needs a real widget in the AppBar.
                       centerTitle: true,
-                      title: KeyedSubtree(key: _hostKey, child: micSpeakers()),
+                      title: GestureDetector(
+                        onTap: _openRoster,
+                        child:
+                            Column(mainAxisSize: MainAxisSize.min, children: [
+                          Text(room['title'] as String? ?? '',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700)),
+                          KeyedSubtree(key: _hostKey, child: micSpeakers()),
+                        ]),
+                      ),
                       actions: [
                         // The single search+queue entry point for every room type —
                         // used to be a separate search icon here plus its own queue
@@ -1951,8 +1996,7 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                     // rooms keep the plain background.
                     webviewSourceTypes.contains(playerSourceType)
                         ? null
-                        : (currentItem?['thumbnail'] ?? room['videoThumbnail'])
-                                as String? ??
+                        : currentItem?['thumbnail'] as String? ??
                             rs.roster
                                 .where((r) => r.userId == rs.hostId)
                                 .map((r) => r.avatarUrl)
@@ -2008,6 +2052,19 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                     recipients: _giftRecipients()),
                                 onShare: _shareRoom,
                                 onInvite: _openInvite,
+                                onGiftFor: (taggedUserId) =>
+                                    showGiftBottomSheet(context,
+                                        toUserId: taggedUserId ?? '',
+                                        roomId: widget.roomId,
+                                        recipients: _giftRecipients(),
+                                        requirePick: true),
+                                isHost: rs.isHost,
+                                onSkip: rs.isHost ? rs.queueSkip : null,
+                                onVoteSkip: rs.isHost ? null : rs.voteSkip,
+                                skipVoteCount:
+                                    (rs.skipVote['count'] as int?) ?? 0,
+                                skipVoteRequired:
+                                    (rs.skipVote['required'] as int?) ?? 1,
                                 onFocusChanged: _setChatFocused,
                                 pickEndsAt: rs.pickVoteEndsAt,
                                 pickWaiting: rs.pickWaiting,
@@ -2119,6 +2176,24 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                               recipients: _giftRecipients()),
                                           onShare: _shareRoom,
                                           onInvite: _openInvite,
+                                          onGiftFor: (taggedUserId) =>
+                                              showGiftBottomSheet(context,
+                                                  toUserId: taggedUserId ?? '',
+                                                  roomId: widget.roomId,
+                                                  recipients: _giftRecipients(),
+                                                  requirePick: true),
+                                          isHost: rs.isHost,
+                                          onSkip:
+                                              rs.isHost ? rs.queueSkip : null,
+                                          onVoteSkip:
+                                              rs.isHost ? null : rs.voteSkip,
+                                          skipVoteCount:
+                                              (rs.skipVote['count'] as int?) ??
+                                                  0,
+                                          skipVoteRequired:
+                                              (rs.skipVote['required']
+                                                      as int?) ??
+                                                  1,
                                           onFocusChanged: _setChatFocused,
                                           pickEndsAt: rs.pickVoteEndsAt,
                                           pickWaiting: rs.pickWaiting,
@@ -2229,6 +2304,21 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                           recipients: _giftRecipients()),
                                       onShare: _shareRoom,
                                       onInvite: _openInvite,
+                                      onGiftFor: (taggedUserId) =>
+                                          showGiftBottomSheet(context,
+                                              toUserId: taggedUserId ?? '',
+                                              roomId: widget.roomId,
+                                              recipients: _giftRecipients(),
+                                              requirePick: true),
+                                      isHost: rs.isHost,
+                                      onSkip: rs.isHost ? rs.queueSkip : null,
+                                      onVoteSkip:
+                                          rs.isHost ? null : rs.voteSkip,
+                                      skipVoteCount:
+                                          (rs.skipVote['count'] as int?) ?? 0,
+                                      skipVoteRequired:
+                                          (rs.skipVote['required'] as int?) ??
+                                              1,
                                       onFocusChanged: _setChatFocused,
                                       pickEndsAt: rs.pickVoteEndsAt,
                                       pickWaiting: rs.pickWaiting,
@@ -2393,6 +2483,26 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                                 recipients: _giftRecipients()),
                                             onShare: _shareRoom,
                                             onInvite: _openInvite,
+                                            onGiftFor: (taggedUserId) =>
+                                                showGiftBottomSheet(context,
+                                                    toUserId:
+                                                        taggedUserId ?? '',
+                                                    roomId: widget.roomId,
+                                                    recipients:
+                                                        _giftRecipients(),
+                                                    requirePick: true),
+                                            isHost: rs.isHost,
+                                            onSkip:
+                                                rs.isHost ? rs.queueSkip : null,
+                                            onVoteSkip:
+                                                rs.isHost ? null : rs.voteSkip,
+                                            skipVoteCount: (rs.skipVote['count']
+                                                    as int?) ??
+                                                0,
+                                            skipVoteRequired:
+                                                (rs.skipVote['required']
+                                                        as int?) ??
+                                                    1,
                                             onFocusChanged: _setChatFocused,
                                             pickEndsAt: rs.pickVoteEndsAt,
                                             pickWaiting: rs.pickWaiting,
@@ -2497,6 +2607,19 @@ class _PartyScreenState extends State<PartyScreen> with WidgetsBindingObserver {
                                     recipients: _giftRecipients()),
                                 onShare: _shareRoom,
                                 onInvite: _openInvite,
+                                onGiftFor: (taggedUserId) =>
+                                    showGiftBottomSheet(context,
+                                        toUserId: taggedUserId ?? '',
+                                        roomId: widget.roomId,
+                                        recipients: _giftRecipients(),
+                                        requirePick: true),
+                                isHost: rs.isHost,
+                                onSkip: rs.isHost ? rs.queueSkip : null,
+                                onVoteSkip: rs.isHost ? null : rs.voteSkip,
+                                skipVoteCount:
+                                    (rs.skipVote['count'] as int?) ?? 0,
+                                skipVoteRequired:
+                                    (rs.skipVote['required'] as int?) ?? 1,
                                 onFocusChanged: _setChatFocused,
                                 pickEndsAt: rs.pickVoteEndsAt,
                                 pickWaiting: rs.pickWaiting,

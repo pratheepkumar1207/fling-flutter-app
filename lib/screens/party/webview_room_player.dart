@@ -417,6 +417,47 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     }
   }
 
+  // The error code on the site's own error page, e.g. Netflix's
+  // M7111-1957 — Netflix's sign-in on this phone has run out.
+  String? _siteErrorCode;
+  bool get _signInExpired => (_siteErrorCode ?? '').startsWith('M7111');
+
+  // Netflix's own fix for its M7111 codes: clear what the site saved on
+  // this phone and sign in again. Only this site's saved login, only on
+  // this phone; nothing is sent anywhere.
+  Future<void> _signInAgain() async {
+    final home = Uri.tryParse(widget.videoUrl ?? '');
+    if (home == null || !home.hasScheme) return;
+    final site = WebUri('${home.scheme}://${home.host}');
+    try {
+      await CookieManager.instance().deleteCookies(url: site);
+      final parts = home.host.split('.');
+      if (parts.length >= 2) {
+        final domain = '.${parts.sublist(parts.length - 2).join('.')}';
+        await CookieManager.instance().deleteCookies(url: site, domain: domain);
+      }
+      await WebStorageManager.instance().deleteOrigin(origin: site.toString());
+    } catch (e) {
+      debugPrint('OTT: clearing the site sign-in failed: $e');
+    }
+    final target = _webSync?.target;
+    if (target is _WebPlayerTarget) {
+      target.error = false;
+      target.errorCode = null;
+    }
+    setState(() {
+      _siteErrorCode = null;
+      _webTrouble = null;
+      _webPlayed = false;
+    });
+    _tryStarted = DateTime.now();
+    final login = home.host.contains('netflix.com')
+        ? 'https://www.netflix.com/login'
+        : '${home.scheme}://${home.host}/';
+    await _controller?.loadUrl(urlRequest: URLRequest(url: WebUri(login)));
+    _watchForLoginWall();
+  }
+
   // Logged in: back to the room's title, which then catches up with the room.
   Future<void> _backToShow() async {
     final url = widget.videoUrl;
@@ -843,8 +884,9 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
       if (!mounted) return;
       if ((sync.target as _WebPlayerTarget).error) {
         // The web player refused (an error page) — use the app instead.
-        _moveToApp('the web player showed an error page: '
-            '${(sync.target as _WebPlayerTarget).errorCode}');
+        final code = (sync.target as _WebPlayerTarget).errorCode;
+        if (_siteErrorCode != code) setState(() => _siteErrorCode = code);
+        _moveToApp('the web player showed an error page: $code');
         return;
       }
       if (widget.isHost) await _followHostTitle(sync.local);
@@ -1392,13 +1434,22 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
                   color: Colors.black.withValues(alpha: 0.75),
                   borderRadius: BorderRadius.circular(14)),
               child: Row(children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                      'It isn’t playing here yet. Press play on the video, '
-                      'or open the app.',
-                      style: TextStyle(color: Colors.white, fontSize: 12.5)),
+                      _signInExpired
+                          ? '${_drmPlatform ?? 'The site'} says your sign-in on '
+                              'this phone has run out ($_siteErrorCode).'
+                          : 'It isn’t playing here yet. Press play on the '
+                              'video, or open the app.',
+                      style:
+                          const TextStyle(color: Colors.white, fontSize: 12.5)),
                 ),
-                if (OttRemote.supported && _hasApp)
+                if (_signInExpired)
+                  TextButton(
+                    onPressed: _signInAgain,
+                    child: const Text('Sign in again'),
+                  ),
+                if (OttRemote.supported && _hasApp && !_signInExpired)
                   TextButton(
                     onPressed: () => setState(() => _useApp = true),
                     child: const Text('Open app'),

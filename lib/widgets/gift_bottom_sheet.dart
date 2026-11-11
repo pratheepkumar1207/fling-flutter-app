@@ -7,6 +7,7 @@ import '../core/format.dart';
 import '../models/gift.dart';
 import '../screens/wallet/wallet_buy_screen.dart';
 import '../theme/app_colors.dart';
+import 'avatar.dart';
 import 'gift_fx.dart';
 import 'spinner.dart';
 
@@ -14,7 +15,8 @@ import 'spinner.dart';
 class GiftRecipient {
   final String id;
   final String name;
-  const GiftRecipient(this.id, this.name);
+  final String? avatarUrl;
+  const GiftRecipient(this.id, this.name, {this.avatarUrl});
 }
 
 /// A short strip of gifts along the bottom, so what's on screen stays visible
@@ -26,6 +28,9 @@ Future<void> showGiftBottomSheet(
   String? roomId,
   VoidCallback? onSent,
   List<GiftRecipient> recipients = const [],
+  // Room chat: nothing is sent until a person is picked (or was tagged in
+  // the message box, which comes in as toUserId).
+  bool requirePick = false,
 }) {
   return showModalBottomSheet(
     context: context,
@@ -35,7 +40,8 @@ Future<void> showGiftBottomSheet(
         toUserId: toUserId,
         roomId: roomId,
         onSent: onSent,
-        recipients: recipients),
+        recipients: recipients,
+        requirePick: requirePick),
   );
 }
 
@@ -44,11 +50,13 @@ class _GiftSheet extends StatefulWidget {
   final String? roomId;
   final VoidCallback? onSent;
   final List<GiftRecipient> recipients;
+  final bool requirePick;
   const _GiftSheet(
       {required this.toUserId,
       this.roomId,
       this.onSent,
-      this.recipients = const []});
+      this.recipients = const [],
+      this.requirePick = false});
 
   @override
   State<_GiftSheet> createState() => _GiftSheetState();
@@ -93,7 +101,7 @@ class _GiftSheetState extends State<_GiftSheet> {
 
   Future<void> _send() async {
     final gift = _selected;
-    if (gift == null || _sending) return;
+    if (gift == null || _sending || _to.isEmpty) return;
     setState(() => _sending = true);
     final messenger = ScaffoldMessenger.of(context);
     final auth = context.read<AuthProvider>();
@@ -191,6 +199,7 @@ class _GiftSheetState extends State<_GiftSheet> {
         .where((r) => r.id == _to)
         .map((r) => r.name)
         .firstOrNull;
+    final pick = widget.requirePick;
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xE80B0912),
@@ -202,6 +211,68 @@ class _GiftSheetState extends State<_GiftSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (pick) ...[
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(14, 12, 14, 6),
+                  child: Text('Who’s this gift for?',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700)),
+                ),
+                SizedBox(
+                  height: 34,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    children: [
+                      for (final r in widget.recipients)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: Semantics(
+                            button: true,
+                            selected: _to == r.id,
+                            label: 'Gift to ${r.name}',
+                            child: GestureDetector(
+                              onTap: () => setState(() => _to = r.id),
+                              child: Container(
+                                padding: const EdgeInsets.fromLTRB(3, 3, 10, 3),
+                                decoration: BoxDecoration(
+                                  color: _to == r.id
+                                      ? AppColors.primary
+                                          .withValues(alpha: 0.35)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(17),
+                                  border: Border.all(
+                                      color: _to == r.id
+                                          ? AppColors.primary
+                                          : Colors.white24),
+                                ),
+                                child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SizedBox.square(
+                                        dimension: 24,
+                                        child: FittedBox(
+                                            child: Avatar(
+                                                src: r.avatarUrl,
+                                                name: r.name,
+                                                size: AvatarSize.sm)),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(r.name,
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12.5)),
+                                    ]),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
               SizedBox(
                 height: 38,
                 child: ListView(
@@ -254,7 +325,9 @@ class _GiftSheetState extends State<_GiftSheet> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  if (widget.recipients.length > 1)
+                  if (pick)
+                    const Spacer()
+                  else if (widget.recipients.length > 1)
                     Expanded(
                       child: PopupMenuButton<String>(
                         tooltip: 'Who gets the gift',
@@ -287,7 +360,9 @@ class _GiftSheetState extends State<_GiftSheet> {
                     ),
                   ),
                   FilledButton(
-                    onPressed: _selected == null || _sending ? null : _send,
+                    onPressed: _selected == null || _sending || _to.isEmpty
+                        ? null
+                        : _send,
                     style: FilledButton.styleFrom(
                         backgroundColor: AppColors.lilac,
                         foregroundColor: const Color(0xFF241338),
@@ -295,9 +370,13 @@ class _GiftSheetState extends State<_GiftSheet> {
                         padding: const EdgeInsets.symmetric(horizontal: 14)),
                     child: Text(_combo >= 2
                         ? 'Combo ×$_combo'
-                        : _selected == null
-                            ? 'Send'
-                            : 'Send ${formatNumber(_selected!.coins * _qty)}'),
+                        : pick && _to.isEmpty
+                            ? 'Pick who it’s for'
+                            : _selected == null
+                                ? 'Send'
+                                : pick
+                                    ? 'Send ${_selected!.emoji} to ${(toName ?? '').split(' ').first}'
+                                    : 'Send ${formatNumber(_selected!.coins * _qty)}'),
                   ),
                 ]),
               ),

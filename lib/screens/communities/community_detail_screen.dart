@@ -425,6 +425,20 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                     Text(p['text'] as String? ?? '',
                         style: const TextStyle(
                             color: AppColors.text, fontSize: 13, height: 1.4)),
+                    // A room posted from its invite screen.
+                    if (p['roomId'] is String)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: FilledButton.icon(
+                          onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                  builder: (_) => PartyScreen(
+                                      roomId: p['roomId'] as String))),
+                          icon: const InIcon(InIcons.play,
+                              size: 14, color: Colors.white, filled: true),
+                          label: const Text('Join room'),
+                        ),
+                      ),
                   ],
                 ),
               )),

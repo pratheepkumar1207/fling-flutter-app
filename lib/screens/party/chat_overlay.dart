@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/room_person_scope.dart';
 import '../../core/room_prefs.dart';
-import '../../core/room_source_types.dart';
 import '../../models/room_models.dart';
 import '../../theme/insync_icons.dart';
 import '../../theme/app_colors.dart';
@@ -85,6 +84,17 @@ class ChatOverlay extends StatefulWidget {
   final Future<void> Function(String id, String senderName)? onOpenViewOnce;
   final void Function(String id)? onViewOnceSeen;
 
+  /// The gift button in a room: who's tagged in the message box (if
+  /// anyone) is who the gift is for; otherwise the gift sheet asks.
+  final void Function(String? taggedUserId)? onGiftFor;
+
+  /// The Now Playing line's skip: the host skips, everyone else votes.
+  final bool isHost;
+  final VoidCallback? onSkip;
+  final VoidCallback? onVoteSkip;
+  final int skipVoteCount;
+  final int skipVoteRequired;
+
   const ChatOverlay({
     super.key,
     required this.messages,
@@ -112,6 +122,12 @@ class ChatOverlay extends StatefulWidget {
     this.onViewOncePhoto,
     this.onOpenViewOnce,
     this.onViewOnceSeen,
+    this.onGiftFor,
+    this.isHost = false,
+    this.onSkip,
+    this.onVoteSkip,
+    this.skipVoteCount = 0,
+    this.skipVoteRequired = 1,
   });
 
   @override
@@ -194,8 +210,10 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
     setState(() => _mentionQuery = query);
   }
 
+  // The person's name goes in the box (not their handle): tags read as
+  // names everywhere in the chat.
   void _selectMention(RosterEntry participant) {
-    final handle = participant.username ?? participant.name;
+    final handle = participant.name;
     final text = _controller.text;
     final cursor = _controller.selection.baseOffset;
     final upToCursor = cursor >= 0 ? text.substring(0, cursor) : text;
@@ -210,8 +228,12 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
       selection: TextSelection.collapsed(offset: (before + insert).length),
     );
     _mentionedUserIds.add(participant.userId);
+    _lastTagged = participant.userId;
     setState(() => _mentionQuery = null);
   }
+
+  // Who was tagged last in the message box — the gift button's person.
+  String? _lastTagged;
 
   void _send() {
     final text = _controller.text.trim();
@@ -228,48 +250,66 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
               });
     _controller.clear();
     _mentionedUserIds.clear();
+    _lastTagged = null;
     setState(() {
       _mentionQuery = null;
       _replyTo = null;
     });
   }
 
-  /// Message text with @handles picked out (yours highlighted).
+  // Everyone in the room by the names a tag can use (name or handle),
+  // longest first so "@Arun Kumar" wins over "@Arun".
+  List<(String, String)> get _tagNames {
+    final out = <(String, String)>[];
+    for (final r in widget.roster) {
+      out.add((r.name, r.userId));
+      if (r.username != null) out.add((r.username!, r.userId));
+    }
+    out.sort((a, b) => b.$1.length.compareTo(a.$1.length));
+    return out;
+  }
+
+  /// Message text with tags picked out by the person's name (yours gold).
   List<InlineSpan> _textSpans(String text) {
-    final myHandle = widget.roster
-        .where((r) => r.userId == widget.myUserId)
-        .map((r) => (r.username ?? r.name).toLowerCase())
-        .firstOrNull;
+    final names = _tagNames.where((n) => n.$1.trim().isNotEmpty).toList();
+    final pattern = names.isEmpty
+        ? RegExp(r'@([A-Za-z0-9_.]+)')
+        : RegExp(
+            '@(${names.map((n) => RegExp.escape(n.$1)).join('|')}|[A-Za-z0-9_.]+)',
+            caseSensitive: false);
     final spans = <InlineSpan>[];
     var last = 0;
-    for (final m in RegExp(r'@([A-Za-z0-9_.]+)').allMatches(text)) {
+    for (final m in pattern.allMatches(text)) {
       if (m.start > last) {
         spans.add(TextSpan(text: text.substring(last, m.start)));
       }
-      final me = myHandle != null && m.group(1)!.toLowerCase() == myHandle;
+      final tag = m.group(1)!.toLowerCase();
+      final hit = names.where((n) => n.$1.toLowerCase() == tag).firstOrNull;
+      final me = hit != null && hit.$2 == widget.myUserId;
+      final shown = hit == null
+          ? m.group(0)!
+          : '@${widget.roster.where((r) => r.userId == hit.$2).firstOrNull?.name ?? m.group(1)}';
       spans.add(TextSpan(
-          text: m.group(0),
+          text: shown,
           style: TextStyle(
-              fontWeight: FontWeight.w700,
-              color: me ? AppColors.gold : AppColors.lilac,
-              backgroundColor:
-                  me ? AppColors.gold.withValues(alpha: 0.18) : null)));
+              fontWeight: FontWeight.w800,
+              color: me ? AppColors.gold : Colors.white)));
       last = m.end;
     }
     if (last < text.length) spans.add(TextSpan(text: text.substring(last)));
     return spans;
   }
 
-  bool _mentionsMe(String text) {
-    final myHandle = widget.roster
-        .where((r) => r.userId == widget.myUserId)
-        .map((r) => (r.username ?? r.name).toLowerCase())
-        .firstOrNull;
-    return myHandle != null && text.toLowerCase().contains('@$myHandle');
-  }
+  static const _textShadow = [
+    Shadow(color: Color(0xE6000000), blurRadius: 4, offset: Offset(0, 1)),
+  ];
 
-  /// One chat message: yours on the right, everyone else's on the left.
-  /// Long-press or swipe it to reply.
+  RosterEntry? _person(String? userId) =>
+      widget.roster.where((r) => r.userId == userId).firstOrNull;
+
+  /// One chat message: yours on the right, everyone else's on the left,
+  /// each with the person's picture. Plain white text, no bubble (a soft
+  /// shadow keeps it readable over video). Long-press or swipe to reply.
   Widget _messageLine(Map<String, dynamic> m, String name, String? senderId) {
     final mine = senderId != null && senderId == widget.myUserId;
     final vip = m['isVip'] == true;
@@ -278,109 +318,92 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
         ? Map<String, dynamic>.from(m['replyTo'] as Map)
         : null;
     final quoteMine = quote?['senderId'] == widget.myUserId;
-    final toMe = !mine && (quoteMine || _mentionsMe(text));
-    final bubble = Container(
-      constraints: const BoxConstraints(maxWidth: 270),
-      padding: const EdgeInsets.fromLTRB(11, 7, 11, 7),
-      decoration: BoxDecoration(
-        color: mine
-            ? AppColors.primary.withValues(alpha: 0.85)
-            : Colors.black.withValues(alpha: 0.35),
-        gradient: vip && !mine
-            ? LinearGradient(colors: [
-                AppColors.gold.withValues(alpha: 0.25),
-                Colors.black.withValues(alpha: 0.35),
-              ])
-            : null,
-        borderRadius: BorderRadius.only(
-          topLeft: const Radius.circular(16),
-          topRight: const Radius.circular(16),
-          bottomLeft: Radius.circular(mine ? 16 : 4),
-          bottomRight: Radius.circular(mine ? 4 : 16),
-        ),
-        border: Border.all(
-            color: toMe
-                ? AppColors.gold.withValues(alpha: 0.8)
-                : vip
-                    ? AppColors.gold.withValues(alpha: 0.6)
-                    : Colors.white.withValues(alpha: 0.08),
-            width: toMe ? 1.4 : 1),
-      ),
-      child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (quote != null)
+    final person = _person(senderId);
+    final shownName = mine ? 'You' : name;
+    final body = Column(
+        crossAxisAlignment:
+            mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            if (vip)
               Container(
-                margin: const EdgeInsets.only(bottom: 5),
-                padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+                margin: const EdgeInsets.only(right: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: const Border(
-                      left: BorderSide(color: AppColors.lilac, width: 3)),
-                ),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(quoteMine ? 'You' : '${quote['name'] ?? 'Someone'}',
-                          style: const TextStyle(
-                              color: AppColors.lilac,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700)),
-                      Text('${quote['text'] ?? ''}',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              color: Colors.white70, fontSize: 11.5)),
-                    ]),
+                    color: AppColors.gold,
+                    borderRadius: BorderRadius.circular(5)),
+                child: const Text('VIP',
+                    style: TextStyle(
+                        color: Color(0xFF3A2300),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800)),
               ),
-            RichText(
-              text: TextSpan(
-                style: const TextStyle(fontSize: 12.5, color: Colors.white),
-                children: [
-                  if (vip)
-                    WidgetSpan(
-                      alignment: PlaceholderAlignment.middle,
-                      child: Container(
-                        margin: const EdgeInsets.only(right: 5),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 5, vertical: 1),
-                        decoration: BoxDecoration(
-                            color: AppColors.gold,
-                            borderRadius: BorderRadius.circular(5)),
-                        child: const Text('VIP',
-                            style: TextStyle(
-                                color: Color(0xFF3A2300),
-                                fontSize: 9,
-                                fontWeight: FontWeight.w800)),
-                      ),
-                    ),
-                  if (!mine && widget.fanIds.contains(senderId))
-                    const WidgetSpan(
-                      alignment: PlaceholderAlignment.middle,
-                      child: Padding(
-                        padding: EdgeInsets.only(right: 4),
-                        child: InIcon(InIcons.heart,
-                            size: 12, color: AppColors.pink, filled: true),
-                      ),
-                    ),
-                  if (!mine)
-                    TextSpan(
-                        text: '$name  ',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color:
-                                vip ? AppColors.gold : _nameColor(senderId))),
-                  ..._textSpans(text),
-                ],
+            if (!mine && widget.fanIds.contains(senderId))
+              const Padding(
+                padding: EdgeInsets.only(right: 4),
+                child: InIcon(InIcons.heart,
+                    size: 12, color: AppColors.pink, filled: true),
               ),
+            Flexible(
+              child: Text(shownName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      shadows: _textShadow,
+                      color: mine
+                          ? AppColors.lilac
+                          : vip
+                              ? AppColors.gold
+                              : _nameColor(senderId))),
             ),
           ]),
+          if (quote != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                  '↪ ${quoteMine ? 'You' : quote['name'] ?? 'Someone'}: ${quote['text'] ?? ''}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      color: Colors.white60,
+                      fontSize: 11,
+                      shadows: _textShadow)),
+            ),
+          Text.rich(
+            TextSpan(children: _textSpans(text)),
+            textAlign: mine ? TextAlign.right : TextAlign.left,
+            style: const TextStyle(
+                fontSize: 13, color: Colors.white, shadows: _textShadow),
+          ),
+        ]);
+    final line = Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      textDirection: mine ? TextDirection.rtl : TextDirection.ltr,
+      children: [
+        GestureDetector(
+          onTap: mine ? null : () => openRoomPerson(context, senderId),
+          child: Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: SizedBox.square(
+              dimension: 24,
+              child: FittedBox(
+                  child: Avatar(
+                      src: person?.avatarUrl ?? m['avatarUrl'] as String?,
+                      name: name,
+                      size: AvatarSize.sm)),
+            ),
+          ),
+        ),
+        const SizedBox(width: 7),
+        Flexible(child: body),
+      ],
     );
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Dismissible(
         key: ValueKey('msg-${m['id'] ?? m['ts']}-$senderId'),
         direction:
@@ -402,12 +425,14 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
         ),
         child: Align(
           alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-          child: Semantics(
-            label: '${mine ? 'You' : name}: $text. Long-press to reply',
-            child: GestureDetector(
-              onTap: mine ? null : () => openRoomPerson(context, senderId),
-              onLongPress: () => _startReply(m),
-              child: bubble,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 300),
+            child: Semantics(
+              label: '$shownName: $text. Long-press to reply',
+              child: GestureDetector(
+                onLongPress: () => _startReply(m),
+                child: line,
+              ),
             ),
           ),
         ),
@@ -415,31 +440,130 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
     );
   }
 
-  // Invite and share live here so the chat field keeps its width.
-  void _openMore() => showModalBottomSheet(
+  /// Joins, leaves, removals and other room notes: small and centred.
+  Widget _eventLine(Map<String, dynamic> m) {
+    final event = m['event'] as String?;
+    final text = m['text'] as String? ?? '';
+    final removed = event == 'removed';
+    final color = removed ? const Color(0xFFE08A8A) : const Color(0xFFB0ADC2);
+    final person = _person(m['userId'] as String?);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        if (event == 'joined')
+          Padding(
+            padding: const EdgeInsets.only(right: 5),
+            child: SizedBox.square(
+              dimension: 16,
+              child: FittedBox(
+                  child: Avatar(
+                      src: person?.avatarUrl ?? m['avatarUrl'] as String?,
+                      name: text,
+                      size: AvatarSize.sm)),
+            ),
+          )
+        else if (event == 'left' || removed)
+          Padding(
+            padding: const EdgeInsets.only(right: 5),
+            child: InIcon(removed ? InIcons.block : InIcons.logout,
+                size: 13, color: color),
+          ),
+        Flexible(
+          child: Text(
+              removed
+                  ? text.replaceFirst(
+                      ' was removed', ' was removed by the host')
+                  : text,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: color, fontSize: 11.5, shadows: _textShadow)),
+        ),
+      ]),
+    );
+  }
+
+  // Quick reactions: one tap sends it to the room.
+  static const _quickReactions = ['😂', '🔥', '❤️', '😮', '👏'];
+  static const _emojiGrid = [
+    '😂',
+    '🤣',
+    '😍',
+    '🥰',
+    '😘',
+    '😎',
+    '🤩',
+    '🥳',
+    '😮',
+    '😱',
+    '😭',
+    '😡',
+    '🤔',
+    '🙄',
+    '😴',
+    '🤯',
+    '👍',
+    '👎',
+    '👏',
+    '🙌',
+    '🙏',
+    '💪',
+    '🔥',
+    '❤️',
+    '💔',
+    '💯',
+    '✨',
+    '🎉',
+    '🎶',
+    '🍿',
+    '👀',
+    '😅',
+  ];
+
+  void _sendReaction(String emoji) =>
+      widget.onSend(emoji, const [], replyTo: null);
+
+  void _openEmoji() => showModalBottomSheet(
         context: context,
         backgroundColor: AppColors.surface,
         builder: (sheet) => SafeArea(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            ListTile(
-              leading: const InIcon(InIcons.useradd, size: 20),
-              title: const Text('Invite people'),
-              onTap: () {
-                Navigator.of(sheet).pop();
-                widget.onInvite();
-              },
-            ),
-            ListTile(
-              leading: const InIcon(InIcons.share, size: 20),
-              title: const Text('Share room'),
-              onTap: () {
-                Navigator.of(sheet).pop();
-                widget.onShare();
-              },
-            ),
-          ]),
+          child: GridView.count(
+            crossAxisCount: 8,
+            shrinkWrap: true,
+            padding: const EdgeInsets.all(12),
+            children: [
+              for (final e in _emojiGrid)
+                InkResponse(
+                  onTap: () {
+                    final t = _controller.text;
+                    final at = _controller.selection.baseOffset;
+                    final pos = at < 0 ? t.length : at;
+                    _controller.value = TextEditingValue(
+                      text: t.substring(0, pos) + e + t.substring(pos),
+                      selection:
+                          TextSelection.collapsed(offset: pos + e.length),
+                    );
+                    Navigator.of(sheet).pop();
+                  },
+                  child: Center(
+                      child: Text(e, style: const TextStyle(fontSize: 24))),
+                ),
+            ],
+          ),
         ),
       );
+
+  void _gift() {
+    final giftFor = widget.onGiftFor;
+    if (giftFor == null) {
+      widget.onGift();
+      return;
+    }
+    final tagged = _lastTagged;
+    final stillTagged = tagged != null &&
+        _mentionedUserIds.contains(tagged) &&
+        _controller.text.contains('@${_person(tagged)?.name ?? ''}');
+    giftFor(stillTagged ? tagged : null);
+  }
 
   Future<void> _openAttach() async {
     final kind = await showInsyncAttachSheet(context, options: [
@@ -603,17 +727,24 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    // Other system messages (joins, "added to queue") stay out of the
-    // bubble list as before — only the rich nowPlaying card is meant to
-    // appear inline here.
+    // Everything that happened in the room, in order: messages, what
+    // played, joins, leaves and removals. Gift cards where the room shows
+    // them.
     final visible = widget.messages
+        .where((m) => m['gift'] != true || widget.showGiftCards)
         .where((m) =>
             m['system'] != true ||
             m['type'] == 'nowPlaying' ||
-            (m['gift'] == true && widget.showGiftCards))
+            m['gift'] == true ||
+            '${m['text'] ?? ''}'.trim().isNotEmpty)
         .toList()
         .reversed
         .toList();
+    // The newest Now Playing line is the one playing; older ones played.
+    final current = visible
+        .where((m) => m['type'] == 'nowPlaying')
+        .map((m) => m['ts'])
+        .firstOrNull;
     final matches = _mentionMatches;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -633,30 +764,30 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                     }
                     if (m['type'] == 'nowPlaying') {
                       final pinnerId = m['pinnedBy'] as String?;
-                      final onRoster = pinnerId == null
-                          ? null
-                          : widget.roster
-                              .where((r) => r.userId == pinnerId)
-                              .firstOrNull;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: _NowPlayingChatCard(
-                            pinnerName:
-                                m['pinnedByName'] as String? ?? onRoster?.name,
-                            pinnerAvatar: m['pinnedByAvatar'] as String? ??
-                                onRoster?.avatarUrl,
-                            message: m,
-                            liked: widget.likedUrls
-                                .contains(m['videoUrl'] as String?),
-                            onToggleLike: widget.onToggleLike == null
-                                ? null
-                                : () => widget.onToggleLike!(m),
-                          ),
-                        ),
+                      final onRoster = _person(pinnerId);
+                      final playing = m['ts'] == current;
+                      return _NowPlayingLine(
+                        message: m,
+                        playing: playing,
+                        pinnerName: pinnerId != null &&
+                                pinnerId == widget.myUserId
+                            ? 'You'
+                            : m['pinnedByName'] as String? ?? onRoster?.name,
+                        pinnerAvatar: m['pinnedByAvatar'] as String? ??
+                            onRoster?.avatarUrl,
+                        liked:
+                            widget.likedUrls.contains(m['videoUrl'] as String?),
+                        onToggleLike: widget.onToggleLike == null
+                            ? null
+                            : () => widget.onToggleLike!(m),
+                        isHost: widget.isHost,
+                        onSkip: playing ? widget.onSkip : null,
+                        onVoteSkip: playing ? widget.onVoteSkip : null,
+                        skipVoteCount: widget.skipVoteCount,
+                        skipVoteRequired: widget.skipVoteRequired,
                       );
                     }
+                    if (m['system'] == true) return _eventLine(m);
                     final name = m['name'] as String? ?? 'Someone';
                     final senderId = m['senderId'] as String?;
                     final viewOnceId = m['viewOnceId'] as String?;
@@ -742,6 +873,32 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
           ),
         if (widget.pickEndsAt != null || widget.pickWaiting)
           PickBanner(endsAt: widget.pickEndsAt, waiting: widget.pickWaiting),
+        if (!_focused)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(children: [
+              for (final e in _quickReactions)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: Semantics(
+                    button: true,
+                    label: 'Send $e',
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () => _sendReaction(e),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 9, vertical: 3),
+                        decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.09),
+                            borderRadius: BorderRadius.circular(16)),
+                        child: Text(e, style: const TextStyle(fontSize: 15)),
+                      ),
+                    ),
+                  ),
+                ),
+            ]),
+          ),
         if (_replyTo != null)
           Container(
             margin: const EdgeInsets.only(bottom: 6),
@@ -856,7 +1013,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                           cursorColor: Colors.white,
                           onSubmitted: (_) => _send(),
                           decoration: const InputDecoration(
-                            hintText: 'Say something…',
+                            hintText: 'Message…',
                             hintStyle: TextStyle(color: Colors.white54),
                             border: InputBorder.none,
                             isDense: true,
@@ -864,17 +1021,15 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                           ),
                         ),
                       ),
-                      // Camera is in this sheet too: the field needs the room.
-                      if (!_focused)
-                        _inlineIcon(InIcons.clip, 'Attach', _openAttach),
+                      _inlineIcon(InIcons.smile, 'Emoji', _openEmoji),
+                      _inlineIcon(InIcons.clip, 'Attach', _openAttach),
                     ],
                   ),
                 ),
               ),
             ),
             const SizedBox(width: 6),
-            // While typing: just Send. Otherwise gift, invite and share sit
-            // beside the field, as in the design.
+            // While typing: just Send. Otherwise gift and invite.
             if (_focused)
               GlassCircleButton(
                 size: 42,
@@ -889,7 +1044,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                 label: 'Send a gift',
                 child: GlassCircleButton(
                   size: 42,
-                  onTap: widget.onGift,
+                  onTap: _gift,
                   color: const Color(0xFF2A2310),
                   child: const InIcon(InIcons.gift,
                       color: AppColors.gold, size: 20),
@@ -898,12 +1053,12 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
               const SizedBox(width: 6),
               Semantics(
                 button: true,
-                label: 'More',
+                label: 'Invite people',
                 child: GlassCircleButton(
                   size: 42,
-                  onTap: _openMore,
-                  child:
-                      const InIcon(InIcons.more, color: Colors.white, size: 20),
+                  onTap: widget.onInvite,
+                  child: const InIcon(InIcons.useradd,
+                      color: Colors.white, size: 20),
                 ),
               ),
             ],
@@ -930,82 +1085,235 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
 }
 
 // The "now playing" entry in chat itself — see syncHandler.js's
-// chat:message type:'nowPlaying'. Same GlassPanel bubble treatment as a
-// normal message, just with a thumbnail and a tappable like icon instead
-// of plain text.
-class _NowPlayingChatCard extends StatelessWidget {
+// chat:message type:'nowPlaying'. No box: the site's icon inside the text,
+// "Now Playing" (or "Played" once something newer started), the title and
+// the pinner's picture and name, at most 3 lines with the title cut so the
+// name always shows. Like and skip sit on the right at the middle line.
+class _NowPlayingLine extends StatelessWidget {
   final Map<String, dynamic> message;
-  final bool liked;
-  final VoidCallback? onToggleLike;
-  // Who pinned/added this item — name + avatar are snapshotted by the server
-  // when it starts playing (see syncHandler.js), with the live roster as a
-  // fallback. Both null for older messages, which keep the thumbnail.
+  final bool playing;
   final String? pinnerName;
   final String? pinnerAvatar;
+  final bool liked;
+  final VoidCallback? onToggleLike;
+  final bool isHost;
+  final VoidCallback? onSkip;
+  final VoidCallback? onVoteSkip;
+  final int skipVoteCount;
+  final int skipVoteRequired;
 
-  const _NowPlayingChatCard(
-      {required this.message,
-      required this.liked,
-      this.onToggleLike,
-      this.pinnerName,
-      this.pinnerAvatar});
+  const _NowPlayingLine({
+    required this.message,
+    required this.playing,
+    required this.liked,
+    this.pinnerName,
+    this.pinnerAvatar,
+    this.onToggleLike,
+    this.isHost = false,
+    this.onSkip,
+    this.onVoteSkip,
+    this.skipVoteCount = 0,
+    this.skipVoteRequired = 1,
+  });
 
-  static (InIconData, Color) _sourceIcon(String? sourceType) {
-    if (sourceType == 'youtube') {
-      return (InIcons.tv, const Color(0xFFFF3B30));
+  static const _shadow = [
+    Shadow(color: Color(0xE6000000), blurRadius: 4, offset: Offset(0, 1)),
+  ];
+
+  // The site, as a small badge inside the text.
+  static Widget _source(String? sourceType) {
+    final (Color bg, Widget glyph) = switch (sourceType) {
+      'youtube' || 'youtube_surf' => (
+          const Color(0xFFFF0033),
+          const InIcon(InIcons.play, size: 9, color: Colors.white, filled: true)
+        ),
+      'netflix' => (
+          Colors.black,
+          const Text('N',
+              style: TextStyle(
+                  color: Color(0xFFE50914),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  height: 1))
+        ),
+      'amazon' => (
+          const Color(0xFF1A98FF),
+          const Text('prime',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 6.5,
+                  fontWeight: FontWeight.w800,
+                  height: 1))
+        ),
+      'hotstar' => (
+          const Color(0xFF0F1E5C),
+          const Text('JH',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 7,
+                  fontWeight: FontWeight.w900,
+                  height: 1))
+        ),
+      'drive' => (
+          const Color(0xFF1E8E3E),
+          const InIcon(InIcons.cloud, size: 9, color: Colors.white)
+        ),
+      _ => (
+          const Color(0xFF4A4560),
+          const InIcon(InIcons.tv, size: 9, color: Colors.white)
+        ),
+    };
+    return Container(
+      width: 20,
+      height: 14,
+      margin: const EdgeInsets.only(right: 5),
+      alignment: Alignment.center,
+      decoration:
+          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(3.5)),
+      child: glyph,
+    );
+  }
+
+  InlineSpan _spans(String title, {required bool cut}) {
+    const dim = Color(0xFF8C889E);
+    return TextSpan(
+      style:
+          const TextStyle(color: Colors.white, fontSize: 13, shadows: _shadow),
+      children: [
+        WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: _source(message['sourceType'] as String?)),
+        TextSpan(
+            text: playing ? 'Now Playing' : 'Played',
+            style: TextStyle(
+                color: playing ? AppColors.lilac : dim,
+                fontWeight: FontWeight.w700)),
+        const TextSpan(text: '  ·  ', style: TextStyle(color: dim)),
+        TextSpan(
+            text: cut ? '$title…' : title,
+            style: const TextStyle(fontWeight: FontWeight.w700)),
+        if (pinnerName != null) ...[
+          const TextSpan(text: '  ·  ', style: TextStyle(color: dim)),
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: SizedBox.square(
+                dimension: 15,
+                child: FittedBox(
+                    child: Avatar(
+                        src: pinnerAvatar,
+                        name: pinnerName,
+                        size: AvatarSize.sm)),
+              ),
+            ),
+          ),
+          TextSpan(
+              text: pinnerName!.length > 16
+                  ? '${pinnerName!.substring(0, 15)}…'
+                  : pinnerName,
+              style: const TextStyle(color: Color(0xFFB8B4CC))),
+        ],
+      ],
+    );
+  }
+
+  // The longest title that keeps everything, name included, in 3 lines.
+  InlineSpan _fit(String title, double width, TextScaler scaler) {
+    bool fits(InlineSpan span) {
+      final tp = TextPainter(
+        text: span,
+        textDirection: TextDirection.ltr,
+        textScaler: scaler,
+        maxLines: 3,
+      )..setPlaceholderDimensions(List.filled(
+          pinnerName != null ? 2 : 1,
+          const PlaceholderDimensions(
+              size: Size(20, 15), alignment: PlaceholderAlignment.middle)));
+      tp.layout(maxWidth: width);
+      final over = tp.didExceedMaxLines;
+      tp.dispose();
+      return !over;
     }
-    if (sourceType == 'drive') {
-      return (InIcons.cloud, const Color(0xFF4285F4));
+
+    final whole = _spans(title, cut: false);
+    if (fits(whole)) return whole;
+    var lo = 0, hi = title.length;
+    while (lo < hi) {
+      final mid = (lo + hi + 1) ~/ 2;
+      if (fits(_spans(title.substring(0, mid).trimRight(), cut: true))) {
+        lo = mid;
+      } else {
+        hi = mid - 1;
+      }
     }
-    if (sourceType != null && webviewSourceTypes.contains(sourceType)) {
-      return (InIcons.tv, Colors.white70);
-    }
-    return (InIcons.play, Colors.white70);
+    return _spans(title.substring(0, lo).trimRight(), cut: true);
   }
 
   @override
   Widget build(BuildContext context) {
-    final thumbnail = message['thumbnail'] as String?;
-    final hasPinner = pinnerName != null || pinnerAvatar != null;
-    final (sourceIcon, sourceColor) =
-        _sourceIcon(message['sourceType'] as String?);
-    // Full chat width (no max-width cap, unlike normal bubbles) so the
-    // title can use the whole screen length before it ellipsizes.
-    return GlassPanel(
-      borderRadius: BorderRadius.circular(14),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    final title = message['title'] as String? ?? 'Untitled';
+    final skip = isHost ? onSkip : onVoteSkip;
+    final scaler = MediaQuery.textScalerOf(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Opacity(
+        opacity: playing ? 1 : 0.6,
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            if (hasPinner)
-              Avatar(src: pinnerAvatar, name: pinnerName, size: AvatarSize.sm)
-            else if (thumbnail != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(thumbnail,
-                    width: 32, height: 32, fit: BoxFit.cover),
-              ),
-            if (hasPinner || thumbnail != null) const SizedBox(width: 8),
-            InIcon(sourceIcon, size: 16, color: sourceColor),
-            const SizedBox(width: 6),
             Expanded(
-              child: Text(
-                message['title'] as String? ?? 'Untitled',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13),
+              child: LayoutBuilder(
+                builder: (context, box) => Semantics(
+                  label:
+                      '${playing ? 'Now playing' : 'Played'}: $title${pinnerName == null ? '' : ', by $pinnerName'}',
+                  child: Text.rich(
+                    _fit(title, box.maxWidth, scaler),
+                    maxLines: 3,
+                    overflow: TextOverflow.clip,
+                  ),
+                ),
               ),
             ),
             if (onToggleLike != null)
-              GestureDetector(
-                onTap: onToggleLike,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 6),
-                  child: Text(liked ? '❤️' : '🤍',
-                      style: const TextStyle(fontSize: 16)),
+              Semantics(
+                button: true,
+                label: liked ? 'Unlike' : 'Like',
+                child: InkResponse(
+                  onTap: onToggleLike,
+                  radius: 18,
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: InIcon(InIcons.heart,
+                        size: 17,
+                        filled: liked,
+                        color: liked ? AppColors.pink : Colors.white70),
+                  ),
+                ),
+              ),
+            if (playing && skip != null)
+              Semantics(
+                excludeSemantics: true,
+                button: true,
+                label: isHost
+                    ? 'Skip to the next one'
+                    : 'Vote to skip, $skipVoteCount of $skipVoteRequired',
+                child: InkResponse(
+                  onTap: skip,
+                  radius: 18,
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const InIcon(InIcons.skipNext,
+                          size: 17, color: Colors.white70),
+                      if (!isHost) ...[
+                        const SizedBox(width: 2),
+                        Text('$skipVoteCount/$skipVoteRequired',
+                            style: const TextStyle(
+                                color: Color(0xFFB8B4CC), fontSize: 10.5)),
+                      ],
+                    ]),
+                  ),
                 ),
               ),
           ],
