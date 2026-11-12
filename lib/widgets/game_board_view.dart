@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
-import 'chess_board.dart';
+import 'chess_3d_board.dart';
 import 'ludo_board.dart';
 import 'tic_tac_toe_board.dart';
 import 'truth_or_dare_panel.dart';
@@ -73,7 +73,7 @@ class GameBoardView extends StatelessWidget {
     }
 
     if (gameType == 'chess') {
-      return ChessBoard(
+      return Chess3DBoard(
           game: game!,
           myUserId: myUserId,
           isHost: isHost,
