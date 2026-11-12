@@ -354,6 +354,51 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
   // asking them to log in (a login page, or a login wall over the title).
   bool _needsLogin = false;
   Timer? _loginCheck;
+  // The person went to sign in from the room. Once the site shows them
+  // signed in, they're taken back to the room's title, which then plays in
+  // step with the room (see _watchSignIn).
+  bool _signingIn = false;
+  Timer? _signInWatch;
+
+  // Watches for the sign-in to finish: the site leaves its login page, or
+  // (sites that sign in over the page, like Hotstar) its Log in buttons go
+  // away for a couple of checks in a row.
+  void _watchSignIn() {
+    _signInWatch?.cancel();
+    _signingIn = true;
+    var clear = 0;
+    var checks = 0;
+    _signInWatch = Timer.periodic(const Duration(seconds: 3), (timer) async {
+      checks++;
+      if (!mounted || !_signingIn || checks > 200) {
+        timer.cancel();
+        return;
+      }
+      if (_onLoginPage || checks < 3) {
+        clear = 0;
+        return;
+      }
+      try {
+        final wall =
+            await _controller?.evaluateJavascript(source: _loginWallScript);
+        clear = wall == true ? 0 : clear + 1;
+        if (clear >= 2) {
+          timer.cancel();
+          _signedInGoBack();
+        }
+      } catch (_) {}
+    });
+  }
+
+  Future<void> _signedInGoBack() async {
+    if (!_signingIn || !mounted) return;
+    _signingIn = false;
+    _signInWatch?.cancel();
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(const SnackBar(
+        content: Text('Signed in. Back to the show…'),
+        duration: Duration(seconds: 2)));
+    await _backToShow();
+  }
 
   static const _loginWallScript = r'''
     (function() {
@@ -398,6 +443,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     final c = _controller;
     if (c == null) return;
     setState(() => _needsLogin = false);
+    _watchSignIn();
     final clicked = await c.evaluateJavascript(source: r'''
       (function() {
         var re = /^\s*(log\s*in|sign\s*in|login|signin)\s*$/i;
@@ -457,6 +503,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         ? 'https://www.netflix.com/login'
         : '${home.scheme}://${home.host}/';
     await _controller?.loadUrl(urlRequest: URLRequest(url: WebUri(login)));
+    _watchSignIn();
     _watchForLoginWall();
   }
 
@@ -464,6 +511,8 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
   Future<void> _backToShow() async {
     final url = widget.videoUrl;
     if (url == null) return;
+    _signingIn = false;
+    _signInWatch?.cancel();
     setState(() {
       _needsLogin = false;
       _onLoginPage = false;
@@ -483,8 +532,17 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         path.contains('signin') ||
         path.contains('sign-in');
     if (looksLikeLogin != _onLoginPage) {
+      final leftLogin = _onLoginPage && !looksLikeLogin;
       _tryStarted = DateTime.now();
       setState(() => _onLoginPage = looksLikeLogin);
+      // Reached the login page some other way (the site sent them there):
+      // still bring them back once they're done.
+      if (looksLikeLogin && !_signingIn) _watchSignIn();
+      // The site moved on from its login page (to its home, a profile
+      // picker): signed in, so back to the room's title.
+      if (leftLogin && _signingIn) {
+        Future.delayed(const Duration(milliseconds: 1500), _signedInGoBack);
+      }
     }
   }
 
@@ -909,7 +967,8 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
       // (and again when it changes, e.g. an ad then the film), so there are
       // no black bands above and below eating into the chat.
       final ar = sync.local?.aspect;
-      if (ar != null && (_shownAspect == null || (ar - _shownAspect!).abs() > 0.02)) {
+      if (ar != null &&
+          (_shownAspect == null || (ar - _shownAspect!).abs() > 0.02)) {
         setState(() => _shownAspect = ar);
       }
       _reportStatus(status, sync.offset);
@@ -1344,6 +1403,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     _stretchTimer?.cancel();
     InAppWebViewController.disposeKeepAlive(_keepAlive);
     _loginCheck?.cancel();
+    _signInWatch?.cancel();
     _webSyncTimer?.cancel();
     _tickTimer?.cancel();
     _nudgeDismissTimer?.cancel();
@@ -1596,7 +1656,8 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
                   borderRadius: BorderRadius.circular(14)),
               child: Row(children: [
                 const Expanded(
-                  child: Text('Log in with your own account, then go back.',
+                  child: Text(
+                      "Sign in with your own account. You'll come back to the show by itself.",
                       style: TextStyle(color: Colors.white, fontSize: 12)),
                 ),
                 TextButton(
