@@ -7,12 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import '../core/api_client.dart';
-import '../theme/app_colors.dart';
 import 'chess_board.dart';
 import 'game_seat.dart';
 
-/// Room chess on the 3D board (public/chess on the backend, adapted from
-/// Cliff Pyles' MIT-licensed CodePen). The server still owns every rule:
+/// Room chess on our own 3D board (public/chess/index.html on the backend,
+/// three.js pieces turned and lit in the page). The server owns every rule:
 /// this page only shows the room's position and sends the player's move,
 /// exactly like the flat [ChessBoard], which takes over if the page fails.
 class Chess3DBoard extends StatefulWidget {
@@ -125,7 +124,28 @@ class _Chess3DBoardState extends State<Chess3DBoard> {
       'youName': me == null ? (mine?['name'] ?? 'White') : 'You',
       // A new game (host's reset) starts a new table.
       'key': players.map((p) => p['userId']).join(','),
+      'banner': _banner(players),
     };
+  }
+
+  // The result over the board once the game ends.
+  String _banner(List<Map> players) {
+    final game = widget.game;
+    switch (game['status']) {
+      case 'won':
+        final w = game['winner'];
+        if (w == widget.myUserId) return 'Checkmate · You won';
+        final name = players.cast<Map?>().firstWhere((p) => p?['userId'] == w, orElse: () => null)?['name'];
+        return 'Checkmate · ${name ?? 'They'} won';
+      case 'draw':
+        return switch (game['drawReason']) {
+          'stalemate' => 'Draw · Stalemate',
+          'insufficient_material' => 'Draw · Not enough pieces',
+          'fifty_move' => 'Draw · 50-move rule',
+          _ => 'Draw',
+        };
+    }
+    return '';
   }
 
   Future<void> _push() async {
@@ -215,7 +235,7 @@ class _Chess3DBoardState extends State<Chess3DBoard> {
                 gestureRecognizers: {
                   Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
                 },
-                initialUrlRequest: URLRequest(url: WebUri('${ApiClient.baseUrl}/chess/#/room')),
+                initialUrlRequest: URLRequest(url: WebUri('${ApiClient.baseUrl}/chess/')),
                 initialSettings: InAppWebViewSettings(
                   javaScriptEnabled: true,
                   transparentBackground: true,
@@ -250,11 +270,6 @@ class _Chess3DBoardState extends State<Chess3DBoard> {
             padding: const EdgeInsets.only(top: 8),
             child: OutlinedButton(onPressed: widget.onReset, child: const Text('Play again')),
           ),
-        const Padding(
-          padding: EdgeInsets.only(top: 4),
-          child: Text('3D board by Cliff Pyles (MIT)',
-              style: TextStyle(color: AppColors.textFaint, fontSize: 9)),
-        ),
       ],
     );
   }
