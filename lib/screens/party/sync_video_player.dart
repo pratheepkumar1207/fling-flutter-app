@@ -233,6 +233,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     RoomPrefs.instance.addListener(_applyVolume);
     _currentVideoId = extractYouTubeId(widget.videoUrl);
     if (_currentVideoId != null) _loadAspectRatio(_currentVideoId!);
+    _readRealSize();
     // Host too, not just viewers: this widget is rebuilt from scratch when
     // the host leaves the room screen and comes back (minimize, Back), and
     // the server never echoes the host's own play/pause/seek back to it —
@@ -262,6 +263,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
       _lastReportedIsPlaying = null;
       _lastAppliedUpdatedAt = null;
       _aspectRatio = 16 / 9;
+      _controller?.evaluateJavascript(source: 'window.__insyncAR = 0;');
       _loadAspectRatio(videoId);
       _controller?.loadUrl(
         urlRequest: URLRequest(url: WebUri(_embedUrl(videoId))),
@@ -689,6 +691,51 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
   // Deliberate: the user chose screen-off playback for YouTube knowing it
   // goes against YouTube's embedded-player terms (see background_audio_
   // handler.dart's mirrorExternalPlayback for the same decision).
+  // Runs in every frame. Inside YouTube's player frame it reads the real
+  // size of the playing <video> and hands it up to our embed page, which
+  // keeps the latest as window.__insyncAR for _readRealSize.
+  static const _kRealSizeScript = r'''
+(function () {
+  try {
+    if (/(^|\.)youtube(-nocookie)?\.com$/.test(location.hostname)) {
+      var last = 0;
+      setInterval(function () {
+        var v = document.querySelector('video');
+        if (!v || !v.videoWidth || !v.videoHeight) return;
+        var ar = v.videoWidth / v.videoHeight;
+        if (Math.abs(ar - last) < 0.01) return;
+        last = ar;
+        try { window.top.postMessage({ insyncAR: ar }, '*'); } catch (e) {}
+      }, 700);
+    } else if (window === window.top) {
+      window.addEventListener('message', function (e) {
+        if (e && e.data && typeof e.data.insyncAR === 'number') window.__insyncAR = e.data.insyncAR;
+      });
+    }
+  } catch (e) {}
+})();
+''';
+
+  Timer? _realSizeTimer;
+  // Polls the size the player frame reported; the measured shape wins over
+  // the lookup's guess, so the box has no black bands above or below.
+  void _readRealSize() {
+    _realSizeTimer?.cancel();
+    _realSizeTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
+      if (!mounted) return;
+      try {
+        final v = await _controller?.evaluateJavascript(
+            source: 'window.__insyncAR || 0');
+        final ar = (v is num) ? v.toDouble() : double.tryParse('$v') ?? 0;
+        if (ar <= 0 || !mounted) return;
+        final next = ar.clamp(0.5, 2.6).toDouble();
+        if ((next - _aspectRatio).abs() > 0.01) {
+          setState(() => _aspectRatio = next);
+        }
+      } catch (_) {}
+    });
+  }
+
   static const _kKeepVisibleScript = '''
 (function () {
   try {
@@ -717,6 +764,11 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
       initialUserScripts: UnmodifiableListView([
         UserScript(
           source: _kKeepVisibleScript,
+          injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+          forMainFrameOnly: false,
+        ),
+        UserScript(
+          source: _kRealSizeScript,
           injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
           forMainFrameOnly: false,
         ),
@@ -1164,6 +1216,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
 
   @override
   void dispose() {
+    _realSizeTimer?.cancel();
     InAppWebViewController.disposeKeepAlive(_keepAlive);
     if (_forcedLandscape) SystemChrome.setPreferredOrientations([]);
     WidgetsBinding.instance.removeObserver(this);
