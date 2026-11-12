@@ -6,8 +6,9 @@ import '../../theme/room_themes.dart';
 /// Game rooms: the game owns the screen. A slim song bar sits on top (the
 /// room's music keeps playing while people play), the board fills the
 /// middle, and chat waits behind it as a one-line bar at the bottom —
-/// tap or swipe it up to slide the full chat over the game, swipe down
-/// (or tap the handle) to put it back. The board never unmounts, so a
+/// tap or swipe it up to slide the full chat over the game; drag its top
+/// down, tap the close button, tap the game above it or press back to put
+/// it away. The board never unmounts, so a
 /// game in progress isn't disturbed by opening chat.
 class GameRoomBody extends StatefulWidget {
   final Widget? songPlayer;
@@ -33,6 +34,8 @@ class GameRoomBody extends StatefulWidget {
 
 class _GameRoomBodyState extends State<GameRoomBody> {
   bool _chatOpen = false;
+  // How far the open chat has been pulled down by the finger.
+  double _drag = 0;
   // Messages already seen — everything past this counts as "new" on the
   // collapsed bar.
   late int _seenCount = widget.messages.length;
@@ -41,6 +44,7 @@ class _GameRoomBodyState extends State<GameRoomBody> {
     if (open == _chatOpen) return;
     setState(() {
       _chatOpen = open;
+      _drag = 0;
       _seenCount = widget.messages.length;
     });
     if (!open) FocusScope.of(context).unfocus();
@@ -166,81 +170,132 @@ class _GameRoomBodyState extends State<GameRoomBody> {
     );
   }
 
+  // The top of the open chat: drag it down (it follows the finger) or tap
+  // the close button to go back to the game.
+  Widget _chatHeader(double panelHeight) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onVerticalDragUpdate: (d) =>
+          setState(() => _drag = (_drag + d.delta.dy).clamp(0.0, panelHeight)),
+      onVerticalDragEnd: (d) {
+        final v = d.primaryVelocity ?? 0;
+        if (v > 300 || _drag > panelHeight * 0.25) {
+          _setChatOpen(false);
+        } else {
+          setState(() => _drag = 0);
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 6, 4),
+        child: Column(
+          children: [
+            Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: AppColors.textFaint,
+                    borderRadius: BorderRadius.circular(999))),
+            Row(
+              children: [
+                const InIcon(InIcons.chat, size: 18, color: AppColors.textDim),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text('Chat',
+                      style: TextStyle(
+                          color: AppColors.text,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600)),
+                ),
+                Semantics(
+                  button: true,
+                  label: 'Close chat',
+                  child: IconButton(
+                    onPressed: () => _setChatOpen(false),
+                    icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                        color: Colors.white, size: 28),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
       final panelHeight = constraints.maxHeight * 0.62;
-      return Stack(
-        children: [
-          Column(
-            children: [
-              _songBar(),
-              ...widget.banners,
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(12, 6, 12, 70),
-                  child: widget.board,
+      return PopScope(
+        canPop: !_chatOpen,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop && _chatOpen) _setChatOpen(false);
+        },
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                _songBar(),
+                ...widget.banners,
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(12, 6, 12, 70),
+                    child: widget.board,
+                  ),
+                ),
+              ],
+            ),
+            Positioned(left: 0, right: 0, bottom: 0, child: _chatBar()),
+            // Tapping the game above the open chat puts the chat away.
+            if (_chatOpen)
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                bottom: panelHeight - _drag,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _setChatOpen(false),
+                  child: Semantics(
+                      button: true,
+                      label: 'Back to the game',
+                      child: const SizedBox.expand()),
                 ),
               ),
-            ],
-          ),
-          Positioned(left: 0, right: 0, bottom: 0, child: _chatBar()),
-          // Chat slides over the game; the game stays visible above it.
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
-            left: 0,
-            right: 0,
-            height: panelHeight,
-            bottom: _chatOpen ? 0 : -panelHeight - 20,
-            child: Offstage(
-              offstage: !_chatOpen,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.bg.withValues(alpha: 0.96),
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(20)),
-                  border: Border.all(color: RoomTheme.of(context).border),
-                ),
-                child: Column(
-                  children: [
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => _setChatOpen(false),
-                      onVerticalDragEnd: (d) {
-                        if ((d.primaryVelocity ?? 0) > 150) {
-                          _setChatOpen(false);
-                        }
-                      },
-                      child: Semantics(
-                        button: true,
-                        label: 'Back to the game',
-                        child: SizedBox(
-                          height: 26,
-                          width: double.infinity,
-                          child: Center(
-                            child: Container(
-                                width: 36,
-                                height: 4,
-                                decoration: BoxDecoration(
-                                    color: AppColors.border,
-                                    borderRadius: BorderRadius.circular(999))),
-                          ),
+            // Chat slides over the game; the game stays visible above it.
+            AnimatedPositioned(
+              duration: Duration(milliseconds: _drag > 0 ? 0 : 220),
+              curve: Curves.easeOutCubic,
+              left: 0,
+              right: 0,
+              height: panelHeight,
+              bottom: _chatOpen ? -_drag : -panelHeight - 20,
+              child: Offstage(
+                offstage: !_chatOpen,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.bg.withValues(alpha: 0.96),
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(20)),
+                    border: Border.all(color: RoomTheme.of(context).border),
+                  ),
+                  child: Column(
+                    children: [
+                      _chatHeader(panelHeight),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+                          child: widget.chat,
                         ),
                       ),
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-                        child: widget.chat,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       );
     });
   }
