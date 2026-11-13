@@ -733,9 +733,12 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
           onText: sitePick(lists, 'text', 'Subtitles', 'subtitle') ??
               (i) => _settingsCall(
                   'for (var k = 0; k < v.textTracks.length; k++) v.textTracks[k].mode = (k === $i) ? "showing" : "disabled";'),
-          volume: ((info['volume'] as num?)?.toDouble() ?? 1) * 100 ~/ 1,
-          onVolume: (v) =>
-              _settingsCall('v.muted = false; v.volume = ${v / 100};'),
+          // This person's saved volume, not whatever the site started at.
+          volume: RoomPrefs.instance.ottVolume,
+          onVolume: (v) {
+            RoomPrefs.instance.setOttVolume(v.round());
+            _applyOttVolume();
+          },
           offsetSec: _webSync?.offset,
           onCatchUp: _catchUp,
           onSiteMenu: siteMenu,
@@ -835,6 +838,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         timer.cancel();
         return;
       }
+      _applyOttVolume();
       if (_showSiteControls) return;
       try {
         await _controller?.evaluateJavascript(
@@ -845,6 +849,25 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
   }
 
   Timer? _stretchTimer;
+
+  // This person's saved volume (times the voices/video balance), set on
+  // each video the page makes and again when it changes; never fought over
+  // otherwise, so the site's own volume control still works.
+  void _applyOttVolume() {
+    final want =
+        (RoomPrefs.instance.ottVolume / 100) * RoomPrefs.instance.videoFactor;
+    _controller?.evaluateJavascript(source: '''
+      (function() {
+        var want = ${want.toStringAsFixed(3)};
+        document.querySelectorAll('video').forEach(function(v) {
+          if (v.__insyncVol === want) return;
+          v.__insyncVol = want;
+          v.volume = want;
+          if (want > 0) v.muted = false;
+        });
+      })();
+    ''').catchError((_) => null);
+  }
   // The video shape the box was last laid out for.
   double? _shownAspect;
   // Upright the box already has the video's own shape. In full screen the

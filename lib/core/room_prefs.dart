@@ -15,6 +15,7 @@ class RoomPrefs extends ChangeNotifier {
   static const _kMuteAlerts = 'room.muteAlerts';
   static const _kBigGifts = 'room.bigGiftAnimations';
   static const _kFillScreen = 'room.fillScreen';
+  static const _kOttVolume = 'room.ottVolume';
 
   bool _loaded = false;
   bool pushToTalk = false;
@@ -35,6 +36,11 @@ class RoomPrefs extends ChangeNotifier {
   /// Full screen: the video zooms to fill the screen (edges trimmed)
   /// instead of showing all of it with black bars.
   bool fillScreen = true;
+
+  /// This person's volume (0–100) for streaming-site videos (Netflix,
+  /// Hotstar, Aha…), so each new title starts where they left it instead
+  /// of the site's own full volume.
+  int ottVolume = 100;
 
   /// True while the mic button is held down with push to talk on.
   final talking = ValueNotifier<bool>(false);
@@ -57,6 +63,7 @@ class RoomPrefs extends ChangeNotifier {
       muteAlerts = p.getBool(_kMuteAlerts) ?? false;
       giftAnimations = p.getBool(_kBigGifts) ?? true;
       fillScreen = p.getBool(_kFillScreen) ?? true;
+      ottVolume = (p.getInt(_kOttVolume) ?? 100).clamp(0, 100);
       notifyListeners();
     } catch (_) {
       // Defaults are fine.
@@ -78,6 +85,11 @@ class RoomPrefs extends ChangeNotifier {
   void setBalance(double v) {
     balance = v.clamp(0.0, 1.0);
     _save((p) => p.setDouble(_kBalance, balance));
+  }
+
+  void setOttVolume(int v) {
+    ottVolume = v.clamp(0, 100);
+    _save((p) => p.setInt(_kOttVolume, ottVolume));
   }
 
   void setGiftAnimations(bool v) {
