@@ -40,21 +40,26 @@ void main() {
     addTearDown(t.view.resetDevicePixelRatio);
     final calls = <int>[];
     await t.pumpWidget(_sheet(host: true, calls: calls));
-    expect(find.text('Up next'), findsOneWidget);
+    // No title, count, labels, now playing or played: just search,
+    // six source tiles and what's up next.
+    expect(find.text('Up next'), findsNothing);
     expect(find.text('Search or paste a link'), findsOneWidget);
-    expect(find.text('Queue · 4'), findsOneWidget);
-    expect(find.text('Add from'), findsOneWidget);
+    expect(find.text('Queue · 4'), findsNothing);
     expect(find.text('YouTube Surf'), findsOneWidget);
     expect(find.text('YouTube Music'), findsOneWidget);
-    expect(find.text('All sources'), findsOneWidget);
-    expect(find.text('NOW PLAYING'), findsOneWidget);
-    expect(find.text('Netflix · added by Bala'), findsOneWidget);
-    expect(find.text('UP NEXT · 2'), findsOneWidget);
+    expect(find.text('All'), findsOneWidget);
+    expect(find.text('NOW PLAYING'), findsNothing);
+    expect(find.text('Netflix · added by Bala'), findsNothing);
     expect(find.text('YouTube · added by Ravi'), findsOneWidget);
-    expect(find.text('PLAYED'), findsOneWidget);
+    expect(find.text('Old trailer'), findsNothing);
     // Last one can move up to play next.
     await t.tap(find.byTooltip('Move to top'));
     expect(calls, [1032]);
+    // "All" pulls it up to every source.
+    await t.tap(find.text('All'));
+    await t.pumpAndSettle();
+    expect(find.text('Hotstar'), findsOneWidget);
+    expect(find.text('All'), findsNothing);
   });
 
   testWidgets('Listeners without add rights only see the queue', (t) async {
