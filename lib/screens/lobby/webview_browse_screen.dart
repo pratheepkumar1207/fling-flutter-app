@@ -119,11 +119,13 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
   // firing.
   Timer? _urlPoll;
 
-  // The rule: once the picked video has really played here for 3 seconds,
-  // go back to the lobby with it pinned. A watch page that never plays in
-  // this view (some sites refuse DRM in it) still goes back after 8.
-  static const _playFor = Duration(seconds: 3);
-  static const _watchPageFallback = Duration(seconds: 8);
+  // The rule: the moment a title's watch page opens or its video starts
+  // playing here, go straight back to the lobby with it pinned — no wait.
+  // Only Prime's "a player is somewhere on the page" guess (no watch URL,
+  // no Play tap seen) still waits a few seconds, so a trailer on a title
+  // page doesn't count as a pick.
+  static const _playFor = Duration.zero;
+  static const _watchPageFallback = Duration(seconds: 4);
   DateTime? _playingSince;
   DateTime? _watchPageSince;
   // Prime Video: the Play or Resume link that was tapped. Prime's player
@@ -178,7 +180,9 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
         }
       }
       if (_looksReadyToStart(urlStr)) {
-        _watchPageSince ??= DateTime.now();
+        // A watch page: go now.
+        _triggerAutoStart(urlStr);
+        return;
       } else {
         _watchPageSince = null;
       }
@@ -280,10 +284,7 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
   // onLoadStop alone would never see that).
   void _maybeAutoStart(String? url) {
     if (_autoStarted || _creatingRoom || url == null) return;
-    if (_looksReadyToStart(url)) {
-      _watchPageSince ??= DateTime.now();
-      _updateCanPin();
-    }
+    if (_looksReadyToStart(url)) _triggerAutoStart(url);
   }
 
   // The actual "we're ready, go" action — split out of _maybeAutoStart so

@@ -119,6 +119,8 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
     widget.onAdd(item, position: 'bottom');
     if (!mounted) return;
     _showQueuedSnackBar(item, queueWasEmpty: queueWasEmpty);
+    // Picked from a source: straight back to the room, no extra step.
+    _close();
   }
 
   // Best-effort match against the live queue — videoUrl is unique enough
@@ -172,6 +174,12 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
         ),
       ),
     );
+  }
+
+  // Play now / Play again: starts it and goes straight back to the room.
+  void _playNow(int i) {
+    widget.onJump(i);
+    _close();
   }
 
   void _close() {
@@ -289,6 +297,8 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
     if (playNow) {
       widget.onAdd(item, position: 'top');
       if (items.isNotEmpty) widget.onJump(current + 1);
+      _close();
+      return;
     } else {
       widget.onAdd(item, position: 'bottom');
       _showQueuedSnackBar(item, queueWasEmpty: items.isEmpty);
@@ -431,9 +441,9 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                   ]),
             ),
             if (dim && widget.canPin)
-              _iconBtn(InIcons.repeat, 'Play again', () => widget.onJump(i)),
+              _iconBtn(InIcons.repeat, 'Play again', () => _playNow(i)),
             if (!dim && widget.canPin)
-              _iconBtn(InIcons.play, 'Play now', () => widget.onJump(i)),
+              _iconBtn(InIcons.play, 'Play now', () => _playNow(i)),
             if (!dim && host && i > current + 1)
               _iconBtn(InIcons.arrowup, 'Move to top',
                   () => widget.onReorder(i, current + 1)),
