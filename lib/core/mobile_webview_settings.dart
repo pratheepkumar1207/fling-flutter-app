@@ -61,3 +61,40 @@ final desktopWebViewSettings = InAppWebViewSettings(
   mediaPlaybackRequiresUserGesture: false,
   allowsInlineMediaPlayback: true,
 );
+
+/// What Chrome's own "Desktop site" option changes besides the user agent:
+/// the newer browser hints (navigator.userAgentData says mobile, and the
+/// platform says Android). Sun NXT and Airtel Xstream read those and still
+/// pushed their "install the app" page even with the desktop user agent.
+/// Runs before the site's own scripts, in every frame.
+final desktopSiteScript = UserScript(
+  injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+  forMainFrameOnly: false,
+  source: r'''
+(function () {
+  try {
+    var brands = [
+      { brand: 'Chromium', version: '124' },
+      { brand: 'Google Chrome', version: '124' },
+      { brand: 'Not-A.Brand', version: '99' }
+    ];
+    var data = {
+      brands: brands,
+      mobile: false,
+      platform: 'Windows',
+      getHighEntropyValues: function () {
+        return Promise.resolve({
+          brands: brands, mobile: false, platform: 'Windows',
+          platformVersion: '10.0.0', architecture: 'x86', bitness: '64',
+          model: '', uaFullVersion: '124.0.0.0',
+          fullVersionList: brands
+        });
+      },
+      toJSON: function () { return { brands: brands, mobile: false, platform: 'Windows' }; }
+    };
+    Object.defineProperty(Navigator.prototype, 'userAgentData', { get: function () { return data; }, configurable: true });
+    Object.defineProperty(Navigator.prototype, 'platform', { get: function () { return 'Win32'; }, configurable: true });
+  } catch (e) {}
+})();
+''',
+);

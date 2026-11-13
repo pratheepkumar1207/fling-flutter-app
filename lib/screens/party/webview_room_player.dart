@@ -1,3 +1,4 @@
+import 'dart:collection';
 import '../../theme/insync_icons.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -21,7 +22,7 @@ import '../../core/room_playback.dart';
 import '../../core/room_prefs.dart';
 import '../../core/prime_player_menu.dart';
 import '../../core/hotstar_player_menu.dart';
-import '../../core/aha_player_menu.dart';
+import '../../core/web_player_menu.dart';
 import 'full_screen_controls.dart';
 import 'player_settings_sheet.dart';
 
@@ -614,7 +615,8 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     } catch (_) {}
   }
 
-  // Prime Video, Hotstar and Aha: the lists from their own players, kept per
+  // Prime Video and Hotstar (their menus) and every other OTT site (its
+  // hls.js / shaka / dash.js player): the lists, kept per
   // title so the sheet shows them straight away next time, refreshed each
   // time it opens. One menu job at a time on the page.
   final _siteLists = ValueNotifier<Map<String, List<Map>>?>(null);
@@ -649,8 +651,9 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     final c = _controller;
     final isPrime = _drmPlatform == 'Prime Video';
     final isHotstar = _drmPlatform == 'Hotstar';
-    final isAha = _drmPlatform == 'Aha';
-    final siteMenus = c != null && (isPrime || isHotstar || isAha);
+    // Every other site: its hls.js / shaka / dash.js player, if it has one.
+    final isWebPlayer = !isPrime && !isHotstar && _isOtt;
+    final siteMenus = c != null && (isPrime || isHotstar || isWebPlayer);
     if (_siteListsFor != widget.videoUrl) {
       _siteListsFor = widget.videoUrl;
       _siteLists.value = null;
@@ -660,8 +663,8 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
       _onMenu(() async {
         final lists = isPrime
             ? await PrimePlayerMenu.read(c)
-            : isAha
-                ? await AhaPlayerMenu.read(c)
+            : isWebPlayer
+                ? await WebPlayerMenu.read(c)
                 : await HotstarPlayerMenu.read(c);
         if (mounted && lists != null) _siteLists.value = lists;
         if (mounted && lists == null && _siteLists.value == null) {
@@ -690,8 +693,8 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         };
         _onMenu(() => isHotstar
             ? HotstarPlayerMenu.pick(c, kind: key, value: value ?? 'Off')
-            : isAha
-                ? AhaPlayerMenu.pick(c, kind: key, value: value ?? 'Off')
+            : isWebPlayer
+                ? WebPlayerMenu.pick(c, kind: key, value: value ?? 'Off')
                 : PrimePlayerMenu.pick(c,
                     row: row, name: name, value: value ?? 'off'));
       };
@@ -1456,6 +1459,8 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
               // The desktop website, the same as where the title was picked
               // (webview_browse_screen.dart), so it opens on the same player.
               initialSettings: desktopWebViewSettings,
+              initialUserScripts: UnmodifiableListView(
+                  [desktopSiteScript, WebPlayerMenu.playerHookScript]),
               onWebViewCreated: (controller) {
                 _controller = controller;
                 if (_isOtt) {

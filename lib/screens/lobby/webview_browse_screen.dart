@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:async';
 import 'dart:convert';
 
@@ -542,6 +543,7 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
           InAppWebView(
             initialUrlRequest: URLRequest(url: WebUri(widget.homeUrl)),
             initialSettings: desktopWebViewSettings,
+            initialUserScripts: UnmodifiableListView([desktopSiteScript]),
             onWebViewCreated: (controller) => _controller = controller,
             onLoadStart: (controller, url) => setState(() => _loading = true),
             onLoadStop: (controller, url) {
