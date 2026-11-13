@@ -78,9 +78,9 @@ class _PartyScreenState extends State<PartyScreen>
   late final AnimationController _people =
       AnimationController.unbounded(vsync: this);
   bool _peopleOpen = false;
-  // The queue sheet is up: the top bar hides so the video and the sheet
-  // get its space; it comes back when the sheet closes.
-  bool _queueOpen = false;
+  // A room sheet is up (queue, settings): the top bar hides so the video
+  // and the sheet get its space; it comes back when the sheet closes.
+  bool _sheetOpen = false;
   bool _peopleDragging = false;
   // The host chose who can join (or the time ran out).
   bool _privacyHandled = false;
@@ -843,22 +843,53 @@ class _PartyScreenState extends State<PartyScreen>
     ));
   }
 
-  Future<void> _openQueue() async {
-    final rs = _rs!;
-    // Where the video will end once the top bar is gone: the sheet fills
-    // the rest of the screen under it.
+  // Where the video will end once the top bar is gone: a room sheet fills
+  // the rest of the screen under it.
+  double _sheetHalfFraction() {
     final mq = MediaQuery.of(context);
     final box = _playerAreaKey.currentContext?.findRenderObject() as RenderBox?;
     final usable = mq.size.height - mq.padding.top;
-    var halfFraction = 0.62;
-    if (box != null && box.attached && box.size.height > 0) {
-      final videoBottom = box.localToGlobal(Offset.zero).dy +
-          box.size.height -
-          kToolbarHeight -
-          mq.padding.top;
-      halfFraction = ((usable - videoBottom) / usable).clamp(0.4, 0.85);
+    if (box == null || !box.attached || box.size.height <= 0) return 0.62;
+    final videoBottom = box.localToGlobal(Offset.zero).dy +
+        box.size.height -
+        (_sheetOpen ? 0 : kToolbarHeight) -
+        mq.padding.top;
+    return ((usable - videoBottom) / usable).clamp(0.4, 0.85);
+  }
+
+  // Opens a room sheet with the top bar hidden until it closes.
+  Future<void> _withRoomSheet(Future<void> Function(double half) open) async {
+    final half = _sheetHalfFraction();
+    setState(() => _sheetOpen = true);
+    try {
+      await open(half);
+    } finally {
+      if (mounted) setState(() => _sheetOpen = false);
     }
-    setState(() => _queueOpen = true);
+  }
+
+  void _openHostSettings(RoomSocketController rs, Map<String, dynamic> room,
+          {required bool hasVideo}) =>
+      _withRoomSheet((half) => showRoomSettingsSheet(context,
+          room: room,
+          onChanged: _refreshRoom,
+          hasVideo: hasVideo,
+          halfFraction: half,
+          onModeration: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const RoomModerationScreen())),
+          onEndRoom: _confirmEndRoom));
+
+  void _openGuestSettings(RoomSocketController rs, Map<String, dynamic> room,
+          {required bool hasVideo}) =>
+      _withRoomSheet((half) => showGuestSettingsSheet(context,
+          hasVideo: hasVideo,
+          halfFraction: half,
+          onReport: () => _reportRoom(room)));
+
+  Future<void> _openQueue() async {
+    final rs = _rs!;
+    final halfFraction = _sheetHalfFraction();
+    setState(() => _sheetOpen = true);
     final roomType = _room?['roomType'];
     // Voice and Game rooms both have no video to show — see
     // SourcePickerBody.audioOnly's comment for why this restricts the
@@ -891,7 +922,7 @@ class _PartyScreenState extends State<PartyScreen>
         ),
       ),
     );
-    if (mounted) setState(() => _queueOpen = false);
+    if (mounted) setState(() => _sheetOpen = false);
   }
 
   // Watch/voice/game rooms get the theme's backdrop; other room types keep
@@ -1218,17 +1249,8 @@ class _PartyScreenState extends State<PartyScreen>
       _voice?.setMicEnabled(false);
     }
 
-    void openHostSettings(RoomSocketController rs) => showRoomSettingsSheet(
-        context,
-        room: room,
-        onChanged: _refreshRoom,
-        onMySettings: () => showGuestSettingsSheet(context, hasVideo: isWatch),
-        onStartPoll: () =>
-            showPollCreatorBottomSheet(context, onCreate: rs.createPoll),
-        onMuteAll: rs.muteAll,
-        onModeration: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const RoomModerationScreen())),
-        onEndRoom: _confirmEndRoom);
+    void openHostSettings(RoomSocketController rs) =>
+        _openHostSettings(rs, room, hasVideo: isWatch);
 
     Widget voiceTypingRow(RoomSocketController rs) {
       final byId = {for (final r in rs.roster) r.userId: r};
@@ -1981,7 +2003,7 @@ class _PartyScreenState extends State<PartyScreen>
               // Hidden while composing a chat message — see hideChromeForChat —
               // so chat gets the full screen instead of sharing it with chrome
               // nobody's looking at mid-type.
-              appBar: hideChromeForChat || _queueOpen
+              appBar: hideChromeForChat || _sheetOpen
                   ? null
                   : AppBar(
                       // Plain: a blurred picture of whatever played before
@@ -2032,25 +2054,15 @@ class _PartyScreenState extends State<PartyScreen>
                             InIconButton(InIcons.gear,
                                 tooltip: 'Room settings',
                                 color: Colors.white,
-                                onPressed: () => showRoomSettingsSheet(context,
-                                    room: room,
-                                    onChanged: _refreshRoom,
-                                    onMySettings: () => showGuestSettingsSheet(context,
-                                        hasVideo: isWatch),
-                                    onStartPoll: () =>
-                                        showPollCreatorBottomSheet(context,
-                                            onCreate: rs.createPoll),
-                                    onModeration: () => Navigator.of(context)
-                                        .push(MaterialPageRoute(
-                                            builder: (_) =>
-                                                const RoomModerationScreen())),
-                                    onEndRoom: _confirmEndRoom))
+                                onPressed: () => _openHostSettings(rs, room,
+                                    hasVideo: isWatch))
                           else if (room['roomType'] != 'live')
                             InIconButton(InIcons.gear,
                                 tooltip: 'Your settings',
                                 color: Colors.white,
                                 onPressed: () =>
-                                    showGuestSettingsSheet(context, onStage: myMicOn || myMicForceMuted, onLeaveMic: rs.micOff, hasVideo: isWatch, roomTitle: room['title'] as String?, hostName: (rs.hostId == null ? null : rs.roster.where((r) => r.userId == rs.hostId).firstOrNull?.name)?.split(' ').first, onReport: () => _reportRoom(room))),
+                                    _openGuestSettings(rs, room,
+                                        hasVideo: isWatch)),
                         ],
                       ),
                       // Who's on mic, lit while talking. _hostKey stays on this
@@ -2125,7 +2137,7 @@ class _PartyScreenState extends State<PartyScreen>
               // only while typing, letting the video slide up into the AppBar's
               // old spot instead of leaving a dead gap.
               body: SafeArea(
-                top: hideChromeForChat || _queueOpen,
+                top: hideChromeForChat || _sheetOpen,
                 bottom: false,
                 child: GestureDetector(
                   // Left to right goes Home with the room still running (or

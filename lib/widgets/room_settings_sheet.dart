@@ -1,4 +1,3 @@
-import 'swipe_down_to_close.dart';
 import 'package:flutter/material.dart';
 import '../core/api_client.dart';
 import 'package:provider/provider.dart';
@@ -6,7 +5,9 @@ import '../core/api_exception.dart';
 import '../core/auth_provider.dart';
 import '../theme/insync_icons.dart';
 import '../theme/app_colors.dart';
-import 'glass.dart';
+import 'guest_settings_sheet.dart';
+import 'room_sheet.dart';
+import '../core/room_prefs.dart';
 import '../theme/room_themes.dart';
 
 const _kGameTypes = [
@@ -17,66 +18,51 @@ const _kGameTypes = [
   ['uno', 'UNO'],
 ];
 
-/// Host-only room settings — a short half-height sheet, one-line rows,
-/// every change saved the moment it's made (no Save button to forget):
+/// Room settings for the host, as a black sheet under the video (see
+/// showRoomSheet): the room's name; Boost · Theme · Moderation · Chat ·
+/// Wait for ads tiles; Who can join; Mics (Off · Ask first · Open);
+/// Playback (Let's vote · Just play · Autoplay · Only me); then the host's
+/// own sound bar and switches (RoomPersonalSettings) and End room. Every
+/// change saves the moment it's made.
 ///
-///   Boost      100 coins for a day of top placement (POST /boost)
-///   Type       Voice · Game           (voice/game rooms only — PATCH /type)
-///   Join       Public · Friends · Subs · Private
-///   Name       the room's title
-///   Mics       on/off, and whether anyone can take a mic without asking
-///   Chat       on/off (off = only the host can post)
-///   Music      Everyone · Host        (who can add songs AND play one now)
-///   Next song  Auto · Vote · Off      (nextTrackMode + autoPlay)
-///
-/// "Music" and "Next song" each set two backend fields — see _musicValue /
-/// _nextValue for the mapping. Switching to Game needs one extra pick (which
-/// game), shown inline right under the Type row. Watch rooms have no Type row:
-/// what plays there is changed through the source picker (Search & queue).
+/// Mics and Playback each set more than one backend field — see _micValue /
+/// _playbackValue for the mapping. Voice and game rooms also get a Type row;
+/// switching to Game needs one extra pick (which game), shown right under it.
 Future<void> showRoomSettingsSheet(BuildContext context,
     {required Map<String, dynamic> room,
     required VoidCallback onChanged,
-    VoidCallback? onMySettings,
-    VoidCallback? onStartPoll,
-    VoidCallback? onMuteAll,
     VoidCallback? onModeration,
-    VoidCallback? onEndRoom}) {
-  return showModalBottomSheet(
-    context: context,
-    backgroundColor: Colors.transparent,
-    isScrollControlled: true,
-    showDragHandle: false,
-    builder: (_) => SwipeDownToClose(
-      child: _RoomSettingsSheet(
-          room: room,
-          onChanged: onChanged,
-          onMySettings: onMySettings,
-          onStartPoll: onStartPoll,
-          onMuteAll: onMuteAll,
-          onModeration: onModeration,
-          onEndRoom: onEndRoom),
-    ),
+    VoidCallback? onEndRoom,
+    bool hasVideo = true,
+    double halfFraction = 0.62}) {
+  RoomPrefs.instance.load();
+  return showRoomSheet(
+    context,
+    halfFraction: halfFraction,
+    builder: (_, scroll) => _RoomSettingsSheet(
+        room: room,
+        scroll: scroll,
+        onChanged: onChanged,
+        onModeration: onModeration,
+        onEndRoom: onEndRoom,
+        hasVideo: hasVideo),
   );
 }
 
 class _RoomSettingsSheet extends StatefulWidget {
   final Map<String, dynamic> room;
+  final ScrollController scroll;
   final VoidCallback onChanged;
-
-  /// Opens the host's own push-to-talk / balance / picture-in-picture sheet.
-  final VoidCallback? onMySettings;
-  final VoidCallback? onStartPoll;
-  final VoidCallback? onMuteAll;
   final VoidCallback? onModeration;
   final VoidCallback? onEndRoom;
+  final bool hasVideo;
   const _RoomSettingsSheet(
       {required this.room,
+      required this.scroll,
       required this.onChanged,
-      this.onMySettings,
-      this.onStartPoll,
-      this.onMuteAll,
       this.onModeration,
-      this.onEndRoom});
+      this.onEndRoom,
+      this.hasVideo = true});
 
   @override
   State<_RoomSettingsSheet> createState() => _RoomSettingsSheetState();
@@ -94,13 +80,13 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
       widget.room['songPermission'] as String? ?? 'anyone';
   late String _pinPermission =
       widget.room['pinPermission'] as String? ?? 'host';
-  late bool _autoPlay = widget.room['autoPlay'] != false;
   late String _nextTrackMode =
       widget.room['nextTrackMode'] as String? ?? 'justPlay';
   late String _theme = widget.room['theme'] as String? ?? 'dark';
   late bool _openMics = widget.room['micApproval'] == 'everyone';
   late bool _chatOn = widget.room['chatEnabled'] != false;
   late bool _waitForAds = widget.room['waitForAds'] != false;
+  bool _showThemes = false;
   late final _name =
       TextEditingController(text: widget.room['title'] as String? ?? '');
 
@@ -116,62 +102,19 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
     _patch('/settings', {'title': v});
   }
 
-  void _setOpenMics(bool v) => _saveSettings(
-      {'micApproval': v ? 'everyone' : 'host'},
-      () => _openMics = v,
-      () => _openMics = !v);
-
   void _setChat(bool v) =>
       _saveSettings({'chatEnabled': v}, () => _chatOn = v, () => _chatOn = !v);
 
   void _setWaitForAds(bool v) => _saveSettings(
       {'waitForAds': v}, () => _waitForAds = v, () => _waitForAds = !v);
 
-  /// A tappable row that runs an action (poll, moderation, end room).
-  Widget _actionRow(InIconData icon, String label, VoidCallback onTap,
-      {String? sub, Color? color}) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: () {
-        Navigator.of(context).pop();
-        onTap();
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-                color: const Color(0xFF1F1A2C),
-                borderRadius: BorderRadius.circular(10)),
-            child: Center(
-                child: InIcon(icon, size: 17, color: color ?? AppColors.lilac)),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(label,
-                  style: TextStyle(
-                      color: color ?? AppColors.text,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600)),
-              if (sub != null)
-                Text(sub,
-                    style: const TextStyle(
-                        color: AppColors.textDim, fontSize: 11.5)),
-            ]),
-          ),
-          if (color == null)
-            const InIcon(InIcons.right, size: 16, color: AppColors.textDim),
-        ]),
-      ),
-    );
+  // Closes the sheet, then runs [action] (Moderation, End room).
+  void _closeThen(VoidCallback action) {
+    Navigator.of(context).pop();
+    action();
   }
 
   bool _saving = false;
-  bool _savedOnce = false;
   late DateTime? _boostedUntil =
       DateTime.tryParse(widget.room['boostedUntil'] as String? ?? '')
           ?.toLocal();
@@ -180,9 +123,22 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
   // Same price as the backend's BOOST_COST_PER_DAY (routes/room.js).
   static const _boostCost = 100;
 
-  String get _musicValue => _songPermission == 'host' ? 'host' : 'everyone';
-  String get _nextValue =>
-      !_autoPlay ? 'off' : (_nextTrackMode == 'voting' ? 'vote' : 'auto');
+  // Off · Ask first · Open — micEnabled plus micApproval.
+  String get _micValue => !_micEnabled
+      ? 'off'
+      : _openMics
+          ? 'open'
+          : 'ask';
+
+  // Let's vote · Just play · Autoplay · Only me — who can add songs plus
+  // what plays next (nextTrackMode; songs always move on by themselves).
+  String get _playbackValue => _songPermission == 'host'
+      ? 'me'
+      : _nextTrackMode == 'voting'
+          ? 'vote'
+          : _nextTrackMode == 'autoFill'
+              ? 'auto'
+              : 'just';
 
   // ---- saving ---------------------------------------------------------
 
@@ -191,7 +147,6 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
     try {
       await ApiClient.patch('/rooms/${widget.room['id']}$path', body: body);
       widget.onChanged();
-      if (mounted) setState(() => _savedOnce = true);
       return true;
     } on ApiException catch (e) {
       if (mounted) {
@@ -226,75 +181,48 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
 
   void _setTheme(String v) {
     final old = _theme;
-    _saveSettings({'theme': v}, () => _theme = v, () => _theme = old);
+    _saveSettings({'theme': v}, () {
+      _theme = v;
+      _showThemes = false;
+    }, () => _theme = old);
   }
 
-  // One swatch per lobby theme; everyone in the room sees the host's pick.
-  Widget _themePicker() => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final t in RoomTheme.all)
-            Padding(
-              padding: const EdgeInsets.only(left: 6),
-              child: Semantics(
-                button: true,
-                selected: _theme == t.id,
-                label: '${t.label} theme',
-                child: GestureDetector(
-                  onTap:
-                      _saving || _theme == t.id ? null : () => _setTheme(t.id),
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [t.bgGradient.colors.last, t.primary]),
-                      border: Border.all(
-                          color: _theme == t.id
-                              ? AppColors.accent
-                              : Colors.white24,
-                          width: _theme == t.id ? 2.5 : 1),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      );
-
-  void _setMics(bool v) {
-    _saveSettings(
-        {'micEnabled': v}, () => _micEnabled = v, () => _micEnabled = !v);
-  }
-
-  void _setMusic(String v) {
-    final oldSong = _songPermission, oldPin = _pinPermission;
-    final perm = v == 'host' ? 'host' : 'anyone';
-    _saveSettings({'songPermission': perm, 'pinPermission': perm}, () {
-      _songPermission = perm;
-      _pinPermission = perm;
+  void _setMicMode(String v) {
+    final oldOn = _micEnabled, oldOpen = _openMics;
+    _saveSettings({
+      'micEnabled': v != 'off',
+      if (v != 'off') 'micApproval': v == 'open' ? 'everyone' : 'host',
     }, () {
-      _songPermission = oldSong;
-      _pinPermission = oldPin;
+      _micEnabled = v != 'off';
+      if (v != 'off') _openMics = v == 'open';
+    }, () {
+      _micEnabled = oldOn;
+      _openMics = oldOpen;
     });
   }
 
-  void _setNext(String v) {
-    final oldAuto = _autoPlay, oldMode = _nextTrackMode;
-    final body = <String, dynamic>{
-      'autoPlay': v != 'off',
-      if (v == 'auto') 'nextTrackMode': 'autoFill',
-      if (v == 'vote') 'nextTrackMode': 'voting',
-    };
-    _saveSettings(body, () {
-      _autoPlay = v != 'off';
-      if (v == 'auto') _nextTrackMode = 'autoFill';
-      if (v == 'vote') _nextTrackMode = 'voting';
+  void _setPlayback(String v) {
+    final oldSong = _songPermission,
+        oldPin = _pinPermission,
+        oldMode = _nextTrackMode;
+    final perm = v == 'me' ? 'host' : 'anyone';
+    final mode = v == 'vote'
+        ? 'voting'
+        : v == 'auto'
+            ? 'autoFill'
+            : 'justPlay';
+    _saveSettings({
+      'songPermission': perm,
+      'pinPermission': perm,
+      'autoPlay': true,
+      'nextTrackMode': mode,
     }, () {
-      _autoPlay = oldAuto;
+      _songPermission = perm;
+      _pinPermission = perm;
+      _nextTrackMode = mode;
+    }, () {
+      _songPermission = oldSong;
+      _pinPermission = oldPin;
       _nextTrackMode = oldMode;
     });
   }
@@ -365,141 +293,60 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
   bool get _isBoosted =>
       _boostedUntil != null && _boostedUntil!.isAfter(DateTime.now());
 
-  Widget _boostRow() {
-    final left = _isBoosted ? _boostedUntil!.difference(DateTime.now()) : null;
-    final leftText = left == null
-        ? null
-        : left.inHours >= 1
-            ? '${left.inHours}h left'
-            : '${left.inMinutes.clamp(1, 59)}m left';
-    return Container(
-      margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.fromLTRB(10, 4, 6, 4),
-      decoration: BoxDecoration(
-        color: AppColors.gold.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          const InIcon(InIcons.star,
-              size: 18, color: AppColors.gold, filled: true),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              leftText == null ? 'Boost' : 'Boosted · $leftText',
-              style: const TextStyle(
-                  color: AppColors.text,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600),
-            ),
-          ),
-          TextButton(
-            onPressed: _boosting ? null : _boost,
-            style: TextButton.styleFrom(
-              backgroundColor: AppColors.gold,
-              foregroundColor: AppColors.ink,
-              visualDensity: VisualDensity.compact,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              textStyle: Theme.of(context)
-                  .textTheme
-                  .labelLarge
-                  ?.copyWith(fontSize: 12, fontWeight: FontWeight.w700),
-            ),
-            child: _boosting
-                ? const SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: AppColors.ink))
-                : Text(_isBoosted ? 'Add a day' : '$_boostCost coins'),
-          ),
-        ],
-      ),
-    );
+  String get _boostLabel {
+    if (!_isBoosted) return 'Boost';
+    final left = _boostedUntil!.difference(DateTime.now());
+    return left.inHours >= 1
+        ? '${left.inHours}h left'
+        : '${left.inMinutes.clamp(1, 59)}m left';
   }
 
-  // ---- UI -------------------------------------------------------------
+  RoomTheme get _currentTheme => RoomTheme.all
+      .firstWhere((t) => t.id == _theme, orElse: () => RoomTheme.all.first);
 
-  Widget _segments(
-      {required List<(String, Widget)> options,
-      required String value,
-      required ValueChanged<String> onChanged}) {
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-          color: AppColors.surface2.withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(10)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final (key, label) in options)
-            GestureDetector(
-              onTap: _saving ? null : () => onChanged(key),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-                decoration: BoxDecoration(
-                  color: value == key
-                      ? AppColors.accent.withValues(alpha: 0.2)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: DefaultTextStyle.merge(
-                  style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                      color:
-                          value == key ? AppColors.accent : AppColors.textDim),
-                  child: IconTheme.merge(
-                    data: IconThemeData(
-                        size: 14,
-                        color: value == key
-                            ? AppColors.accent
-                            : AppColors.textDim),
-                    child: label,
-                  ),
+  Widget _themeDot(RoomTheme t, double size, {bool picked = false}) =>
+      Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [t.bgGradient.colors.last, t.primary]),
+          border: Border.all(
+              color: picked ? Colors.white : Colors.white24,
+              width: picked ? 2 : 1),
+        ),
+      );
+
+  // One circle per lobby theme; everyone in the room sees the host's pick.
+  Widget _themeRow() => Container(
+        margin: const EdgeInsets.only(top: 10),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        decoration: BoxDecoration(
+            color: const Color(0xFF111111),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: kSheetBorder)),
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            for (final t in RoomTheme.all)
+              Semantics(
+                button: true,
+                selected: _theme == t.id,
+                label: '${t.label} theme',
+                child: GestureDetector(
+                  onTap:
+                      _saving || _theme == t.id ? null : () => _setTheme(t.id),
+                  child: _themeDot(t, 32, picked: _theme == t.id),
                 ),
               ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _row(InIconData icon, String label, Widget control) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-                color: const Color(0xFF1F1A2C),
-                borderRadius: BorderRadius.circular(10)),
-            child:
-                Center(child: InIcon(icon, size: 17, color: AppColors.lilac)),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(label,
-                style: const TextStyle(
-                    color: AppColors.text,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600)),
-          ),
-          const SizedBox(width: 8),
-          Flexible(
-            flex: 0,
-            child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerRight,
-                child: control),
-          ),
-        ],
-      ),
-    );
-  }
+          ],
+        ),
+      );
 
   Widget _gamePicker() {
     return Padding(
@@ -524,200 +371,147 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
     final pendingPick = _roomType != _savedType;
     // Only voice and game rooms can switch between each other here.
     final canSwitchType = _savedType == 'voice' || _savedType == 'game';
-    return SafeArea(
-      child: Padding(
-        padding:
-            EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-        child: GlassPanel(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          tintAlpha: 0.8,
-          color: AppColors.sheet,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(context).height * 0.85),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Container(
-                        width: 36,
-                        height: 4,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                            color: AppColors.border,
-                            borderRadius: BorderRadius.circular(999))),
-                  ),
-                  Row(
-                    children: [
-                      const Text('Room settings',
-                          style: TextStyle(
-                              color: AppColors.text,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold)),
-                      const Spacer(),
-                      if (_saving)
-                        const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2))
-                      else if (_savedOnce)
-                        const Row(
-                          children: [
-                            InIcon(InIcons.check,
-                                size: 14, color: AppColors.success),
-                            SizedBox(width: 3),
-                            Text('Saved',
-                                style: TextStyle(
-                                    color: AppColors.success, fontSize: 12)),
-                          ],
-                        ),
-                    ],
-                  ),
-                  if (widget.onMySettings != null)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          widget.onMySettings!();
-                        },
-                        icon: const InIcon(InIcons.tune,
-                            size: 16, color: AppColors.lilac),
-                        label: const Text(
-                            'Your settings: push to talk, sound, PiP'),
-                      ),
-                    ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: _name,
-                    maxLength: 60,
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => _saveName(),
-                    onTapOutside: (_) => _saveName(),
-                    decoration: const InputDecoration(
-                        labelText: 'Room name', counterText: ''),
-                  ),
-                  const SizedBox(height: 8),
-                  _boostRow(),
-                  if (canSwitchType)
-                    _row(
-                      InIcons.tv,
-                      'Type',
-                      _segments(
-                        options: const [
-                          ('voice', Text('Voice')),
-                          ('game', Text('Game')),
-                        ],
-                        value: _roomType,
-                        onChanged: _setType,
-                      ),
-                    ),
-                  if (pendingPick && _roomType == 'game') _gamePicker(),
-                  _row(
-                    InIcons.globe,
-                    'Join',
-                    _segments(
-                      options: const [
-                        ('public', Text('Public')),
-                        ('friends', Text('Friends')),
-                        ('subscribers', Text('Subs')),
-                        (
-                          'private',
-                          InIcon(InIcons.lock,
-                              size: 16, semanticLabel: 'Private (link only)')
-                        ),
-                      ],
-                      value: _visibility,
-                      onChanged: _setVisibility,
-                    ),
-                  ),
-                  _row(InIcons.spark, 'Theme', _themePicker()),
-                  _row(
-                    InIcons.mic,
-                    'Mics',
-                    Switch(
-                      value: _micEnabled,
-                      onChanged: _saving ? null : _setMics,
-                      activeThumbColor: AppColors.accent,
-                    ),
-                  ),
-                  if (_micEnabled)
-                    _row(
-                      InIcons.users,
-                      'Everyone can use mic',
-                      Switch(
-                        value: _openMics,
-                        onChanged: _saving ? null : _setOpenMics,
-                        activeThumbColor: AppColors.accent,
-                      ),
-                    ),
-                  _row(
-                    InIcons.chat,
-                    'Chat on',
-                    Switch(
-                      value: _chatOn,
-                      onChanged: _saving ? null : _setChat,
-                      activeThumbColor: AppColors.accent,
-                    ),
-                  ),
-                  // Streaming rooms: hold everyone while someone's ad plays.
-                  _row(
-                    InIcons.hourglass,
-                    'Wait for ads',
-                    Switch(
-                      value: _waitForAds,
-                      onChanged: _saving ? null : _setWaitForAds,
-                      activeThumbColor: AppColors.accent,
-                    ),
-                  ),
-                  _row(
-                    InIcons.music,
-                    'Music',
-                    _segments(
-                      options: const [
-                        ('everyone', Text('Everyone')),
-                        ('host', Text('Host')),
-                      ],
-                      value: _musicValue,
-                      onChanged: _setMusic,
-                    ),
-                  ),
-                  _row(
-                    InIcons.skipNext,
-                    'Next song',
-                    _segments(
-                      options: const [
-                        ('auto', Text('Auto')),
-                        ('vote', Text('Vote')),
-                        ('off', Text('Off')),
-                      ],
-                      value: _nextValue,
-                      onChanged: _setNext,
-                    ),
-                  ),
-                  const Divider(height: 20, color: AppColors.border),
-                  if (widget.onStartPoll != null)
-                    _actionRow(
-                        InIcons.poll, 'Start a poll', widget.onStartPoll!),
-                  if (widget.onMuteAll != null)
-                    _actionRow(InIcons.micoff, 'Mute all', widget.onMuteAll!),
-                  if (widget.onModeration != null)
-                    _actionRow(
-                        InIcons.shield, 'Moderation', widget.onModeration!,
-                        sub: 'Slow mode, filters'),
-                  if (widget.onEndRoom != null)
-                    _actionRow(InIcons.close, 'End room for everyone',
-                        widget.onEndRoom!,
-                        color: const Color(0xFFFF8A9F)),
-                ],
-              ),
-            ),
+    const off = Color(0xFF666666);
+    return ListView(
+      controller: widget.scroll,
+      padding: EdgeInsets.fromLTRB(
+          16, 0, 16, 16 + MediaQuery.of(context).padding.bottom),
+      children: [
+        const RoomSheetHandle(),
+        TextField(
+          controller: _name,
+          maxLength: 60,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => _saveName(),
+          onTapOutside: (_) => _saveName(),
+          style: const TextStyle(
+              color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+          decoration: InputDecoration(
+            hintText: 'Room name',
+            counterText: '',
+            isDense: true,
+            filled: true,
+            fillColor: const Color(0xFF111111),
+            suffixIcon: const Padding(
+                padding: EdgeInsets.all(12),
+                child:
+                    InIcon(InIcons.edit, size: 16, color: Color(0xFF888888))),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: kSheetBorder)),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: kSheetBorder)),
           ),
         ),
-      ),
+        const SizedBox(height: 14),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(
+            child: RoomQuickTile(
+              icon: _boosting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: AppColors.gold))
+                  : const InIcon(InIcons.star,
+                      size: 20, color: AppColors.gold, filled: true),
+              label: _boostLabel,
+              onTap: _boosting ? null : _boost,
+            ),
+          ),
+          Expanded(
+            child: RoomQuickTile(
+              icon: _themeDot(_currentTheme, 22, picked: true),
+              label: 'Theme',
+              onTap: () => setState(() => _showThemes = !_showThemes),
+            ),
+          ),
+          Expanded(
+            child: RoomQuickTile(
+              icon: const InIcon(InIcons.shield,
+                  size: 20, color: AppColors.lilac),
+              label: 'Moderation',
+              onTap: widget.onModeration == null
+                  ? null
+                  : () => _closeThen(widget.onModeration!),
+            ),
+          ),
+          Expanded(
+            child: RoomQuickTile(
+              icon: InIcon(InIcons.chat,
+                  size: 20, color: _chatOn ? Colors.white : off),
+              label: _chatOn ? 'Chat on' : 'Chat off',
+              on: _chatOn,
+              onTap: _saving ? null : () => _setChat(!_chatOn),
+            ),
+          ),
+          Expanded(
+            child: RoomQuickTile(
+              icon: InIcon(InIcons.hourglass,
+                  size: 20, color: _waitForAds ? Colors.white : off),
+              label: _waitForAds ? 'Wait for ads' : 'Ads: no wait',
+              on: _waitForAds,
+              onTap: _saving ? null : () => _setWaitForAds(!_waitForAds),
+            ),
+          ),
+        ]),
+        if (_showThemes) _themeRow(),
+        if (canSwitchType) ...[
+          const RoomSheetLabel('TYPE'),
+          RoomChoiceRow(
+            options: const [
+              ('voice', InIcons.mic, 'Voice'),
+              ('game', InIcons.game, 'Game'),
+            ],
+            value: _roomType,
+            onChanged: _setType,
+          ),
+          if (pendingPick && _roomType == 'game') _gamePicker(),
+        ],
+        const RoomSheetLabel('WHO CAN JOIN'),
+        RoomChoiceRow(
+          options: const [
+            ('public', InIcons.globe, 'Anyone'),
+            ('friends', InIcons.users, 'Friends'),
+            ('subscribers', InIcons.star, 'Subs'),
+            ('private', InIcons.lock, 'Link only'),
+          ],
+          value: _visibility,
+          onChanged: _saving ? null : _setVisibility,
+        ),
+        const RoomSheetLabel('MICS'),
+        RoomChoiceRow(
+          options: const [
+            ('off', InIcons.micoff, 'Off'),
+            ('ask', InIcons.wave, 'Ask first'),
+            ('open', InIcons.mic, 'Open'),
+          ],
+          value: _micValue,
+          onChanged: _saving ? null : _setMicMode,
+        ),
+        const RoomSheetLabel('PLAYBACK'),
+        RoomChoiceRow(
+          options: const [
+            ('vote', InIcons.poll, "Let's vote"),
+            ('just', InIcons.queue, 'Just play'),
+            ('auto', InIcons.spark, 'Autoplay'),
+            ('me', InIcons.crown, 'Only me'),
+          ],
+          value: _playbackValue,
+          onChanged: _saving ? null : _setPlayback,
+        ),
+        RoomPersonalSettings(hasVideo: widget.hasVideo),
+        if (widget.onEndRoom != null) ...[
+          const SizedBox(height: 18),
+          RoomSheetButton(
+            icon: InIcons.close,
+            label: 'End room for everyone',
+            danger: true,
+            onTap: () => _closeThen(widget.onEndRoom!),
+          ),
+        ],
+      ],
     );
   }
 }

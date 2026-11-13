@@ -1,259 +1,167 @@
-import 'swipe_down_to_close.dart';
 import 'package:flutter/material.dart';
 
 import '../core/room_prefs.dart';
-import '../theme/app_colors.dart';
 import '../theme/insync_icons.dart';
+import 'room_sheet.dart';
 
-/// "Your settings" for a room: push to talk, the voices-vs-video balance
-/// and picture-in-picture. Personal — nothing here changes the room for
-/// anyone else (that's the host's room settings sheet).
+/// Room settings in someone else's room: the voices/video balance, this
+/// person's own switches and Report room. Personal — nothing here changes
+/// the room for anyone else (that's the host's room settings sheet, which
+/// shows the same personal part under the room's own options).
 Future<void> showGuestSettingsSheet(
   BuildContext context, {
+  // Kept for callers; leaving the mic is on the mic button now.
   bool onStage = false,
   VoidCallback? onLeaveMic,
   bool hasVideo = true,
   String? roomTitle,
   String? hostName,
   VoidCallback? onReport,
+  double halfFraction = 0.62,
 }) {
   RoomPrefs.instance.load();
-  return showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (sheetContext) => SwipeDownToClose(
-      child: AnimatedBuilder(
-        animation: RoomPrefs.instance,
-        builder: (context, _) {
-          final prefs = RoomPrefs.instance;
-          final b = prefs.balance;
-          final mix = b < 0.45
-              ? 'Voices louder'
-              : b > 0.55
-                  ? 'Video louder'
-                  : 'Both at full volume';
-          return Container(
-            constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.85),
-            decoration: const BoxDecoration(
-              color: AppColors.sheet,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                  18, 10, 18, 18 + MediaQuery.of(context).padding.bottom),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                            color: AppColors.border,
-                            borderRadius: BorderRadius.circular(999))),
-                  ),
-                  const SizedBox(height: 14),
-                  Text('Your settings',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleLarge
-                          ?.copyWith(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 2),
-                  if (roomTitle != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 2),
-                      child: Text(
-                          hostName == null
-                              ? roomTitle
-                              : '$roomTitle · hosted by $hostName',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              color: AppColors.lilac,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600)),
-                    ),
-                  const Text(
-                      'Only the host can change the room. These are just for you.',
-                      style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-                  const SizedBox(height: 16),
-                  _Card(children: [
-                    _SwitchRow(
-                      icon: InIcons.mic,
-                      title: 'Push to talk',
-                      subtitle: 'On the mic, hold the mic button to speak.',
-                      value: prefs.pushToTalk,
-                      onChanged: prefs.setPushToTalk,
-                    ),
-                    const Divider(height: 1, color: AppColors.border),
-                    _SwitchRow(
-                      icon: InIcons.mute,
-                      title: 'Mute room alerts',
-                      subtitle: 'No sound for new messages',
-                      value: prefs.muteAlerts,
-                      onChanged: prefs.setMuteAlerts,
-                    ),
-                    _SwitchRow(
-                      icon: InIcons.gift,
-                      title: 'Gift animations',
-                      subtitle: 'Off shows only the name and the chat card',
-                      value: prefs.giftAnimations,
-                      onChanged: prefs.setGiftAnimations,
-                    ),
-                    if (onStage && onLeaveMic != null) ...[
-                      const Divider(height: 1, color: AppColors.border),
-                      ListTile(
-                        contentPadding:
-                            const EdgeInsets.symmetric(horizontal: 14),
-                        leading: const InIcon(InIcons.micoff,
-                            size: 20, color: AppColors.pink),
-                        title: const Text('Leave the mic',
-                            style: TextStyle(color: AppColors.pink)),
-                        onTap: () {
-                          Navigator.of(sheetContext).pop();
-                          onLeaveMic();
-                        },
-                      ),
-                    ],
-                  ]),
-                  if (hasVideo) ...[
-                    const SizedBox(height: 12),
-                    _Card(children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(14, 14, 14, 4),
-                        child: Row(children: [
-                          const InIcon(InIcons.speaker,
-                              size: 20, color: AppColors.lilac),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Text('Voices and video',
-                                style: TextStyle(fontWeight: FontWeight.w600)),
-                          ),
-                          Flexible(
-                            child: Text(mix,
-                                textAlign: TextAlign.end,
-                                style: const TextStyle(
-                                    color: AppColors.textDim, fontSize: 12.5)),
-                          ),
-                        ]),
-                      ),
-                      Slider(
-                        value: b,
-                        divisions: 20,
-                        label: mix,
-                        onChanged: prefs.setBalance,
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.fromLTRB(14, 0, 14, 12),
-                        child: Row(children: [
-                          InIcon(InIcons.users,
-                              size: 15, color: AppColors.textFaint),
-                          SizedBox(width: 6),
-                          Text('Voices',
-                              style: TextStyle(
-                                  color: AppColors.textFaint, fontSize: 12)),
-                          Spacer(),
-                          Text('Video',
-                              style: TextStyle(
-                                  color: AppColors.textFaint, fontSize: 12)),
-                          SizedBox(width: 6),
-                          InIcon(InIcons.film,
-                              size: 15, color: AppColors.textFaint),
-                        ]),
-                      ),
-                    ]),
-                    const SizedBox(height: 12),
-                    _Card(children: [
-                      _SwitchRow(
-                        icon: InIcons.pip,
-                        title: 'Picture-in-picture',
-                        subtitle:
-                            'Keep watching in a small window when you leave the app.',
-                        value: prefs.autoPip,
-                        onChanged: prefs.setAutoPip,
-                      ),
-                      const Divider(height: 1, color: AppColors.border),
-                      _SwitchRow(
-                        icon: InIcons.chat,
-                        title: 'Show chat over video',
-                        subtitle:
-                            'In landscape, recent messages float on the video.',
-                        value: prefs.chatOverVideo,
-                        onChanged: prefs.setChatOverVideo,
-                      ),
-                    ]),
-                  ],
-                  if (onReport != null) ...[
-                    const SizedBox(height: 12),
-                    _Card(children: [
-                      ListTile(
-                        contentPadding:
-                            const EdgeInsets.symmetric(horizontal: 14),
-                        leading: const InIcon(InIcons.shield,
-                            size: 20, color: AppColors.pink),
-                        title: const Text('Report this room',
-                            style: TextStyle(color: AppColors.pink)),
-                        onTap: () {
-                          Navigator.of(sheetContext).pop();
-                          onReport();
-                        },
-                      ),
-                    ]),
-                  ],
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+  return showRoomSheet(
+    context,
+    halfFraction: halfFraction,
+    builder: (sheetContext, scroll) => ListView(
+      controller: scroll,
+      padding: EdgeInsets.fromLTRB(
+          16, 0, 16, 16 + MediaQuery.of(sheetContext).padding.bottom),
+      children: [
+        const RoomSheetHandle(),
+        RoomPersonalSettings(hasVideo: hasVideo, topLabel: false),
+        if (onReport != null) ...[
+          const SizedBox(height: 18),
+          RoomSheetButton(
+            icon: InIcons.shield,
+            label: 'Report room',
+            onTap: () {
+              Navigator.of(sheetContext).pop();
+              onReport();
+            },
+          ),
+        ],
+      ],
     ),
   );
 }
 
-class _Card extends StatelessWidget {
-  final List<Widget> children;
-  const _Card({required this.children});
+/// The personal part of a room's settings: the voices/video bar and a grid
+/// of this person's own switches. Saved on this phone only (RoomPrefs).
+class RoomPersonalSettings extends StatelessWidget {
+  final bool hasVideo;
+  // The sound bar's label sits flush at the top of the guest sheet.
+  final bool topLabel;
+  const RoomPersonalSettings(
+      {super.key, this.hasVideo = true, this.topLabel = true});
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surface2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: AppColors.border),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
-    );
-  }
-}
-
-class _SwitchRow extends StatelessWidget {
-  final InIconData icon;
-  final String title;
-  final String subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-  const _SwitchRow(
-      {required this.icon,
-      required this.title,
-      required this.subtitle,
-      required this.value,
-      required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return SwitchListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      secondary: InIcon(icon, size: 20, color: AppColors.lilac),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text(subtitle,
-          style: const TextStyle(color: AppColors.textDim, fontSize: 12.5)),
-      value: value,
-      onChanged: onChanged,
+    return AnimatedBuilder(
+      animation: RoomPrefs.instance,
+      builder: (context, _) {
+        final p = RoomPrefs.instance;
+        final cards = <Widget>[
+          RoomToggleCard(
+              icon: InIcons.mic,
+              label: 'Hold mic button to talk',
+              on: p.pushToTalk,
+              onChanged: p.setPushToTalk),
+          RoomToggleCard(
+              icon: InIcons.bell,
+              label: 'Sound for new messages',
+              on: !p.muteAlerts,
+              onChanged: (v) => p.setMuteAlerts(!v)),
+          RoomToggleCard(
+              icon: InIcons.gift,
+              label: 'Show gift animations',
+              on: p.giftAnimations,
+              onChanged: p.setGiftAnimations),
+          if (hasVideo) ...[
+            RoomToggleCard(
+                icon: InIcons.pip,
+                label: 'Small video when I leave',
+                on: p.autoPip,
+                onChanged: p.setAutoPip),
+            RoomToggleCard(
+                icon: InIcons.chat,
+                label: 'Chat over full-screen video',
+                on: p.chatOverVideo,
+                onChanged: p.setChatOverVideo),
+          ],
+        ];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (hasVideo) ...[
+              topLabel
+                  ? const RoomSheetLabel('SOUND')
+                  : const Padding(
+                      padding: EdgeInsets.only(bottom: 8),
+                      child: Text('SOUND',
+                          style: TextStyle(
+                              color: kSheetDim,
+                              fontSize: 11,
+                              letterSpacing: 0.5,
+                              fontWeight: FontWeight.w600)),
+                    ),
+              const Row(children: [
+                InIcon(InIcons.users, size: 15, color: Color(0xFFBBBBBB)),
+                SizedBox(width: 6),
+                Expanded(
+                  child: Text('Voices louder',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: Color(0xFFBBBBBB), fontSize: 12)),
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text('Video louder',
+                      maxLines: 1,
+                      textAlign: TextAlign.end,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: Color(0xFFBBBBBB), fontSize: 12)),
+                ),
+                SizedBox(width: 6),
+                InIcon(InIcons.film, size: 15, color: Color(0xFFBBBBBB)),
+              ]),
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  activeTrackColor: kSheetOnBorder,
+                  inactiveTrackColor: const Color(0xFF333333),
+                  thumbColor: Colors.white,
+                  overlayShape: SliderComponentShape.noOverlay,
+                  trackHeight: 4,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Slider(
+                    value: p.balance,
+                    divisions: 20,
+                    semanticFormatterCallback: (v) => v < 0.45
+                        ? 'Voices louder'
+                        : v > 0.55
+                            ? 'Video louder'
+                            : 'Both at full volume',
+                    onChanged: p.setBalance,
+                  ),
+                ),
+              ),
+            ],
+            SizedBox(height: hasVideo ? 6 : 0),
+            LayoutBuilder(
+              builder: (context, box) {
+                final w = (box.maxWidth - 12) / 3;
+                return Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [for (final c in cards) SizedBox(width: w, child: c)],
+                );
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }

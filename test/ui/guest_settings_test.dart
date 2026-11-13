@@ -33,7 +33,7 @@ void main() {
       t.view.devicePixelRatio = 1;
       addTearDown(t.view.resetPhysicalSize);
       addTearDown(t.view.resetDevicePixelRatio);
-      var left = false;
+      var reported = false;
       await t.pumpWidget(MaterialApp(
         theme: AppTheme.darkWithoutWebFonts(),
         builder: (context, w) => MediaQuery(
@@ -45,7 +45,7 @@ void main() {
             body: Center(
               child: TextButton(
                 onPressed: () => showGuestSettingsSheet(context,
-                    onStage: true, onLeaveMic: () => left = true),
+                    onReport: () => reported = true),
                 child: const Text('open'),
               ),
             ),
@@ -55,20 +55,26 @@ void main() {
       await t.tap(find.text('open'));
       await t.pumpAndSettle();
       expect(t.takeException(), isNull);
-      expect(find.text('Your settings'), findsOneWidget);
-      expect(find.text('Both at full volume'), findsOneWidget);
+      // Sound bar, the personal tiles and Report room; no titles.
+      expect(find.text('Voices louder'), findsOneWidget);
+      expect(find.text('Video louder'), findsOneWidget);
+      expect(find.text('Your settings'), findsNothing);
+      expect(find.text('Leave the mic'), findsNothing);
 
-      await t.tap(find.text('Push to talk'));
+      await t.tap(find.text('Hold mic button to talk'));
       await t.pump();
       expect(RoomPrefs.instance.pushToTalk, isTrue);
-      await t.tap(find.text('Push to talk'));
+      await t.tap(find.text('Hold mic button to talk'));
       await t.pump();
       expect(RoomPrefs.instance.pushToTalk, isFalse);
 
-      await t.scrollUntilVisible(find.text('Leave the mic'), 50);
-      await t.tap(find.text('Leave the mic'));
+      // Swiping up opens the sheet full screen, then scrolls it.
+      await t.dragUntilVisible(find.text('Report room'), find.byType(ListView),
+          const Offset(0, -150));
       await t.pumpAndSettle();
-      expect(left, isTrue);
+      await t.tap(find.text('Report room'));
+      await t.pumpAndSettle();
+      expect(reported, isTrue);
     });
   }
 }
