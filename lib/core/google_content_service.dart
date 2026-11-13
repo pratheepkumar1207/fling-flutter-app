@@ -35,9 +35,8 @@ class GoogleContentService {
         'https://www.googleapis.com/auth/drive.readonly',
       ],
       serverClientId: kGoogleOAuthWebClientId,
-      // Ask for a code that also brings a refresh token, so the backend can
-      // keep browsing YouTube/Drive later without the user present.
-      forceCodeForRefreshToken: true,
+      // No forceCodeForRefreshToken: on Android it makes Google ask for
+      // consent again straight after the user accepts, in a loop.
     );
   }
 
@@ -49,12 +48,17 @@ class GoogleContentService {
       throw StateError(
           'Google sign-in is not configured yet (kGoogleOAuthWebClientId is empty).');
     }
-    // A one-time code can be swapped only once. Signing out first makes
-    // signIn() fetch a fresh code instead of handing back the cached
-    // account's old one (Google answers "invalid_grant" to a reused code).
+    // A one-time code can be swapped only once, and Google only includes a
+    // refresh token the first time access is granted. Disconnecting first
+    // drops the cached account and the old grant, so signIn() shows the
+    // consent once and returns a fresh code that brings a refresh token.
     try {
-      await _signIn().signOut();
-    } catch (_) {}
+      await _signIn().disconnect();
+    } catch (_) {
+      try {
+        await _signIn().signOut();
+      } catch (_) {}
+    }
     final account = await _signIn().signIn();
     if (account == null) throw StateError('Sign-in was cancelled.');
     final serverAuthCode = account.serverAuthCode;
