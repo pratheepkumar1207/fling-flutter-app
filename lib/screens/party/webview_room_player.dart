@@ -1501,7 +1501,8 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
               },
             ),
           ),
-        if ((_webTrouble ?? '').isNotEmpty && !_useApp)
+        // Only for a sign-in that ran out; no "press play" bar otherwise.
+        if ((_webTrouble ?? '').isNotEmpty && !_useApp && _signInExpired)
           Positioned(
             left: 12,
             right: 12,
