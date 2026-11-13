@@ -17,6 +17,8 @@ class GameRoomBody extends StatefulWidget {
   final List<Widget> banners;
   final Widget chat;
   final List<Map<String, dynamic>> messages;
+  // Host only: the switch button above the chat, to change games.
+  final VoidCallback? onSwitchGame;
 
   const GameRoomBody({
     super.key,
@@ -26,6 +28,7 @@ class GameRoomBody extends StatefulWidget {
     required this.banners,
     required this.chat,
     required this.messages,
+    this.onSwitchGame,
   });
 
   @override
@@ -247,6 +250,34 @@ class _GameRoomBodyState extends State<GameRoomBody> {
               ],
             ),
             Positioned(left: 0, right: 0, bottom: 0, child: _chatBar()),
+            // Host: change to another game (right, just above the chat).
+            if (widget.onSwitchGame != null && !_chatOpen)
+              Positioned(
+                right: 12,
+                bottom: 66,
+                child: Semantics(
+                  button: true,
+                  label: 'Switch game',
+                  child: Material(
+                    color: const Color(0xFF2A1D4A),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(color: Color(0xFF8B6CFF))),
+                    child: InkWell(
+                      customBorder: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      onTap: widget.onSwitchGame,
+                      child: const SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: Center(
+                            child: InIcon(InIcons.swap,
+                                size: 20, color: Colors.white)),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             // Tapping the game above the open chat puts the chat away.
             if (_chatOpen)
               Positioned(

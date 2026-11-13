@@ -22,6 +22,7 @@ import '../../core/room_source_types.dart';
 import '../../core/socket_service.dart';
 import '../../models/room_models.dart';
 import '../../theme/insync_icons.dart';
+import '../../widgets/room_sheet.dart';
 import '../../widgets/in_icon_button.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/vola_party_colors.dart';
@@ -797,6 +798,92 @@ class _PartyScreenState extends State<PartyScreen>
       'videoThumbnail': videoThumbnail,
     });
     await _refreshRoom();
+  }
+
+  static const _kGames = [
+    ('chess', InIcons.game, 'Chess'),
+    ('ludo', InIcons.dice, 'Ludo'),
+    ('uno', InIcons.ticket, 'UNO'),
+    ('tictactoe', InIcons.hash, 'Tic Tac Toe'),
+    ('truth_or_dare', InIcons.flame, 'Truth or Dare'),
+  ];
+
+  // Host: the switch button in a game room. Pick another game and the room
+  // changes to it for everyone (a fresh board); asks first when a game is
+  // being played.
+  void _openGamePicker(Map<String, dynamic> room, RoomSocketController rs) {
+    final current = room['gameType'] as String?;
+    _withRoomSheet((half) => showRoomSheet(
+          context,
+          halfFraction: 0.42,
+          builder: (sheet, scroll) => ListView(
+            controller: scroll,
+            padding: EdgeInsets.fromLTRB(
+                16, 0, 16, 16 + MediaQuery.of(sheet).padding.bottom),
+            children: [
+              const RoomSheetHandle(),
+              LayoutBuilder(
+                builder: (context, box) => Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final (id, icon, label) in _kGames)
+                      SizedBox(
+                        width: (box.maxWidth - 12) / 3,
+                        child: RoomToggleCard(
+                          icon: icon,
+                          label: label,
+                          on: id == current,
+                          onChanged: (_) {
+                            if (id == current) return;
+                            Navigator.of(sheet).pop();
+                            _switchGame(rs, id, label, current);
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ));
+  }
+
+  Future<void> _switchGame(RoomSocketController rs, String gameType,
+      String label, String? current) async {
+    if (rs.game?['status'] == 'playing') {
+      final oldLabel = _kGames
+              .where((g) => g.$1 == current)
+              .map((g) => g.$3)
+              .firstOrNull ??
+          'game';
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (d) => AlertDialog(
+          title: Text('Switch to $label?'),
+          content: Text('This $oldLabel game ends for everyone.'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(d).pop(false),
+                child: const Text('Keep playing')),
+            TextButton(
+                onPressed: () => Navigator.of(d).pop(true),
+                child: const Text('Switch')),
+          ],
+        ),
+      );
+      if (ok != true || !mounted) return;
+    }
+    try {
+      await ApiClient.patch('/rooms/${widget.roomId}/type',
+          body: {'roomType': 'game', 'gameType': gameType});
+      await _refreshRoom();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Couldn't switch the game: $e")));
+      }
+    }
   }
 
   Future<void> _refreshRoom() async {
@@ -2245,6 +2332,9 @@ class _PartyScreenState extends State<PartyScreen>
                               banners: gameBanners(),
                               board: gameBoard(),
                               messages: rs.messages,
+                              onSwitchGame: rs.isHost
+                                  ? () => _openGamePicker(room, rs)
+                                  : null,
                               chat: ChatOverlay(
                                 newestCard: privacyCard,
                                 compact: _peopleOpen,
