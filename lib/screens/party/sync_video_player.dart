@@ -1278,10 +1278,25 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     );
 
     if (!audioOnly) {
-      if (!stripControls) return videoTree;
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [videoTree, _controlStrip(landscape)],
+      // Always the same Column with the player first, strip or not: if the
+      // widgets around the WebView change (turning the phone, suggestions,
+      // picture-in-picture), Flutter rebuilds the page and the video
+      // pauses and starts again.
+      return LayoutBuilder(
+        builder: (context, box) => Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Without the strip the player keeps the room it was given (the
+            // small player, full screen), as before.
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                  maxHeight: stripControls ? double.infinity : box.maxHeight),
+              child: videoTree,
+            ),
+            if (stripControls) _controlStrip(landscape),
+          ],
+        ),
       );
     }
 
