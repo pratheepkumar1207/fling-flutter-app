@@ -25,6 +25,7 @@ import '../../theme/insync_icons.dart';
 import '../../widgets/room_sheet.dart';
 import '../../widgets/in_icon_button.dart';
 import '../../theme/app_colors.dart';
+import '../lobby/source_picker_screen.dart';
 import '../../theme/vola_party_colors.dart';
 import '../../widgets/gift_bottom_sheet.dart';
 import '../../widgets/game_board_view.dart';
@@ -800,6 +801,176 @@ class _PartyScreenState extends State<PartyScreen>
     await _refreshRoom();
   }
 
+  // The room's mode — Watch, Talk or Game — as an icon in the top bar. The
+  // host taps it to change the mode for everyone (a sheet: Watch · Talk ·
+  // Game, then which game or what to watch); guests just see it.
+  Widget _modeButton(Map<String, dynamic> room, RoomSocketController rs) {
+    final type = room['roomType'] as String?;
+    final (icon, label) = switch (type) {
+      'voice' => (InIcons.mic, 'Talk'),
+      'game' => (InIcons.game, 'Game'),
+      _ => (InIcons.film, 'Watch'),
+    };
+    final box = Container(
+      width: 32,
+      height: 32,
+      margin: const EdgeInsets.only(left: 2),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A1D4A),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF8B6CFF)),
+      ),
+      child: Center(child: InIcon(icon, size: 17, color: Colors.white)),
+    );
+    return Semantics(
+      button: rs.isHost,
+      label: rs.isHost ? '$label mode. Change mode' : '$label mode',
+      excludeSemantics: true,
+      child: rs.isHost
+          ? GestureDetector(
+              onTap: () => _openModeSheet(room, rs), child: box)
+          : box,
+    );
+  }
+
+  void _openModeSheet(Map<String, dynamic> room, RoomSocketController rs) {
+    final type = room['roomType'] as String?;
+    var games = false;
+    _withRoomSheet((half) => showRoomSheet(
+          context,
+          halfFraction: 0.42,
+          builder: (sheet, scroll) => StatefulBuilder(
+            builder: (sheet, setSheet) {
+              Widget grid(List<Widget> cards) => LayoutBuilder(
+                    builder: (context, box) => Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (final c in cards)
+                          SizedBox(width: (box.maxWidth - 12) / 3, child: c),
+                      ],
+                    ),
+                  );
+              return ListView(
+                controller: scroll,
+                padding: EdgeInsets.fromLTRB(
+                    16, 0, 16, 16 + MediaQuery.of(sheet).padding.bottom),
+                children: [
+                  const RoomSheetHandle(),
+                  if (!games)
+                    grid([
+                      RoomToggleCard(
+                        icon: InIcons.film,
+                        label: 'Watch',
+                        on: type == 'watch',
+                        onChanged: (_) {
+                          Navigator.of(sheet).pop();
+                          if (type != 'watch') _pickWatchSource();
+                        },
+                      ),
+                      RoomToggleCard(
+                        icon: InIcons.mic,
+                        label: 'Talk',
+                        on: type == 'voice',
+                        onChanged: (_) {
+                          Navigator.of(sheet).pop();
+                          if (type != 'voice') _changeType({'roomType': 'voice'});
+                        },
+                      ),
+                      RoomToggleCard(
+                        icon: InIcons.game,
+                        label: 'Game',
+                        on: type == 'game',
+                        onChanged: (_) => setSheet(() => games = true),
+                      ),
+                    ])
+                  else ...[
+                    Row(children: [
+                      IconButton(
+                        tooltip: 'Back',
+                        onPressed: () => setSheet(() => games = false),
+                        icon: const InIcon(InIcons.back,
+                            size: 20, color: Colors.white),
+                      ),
+                      const Text('Pick a game',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14)),
+                    ]),
+                    const SizedBox(height: 6),
+                    grid([
+                      for (final (id, icon, label) in _kGames)
+                        RoomToggleCard(
+                          icon: icon,
+                          label: label,
+                          on: type == 'game' && room['gameType'] == id,
+                          onChanged: (_) {
+                            Navigator.of(sheet).pop();
+                            if (type == 'game') {
+                              if (room['gameType'] != id) {
+                                _switchGame(rs, id, label,
+                                    room['gameType'] as String?);
+                              }
+                            } else {
+                              _changeType(
+                                  {'roomType': 'game', 'gameType': id});
+                            }
+                          },
+                        ),
+                    ]),
+                  ],
+                ],
+              );
+            },
+          ),
+        ));
+  }
+
+  Future<void> _changeType(Map<String, dynamic> body) async {
+    try {
+      await ApiClient.patch('/rooms/${widget.roomId}/type', body: body);
+      await _refreshRoom();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Couldn't change the room: $e")));
+      }
+    }
+  }
+
+  // Watch mode: pick what to play; the room becomes a watch party with it.
+  void _pickWatchSource() {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (page) => Scaffold(
+        backgroundColor: AppColors.bg,
+        appBar: AppBar(title: const Text('What are we watching?')),
+        body: SourcePickerBody(
+          roomId: widget.roomId,
+          onSwitchSource: _switchRoomSource,
+          onAddToQueue: (
+              {required videoUrl,
+              required title,
+              thumbnail,
+              required mediaMode,
+              sourceType = 'youtube'}) async {
+            if (Navigator.of(page).canPop()) Navigator.of(page).pop();
+            try {
+              await _switchRoomSource(sourceType, videoUrl,
+                  videoTitle: title.isEmpty ? null : title,
+                  videoThumbnail: thumbnail);
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Couldn't switch the room: $e")));
+              }
+            }
+          },
+        ),
+      ),
+    ));
+  }
+
   static const _kGames = [
     ('chess', InIcons.game, 'Chess'),
     ('ludo', InIcons.dice, 'Ludo'),
@@ -874,16 +1045,7 @@ class _PartyScreenState extends State<PartyScreen>
       );
       if (ok != true || !mounted) return;
     }
-    try {
-      await ApiClient.patch('/rooms/${widget.roomId}/type',
-          body: {'roomType': 'game', 'gameType': gameType});
-      await _refreshRoom();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Couldn't switch the game: $e")));
-      }
-    }
+    await _changeType({'roomType': 'game', 'gameType': gameType});
   }
 
   Future<void> _refreshRoom() async {
@@ -2122,7 +2284,7 @@ class _PartyScreenState extends State<PartyScreen>
                       // always-visible way to actually leave.
                       // Leave first, settings (host) right beside it — the
                       // two "room" controls together on the left.
-                      leadingWidth: room['roomType'] != 'live' ? 118 : 78,
+                      leadingWidth: room['roomType'] != 'live' ? 160 : 78,
                       leading: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -2164,6 +2326,8 @@ class _PartyScreenState extends State<PartyScreen>
                                 onPressed: () =>
                                     _openGuestSettings(rs, room,
                                         hasVideo: isWatch)),
+                          if (room['roomType'] != 'live')
+                            _modeButton(room, rs),
                         ],
                       ),
                       // Who's on mic, lit while talking. _hostKey stays on this
