@@ -694,19 +694,74 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
   // Runs in every frame. Inside YouTube's player frame it reads the real
   // size of the playing <video> and hands it up to our embed page, which
   // keeps the latest as window.__insyncAR for _readRealSize.
+  // Also trims black bands that are part of the picture itself (a wide
+  // movie uploaded as 16:9): about every 1.5 s a tiny copy of the playing
+  // frame is checked for rows/columns that are almost pure black. Only a
+  // band seen in every recent check counts (the smallest one wins, so a
+  // dark scene can't over-crop), and only bands of 5% or more. The video
+  // then fills the player (object-fit: cover) and the reported shape is
+  // the real picture's, so the box drops the dead space.
   static const _kRealSizeScript = r'''
 (function () {
   try {
     if (/(^|\.)youtube(-nocookie)?\.com$/.test(location.hostname)) {
       var last = 0;
+      var cv = document.createElement('canvas'), cx = null, seen = [], cut = 0, cutX = 0, lastSrc = '';
+      function lum(d, i) { return d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11; }
+      function scan(v) {
+        if (v.currentSrc !== lastSrc) { lastSrc = v.currentSrc; seen = []; cut = 0; cutX = 0; }
+        if (v.paused || v.readyState < 2) return;
+        var W = 48, H = Math.max(27, Math.round(48 * v.videoHeight / v.videoWidth));
+        cv.width = W; cv.height = H;
+        cx = cx || cv.getContext('2d', { willReadFrequently: true });
+        var d;
+        try { cx.drawImage(v, 0, 0, W, H); d = cx.getImageData(0, 0, W, H).data; } catch (e) { return; }
+        var rows = [], cols = [], any = false, x, y;
+        for (x = 0; x < W; x++) cols.push(0);
+        for (y = 0; y < H; y++) {
+          var m = 0;
+          for (x = 0; x < W; x++) {
+            var l = lum(d, (y * W + x) * 4);
+            if (l > m) m = l;
+            if (l > cols[x]) cols[x] = l;
+          }
+          rows.push(m);
+          if (m > 40) any = true;
+        }
+        if (!any) return;
+        var T = 22, t = 0, b = 0, le = 0, r = 0;
+        while (t < H && rows[t] < T) t++;
+        while (b < H - t && rows[H - 1 - b] < T) b++;
+        while (le < W && cols[le] < T) le++;
+        while (r < W - le && cols[W - 1 - r] < T) r++;
+        seen.push([Math.min(t, b) / H, Math.min(le, r) / W]);
+        if (seen.length > 6) seen.shift();
+        if (seen.length < 4) return;
+        var vy = 1, vx = 1;
+        seen.forEach(function (q) { vy = Math.min(vy, q[0]); vx = Math.min(vx, q[1]); });
+        cut = vy >= 0.05 && vy < 0.3 ? vy : 0;
+        cutX = vx >= 0.05 && vx < 0.3 ? vx : 0;
+        var on = cut > 0 || cutX > 0;
+        var st = v.style;
+        if (on) {
+          st.setProperty('object-fit', 'cover', 'important');
+          st.setProperty('width', '100%', 'important');
+          st.setProperty('height', '100%', 'important');
+          st.setProperty('left', '0', 'important');
+          st.setProperty('top', '0', 'important');
+        } else if (st.getPropertyValue('object-fit')) {
+          ['object-fit', 'width', 'height', 'left', 'top'].forEach(function (k) { st.removeProperty(k); });
+        }
+      }
       setInterval(function () {
         var v = document.querySelector('video');
         if (!v || !v.videoWidth || !v.videoHeight) return;
-        var ar = v.videoWidth / v.videoHeight;
+        try { scan(v); } catch (e) {}
+        var ar = (v.videoWidth * (1 - 2 * cutX)) / (v.videoHeight * (1 - 2 * cut));
         if (Math.abs(ar - last) < 0.01) return;
         last = ar;
         try { window.top.postMessage({ insyncAR: ar }, '*'); } catch (e) {}
-      }, 700);
+      }, 1500);
     } else if (window === window.top) {
       window.addEventListener('message', function (e) {
         if (e && e.data && typeof e.data.insyncAR === 'number') window.__insyncAR = e.data.insyncAR;
