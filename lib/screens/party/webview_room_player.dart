@@ -21,6 +21,7 @@ import '../../core/room_playback.dart';
 import '../../core/room_prefs.dart';
 import '../../core/prime_player_menu.dart';
 import '../../core/hotstar_player_menu.dart';
+import '../../core/aha_player_menu.dart';
 import 'full_screen_controls.dart';
 import 'player_settings_sheet.dart';
 
@@ -613,7 +614,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     } catch (_) {}
   }
 
-  // Prime Video and Hotstar: the lists from their own menus, kept per
+  // Prime Video, Hotstar and Aha: the lists from their own players, kept per
   // title so the sheet shows them straight away next time, refreshed each
   // time it opens. One menu job at a time on the page.
   final _siteLists = ValueNotifier<Map<String, List<Map>>?>(null);
@@ -648,7 +649,8 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     final c = _controller;
     final isPrime = _drmPlatform == 'Prime Video';
     final isHotstar = _drmPlatform == 'Hotstar';
-    final siteMenus = c != null && (isPrime || isHotstar);
+    final isAha = _drmPlatform == 'Aha';
+    final siteMenus = c != null && (isPrime || isHotstar || isAha);
     if (_siteListsFor != widget.videoUrl) {
       _siteListsFor = widget.videoUrl;
       _siteLists.value = null;
@@ -658,7 +660,9 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
       _onMenu(() async {
         final lists = isPrime
             ? await PrimePlayerMenu.read(c)
-            : await HotstarPlayerMenu.read(c);
+            : isAha
+                ? await AhaPlayerMenu.read(c)
+                : await HotstarPlayerMenu.read(c);
         if (mounted && lists != null) _siteLists.value = lists;
         if (mounted && lists == null && _siteLists.value == null) {
           _siteLists.value = const {};
@@ -686,8 +690,10 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         };
         _onMenu(() => isHotstar
             ? HotstarPlayerMenu.pick(c, kind: key, value: value ?? 'Off')
-            : PrimePlayerMenu.pick(c,
-                row: row, name: name, value: value ?? 'off'));
+            : isAha
+                ? AhaPlayerMenu.pick(c, kind: key, value: value ?? 'Off')
+                : PrimePlayerMenu.pick(c,
+                    row: row, name: name, value: value ?? 'off'));
       };
     }
 
