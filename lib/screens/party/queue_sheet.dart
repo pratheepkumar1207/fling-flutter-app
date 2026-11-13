@@ -42,6 +42,9 @@ class QueueSheetScreen extends StatefulWidget {
   final void Function(List<Map<String, dynamic>> items)? onAddMany;
   // userId → display name, for "added by Ravi".
   final String? Function(String userId)? nameFor;
+  // The half sheet's height as a share of the screen: the room sizes it to
+  // the space under the video.
+  final double halfFraction;
 
   const QueueSheetScreen({
     super.key,
@@ -60,6 +63,7 @@ class QueueSheetScreen extends StatefulWidget {
     this.canAddSongs = true,
     this.onAddMany,
     this.nameFor,
+    this.halfFraction = 0.62,
   }) : canPin = canPin ?? isHost;
 
   @override
@@ -181,6 +185,25 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
 
   // Which chip is open: the queue itself, or suggestions/sources to add from.
   bool _suggested = false;
+  // Pulled up to full screen (every source shows); swiping down goes back
+  // to the half sheet, and down again closes it.
+  bool _full = false;
+  double _dragDy = 0;
+  double _pull = 0;
+
+  void _dragEnd(double velocity) {
+    final dy = _dragDy;
+    setState(() => _dragDy = 0);
+    if (velocity < -300 || dy < -60) {
+      if (!_full) setState(() => _full = true);
+    } else if (velocity > 300 || dy > 60) {
+      if (_full) {
+        setState(() => _full = false);
+      } else {
+        _close();
+      }
+    }
+  }
   // "Audio only" chip: new adds come in as audio (always on in music rooms).
   late final bool _audioOnly = widget.audioOnly;
   final _search = TextEditingController();
@@ -366,19 +389,15 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
           const SizedBox(height: 4),
           Text(
               widget.canAddSongs
-                  ? 'Search above or open Suggested to add something'
+                  ? 'Search above or pick a source to add something'
                   : 'The host picks what plays here',
               style: const TextStyle(color: AppColors.textDim, fontSize: 12.5)),
         ]),
       );
     }
-    final now = current < items.length
-        ? Map<String, dynamic>.from(items[current] as Map)
-        : null;
     final upNext = [
       for (var i = current + 1; i < items.length; i++) i,
     ];
-    final played = [for (var i = 0; i < current && i < items.length; i++) i];
     Widget row(int i, {bool dim = false}) {
       final item = Map<String, dynamic>.from(items[i] as Map);
       final host = widget.isHost;
@@ -428,40 +447,20 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
       children: [
-        if (now != null) ...[
-          _section('NOW PLAYING'),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1A1028),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF3A2A55)),
+        if (upNext.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 28),
+            child: Center(
+              child: Text(
+                  widget.canAddSongs
+                      ? 'Nothing up next. Search or pick a source to add one.'
+                      : 'The host picks what plays next',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      color: AppColors.textDim, fontSize: 12.5)),
             ),
-            child: Row(children: [
-              _thumb(now['thumbnail'] as String?, 92, 54),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(now['title'] as String? ?? 'Video',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w600)),
-                      Text(_who(now),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              color: AppColors.textDim, fontSize: 12)),
-                    ]),
-              ),
-              const InIcon(InIcons.chart, size: 20, color: AppColors.lilac),
-            ]),
           ),
-        ],
         if (upNext.isNotEmpty) ...[
-          _section('UP NEXT · ${upNext.length}'),
           if (widget.isHost)
             ReorderableListView(
               shrinkWrap: true,
@@ -473,10 +472,6 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
             )
           else
             for (final i in upNext) row(i),
-        ],
-        if (played.isNotEmpty) ...[
-          _section('PLAYED'),
-          for (final i in played.reversed) row(i, dim: true),
         ],
       ],
     );
@@ -549,50 +544,62 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, box) {
+      final max = box.maxHeight;
+      final half = (max * widget.halfFraction).clamp(max * 0.35, max);
+      final h = ((_full ? max : half) - _dragDy).clamp(max * 0.2, max);
+      return Align(
+        alignment: Alignment.bottomCenter,
+        child: AnimatedContainer(
+          duration: _dragDy == 0
+              ? const Duration(milliseconds: 220)
+              : Duration.zero,
+          curve: Curves.easeOutCubic,
+          height: h,
+          child: _content(context),
+        ),
+      );
+    });
+  }
+
+  Widget _content(BuildContext context) {
     final items = (widget.queue['items'] as List?) ?? [];
     final current = widget.queue['currentIndex'] as int? ?? 0;
     final showResults = _results != null || _searching || _searchError != null;
+    // Swipe on the top part (handle, search, sources) moves the sheet;
+    // pulling the list down past its top does too.
+    Widget dragArea(Widget child) => GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onVerticalDragUpdate: (d) =>
+              setState(() => _dragDy += d.primaryDelta ?? 0),
+          onVerticalDragEnd: (d) => _dragEnd(d.primaryVelocity ?? 0),
+          child: child,
+        );
     return Material(
-      color: const Color(0xFF121019),
+      color: Colors.black,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          side: BorderSide(color: AppColors.border)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          side: BorderSide(color: Color(0xFF262626))),
       clipBehavior: Clip.antiAlias,
-      child: SafeArea(
+      child: DefaultTextStyle.merge(
+        style: const TextStyle(color: Colors.white),
+        child: SafeArea(
         top: false,
         child: Column(children: [
-          const SizedBox(height: 10),
-          Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                  color: const Color(0xFF3A3548),
-                  borderRadius: BorderRadius.circular(2))),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 8, 6),
-            child: Row(children: [
-              const Expanded(
-                child: Text('Up next',
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-              ),
-              TextButton.icon(
-                onPressed: widget.onOpenRoster,
-                icon: const InIcon(InIcons.users,
-                    size: 16, color: AppColors.textDim),
-                label: Text('${widget.participantCount}',
-                    style: const TextStyle(color: AppColors.textDim)),
-              ),
-              IconButton(
-                tooltip: 'Close',
-                onPressed: _close,
-                icon: const InIcon(InIcons.close, color: AppColors.textDim),
-              ),
-            ]),
-          ),
+          dragArea(Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(0, 10, 0, 12),
+            alignment: Alignment.center,
+            child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: const Color(0xFF444444),
+                    borderRadius: BorderRadius.circular(2))),
+          )),
           if (widget.canAddSongs)
             Padding(
-              padding: const EdgeInsets.fromLTRB(18, 4, 18, 10),
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
               child: TextField(
                 controller: _search,
                 // Voice, game and music rooms: straight to YouTube Music.
@@ -623,68 +630,32 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                           icon: const InIcon(InIcons.close,
                               size: 16, color: AppColors.textFaint)),
                   filled: true,
-                  fillColor: AppColors.surface,
+                  fillColor: const Color(0xFF111111),
                   isDense: true,
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: AppColors.border)),
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF262626))),
                   enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: AppColors.border)),
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF262626))),
                 ),
               ),
             ),
-          if (!widget.audioOnly && !showResults) ...[
-            if (widget.canAddSongs && _suggested)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(8, 0, 18, 2),
-                child: Row(children: [
-                  IconButton(
-                    tooltip: 'Back to Up next',
-                    onPressed: () => setState(() => _suggested = false),
-                    icon: const InIcon(InIcons.back,
-                        size: 20, color: AppColors.text),
-                  ),
-                  const Text('All sources',
-                      style:
-                          TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-                ]),
-              ),
-            if (widget.canAddSongs && !_suggested) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 8, 0),
-                child: Row(children: [
-                  const Expanded(
-                    child: Text('Add from',
-                        style:
-                            TextStyle(color: AppColors.textDim, fontSize: 12)),
-                  ),
-                  TextButton(
-                    onPressed: () => setState(() => _suggested = true),
-                    child: const Text('All sources',
-                        style: TextStyle(fontSize: 12.5)),
-                  ),
-                ]),
-              ),
-              SourcePickerBody(
-                quickRow: true,
-                compact: true,
-                roomId: widget.roomId,
-                onAddToQueue: _addToQueue,
-                onSwitchSource: widget.onSwitchSource,
-              ),
-            ],
-            if (!_suggested)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('Queue · ${items.length}',
-                      style: const TextStyle(
-                          color: AppColors.textDim, fontSize: 12)),
-                ),
-              ),
-          ],
+          if (!widget.audioOnly && !showResults && widget.canAddSongs)
+            dragArea(SourcePickerBody(
+              quickRow: !_full,
+              fullGrid: _full,
+              compact: true,
+              roomId: widget.roomId,
+              onAddToQueue: _addToQueue,
+              onSwitchSource: widget.onSwitchSource,
+              onMore: () => setState(() => _full = true),
+            )),
+          if (!widget.audioOnly && !showResults)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(18, 14, 18, 2),
+              child: Divider(height: 1, thickness: 1, color: Color(0xFF1C1C1C)),
+            ),
           if (widget.audioOnly)
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -731,23 +702,46 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                             onSwitchSource: widget.onSwitchSource,
                             onPlayAll: widget.onAddMany,
                           )
-                    : _queueList(items, current),
+                    : NotificationListener<ScrollNotification>(
+                        onNotification: (n) {
+                          if (n is OverscrollNotification &&
+                              n.dragDetails != null &&
+                              n.overscroll < 0) {
+                            _pull -= n.overscroll;
+                            if (_pull > 70) {
+                              _pull = 0;
+                              _dragEnd(400);
+                            }
+                          } else if (n is ScrollUpdateNotification &&
+                              n.dragDetails != null &&
+                              (n.scrollDelta ?? 0) > 0 &&
+                              !_full) {
+                            setState(() => _full = true);
+                          } else if (n is ScrollEndNotification) {
+                            _pull = 0;
+                          }
+                          return false;
+                        },
+                        child: _queueList(items, current),
+                      ),
           ),
         ]),
+      ),
       ),
     );
   }
 }
 
-/// Opens the room's search and queue as a sheet over the room (the room
-/// stays visible, dimmed, above it).
+/// Opens the room's search and queue as a sheet over the room. The video
+/// above stays clear; the sheet moves itself (half, full screen, closed).
 Future<void> showQueueSheet(BuildContext context, {required Widget sheet}) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
+    enableDrag: false,
     backgroundColor: Colors.transparent,
-    barrierColor: Colors.black.withValues(alpha: 0.6),
-    builder: (_) => FractionallySizedBox(heightFactor: 0.85, child: sheet),
+    barrierColor: Colors.transparent,
+    builder: (_) => sheet,
   );
 }

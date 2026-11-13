@@ -94,6 +94,13 @@ class SourcePickerBody extends StatelessWidget {
   /// The sources alone, for that sheet's "All sources" (it has its own search).
   final bool sourcesOnly;
 
+  /// The queue sheet's last tile in [quickRow], "All": opens every source.
+  final VoidCallback? onMore;
+
+  /// Every source as one continuous grid, six to a row, no titles (the
+  /// queue sheet pulled up to full screen).
+  final bool fullGrid;
+
   const SourcePickerBody({
     super.key,
     this.visibility = 'public',
@@ -107,6 +114,8 @@ class SourcePickerBody extends StatelessWidget {
     this.onPlayAll,
     this.quickRow = false,
     this.sourcesOnly = false,
+    this.onMore,
+    this.fullGrid = false,
   });
 
   bool get _inRoom => roomId != null;
@@ -470,8 +479,8 @@ class SourcePickerBody extends StatelessWidget {
           available: false),
     };
     if (quickRow) {
-      return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
+      // Six equal tiles that fill the width; the last opens every source.
+      return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 18),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           for (final n in [
@@ -481,8 +490,47 @@ class SourcePickerBody extends StatelessWidget {
             'Netflix',
             'Prime Video'
           ])
-            SizedBox(width: 70, child: tiles[n]!),
+            Expanded(child: tiles[n]!),
+          Expanded(
+            child: _SourceTile(
+                compact: c,
+                inIcon: InIcons.more,
+                label: 'All',
+                available: true,
+                onTap: onMore),
+          ),
         ]),
+      );
+    }
+    if (fullGrid) {
+      const order = [
+        'YouTube Surf',
+        'YouTube Music',
+        'Drive',
+        'Netflix',
+        'Prime Video',
+        'Hotstar',
+        'SonyLIV',
+        'SunNXT',
+        'Aha',
+        'Airtel Xstream',
+        'Crunchyroll',
+        'X',
+        'Playlists',
+        'Liked',
+        'History',
+      ];
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        child: LayoutBuilder(
+          builder: (context, box) => Wrap(
+            runSpacing: 12,
+            children: [
+              for (final n in order)
+                SizedBox(width: box.maxWidth / 6, child: tiles[n]!),
+            ],
+          ),
+        ),
       );
     }
     if (c) {

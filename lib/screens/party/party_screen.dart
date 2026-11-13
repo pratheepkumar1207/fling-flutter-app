@@ -78,6 +78,9 @@ class _PartyScreenState extends State<PartyScreen>
   late final AnimationController _people =
       AnimationController.unbounded(vsync: this);
   bool _peopleOpen = false;
+  // The queue sheet is up: the top bar hides so the video and the sheet
+  // get its space; it comes back when the sheet closes.
+  bool _queueOpen = false;
   bool _peopleDragging = false;
   // The host chose who can join (or the time ran out).
   bool _privacyHandled = false;
@@ -840,14 +843,28 @@ class _PartyScreenState extends State<PartyScreen>
     ));
   }
 
-  void _openQueue() {
+  Future<void> _openQueue() async {
     final rs = _rs!;
+    // Where the video will end once the top bar is gone: the sheet fills
+    // the rest of the screen under it.
+    final mq = MediaQuery.of(context);
+    final box = _playerAreaKey.currentContext?.findRenderObject() as RenderBox?;
+    final usable = mq.size.height - mq.padding.top;
+    var halfFraction = 0.62;
+    if (box != null && box.attached && box.size.height > 0) {
+      final videoBottom = box.localToGlobal(Offset.zero).dy +
+          box.size.height -
+          kToolbarHeight -
+          mq.padding.top;
+      halfFraction = ((usable - videoBottom) / usable).clamp(0.4, 0.85);
+    }
+    setState(() => _queueOpen = true);
     final roomType = _room?['roomType'];
     // Voice and Game rooms both have no video to show — see
     // SourcePickerBody.audioOnly's comment for why this restricts the
     // picker to just YouTube Music instead of the full source grid.
     final audioOnly = roomType == 'voice' || roomType == 'game';
-    showQueueSheet(
+    await showQueueSheet(
       context,
       sheet: AnimatedBuilder(
         animation: rs,
@@ -870,9 +887,11 @@ class _PartyScreenState extends State<PartyScreen>
               .where((r) => r.userId == id)
               .map((r) => r.name)
               .firstOrNull,
+          halfFraction: halfFraction,
         ),
       ),
     );
+    if (mounted) setState(() => _queueOpen = false);
   }
 
   // Watch/voice/game rooms get the theme's backdrop; other room types keep
@@ -1962,7 +1981,7 @@ class _PartyScreenState extends State<PartyScreen>
               // Hidden while composing a chat message — see hideChromeForChat —
               // so chat gets the full screen instead of sharing it with chrome
               // nobody's looking at mid-type.
-              appBar: hideChromeForChat
+              appBar: hideChromeForChat || _queueOpen
                   ? null
                   : AppBar(
                       // Plain: a blurred picture of whatever played before
@@ -2106,7 +2125,7 @@ class _PartyScreenState extends State<PartyScreen>
               // only while typing, letting the video slide up into the AppBar's
               // old spot instead of leaving a dead gap.
               body: SafeArea(
-                top: hideChromeForChat,
+                top: hideChromeForChat || _queueOpen,
                 bottom: false,
                 child: GestureDetector(
                   // Left to right goes Home with the room still running (or
