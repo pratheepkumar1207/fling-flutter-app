@@ -34,6 +34,8 @@ Future<void> showRoomSettingsSheet(BuildContext context,
     VoidCallback? onModeration,
     VoidCallback? onEndRoom,
     bool hasVideo = true,
+    bool testTypes = false,
+    VoidCallback? onPickWatchSource,
     double halfFraction = 0.62}) {
   RoomPrefs.instance.load();
   return showRoomSheet(
@@ -45,7 +47,9 @@ Future<void> showRoomSettingsSheet(BuildContext context,
         onChanged: onChanged,
         onModeration: onModeration,
         onEndRoom: onEndRoom,
-        hasVideo: hasVideo),
+        hasVideo: hasVideo,
+        testTypes: testTypes,
+        onPickWatchSource: onPickWatchSource),
   );
 }
 
@@ -56,13 +60,19 @@ class _RoomSettingsSheet extends StatefulWidget {
   final VoidCallback? onModeration;
   final VoidCallback? onEndRoom;
   final bool hasVideo;
+  // Test accounts: the Type row offers Watch · Voice · Game in any room;
+  // Watch first asks what to play (onPickWatchSource).
+  final bool testTypes;
+  final VoidCallback? onPickWatchSource;
   const _RoomSettingsSheet(
       {required this.room,
       required this.scroll,
       required this.onChanged,
       this.onModeration,
       this.onEndRoom,
-      this.hasVideo = true});
+      this.hasVideo = true,
+      this.testTypes = false,
+      this.onPickWatchSource});
 
   @override
   State<_RoomSettingsSheet> createState() => _RoomSettingsSheetState();
@@ -230,6 +240,15 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
   // Voice switches straight away; Game waits for its pick below.
   Future<void> _setType(String t) async {
     if (t == _roomType) return;
+    // To Watch: pick what to play first; that switches the room.
+    if (t == 'watch') {
+      if (_savedType != 'watch' && widget.onPickWatchSource != null) {
+        _closeThen(widget.onPickWatchSource!);
+      } else {
+        setState(() => _roomType = 'watch');
+      }
+      return;
+    }
     setState(() => _roomType = t);
     if (t == _savedType) return; // switched back before picking anything
     if (t == 'voice') {
@@ -371,6 +390,7 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
     final pendingPick = _roomType != _savedType;
     // Only voice and game rooms can switch between each other here.
     final canSwitchType = _savedType == 'voice' || _savedType == 'game';
+    final threeTypes = widget.testTypes && _savedType != 'live';
     const off = Color(0xFF666666);
     return ListView(
       controller: widget.scroll,
@@ -457,10 +477,11 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
           ),
         ]),
         if (_showThemes) _themeRow(),
-        if (canSwitchType) ...[
+        if (canSwitchType || threeTypes) ...[
           const RoomSheetLabel('TYPE'),
           RoomChoiceRow(
-            options: const [
+            options: [
+              if (threeTypes) ('watch', InIcons.tv, 'Watch'),
               ('voice', InIcons.mic, 'Voice'),
               ('game', InIcons.game, 'Game'),
             ],
