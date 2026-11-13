@@ -508,123 +508,6 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     }
   }
 
-  // The player's controls under the picture (upright): play/pause for the
-  // host, title and time, skip, like, picture-in-picture, settings, full
-  // screen, with the seek bar right along the bottom of the picture.
-  Widget _controlStrip(bool landscape) {
-    return ColoredBox(
-      color: Colors.black,
-      child: ValueListenableBuilder<Duration>(
-        valueListenable: _positionNotifier,
-        builder: (context, positionDuration, _) {
-          final duration = _duration.inSeconds.toDouble();
-          final position = _dragging
-              ? _dragPosition
-              : positionDuration.inSeconds.toDouble();
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(
-                height: 14,
-                child: SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    trackHeight: 3,
-                    trackShape: const _EdgeToEdgeTrack(),
-                    overlayShape: SliderComponentShape.noOverlay,
-                    thumbShape:
-                        const RoundSliderThumbShape(enabledThumbRadius: 6),
-                  ),
-                  child: Slider(
-                    value: duration > 0 ? position.clamp(0, duration) : 0,
-                    max: duration > 0 ? duration : 1,
-                    activeColor: AppColors.primary,
-                    inactiveColor: Colors.white24,
-                    onChanged: widget.isHost ? _handleSeekChanged : null,
-                    onChangeEnd: widget.isHost ? _handleSeekEnd : null,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(4, 0, 2, 2),
-                child: Row(
-                  children: [
-                    if (widget.isHost)
-                      _controlIcon(
-                        _isPlaying ? InIcons.pause : InIcons.play,
-                        _isPlaying ? 'Pause' : 'Play',
-                        _handleTap,
-                      )
-                    else
-                      const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (widget.title != null)
-                            Text(widget.title!,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w600)),
-                          Text(
-                            _justResumed
-                                ? 'Catching up…'
-                                : '${_formatTime(position)} / ${_formatTime(duration)}',
-                            style: const TextStyle(
-                                color: Colors.white60, fontSize: 10.5),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (widget.isHost)
-                      _controlIcon(InIcons.skipNext, 'Next', widget.onSkip)
-                    else if (widget.onVoteSkip != null)
-                      GestureDetector(
-                        onTap: widget.onVoteSkip,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          child: Row(mainAxisSize: MainAxisSize.min, children: [
-                            const InIcon(InIcons.skipNext,
-                                color: Colors.white, size: 18),
-                            const SizedBox(width: 3),
-                            Text(
-                                '${widget.skipVoteCount}/${widget.skipVoteRequired}',
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600)),
-                          ]),
-                        ),
-                      ),
-                    _controlIcon(
-                      InIcons.heart,
-                      widget.liked ? 'Unlike' : 'Like',
-                      widget.onToggleLike,
-                      color: widget.liked ? AppColors.pink : Colors.white,
-                      filled: widget.liked,
-                    ),
-                    _controlIcon(
-                        InIcons.pip, 'Picture in picture', PipService.enterPip),
-                    _controlIcon(InIcons.gear, 'Settings', _openSettings),
-                    _controlIcon(
-                      landscape ? InIcons.exitFullscreen : InIcons.fullscreen,
-                      landscape ? 'Exit full screen' : 'Full screen',
-                      _toggleFullscreen,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
   Widget _controlIcon(InIconData icon, String label, VoidCallback? onTap,
           {Color color = Colors.white, bool filled = false}) =>
       IconButton(
@@ -975,11 +858,9 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     // No rounded-corner card/box — the video now runs edge-to-edge at full
     // screen width right under the header, so a "boxed" look doesn't apply.
     final fullScreen = landscape && !widget.compact;
-    // Upright, our controls sit in a strip under the picture instead of
-    // over it, so nothing of ours covers YouTube's player. Full screen and
-    // the small player have no room for a strip and keep them on top.
-    final stripControls = !fullScreen && !widget.compact;
-    final overlayControls = !fullScreen && !stripControls;
+    // Our controls fade in over the video on a tap (no strip under it);
+    // full screen has its own controls.
+    final overlayControls = !fullScreen;
     final screen = MediaQuery.sizeOf(context);
     final screenRatio = screen.width / screen.height;
     // The page letterboxes the video into the screen-shaped box; zooming by
@@ -1278,7 +1159,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
     );
 
     if (!audioOnly) {
-      // Always the same Column with the player first, strip or not: if the
+      // Always the same Column with the player in it: if the
       // widgets around the WebView change (turning the phone, suggestions,
       // picture-in-picture), Flutter rebuilds the page and the video
       // pauses and starts again.
@@ -1287,14 +1168,13 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Without the strip the player keeps the room it was given (the
-            // small player, full screen), as before.
+            // The player keeps the room it was given (the small player,
+            // full screen), as before.
             ConstrainedBox(
               constraints: BoxConstraints(
-                  maxHeight: stripControls ? double.infinity : box.maxHeight),
+                  maxHeight: box.maxHeight),
               child: videoTree,
             ),
-            if (stripControls) _controlStrip(landscape),
           ],
         ),
       );
