@@ -50,6 +50,7 @@ import 'drive_video_player.dart';
 import 'game_room_body.dart';
 import 'game_seat_prompts.dart';
 import 'live_broadcast_controller.dart';
+import 'autoplay_feed.dart';
 import 'queue_sheet.dart';
 import 'roster_sheet.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
@@ -109,6 +110,8 @@ class _PartyScreenState extends State<PartyScreen>
   bool _loading = true;
   String? _error;
   RoomSocketController? _rs;
+  // Host: tells the server what the lobby suggests next, for Autoplay.
+  AutoplayFeed? _autoplayFeed;
   VoiceChatController? _voice;
   LiveBroadcastController? _live;
 
@@ -1027,6 +1030,15 @@ class _PartyScreenState extends State<PartyScreen>
     final currentItem = (items.isNotEmpty && currentIndex < items.length)
         ? Map<String, dynamic>.from(items[currentIndex] as Map)
         : null;
+    if (_autoplayFeed?.rs != rs) {
+      _autoplayFeed?.dispose();
+      _autoplayFeed = AutoplayFeed(rs);
+    }
+    if (currentItem != null && rs.settings['nextTrackMode'] == 'autoFill') {
+      final item = currentItem;
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _autoplayFeed?.update(item));
+    }
     final playerVideoUrl =
         currentItem?['videoUrl'] as String? ?? room['videoUrl'] as String?;
     final playerSourceType =
@@ -2863,6 +2875,7 @@ class _PartyScreenState extends State<PartyScreen>
 
   @override
   void dispose() {
+    _autoplayFeed?.dispose();
     _people.dispose();
     _dmSocket?.off('dm:message', _onRoomDm);
     WidgetsBinding.instance.removeObserver(this);

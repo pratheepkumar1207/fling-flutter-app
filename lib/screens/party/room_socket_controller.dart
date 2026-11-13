@@ -590,6 +590,24 @@ class RoomSocketController extends ChangeNotifier {
   // since this client last saw it, rather than silently applying an
   // index the user picked against a now-stale ordering. Spec: "Server is
   // authoritative. Reject stale client mutations."
+  // Host only: the lobby's suggestions for the song now playing, which
+  // Autoplay picks from when the queue runs out (see autoplay_feed.dart).
+  void shareSuggestions(String videoUrl, List<Map<String, dynamic>> items) =>
+      socket?.emit('queue:suggestions', {
+        'roomId': roomId,
+        'videoUrl': videoUrl,
+        'items': [
+          for (final i in items.take(8))
+            {
+              'videoUrl': i['videoUrl'],
+              'title': i['title'],
+              'thumbnail': i['thumbnail'],
+              'sourceType': i['sourceType'],
+              'durationSeconds': i['durationSeconds'],
+            }
+        ],
+      });
+
   void queueJump(int index) {
     if (canPin) {
       socket?.emit('queue:jump', {

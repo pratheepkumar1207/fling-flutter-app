@@ -1,13 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../core/api_client.dart';
 import '../../core/ott_page_suggestions.dart';
-import '../../core/youtube_util.dart';
 import '../../models/room_models.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/spinner.dart';
+import 'autoplay_feed.dart';
 
 /// Shown in place of the normal full-size player after a right-to-left
 /// swipe on it, and automatically when the queue runs dry after a video
@@ -145,43 +144,11 @@ class _VideoSuggestionsPanelState extends State<VideoSuggestionsPanel> {
     }
   }
 
-  Future<List<Map<String, dynamic>>> _loadYoutubeSuggestions() async {
-    final videoId = extractYouTubeId(widget.videoUrl);
-    if (videoId == null) return [];
-    final data = await ApiClient.get('/youtube/suggestions?v=$videoId');
-    return (data as List)
-        .cast<Map<String, dynamic>>()
-        .map((v) => {
-              'videoUrl': 'https://www.youtube.com/watch?v=${v['videoId']}',
-              'title': v['title'],
-              'thumbnail': v['thumbnail'],
-              'sourceType': 'youtube',
-              'durationSeconds': v['durationSeconds'],
-            })
-        .toList();
-  }
+  Future<List<Map<String, dynamic>>> _loadYoutubeSuggestions() =>
+      loadYoutubeSuggestions(widget.videoUrl);
 
-  // No room-agnostic "suggestions" pool exists for a private Drive file or a
-  // DRM-locked OTT page — this device's own liked/history, filtered to the
-  // same source, is the closest real (not fabricated) list available.
-  Future<List<Map<String, dynamic>>> _loadLikedHistoryFallback() async {
-    final results = await Future.wait([
-      ApiClient.get('/liked-songs'),
-      ApiClient.get('/song-history'),
-    ]);
-    final seen = <String>{widget.videoUrl ?? ''};
-    final items = <Map<String, dynamic>>[];
-    for (final list in results) {
-      for (final raw in (list as List)) {
-        final v = Map<String, dynamic>.from(raw as Map);
-        final url = v['videoUrl'] as String?;
-        if (url == null || !seen.add(url)) continue;
-        if ((v['sourceType'] as String?) != widget.sourceType) continue;
-        items.add(v);
-      }
-    }
-    return items;
-  }
+  Future<List<Map<String, dynamic>>> _loadLikedHistoryFallback() =>
+      loadLikedHistoryFor(widget.videoUrl, widget.sourceType);
 
   void _pinNow(Map<String, dynamic> item) {
     widget.onPin(
