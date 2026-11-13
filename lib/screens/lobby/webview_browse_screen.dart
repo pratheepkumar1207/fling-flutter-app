@@ -345,7 +345,9 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
         // real title available here — no extra YouTube API call needed,
         // and the thumbnail CDN URL is fully predictable from the id.
         sourceType = 'youtube';
-        videoUrl = 'https://www.youtube.com/watch?v=$videoId';
+        // Opened from a playlist or mix: keep the list for Autoplay.
+        videoUrl =
+            youtubeWatchUrl(videoId, playlistId: youtubeListId(videoUrl));
         final pageTitle = await controller.getTitle();
         videoTitle = pageTitle
             ?.replaceAll(RegExp(r'\s*-\s*YouTube( Music)?$'), '')

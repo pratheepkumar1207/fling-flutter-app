@@ -1,5 +1,6 @@
 import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
+import '../core/youtube_util.dart';
 import '../core/api_client.dart';
 import '../core/api_exception.dart';
 import '../models/playlist.dart';
@@ -455,8 +456,8 @@ class _YoutubePlaylistTileState extends State<_YoutubePlaylistTile> {
               trailing: widget.canAddSongs
                   ? TextButton(
                       onPressed: () => widget.onAdd(
-                        videoUrl:
-                            'https://www.youtube.com/watch?v=${v['videoId']}',
+                        videoUrl: youtubeWatchUrl(v['videoId'],
+                            playlistId: widget.playlist['id']),
                         title: v['title'] as String? ?? '',
                         thumbnail: v['thumbnail'] as String?,
                         mediaMode: 'video',

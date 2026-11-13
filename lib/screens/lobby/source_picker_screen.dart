@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/youtube_util.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
@@ -130,8 +131,8 @@ class SourcePickerBody extends StatelessWidget {
         onSelectOverride: _inRoom
             ? (item) {
                 onAddToQueue!(
-                  videoUrl:
-                      'https://www.youtube.com/watch?v=${item['videoId']}',
+                  videoUrl: youtubeWatchUrl(item['videoId'],
+                      playlistId: item['playlistId']),
                   title: item['title'] as String? ?? '',
                   thumbnail: item['thumbnail'] as String?,
                   mediaMode: audioOnly ? 'audio' : 'video',
@@ -150,7 +151,8 @@ class SourcePickerBody extends StatelessWidget {
         visibility: visibility,
         music: true,
         onSelectOverride: (item) {
-          final url = 'https://www.youtube.com/watch?v=${item['videoId']}';
+          final url =
+              youtubeWatchUrl(item['videoId'], playlistId: item['playlistId']);
           final title = item['title'] as String? ?? '';
           final thumb = item['thumbnail'] as String?;
           if (!_inRoom) {

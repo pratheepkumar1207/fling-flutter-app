@@ -61,7 +61,8 @@ class _YoutubeBrowseScreenState extends State<YoutubeBrowseScreen>
     createWatchRoomAndEnter(
       context,
       sourceType: 'youtube',
-      videoUrl: 'https://www.youtube.com/watch?v=${item['videoId']}',
+      videoUrl:
+          youtubeWatchUrl(item['videoId'], playlistId: item['playlistId']),
       visibility: widget.visibility,
       topic: widget.topic,
       options: widget.options,
@@ -302,7 +303,9 @@ class _PlaylistsTabState extends State<_PlaylistsTab> {
               key: ValueKey(_openPlaylist!['id']),
               endpoint: '/youtube/playlists/${_openPlaylist!['id']}/items',
               emptyLabel: 'This playlist is empty.',
-              onSelect: widget.onSelect,
+              // Picked from a playlist: the list comes along for Autoplay.
+              onSelect: (v) => widget.onSelect(
+                  {...v, 'playlistId': _openPlaylist!['id']}),
             ),
           ),
         ],

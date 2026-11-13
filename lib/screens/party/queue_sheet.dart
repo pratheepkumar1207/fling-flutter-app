@@ -86,7 +86,8 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
         onSelectOverride: (item) {
           Navigator.of(route).pop();
           _addToQueue(
-            videoUrl: 'https://www.youtube.com/watch?v=${item['videoId']}',
+            videoUrl: youtubeWatchUrl(item['videoId'],
+                playlistId: item['playlistId']),
             title: item['title'] as String? ?? '',
             thumbnail: item['thumbnail'] as String?,
             mediaMode: 'audio',

@@ -50,6 +50,7 @@ import 'drive_video_player.dart';
 import 'game_room_body.dart';
 import 'game_seat_prompts.dart';
 import 'live_broadcast_controller.dart';
+import '../../core/youtube_util.dart';
 import 'autoplay_feed.dart';
 import 'queue_sheet.dart';
 import 'roster_sheet.dart';
@@ -836,7 +837,8 @@ class _PartyScreenState extends State<PartyScreen>
           Navigator.of(route).pop();
           rs.queueAdd({
             'sourceType': 'youtube',
-            'videoUrl': 'https://www.youtube.com/watch?v=${item['videoId']}',
+            'videoUrl': youtubeWatchUrl(item['videoId'],
+                playlistId: item['playlistId']),
             'title': item['title'] as String? ?? '',
             'thumbnail': item['thumbnail'],
             'mediaMode': 'audio',
