@@ -24,7 +24,6 @@ import '../../models/room_models.dart';
 import '../../theme/insync_icons.dart';
 import '../../widgets/in_icon_button.dart';
 import '../../theme/app_colors.dart';
-import '../lobby/source_picker_screen.dart';
 import '../../theme/vola_party_colors.dart';
 import '../../widgets/gift_bottom_sheet.dart';
 import '../../widgets/game_board_view.dart';
@@ -800,39 +799,6 @@ class _PartyScreenState extends State<PartyScreen>
     await _refreshRoom();
   }
 
-  // Test accounts: Settings → Type → Watch in a voice or game room. Pick
-  // what to play; the room turns into a watch party with it, in place.
-  void _pickWatchSource() {
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (page) => Scaffold(
-        backgroundColor: AppColors.bg,
-        appBar: AppBar(title: const Text('What are we watching?')),
-        body: SourcePickerBody(
-          roomId: widget.roomId,
-          onSwitchSource: _switchRoomSource,
-          onAddToQueue: (
-              {required videoUrl,
-              required title,
-              thumbnail,
-              required mediaMode,
-              sourceType = 'youtube'}) async {
-            if (Navigator.of(page).canPop()) Navigator.of(page).pop();
-            try {
-              await _switchRoomSource(sourceType, videoUrl,
-                  videoTitle: title.isEmpty ? null : title,
-                  videoThumbnail: thumbnail);
-            } catch (e) {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Couldn't switch the room: $e")));
-              }
-            }
-          },
-        ),
-      ),
-    ));
-  }
-
   Future<void> _refreshRoom() async {
     final runtime = ActiveRoomHolder.session;
     if (runtime == null) return;
@@ -914,8 +880,6 @@ class _PartyScreenState extends State<PartyScreen>
           onChanged: _refreshRoom,
           hasVideo: hasVideo,
           halfFraction: half,
-          testTypes: context.read<AuthProvider>().user?.testFeatures ?? false,
-          onPickWatchSource: _pickWatchSource,
           onModeration: () => Navigator.of(context).push(MaterialPageRoute(
               builder: (_) => const RoomModerationScreen())),
           onEndRoom: _confirmEndRoom));

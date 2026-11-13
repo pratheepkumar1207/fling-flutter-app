@@ -61,9 +61,6 @@ class User {
   // First-time setup (name, @username, photo) done.
   final bool identityComplete;
   final bool allowSharing;
-  // Features still being tried out, for test accounts only (the server's
-  // TEST_FEATURE_USERS list): switching a room between Watch, Voice and Game.
-  final bool testFeatures;
   final int completenessPercent;
   final DateTime? lastSpinAt;
 
@@ -122,7 +119,6 @@ class User {
     this.profileComplete = true,
     this.identityComplete = true,
     this.allowSharing = false,
-    this.testFeatures = false,
     this.completenessPercent = 100,
     this.lastSpinAt,
   });
@@ -208,7 +204,6 @@ class User {
       profileComplete: json['profileComplete'] as bool? ?? true,
       identityComplete: json['identityComplete'] as bool? ?? true,
       allowSharing: json['allowSharing'] == true,
-      testFeatures: json['testFeatures'] == true,
       completenessPercent: json['completenessPercent'] as int? ?? 100,
       lastSpinAt: json['lastSpinAt'] != null
           ? DateTime.tryParse(json['lastSpinAt'].toString())
