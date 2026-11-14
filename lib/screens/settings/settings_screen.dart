@@ -195,6 +195,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         LegalSection('Insync',
                             'Watch parties, voice rooms, and social discovery — all in one app.'),
                         LegalSection('Version', '1.0.0'),
+                        // Required credit for the animated emoji in chat.
+                        LegalSection('Animated emoji',
+                            'Animated emoji by Google, Noto Emoji Animation, licensed under CC BY 4.0. https://googlefonts.github.io/noto-emoji-animation/'),
                       ],
                     )),
             _tile(context,

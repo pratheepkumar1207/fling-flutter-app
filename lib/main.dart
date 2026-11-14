@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'widgets/animated_emoji.dart';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +17,8 @@ import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Which emoji have animations (chat shows them animated).
+  await AnimatedEmojiRegistry.load();
   // Release builds don't print Flutter's own errors, so a screen that
   // freezes left nothing in the phone's log. Write them out, short.
   FlutterError.onError = (details) {

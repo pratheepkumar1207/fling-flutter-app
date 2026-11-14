@@ -108,6 +108,7 @@ dependencies:
   photo_manager: ^3.12.0
   geocoding: ^5.0.1
   qr_flutter: ^4.1.0
+  lottie: ^3.7.0
 
 dev_dependencies:
   flutter_test:
@@ -140,6 +141,8 @@ flutter:
     - assets/logo/
     - assets/icons/app/
     - assets/sounds/
+    # Animated emoji (Google Noto, CC BY 4.0): the most used, built in.
+    - assets/emoji/
 
 flutter_launcher_icons:
   android: true

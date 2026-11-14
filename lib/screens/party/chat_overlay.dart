@@ -1,4 +1,5 @@
 import 'dart:ui' show ImageFilter;
+import '../../widgets/animated_emoji.dart';
 import 'pick_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -380,12 +381,17 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                       fontSize: 11,
                       shadows: _textShadow)),
             ),
-          Text.rich(
-            TextSpan(children: _textSpans(text)),
-            textAlign: mine ? TextAlign.right : TextAlign.left,
-            style: const TextStyle(
-                fontSize: 13, color: Colors.white, shadows: _textShadow),
-          ),
+          // Only 1–3 emoji: big and animated; otherwise emoji in the
+          // text play once at text size.
+          if (ChatEmojiText.isBigEmoji(text))
+            ChatEmojiText(text, bigSize: 48)
+          else
+            Text.rich(
+              TextSpan(children: animateEmojiSpans(_textSpans(text), 13)),
+              textAlign: mine ? TextAlign.right : TextAlign.left,
+              style: const TextStyle(
+                  fontSize: 13, color: Colors.white, shadows: _textShadow),
+            ),
         ]);
     final line = Row(
       mainAxisSize: MainAxisSize.min,

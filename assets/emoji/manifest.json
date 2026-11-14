@@ -1,0 +1,4747 @@
+{
+"😀": {
+"file": "1f600.json",
+"name": "smile",
+"category": "Smileys and emotions"
+},
+"😃": {
+"file": "1f603.json",
+"name": "smile with big eyes",
+"category": "Smileys and emotions"
+},
+"😄": {
+"file": "1f604.json",
+"name": "grin",
+"category": "Smileys and emotions"
+},
+"😁": {
+"file": "1f601.json",
+"name": "grinning",
+"category": "Smileys and emotions"
+},
+"😆": {
+"file": "1f606.json",
+"name": "laughing",
+"category": "Smileys and emotions"
+},
+"😅": {
+"file": "1f605.json",
+"name": "grin sweat",
+"category": "Smileys and emotions"
+},
+"😂": {
+"file": "1f602.json",
+"name": "joy",
+"category": "Smileys and emotions"
+},
+"🤣": {
+"file": "1f923.json",
+"name": "rofl",
+"category": "Smileys and emotions"
+},
+"😭": {
+"file": "1f62d.json",
+"name": "loudly crying",
+"category": "Smileys and emotions"
+},
+"😉": {
+"file": "1f609.json",
+"name": "wink",
+"category": "Smileys and emotions"
+},
+"😗": {
+"file": "1f617.json",
+"name": "kissing",
+"category": "Smileys and emotions"
+},
+"😙": {
+"file": "1f619.json",
+"name": "kissing smiling eyes",
+"category": "Smileys and emotions"
+},
+"😚": {
+"file": "1f61a.json",
+"name": "kissing closed eyes",
+"category": "Smileys and emotions"
+},
+"😘": {
+"file": "1f618.json",
+"name": "kissing heart",
+"category": "Smileys and emotions"
+},
+"🥰": {
+"file": "1f970.json",
+"name": "heart face",
+"category": "Smileys and emotions"
+},
+"😍": {
+"file": "1f60d.json",
+"name": "heart eyes",
+"category": "Smileys and emotions"
+},
+"🤩": {
+"file": "1f929.json",
+"name": "star struck",
+"category": "Smileys and emotions"
+},
+"🥳": {
+"file": "1f973.json",
+"name": "partying face",
+"category": "Smileys and emotions"
+},
+"🫠": {
+"file": "1fae0.json",
+"name": "melting",
+"category": "Smileys and emotions"
+},
+"🙃": {
+"file": "1f643.json",
+"name": "upside down face",
+"category": "Smileys and emotions"
+},
+"🙂": {
+"file": "1f642.json",
+"name": "slightly happy",
+"category": "Smileys and emotions"
+},
+"🥲": {
+"file": "1f972.json",
+"name": "happy cry",
+"category": "Smileys and emotions"
+},
+"🥹": {
+"file": "1f979.json",
+"name": "holding back tears",
+"category": "Smileys and emotions"
+},
+"😊": {
+"file": "1f60a.json",
+"name": "blush",
+"category": "Smileys and emotions"
+},
+"☺️": {
+"file": "263a_fe0f.json",
+"name": "warm smile",
+"category": "Smileys and emotions"
+},
+"☺": {
+"file": "263a_fe0f.json",
+"name": "warm smile",
+"category": "Smileys and emotions"
+},
+"😌": {
+"file": "1f60c.json",
+"name": "relieved",
+"category": "Smileys and emotions"
+},
+"🙂‍↕️": {
+"file": "1f642_200d_2195_fe0f.json",
+"name": "head nod",
+"category": "Smileys and emotions"
+},
+"🙂‍↕": {
+"file": "1f642_200d_2195_fe0f.json",
+"name": "head nod",
+"category": "Smileys and emotions"
+},
+"🙂‍↔️": {
+"file": "1f642_200d_2194_fe0f.json",
+"name": "head shake",
+"category": "Smileys and emotions"
+},
+"🙂‍↔": {
+"file": "1f642_200d_2194_fe0f.json",
+"name": "head shake",
+"category": "Smileys and emotions"
+},
+"😏": {
+"file": "1f60f.json",
+"name": "smirk",
+"category": "Smileys and emotions"
+},
+"🤤": {
+"file": "1f924.json",
+"name": "drool",
+"category": "Smileys and emotions"
+},
+"😋": {
+"file": "1f60b.json",
+"name": "yum",
+"category": "Smileys and emotions"
+},
+"😛": {
+"file": "1f61b.json",
+"name": "stuck out tongue",
+"category": "Smileys and emotions"
+},
+"😝": {
+"file": "1f61d.json",
+"name": "squinting tongue",
+"category": "Smileys and emotions"
+},
+"😜": {
+"file": "1f61c.json",
+"name": "winky tongue",
+"category": "Smileys and emotions"
+},
+"🤪": {
+"file": "1f92a.json",
+"name": "zany face",
+"category": "Smileys and emotions"
+},
+"🫪": {
+"file": "1faea.json",
+"name": "distorted face",
+"category": "Smileys and emotions"
+},
+"😔": {
+"file": "1f614.json",
+"name": "pensive",
+"category": "Smileys and emotions"
+},
+"🥺": {
+"file": "1f97a.json",
+"name": "pleading",
+"category": "Smileys and emotions"
+},
+"😬": {
+"file": "1f62c.json",
+"name": "grimacing",
+"category": "Smileys and emotions"
+},
+"😑": {
+"file": "1f611.json",
+"name": "expressionless",
+"category": "Smileys and emotions"
+},
+"😐": {
+"file": "1f610.json",
+"name": "neutral face",
+"category": "Smileys and emotions"
+},
+"😶": {
+"file": "1f636.json",
+"name": "mouth none",
+"category": "Smileys and emotions"
+},
+"😶‍🌫️": {
+"file": "1f636_200d_1f32b_fe0f.json",
+"name": "face in clouds",
+"category": "Smileys and emotions"
+},
+"😶‍🌫": {
+"file": "1f636_200d_1f32b_fe0f.json",
+"name": "face in clouds",
+"category": "Smileys and emotions"
+},
+"🫥": {
+"file": "1fae5.json",
+"name": "dotted line face",
+"category": "Smileys and emotions"
+},
+"🤐": {
+"file": "1f910.json",
+"name": "zipper face",
+"category": "Smileys and emotions"
+},
+"🫡": {
+"file": "1fae1.json",
+"name": "salute",
+"category": "Smileys and emotions"
+},
+"🤔": {
+"file": "1f914.json",
+"name": "thinking face",
+"category": "Smileys and emotions"
+},
+"🤫": {
+"file": "1f92b.json",
+"name": "shushing face",
+"category": "Smileys and emotions"
+},
+"🫢": {
+"file": "1fae2.json",
+"name": "hand over mouth",
+"category": "Smileys and emotions"
+},
+"🤭": {
+"file": "1f92d.json",
+"name": "smiling eyes with hand over mouth",
+"category": "Smileys and emotions"
+},
+"🥱": {
+"file": "1f971.json",
+"name": "yawn",
+"category": "Smileys and emotions"
+},
+"🤗": {
+"file": "1f917.json",
+"name": "hug face",
+"category": "Smileys and emotions"
+},
+"🫣": {
+"file": "1fae3.json",
+"name": "peeking",
+"category": "Smileys and emotions"
+},
+"😱": {
+"file": "1f631.json",
+"name": "screaming",
+"category": "Smileys and emotions"
+},
+"🤨": {
+"file": "1f928.json",
+"name": "raised eyebrow",
+"category": "Smileys and emotions"
+},
+"🧐": {
+"file": "1f9d0.json",
+"name": "monocle",
+"category": "Smileys and emotions"
+},
+"😒": {
+"file": "1f612.json",
+"name": "unamused",
+"category": "Smileys and emotions"
+},
+"🙄": {
+"file": "1f644.json",
+"name": "rolling eyes",
+"category": "Smileys and emotions"
+},
+"😮‍💨": {
+"file": "1f62e_200d_1f4a8.json",
+"name": "exhale",
+"category": "Smileys and emotions"
+},
+"😤": {
+"file": "1f624.json",
+"name": "triumph",
+"category": "Smileys and emotions"
+},
+"😠": {
+"file": "1f620.json",
+"name": "angry",
+"category": "Smileys and emotions"
+},
+"😡": {
+"file": "1f621.json",
+"name": "rage",
+"category": "Smileys and emotions"
+},
+"🤬": {
+"file": "1f92c.json",
+"name": "cursing",
+"category": "Smileys and emotions"
+},
+"😞": {
+"file": "1f61e.json",
+"name": "sad",
+"category": "Smileys and emotions"
+},
+"😓": {
+"file": "1f613.json",
+"name": "sweat",
+"category": "Smileys and emotions"
+},
+"😟": {
+"file": "1f61f.json",
+"name": "worried",
+"category": "Smileys and emotions"
+},
+"😥": {
+"file": "1f625.json",
+"name": "concerned",
+"category": "Smileys and emotions"
+},
+"😢": {
+"file": "1f622.json",
+"name": "cry",
+"category": "Smileys and emotions"
+},
+"☹️": {
+"file": "2639_fe0f.json",
+"name": "big frown",
+"category": "Smileys and emotions"
+},
+"☹": {
+"file": "2639_fe0f.json",
+"name": "big frown",
+"category": "Smileys and emotions"
+},
+"🙁": {
+"file": "1f641.json",
+"name": "frown",
+"category": "Smileys and emotions"
+},
+"🫤": {
+"file": "1fae4.json",
+"name": "diagonal mouth",
+"category": "Smileys and emotions"
+},
+"😕": {
+"file": "1f615.json",
+"name": "slightly frowning",
+"category": "Smileys and emotions"
+},
+"😰": {
+"file": "1f630.json",
+"name": "anxious with sweat",
+"category": "Smileys and emotions"
+},
+"😨": {
+"file": "1f628.json",
+"name": "scared",
+"category": "Smileys and emotions"
+},
+"😧": {
+"file": "1f627.json",
+"name": "anguished",
+"category": "Smileys and emotions"
+},
+"😦": {
+"file": "1f626.json",
+"name": "gasp",
+"category": "Smileys and emotions"
+},
+"😮": {
+"file": "1f62e.json",
+"name": "mouth open",
+"category": "Smileys and emotions"
+},
+"😯": {
+"file": "1f62f.json",
+"name": "surprised",
+"category": "Smileys and emotions"
+},
+"😲": {
+"file": "1f632.json",
+"name": "astonished",
+"category": "Smileys and emotions"
+},
+"😳": {
+"file": "1f633.json",
+"name": "flushed",
+"category": "Smileys and emotions"
+},
+"🤯": {
+"file": "1f92f.json",
+"name": "mind blown",
+"category": "Smileys and emotions"
+},
+"😖": {
+"file": "1f616.json",
+"name": "scrunched mouth",
+"category": "Smileys and emotions"
+},
+"😣": {
+"file": "1f623.json",
+"name": "scrunched eyes",
+"category": "Smileys and emotions"
+},
+"😩": {
+"file": "1f629.json",
+"name": "weary",
+"category": "Smileys and emotions"
+},
+"😫": {
+"file": "1f62b.json",
+"name": "distraught",
+"category": "Smileys and emotions"
+},
+"😵": {
+"file": "1f635.json",
+"name": "x eyes",
+"category": "Smileys and emotions"
+},
+"😵‍💫": {
+"file": "1f635_200d_1f4ab.json",
+"name": "dizzy face",
+"category": "Smileys and emotions"
+},
+"🫨": {
+"file": "1fae8.json",
+"name": "shaking face",
+"category": "Smileys and emotions"
+},
+"🥴": {
+"file": "1f974.json",
+"name": "woozy",
+"category": "Smileys and emotions"
+},
+"🥵": {
+"file": "1f975.json",
+"name": "hot face",
+"category": "Smileys and emotions"
+},
+"🥶": {
+"file": "1f976.json",
+"name": "cold face",
+"category": "Smileys and emotions"
+},
+"🤢": {
+"file": "1f922.json",
+"name": "sick",
+"category": "Smileys and emotions"
+},
+"🤮": {
+"file": "1f92e.json",
+"name": "vomit",
+"category": "Smileys and emotions"
+},
+"🫩": {
+"file": "1fae9.json",
+"name": "tired",
+"category": "Smileys and emotions"
+},
+"😴": {
+"file": "1f634.json",
+"name": "sleep",
+"category": "Smileys and emotions"
+},
+"😪": {
+"file": "1f62a.json",
+"name": "sleepy",
+"category": "Smileys and emotions"
+},
+"🤧": {
+"file": "1f927.json",
+"name": "sneeze",
+"category": "Smileys and emotions"
+},
+"🤒": {
+"file": "1f912.json",
+"name": "thermometer face",
+"category": "Smileys and emotions"
+},
+"🤕": {
+"file": "1f915.json",
+"name": "bandage face",
+"category": "Smileys and emotions"
+},
+"😷": {
+"file": "1f637.json",
+"name": "mask",
+"category": "Smileys and emotions"
+},
+"🤥": {
+"file": "1f925.json",
+"name": "liar",
+"category": "Smileys and emotions"
+},
+"😇": {
+"file": "1f607.json",
+"name": "halo",
+"category": "Smileys and emotions"
+},
+"🤠": {
+"file": "1f920.json",
+"name": "cowboy",
+"category": "Smileys and emotions"
+},
+"🤑": {
+"file": "1f911.json",
+"name": "money face",
+"category": "Smileys and emotions"
+},
+"🤓": {
+"file": "1f913.json",
+"name": "nerd face",
+"category": "Smileys and emotions"
+},
+"😎": {
+"file": "1f60e.json",
+"name": "sunglasses face",
+"category": "Smileys and emotions"
+},
+"🥸": {
+"file": "1f978.json",
+"name": "disguise",
+"category": "Smileys and emotions"
+},
+"🤡": {
+"file": "1f921.json",
+"name": "clown",
+"category": "Smileys and emotions"
+},
+"💩": {
+"file": "1f4a9.json",
+"name": "poop",
+"category": "Smileys and emotions"
+},
+"😈": {
+"file": "1f608.json",
+"name": "imp smile",
+"category": "Smileys and emotions"
+},
+"👿": {
+"file": "1f47f.json",
+"name": "imp frown",
+"category": "Smileys and emotions"
+},
+"👻": {
+"file": "1f47b.json",
+"name": "ghost",
+"category": "Smileys and emotions"
+},
+"💀": {
+"file": "1f480.json",
+"name": "skull",
+"category": "Smileys and emotions"
+},
+"🤖": {
+"file": "1f916.json",
+"name": "robot",
+"category": "Smileys and emotions"
+},
+"👹": {
+"file": "1f479.json",
+"name": "ogre",
+"category": "Smileys and emotions"
+},
+"☃️": {
+"file": "2603_fe0f.json",
+"name": "snowman with snow",
+"category": "Smileys and emotions"
+},
+"☃": {
+"file": "2603_fe0f.json",
+"name": "snowman with snow",
+"category": "Smileys and emotions"
+},
+"⛄": {
+"file": "26c4.json",
+"name": "snowman",
+"category": "Smileys and emotions"
+},
+"👽": {
+"file": "1f47d.json",
+"name": "alien",
+"category": "Smileys and emotions"
+},
+"👾": {
+"file": "1f47e.json",
+"name": "alien monster",
+"category": "Smileys and emotions"
+},
+"🌚": {
+"file": "1f31a.json",
+"name": "moon face new",
+"category": "Smileys and emotions"
+},
+"🌝": {
+"file": "1f31d.json",
+"name": "moon face full",
+"category": "Smileys and emotions"
+},
+"🌞": {
+"file": "1f31e.json",
+"name": "sun with face",
+"category": "Smileys and emotions"
+},
+"🌛": {
+"file": "1f31b.json",
+"name": "moon face first quarter",
+"category": "Smileys and emotions"
+},
+"🌜": {
+"file": "1f31c.json",
+"name": "moon face last quarter",
+"category": "Smileys and emotions"
+},
+"😺": {
+"file": "1f63a.json",
+"name": "smiley cat",
+"category": "Smileys and emotions"
+},
+"😸": {
+"file": "1f638.json",
+"name": "smile cat",
+"category": "Smileys and emotions"
+},
+"😹": {
+"file": "1f639.json",
+"name": "joy cat",
+"category": "Smileys and emotions"
+},
+"😻": {
+"file": "1f63b.json",
+"name": "heart eyes cat",
+"category": "Smileys and emotions"
+},
+"😼": {
+"file": "1f63c.json",
+"name": "smirk cat",
+"category": "Smileys and emotions"
+},
+"😽": {
+"file": "1f63d.json",
+"name": "kissing cat",
+"category": "Smileys and emotions"
+},
+"🙀": {
+"file": "1f640.json",
+"name": "scream cat",
+"category": "Smileys and emotions"
+},
+"😿": {
+"file": "1f63f.json",
+"name": "crying cat face",
+"category": "Smileys and emotions"
+},
+"😾": {
+"file": "1f63e.json",
+"name": "pouting cat",
+"category": "Smileys and emotions"
+},
+"🙈": {
+"file": "1f648.json",
+"name": "see no evil monkey",
+"category": "Smileys and emotions"
+},
+"🙉": {
+"file": "1f649.json",
+"name": "hear no evil monkey",
+"category": "Smileys and emotions"
+},
+"🙊": {
+"file": "1f64a.json",
+"name": "speak no evil monkey",
+"category": "Smileys and emotions"
+},
+"⭐": {
+"file": "2b50.json",
+"name": "star",
+"category": "Smileys and emotions"
+},
+"🌟": {
+"file": "1f31f.json",
+"name": "glowing star",
+"category": "Smileys and emotions"
+},
+"✨": {
+"file": "2728.json",
+"name": "sparkles",
+"category": "Smileys and emotions"
+},
+"⚡": {
+"file": "26a1.json",
+"name": "electricity",
+"category": "Smileys and emotions"
+},
+"💥": {
+"file": "1f4a5.json",
+"name": "collision",
+"category": "Smileys and emotions"
+},
+"🫯": {
+"file": "1faef.json",
+"name": "fight",
+"category": "Smileys and emotions"
+},
+"🕳️": {
+"file": "1f573_fe0f.json",
+"name": "hole",
+"category": "Smileys and emotions"
+},
+"🕳": {
+"file": "1f573_fe0f.json",
+"name": "hole",
+"category": "Smileys and emotions"
+},
+"🔥": {
+"file": "1f525.json",
+"name": "fire",
+"category": "Smileys and emotions"
+},
+"💯": {
+"file": "1f4af.json",
+"name": "100",
+"category": "Smileys and emotions"
+},
+"🎉": {
+"file": "1f389.json",
+"name": "party popper",
+"category": "Smileys and emotions"
+},
+"🎊": {
+"file": "1f38a.json",
+"name": "confetti ball",
+"category": "Smileys and emotions"
+},
+"❤️": {
+"file": "2764_fe0f.json",
+"name": "red heart",
+"category": "Smileys and emotions"
+},
+"❤": {
+"file": "2764_fe0f.json",
+"name": "red heart",
+"category": "Smileys and emotions"
+},
+"🧡": {
+"file": "1f9e1.json",
+"name": "orange heart",
+"category": "Smileys and emotions"
+},
+"💛": {
+"file": "1f49b.json",
+"name": "yellow heart",
+"category": "Smileys and emotions"
+},
+"💚": {
+"file": "1f49a.json",
+"name": "green heart",
+"category": "Smileys and emotions"
+},
+"🩵": {
+"file": "1fa75.json",
+"name": "light blue heart",
+"category": "Smileys and emotions"
+},
+"💙": {
+"file": "1f499.json",
+"name": "blue heart",
+"category": "Smileys and emotions"
+},
+"💜": {
+"file": "1f49c.json",
+"name": "purple heart",
+"category": "Smileys and emotions"
+},
+"🤎": {
+"file": "1f90e.json",
+"name": "brown heart",
+"category": "Smileys and emotions"
+},
+"🖤": {
+"file": "1f5a4.json",
+"name": "black heart",
+"category": "Smileys and emotions"
+},
+"🩶": {
+"file": "1fa76.json",
+"name": "grey heart",
+"category": "Smileys and emotions"
+},
+"🤍": {
+"file": "1f90d.json",
+"name": "white heart",
+"category": "Smileys and emotions"
+},
+"🩷": {
+"file": "1fa77.json",
+"name": "pink heart",
+"category": "Smileys and emotions"
+},
+"💘": {
+"file": "1f498.json",
+"name": "cupid",
+"category": "Smileys and emotions"
+},
+"💝": {
+"file": "1f49d.json",
+"name": "gift heart",
+"category": "Smileys and emotions"
+},
+"💖": {
+"file": "1f496.json",
+"name": "sparkling heart",
+"category": "Smileys and emotions"
+},
+"💗": {
+"file": "1f497.json",
+"name": "heart grow",
+"category": "Smileys and emotions"
+},
+"💓": {
+"file": "1f493.json",
+"name": "beating heart",
+"category": "Smileys and emotions"
+},
+"💞": {
+"file": "1f49e.json",
+"name": "revolving hearts",
+"category": "Smileys and emotions"
+},
+"💕": {
+"file": "1f495.json",
+"name": "two hearts",
+"category": "Smileys and emotions"
+},
+"💌": {
+"file": "1f48c.json",
+"name": "love letter",
+"category": "Smileys and emotions"
+},
+"💟": {
+"file": "1f49f.json",
+"name": "heart box",
+"category": "Smileys and emotions"
+},
+"♥️": {
+"file": "2665_fe0f.json",
+"name": "heart",
+"category": "Smileys and emotions"
+},
+"♥": {
+"file": "2665_fe0f.json",
+"name": "heart",
+"category": "Smileys and emotions"
+},
+"❣️": {
+"file": "2763_fe0f.json",
+"name": "heart exclamation point",
+"category": "Smileys and emotions"
+},
+"❣": {
+"file": "2763_fe0f.json",
+"name": "heart exclamation point",
+"category": "Smileys and emotions"
+},
+"❤️‍🩹": {
+"file": "2764_fe0f_200d_1fa79.json",
+"name": "bandaged heart",
+"category": "Smileys and emotions"
+},
+"❤‍🩹": {
+"file": "2764_fe0f_200d_1fa79.json",
+"name": "bandaged heart",
+"category": "Smileys and emotions"
+},
+"💔": {
+"file": "1f494.json",
+"name": "broken heart",
+"category": "Smileys and emotions"
+},
+"❤️‍🔥": {
+"file": "2764_fe0f_200d_1f525.json",
+"name": "fire heart",
+"category": "Smileys and emotions"
+},
+"❤‍🔥": {
+"file": "2764_fe0f_200d_1f525.json",
+"name": "fire heart",
+"category": "Smileys and emotions"
+},
+"💋": {
+"file": "1f48b.json",
+"name": "kiss",
+"category": "Smileys and emotions"
+},
+"🫂": {
+"file": "1fac2.json",
+"name": "hugging",
+"category": "Smileys and emotions"
+},
+"🗣️": {
+"file": "1f5e3_fe0f.json",
+"name": "speaking head",
+"category": "Smileys and emotions"
+},
+"🗣": {
+"file": "1f5e3_fe0f.json",
+"name": "speaking head",
+"category": "Smileys and emotions"
+},
+"👣": {
+"file": "1f463.json",
+"name": "footprints",
+"category": "Smileys and emotions"
+},
+"🫆": {
+"file": "1fac6.json",
+"name": "fingerprint",
+"category": "Smileys and emotions"
+},
+"🧠": {
+"file": "1f9e0.json",
+"name": "brain",
+"category": "Smileys and emotions"
+},
+"🫀": {
+"file": "1fac0.json",
+"name": "anatomical heart",
+"category": "Smileys and emotions"
+},
+"🩸": {
+"file": "1fa78.json",
+"name": "blood",
+"category": "Smileys and emotions"
+},
+"🦠": {
+"file": "1f9a0.json",
+"name": "microbe",
+"category": "Smileys and emotions"
+},
+"🦴": {
+"file": "1f9b4.json",
+"name": "bone",
+"category": "Smileys and emotions"
+},
+"👀": {
+"file": "1f440.json",
+"name": "eyes",
+"category": "Smileys and emotions"
+},
+"👁️": {
+"file": "1f441_fe0f.json",
+"name": "eye",
+"category": "Smileys and emotions"
+},
+"👁": {
+"file": "1f441_fe0f.json",
+"name": "eye",
+"category": "Smileys and emotions"
+},
+"🫦": {
+"file": "1fae6.json",
+"name": "biting lip",
+"category": "Smileys and emotions"
+},
+"👃": {
+"file": "1f443.json",
+"name": "nose",
+"category": "Smileys and emotions"
+},
+"👃🏻": {
+"file": "1f443_1f3fb.json",
+"name": "nose",
+"category": "Smileys and emotions"
+},
+"👃🏼": {
+"file": "1f443_1f3fc.json",
+"name": "nose",
+"category": "Smileys and emotions"
+},
+"👃🏽": {
+"file": "1f443_1f3fd.json",
+"name": "nose",
+"category": "Smileys and emotions"
+},
+"👃🏾": {
+"file": "1f443_1f3fe.json",
+"name": "nose",
+"category": "Smileys and emotions"
+},
+"👃🏿": {
+"file": "1f443_1f3ff.json",
+"name": "nose",
+"category": "Smileys and emotions"
+},
+"👂": {
+"file": "1f442.json",
+"name": "ear",
+"category": "Smileys and emotions"
+},
+"👂🏻": {
+"file": "1f442_1f3fb.json",
+"name": "ear",
+"category": "Smileys and emotions"
+},
+"👂🏼": {
+"file": "1f442_1f3fc.json",
+"name": "ear",
+"category": "Smileys and emotions"
+},
+"👂🏽": {
+"file": "1f442_1f3fd.json",
+"name": "ear",
+"category": "Smileys and emotions"
+},
+"👂🏾": {
+"file": "1f442_1f3fe.json",
+"name": "ear",
+"category": "Smileys and emotions"
+},
+"👂🏿": {
+"file": "1f442_1f3ff.json",
+"name": "ear",
+"category": "Smileys and emotions"
+},
+"🦻": {
+"file": "1f9bb.json",
+"name": "hearing aid",
+"category": "Smileys and emotions"
+},
+"🦻🏻": {
+"file": "1f9bb_1f3fb.json",
+"name": "hearing aid",
+"category": "Smileys and emotions"
+},
+"🦻🏼": {
+"file": "1f9bb_1f3fc.json",
+"name": "hearing aid",
+"category": "Smileys and emotions"
+},
+"🦻🏽": {
+"file": "1f9bb_1f3fd.json",
+"name": "hearing aid",
+"category": "Smileys and emotions"
+},
+"🦻🏾": {
+"file": "1f9bb_1f3fe.json",
+"name": "hearing aid",
+"category": "Smileys and emotions"
+},
+"🦻🏿": {
+"file": "1f9bb_1f3ff.json",
+"name": "hearing aid",
+"category": "Smileys and emotions"
+},
+"🦶": {
+"file": "1f9b6.json",
+"name": "foot",
+"category": "Smileys and emotions"
+},
+"🦶🏻": {
+"file": "1f9b6_1f3fb.json",
+"name": "foot",
+"category": "Smileys and emotions"
+},
+"🦶🏼": {
+"file": "1f9b6_1f3fc.json",
+"name": "foot",
+"category": "Smileys and emotions"
+},
+"🦶🏽": {
+"file": "1f9b6_1f3fd.json",
+"name": "foot",
+"category": "Smileys and emotions"
+},
+"🦶🏾": {
+"file": "1f9b6_1f3fe.json",
+"name": "foot",
+"category": "Smileys and emotions"
+},
+"🦶🏿": {
+"file": "1f9b6_1f3ff.json",
+"name": "foot",
+"category": "Smileys and emotions"
+},
+"🦵": {
+"file": "1f9b5.json",
+"name": "leg",
+"category": "Smileys and emotions"
+},
+"🦵🏻": {
+"file": "1f9b5_1f3fb.json",
+"name": "leg",
+"category": "Smileys and emotions"
+},
+"🦵🏼": {
+"file": "1f9b5_1f3fc.json",
+"name": "leg",
+"category": "Smileys and emotions"
+},
+"🦵🏽": {
+"file": "1f9b5_1f3fd.json",
+"name": "leg",
+"category": "Smileys and emotions"
+},
+"🦵🏾": {
+"file": "1f9b5_1f3fe.json",
+"name": "leg",
+"category": "Smileys and emotions"
+},
+"🦵🏿": {
+"file": "1f9b5_1f3ff.json",
+"name": "leg",
+"category": "Smileys and emotions"
+},
+"🦿": {
+"file": "1f9bf.json",
+"name": "leg mechanical",
+"category": "Smileys and emotions"
+},
+"🦾": {
+"file": "1f9be.json",
+"name": "arm mechanical",
+"category": "Smileys and emotions"
+},
+"💪": {
+"file": "1f4aa.json",
+"name": "muscle",
+"category": "Smileys and emotions"
+},
+"💪🏻": {
+"file": "1f4aa_1f3fb.json",
+"name": "muscle",
+"category": "Smileys and emotions"
+},
+"💪🏼": {
+"file": "1f4aa_1f3fc.json",
+"name": "muscle",
+"category": "Smileys and emotions"
+},
+"💪🏽": {
+"file": "1f4aa_1f3fd.json",
+"name": "muscle",
+"category": "Smileys and emotions"
+},
+"💪🏾": {
+"file": "1f4aa_1f3fe.json",
+"name": "muscle",
+"category": "Smileys and emotions"
+},
+"💪🏿": {
+"file": "1f4aa_1f3ff.json",
+"name": "muscle",
+"category": "Smileys and emotions"
+},
+"👏": {
+"file": "1f44f.json",
+"name": "clap",
+"category": "Smileys and emotions"
+},
+"👏🏻": {
+"file": "1f44f_1f3fb.json",
+"name": "clap",
+"category": "Smileys and emotions"
+},
+"👏🏼": {
+"file": "1f44f_1f3fc.json",
+"name": "clap",
+"category": "Smileys and emotions"
+},
+"👏🏽": {
+"file": "1f44f_1f3fd.json",
+"name": "clap",
+"category": "Smileys and emotions"
+},
+"👏🏾": {
+"file": "1f44f_1f3fe.json",
+"name": "clap",
+"category": "Smileys and emotions"
+},
+"👏🏿": {
+"file": "1f44f_1f3ff.json",
+"name": "clap",
+"category": "Smileys and emotions"
+},
+"👍": {
+"file": "1f44d.json",
+"name": "thumbs up",
+"category": "Smileys and emotions"
+},
+"👍🏻": {
+"file": "1f44d_1f3fb.json",
+"name": "thumbs up",
+"category": "Smileys and emotions"
+},
+"👍🏼": {
+"file": "1f44d_1f3fc.json",
+"name": "thumbs up",
+"category": "Smileys and emotions"
+},
+"👍🏽": {
+"file": "1f44d_1f3fd.json",
+"name": "thumbs up",
+"category": "Smileys and emotions"
+},
+"👍🏾": {
+"file": "1f44d_1f3fe.json",
+"name": "thumbs up",
+"category": "Smileys and emotions"
+},
+"👍🏿": {
+"file": "1f44d_1f3ff.json",
+"name": "thumbs up",
+"category": "Smileys and emotions"
+},
+"👎": {
+"file": "1f44e.json",
+"name": "thumbs down",
+"category": "Smileys and emotions"
+},
+"👎🏻": {
+"file": "1f44e_1f3fb.json",
+"name": "thumbs down",
+"category": "Smileys and emotions"
+},
+"👎🏼": {
+"file": "1f44e_1f3fc.json",
+"name": "thumbs down",
+"category": "Smileys and emotions"
+},
+"👎🏽": {
+"file": "1f44e_1f3fd.json",
+"name": "thumbs down",
+"category": "Smileys and emotions"
+},
+"👎🏾": {
+"file": "1f44e_1f3fe.json",
+"name": "thumbs down",
+"category": "Smileys and emotions"
+},
+"👎🏿": {
+"file": "1f44e_1f3ff.json",
+"name": "thumbs down",
+"category": "Smileys and emotions"
+},
+"🫶": {
+"file": "1faf6.json",
+"name": "heart hands",
+"category": "Smileys and emotions"
+},
+"🫶🏻": {
+"file": "1faf6_1f3fb.json",
+"name": "heart hands",
+"category": "Smileys and emotions"
+},
+"🫶🏼": {
+"file": "1faf6_1f3fc.json",
+"name": "heart hands",
+"category": "Smileys and emotions"
+},
+"🫶🏽": {
+"file": "1faf6_1f3fd.json",
+"name": "heart hands",
+"category": "Smileys and emotions"
+},
+"🫶🏾": {
+"file": "1faf6_1f3fe.json",
+"name": "heart hands",
+"category": "Smileys and emotions"
+},
+"🫶🏿": {
+"file": "1faf6_1f3ff.json",
+"name": "heart hands",
+"category": "Smileys and emotions"
+},
+"🙌": {
+"file": "1f64c.json",
+"name": "raising hands",
+"category": "Smileys and emotions"
+},
+"🙌🏻": {
+"file": "1f64c_1f3fb.json",
+"name": "raising hands",
+"category": "Smileys and emotions"
+},
+"🙌🏼": {
+"file": "1f64c_1f3fc.json",
+"name": "raising hands",
+"category": "Smileys and emotions"
+},
+"🙌🏽": {
+"file": "1f64c_1f3fd.json",
+"name": "raising hands",
+"category": "Smileys and emotions"
+},
+"🙌🏾": {
+"file": "1f64c_1f3fe.json",
+"name": "raising hands",
+"category": "Smileys and emotions"
+},
+"🙌🏿": {
+"file": "1f64c_1f3ff.json",
+"name": "raising hands",
+"category": "Smileys and emotions"
+},
+"👐": {
+"file": "1f450.json",
+"name": "open hands",
+"category": "Smileys and emotions"
+},
+"👐🏻": {
+"file": "1f450_1f3fb.json",
+"name": "open hands",
+"category": "Smileys and emotions"
+},
+"👐🏼": {
+"file": "1f450_1f3fc.json",
+"name": "open hands",
+"category": "Smileys and emotions"
+},
+"👐🏽": {
+"file": "1f450_1f3fd.json",
+"name": "open hands",
+"category": "Smileys and emotions"
+},
+"👐🏾": {
+"file": "1f450_1f3fe.json",
+"name": "open hands",
+"category": "Smileys and emotions"
+},
+"👐🏿": {
+"file": "1f450_1f3ff.json",
+"name": "open hands",
+"category": "Smileys and emotions"
+},
+"🤲": {
+"file": "1f932.json",
+"name": "palms up",
+"category": "Smileys and emotions"
+},
+"🤲🏻": {
+"file": "1f932_1f3fb.json",
+"name": "palms up",
+"category": "Smileys and emotions"
+},
+"🤲🏼": {
+"file": "1f932_1f3fc.json",
+"name": "palms up",
+"category": "Smileys and emotions"
+},
+"🤲🏽": {
+"file": "1f932_1f3fd.json",
+"name": "palms up",
+"category": "Smileys and emotions"
+},
+"🤲🏾": {
+"file": "1f932_1f3fe.json",
+"name": "palms up",
+"category": "Smileys and emotions"
+},
+"🤲🏿": {
+"file": "1f932_1f3ff.json",
+"name": "palms up",
+"category": "Smileys and emotions"
+},
+"🤜": {
+"file": "1f91c.json",
+"name": "fist rightwards",
+"category": "Smileys and emotions"
+},
+"🤜🏻": {
+"file": "1f91c_1f3fb.json",
+"name": "fist rightwards",
+"category": "Smileys and emotions"
+},
+"🤜🏼": {
+"file": "1f91c_1f3fc.json",
+"name": "fist rightwards",
+"category": "Smileys and emotions"
+},
+"🤜🏽": {
+"file": "1f91c_1f3fd.json",
+"name": "fist rightwards",
+"category": "Smileys and emotions"
+},
+"🤜🏾": {
+"file": "1f91c_1f3fe.json",
+"name": "fist rightwards",
+"category": "Smileys and emotions"
+},
+"🤜🏿": {
+"file": "1f91c_1f3ff.json",
+"name": "fist rightwards",
+"category": "Smileys and emotions"
+},
+"🤛": {
+"file": "1f91b.json",
+"name": "fist leftwards",
+"category": "Smileys and emotions"
+},
+"🤛🏻": {
+"file": "1f91b_1f3fb.json",
+"name": "fist leftwards",
+"category": "Smileys and emotions"
+},
+"🤛🏼": {
+"file": "1f91b_1f3fc.json",
+"name": "fist leftwards",
+"category": "Smileys and emotions"
+},
+"🤛🏽": {
+"file": "1f91b_1f3fd.json",
+"name": "fist leftwards",
+"category": "Smileys and emotions"
+},
+"🤛🏾": {
+"file": "1f91b_1f3fe.json",
+"name": "fist leftwards",
+"category": "Smileys and emotions"
+},
+"🤛🏿": {
+"file": "1f91b_1f3ff.json",
+"name": "fist leftwards",
+"category": "Smileys and emotions"
+},
+"✊": {
+"file": "270a.json",
+"name": "raised fist",
+"category": "Smileys and emotions"
+},
+"✊🏻": {
+"file": "270a_1f3fb.json",
+"name": "raised fist",
+"category": "Smileys and emotions"
+},
+"✊🏼": {
+"file": "270a_1f3fc.json",
+"name": "raised fist",
+"category": "Smileys and emotions"
+},
+"✊🏽": {
+"file": "270a_1f3fd.json",
+"name": "raised fist",
+"category": "Smileys and emotions"
+},
+"✊🏾": {
+"file": "270a_1f3fe.json",
+"name": "raised fist",
+"category": "Smileys and emotions"
+},
+"✊🏿": {
+"file": "270a_1f3ff.json",
+"name": "raised fist",
+"category": "Smileys and emotions"
+},
+"👊": {
+"file": "1f44a.json",
+"name": "fist",
+"category": "Smileys and emotions"
+},
+"👊🏻": {
+"file": "1f44a_1f3fb.json",
+"name": "fist",
+"category": "Smileys and emotions"
+},
+"👊🏼": {
+"file": "1f44a_1f3fc.json",
+"name": "fist",
+"category": "Smileys and emotions"
+},
+"👊🏽": {
+"file": "1f44a_1f3fd.json",
+"name": "fist",
+"category": "Smileys and emotions"
+},
+"👊🏾": {
+"file": "1f44a_1f3fe.json",
+"name": "fist",
+"category": "Smileys and emotions"
+},
+"👊🏿": {
+"file": "1f44a_1f3ff.json",
+"name": "fist",
+"category": "Smileys and emotions"
+},
+"🫳": {
+"file": "1faf3.json",
+"name": "palm down",
+"category": "Smileys and emotions"
+},
+"🫳🏻": {
+"file": "1faf3_1f3fb.json",
+"name": "palm down",
+"category": "Smileys and emotions"
+},
+"🫳🏼": {
+"file": "1faf3_1f3fc.json",
+"name": "palm down",
+"category": "Smileys and emotions"
+},
+"🫳🏽": {
+"file": "1faf3_1f3fd.json",
+"name": "palm down",
+"category": "Smileys and emotions"
+},
+"🫳🏾": {
+"file": "1faf3_1f3fe.json",
+"name": "palm down",
+"category": "Smileys and emotions"
+},
+"🫳🏿": {
+"file": "1faf3_1f3ff.json",
+"name": "palm down",
+"category": "Smileys and emotions"
+},
+"🫴": {
+"file": "1faf4.json",
+"name": "palm up",
+"category": "Smileys and emotions"
+},
+"🫴🏻": {
+"file": "1faf4_1f3fb.json",
+"name": "palm up",
+"category": "Smileys and emotions"
+},
+"🫴🏼": {
+"file": "1faf4_1f3fc.json",
+"name": "palm up",
+"category": "Smileys and emotions"
+},
+"🫴🏽": {
+"file": "1faf4_1f3fd.json",
+"name": "palm up",
+"category": "Smileys and emotions"
+},
+"🫴🏾": {
+"file": "1faf4_1f3fe.json",
+"name": "palm up",
+"category": "Smileys and emotions"
+},
+"🫴🏿": {
+"file": "1faf4_1f3ff.json",
+"name": "palm up",
+"category": "Smileys and emotions"
+},
+"🫱": {
+"file": "1faf1.json",
+"name": "rightwards hand",
+"category": "Smileys and emotions"
+},
+"🫱🏻": {
+"file": "1faf1_1f3fb.json",
+"name": "rightwards hand",
+"category": "Smileys and emotions"
+},
+"🫱🏼": {
+"file": "1faf1_1f3fc.json",
+"name": "rightwards hand",
+"category": "Smileys and emotions"
+},
+"🫱🏽": {
+"file": "1faf1_1f3fd.json",
+"name": "rightwards hand",
+"category": "Smileys and emotions"
+},
+"🫱🏾": {
+"file": "1faf1_1f3fe.json",
+"name": "rightwards hand",
+"category": "Smileys and emotions"
+},
+"🫱🏿": {
+"file": "1faf1_1f3ff.json",
+"name": "rightwards hand",
+"category": "Smileys and emotions"
+},
+"🫲": {
+"file": "1faf2.json",
+"name": "leftwards hand",
+"category": "Smileys and emotions"
+},
+"🫲🏻": {
+"file": "1faf2_1f3fb.json",
+"name": "leftwards hand",
+"category": "Smileys and emotions"
+},
+"🫲🏼": {
+"file": "1faf2_1f3fc.json",
+"name": "leftwards hand",
+"category": "Smileys and emotions"
+},
+"🫲🏽": {
+"file": "1faf2_1f3fd.json",
+"name": "leftwards hand",
+"category": "Smileys and emotions"
+},
+"🫲🏾": {
+"file": "1faf2_1f3fe.json",
+"name": "leftwards hand",
+"category": "Smileys and emotions"
+},
+"🫲🏿": {
+"file": "1faf2_1f3ff.json",
+"name": "leftwards hand",
+"category": "Smileys and emotions"
+},
+"🫸": {
+"file": "1faf8.json",
+"name": "push rightwards",
+"category": "Smileys and emotions"
+},
+"🫸🏻": {
+"file": "1faf8_1f3fb.json",
+"name": "push rightwards",
+"category": "Smileys and emotions"
+},
+"🫸🏼": {
+"file": "1faf8_1f3fc.json",
+"name": "push rightwards",
+"category": "Smileys and emotions"
+},
+"🫸🏽": {
+"file": "1faf8_1f3fd.json",
+"name": "push rightwards",
+"category": "Smileys and emotions"
+},
+"🫸🏾": {
+"file": "1faf8_1f3fe.json",
+"name": "push rightwards",
+"category": "Smileys and emotions"
+},
+"🫸🏿": {
+"file": "1faf8_1f3ff.json",
+"name": "push rightwards",
+"category": "Smileys and emotions"
+},
+"🫷": {
+"file": "1faf7.json",
+"name": "push leftwards",
+"category": "Smileys and emotions"
+},
+"🫷🏻": {
+"file": "1faf7_1f3fb.json",
+"name": "push leftwards",
+"category": "Smileys and emotions"
+},
+"🫷🏼": {
+"file": "1faf7_1f3fc.json",
+"name": "push leftwards",
+"category": "Smileys and emotions"
+},
+"🫷🏽": {
+"file": "1faf7_1f3fd.json",
+"name": "push leftwards",
+"category": "Smileys and emotions"
+},
+"🫷🏾": {
+"file": "1faf7_1f3fe.json",
+"name": "push leftwards",
+"category": "Smileys and emotions"
+},
+"🫷🏿": {
+"file": "1faf7_1f3ff.json",
+"name": "push leftwards",
+"category": "Smileys and emotions"
+},
+"👋": {
+"file": "1f44b.json",
+"name": "wave",
+"category": "Smileys and emotions"
+},
+"👋🏻": {
+"file": "1f44b_1f3fb.json",
+"name": "wave",
+"category": "Smileys and emotions"
+},
+"👋🏼": {
+"file": "1f44b_1f3fc.json",
+"name": "wave",
+"category": "Smileys and emotions"
+},
+"👋🏽": {
+"file": "1f44b_1f3fd.json",
+"name": "wave",
+"category": "Smileys and emotions"
+},
+"👋🏾": {
+"file": "1f44b_1f3fe.json",
+"name": "wave",
+"category": "Smileys and emotions"
+},
+"👋🏿": {
+"file": "1f44b_1f3ff.json",
+"name": "wave",
+"category": "Smileys and emotions"
+},
+"🤚": {
+"file": "1f91a.json",
+"name": "back hand",
+"category": "Smileys and emotions"
+},
+"🤚🏻": {
+"file": "1f91a_1f3fb.json",
+"name": "back hand",
+"category": "Smileys and emotions"
+},
+"🤚🏼": {
+"file": "1f91a_1f3fc.json",
+"name": "back hand",
+"category": "Smileys and emotions"
+},
+"🤚🏽": {
+"file": "1f91a_1f3fd.json",
+"name": "back hand",
+"category": "Smileys and emotions"
+},
+"🤚🏾": {
+"file": "1f91a_1f3fe.json",
+"name": "back hand",
+"category": "Smileys and emotions"
+},
+"🤚🏿": {
+"file": "1f91a_1f3ff.json",
+"name": "back hand",
+"category": "Smileys and emotions"
+},
+"🖐️": {
+"file": "1f590_fe0f.json",
+"name": "palm",
+"category": "Smileys and emotions"
+},
+"🖐": {
+"file": "1f590_fe0f.json",
+"name": "palm",
+"category": "Smileys and emotions"
+},
+"🖐🏻": {
+"file": "1f590_1f3fb.json",
+"name": "palm",
+"category": "Smileys and emotions"
+},
+"🖐🏼": {
+"file": "1f590_1f3fc.json",
+"name": "palm",
+"category": "Smileys and emotions"
+},
+"🖐🏽": {
+"file": "1f590_1f3fd.json",
+"name": "palm",
+"category": "Smileys and emotions"
+},
+"🖐🏾": {
+"file": "1f590_1f3fe.json",
+"name": "palm",
+"category": "Smileys and emotions"
+},
+"🖐🏿": {
+"file": "1f590_1f3ff.json",
+"name": "palm",
+"category": "Smileys and emotions"
+},
+"✋": {
+"file": "270b.json",
+"name": "raised hand",
+"category": "Smileys and emotions"
+},
+"✋🏻": {
+"file": "270b_1f3fb.json",
+"name": "raised hand",
+"category": "Smileys and emotions"
+},
+"✋🏼": {
+"file": "270b_1f3fc.json",
+"name": "raised hand",
+"category": "Smileys and emotions"
+},
+"✋🏽": {
+"file": "270b_1f3fd.json",
+"name": "raised hand",
+"category": "Smileys and emotions"
+},
+"✋🏾": {
+"file": "270b_1f3fe.json",
+"name": "raised hand",
+"category": "Smileys and emotions"
+},
+"✋🏿": {
+"file": "270b_1f3ff.json",
+"name": "raised hand",
+"category": "Smileys and emotions"
+},
+"🖖": {
+"file": "1f596.json",
+"name": "vulcan",
+"category": "Smileys and emotions"
+},
+"🖖🏻": {
+"file": "1f596_1f3fb.json",
+"name": "vulcan",
+"category": "Smileys and emotions"
+},
+"🖖🏼": {
+"file": "1f596_1f3fc.json",
+"name": "vulcan",
+"category": "Smileys and emotions"
+},
+"🖖🏽": {
+"file": "1f596_1f3fd.json",
+"name": "vulcan",
+"category": "Smileys and emotions"
+},
+"🖖🏾": {
+"file": "1f596_1f3fe.json",
+"name": "vulcan",
+"category": "Smileys and emotions"
+},
+"🖖🏿": {
+"file": "1f596_1f3ff.json",
+"name": "vulcan",
+"category": "Smileys and emotions"
+},
+"🤟": {
+"file": "1f91f.json",
+"name": "love you gesture",
+"category": "Smileys and emotions"
+},
+"🤟🏻": {
+"file": "1f91f_1f3fb.json",
+"name": "love you gesture",
+"category": "Smileys and emotions"
+},
+"🤟🏼": {
+"file": "1f91f_1f3fc.json",
+"name": "love you gesture",
+"category": "Smileys and emotions"
+},
+"🤟🏽": {
+"file": "1f91f_1f3fd.json",
+"name": "love you gesture",
+"category": "Smileys and emotions"
+},
+"🤟🏾": {
+"file": "1f91f_1f3fe.json",
+"name": "love you gesture",
+"category": "Smileys and emotions"
+},
+"🤟🏿": {
+"file": "1f91f_1f3ff.json",
+"name": "love you gesture",
+"category": "Smileys and emotions"
+},
+"🤘": {
+"file": "1f918.json",
+"name": "metal",
+"category": "Smileys and emotions"
+},
+"🤘🏻": {
+"file": "1f918_1f3fb.json",
+"name": "metal",
+"category": "Smileys and emotions"
+},
+"🤘🏼": {
+"file": "1f918_1f3fc.json",
+"name": "metal",
+"category": "Smileys and emotions"
+},
+"🤘🏽": {
+"file": "1f918_1f3fd.json",
+"name": "metal",
+"category": "Smileys and emotions"
+},
+"🤘🏾": {
+"file": "1f918_1f3fe.json",
+"name": "metal",
+"category": "Smileys and emotions"
+},
+"🤘🏿": {
+"file": "1f918_1f3ff.json",
+"name": "metal",
+"category": "Smileys and emotions"
+},
+"✌️": {
+"file": "270c_fe0f.json",
+"name": "victory",
+"category": "Smileys and emotions"
+},
+"✌": {
+"file": "270c_fe0f.json",
+"name": "victory",
+"category": "Smileys and emotions"
+},
+"✌🏻": {
+"file": "270c_1f3fb.json",
+"name": "victory",
+"category": "Smileys and emotions"
+},
+"✌🏼": {
+"file": "270c_1f3fc.json",
+"name": "victory",
+"category": "Smileys and emotions"
+},
+"✌🏽": {
+"file": "270c_1f3fd.json",
+"name": "victory",
+"category": "Smileys and emotions"
+},
+"✌🏾": {
+"file": "270c_1f3fe.json",
+"name": "victory",
+"category": "Smileys and emotions"
+},
+"✌🏿": {
+"file": "270c_1f3ff.json",
+"name": "victory",
+"category": "Smileys and emotions"
+},
+"🤞": {
+"file": "1f91e.json",
+"name": "crossed fingers",
+"category": "Smileys and emotions"
+},
+"🤞🏻": {
+"file": "1f91e_1f3fb.json",
+"name": "crossed fingers",
+"category": "Smileys and emotions"
+},
+"🤞🏼": {
+"file": "1f91e_1f3fc.json",
+"name": "crossed fingers",
+"category": "Smileys and emotions"
+},
+"🤞🏽": {
+"file": "1f91e_1f3fd.json",
+"name": "crossed fingers",
+"category": "Smileys and emotions"
+},
+"🤞🏾": {
+"file": "1f91e_1f3fe.json",
+"name": "crossed fingers",
+"category": "Smileys and emotions"
+},
+"🤞🏿": {
+"file": "1f91e_1f3ff.json",
+"name": "crossed fingers",
+"category": "Smileys and emotions"
+},
+"🫰": {
+"file": "1faf0.json",
+"name": "hand with index finger and thumb crossed",
+"category": "Smileys and emotions"
+},
+"🫰🏻": {
+"file": "1faf0_1f3fb.json",
+"name": "hand with index finger and thumb crossed",
+"category": "Smileys and emotions"
+},
+"🫰🏼": {
+"file": "1faf0_1f3fc.json",
+"name": "hand with index finger and thumb crossed",
+"category": "Smileys and emotions"
+},
+"🫰🏽": {
+"file": "1faf0_1f3fd.json",
+"name": "hand with index finger and thumb crossed",
+"category": "Smileys and emotions"
+},
+"🫰🏾": {
+"file": "1faf0_1f3fe.json",
+"name": "hand with index finger and thumb crossed",
+"category": "Smileys and emotions"
+},
+"🫰🏿": {
+"file": "1faf0_1f3ff.json",
+"name": "hand with index finger and thumb crossed",
+"category": "Smileys and emotions"
+},
+"🤙": {
+"file": "1f919.json",
+"name": "call me hand",
+"category": "Smileys and emotions"
+},
+"🤙🏻": {
+"file": "1f919_1f3fb.json",
+"name": "call me hand",
+"category": "Smileys and emotions"
+},
+"🤙🏼": {
+"file": "1f919_1f3fc.json",
+"name": "call me hand",
+"category": "Smileys and emotions"
+},
+"🤙🏽": {
+"file": "1f919_1f3fd.json",
+"name": "call me hand",
+"category": "Smileys and emotions"
+},
+"🤙🏾": {
+"file": "1f919_1f3fe.json",
+"name": "call me hand",
+"category": "Smileys and emotions"
+},
+"🤙🏿": {
+"file": "1f919_1f3ff.json",
+"name": "call me hand",
+"category": "Smileys and emotions"
+},
+"🤌": {
+"file": "1f90c.json",
+"name": "pinched fingers",
+"category": "Smileys and emotions"
+},
+"🤌🏻": {
+"file": "1f90c_1f3fb.json",
+"name": "pinched fingers",
+"category": "Smileys and emotions"
+},
+"🤌🏼": {
+"file": "1f90c_1f3fc.json",
+"name": "pinched fingers",
+"category": "Smileys and emotions"
+},
+"🤌🏽": {
+"file": "1f90c_1f3fd.json",
+"name": "pinched fingers",
+"category": "Smileys and emotions"
+},
+"🤌🏾": {
+"file": "1f90c_1f3fe.json",
+"name": "pinched fingers",
+"category": "Smileys and emotions"
+},
+"🤌🏿": {
+"file": "1f90c_1f3ff.json",
+"name": "pinched fingers",
+"category": "Smileys and emotions"
+},
+"🤏": {
+"file": "1f90f.json",
+"name": "pinch",
+"category": "Smileys and emotions"
+},
+"🤏🏻": {
+"file": "1f90f_1f3fb.json",
+"name": "pinch",
+"category": "Smileys and emotions"
+},
+"🤏🏼": {
+"file": "1f90f_1f3fc.json",
+"name": "pinch",
+"category": "Smileys and emotions"
+},
+"🤏🏽": {
+"file": "1f90f_1f3fd.json",
+"name": "pinch",
+"category": "Smileys and emotions"
+},
+"🤏🏾": {
+"file": "1f90f_1f3fe.json",
+"name": "pinch",
+"category": "Smileys and emotions"
+},
+"🤏🏿": {
+"file": "1f90f_1f3ff.json",
+"name": "pinch",
+"category": "Smileys and emotions"
+},
+"👌": {
+"file": "1f44c.json",
+"name": "ok",
+"category": "Smileys and emotions"
+},
+"👌🏻": {
+"file": "1f44c_1f3fb.json",
+"name": "ok",
+"category": "Smileys and emotions"
+},
+"👌🏼": {
+"file": "1f44c_1f3fc.json",
+"name": "ok",
+"category": "Smileys and emotions"
+},
+"👌🏽": {
+"file": "1f44c_1f3fd.json",
+"name": "ok",
+"category": "Smileys and emotions"
+},
+"👌🏾": {
+"file": "1f44c_1f3fe.json",
+"name": "ok",
+"category": "Smileys and emotions"
+},
+"👌🏿": {
+"file": "1f44c_1f3ff.json",
+"name": "ok",
+"category": "Smileys and emotions"
+},
+"🫵": {
+"file": "1faf5.json",
+"name": "pointing",
+"category": "Smileys and emotions"
+},
+"🫵🏻": {
+"file": "1faf5_1f3fb.json",
+"name": "pointing",
+"category": "Smileys and emotions"
+},
+"🫵🏼": {
+"file": "1faf5_1f3fc.json",
+"name": "pointing",
+"category": "Smileys and emotions"
+},
+"🫵🏽": {
+"file": "1faf5_1f3fd.json",
+"name": "pointing",
+"category": "Smileys and emotions"
+},
+"🫵🏾": {
+"file": "1faf5_1f3fe.json",
+"name": "pointing",
+"category": "Smileys and emotions"
+},
+"🫵🏿": {
+"file": "1faf5_1f3ff.json",
+"name": "pointing",
+"category": "Smileys and emotions"
+},
+"👉": {
+"file": "1f449.json",
+"name": "point right",
+"category": "Smileys and emotions"
+},
+"👉🏻": {
+"file": "1f449_1f3fb.json",
+"name": "point right",
+"category": "Smileys and emotions"
+},
+"👉🏼": {
+"file": "1f449_1f3fc.json",
+"name": "point right",
+"category": "Smileys and emotions"
+},
+"👉🏽": {
+"file": "1f449_1f3fd.json",
+"name": "point right",
+"category": "Smileys and emotions"
+},
+"👉🏾": {
+"file": "1f449_1f3fe.json",
+"name": "point right",
+"category": "Smileys and emotions"
+},
+"👉🏿": {
+"file": "1f449_1f3ff.json",
+"name": "point right",
+"category": "Smileys and emotions"
+},
+"👈": {
+"file": "1f448.json",
+"name": "point left",
+"category": "Smileys and emotions"
+},
+"👈🏻": {
+"file": "1f448_1f3fb.json",
+"name": "point left",
+"category": "Smileys and emotions"
+},
+"👈🏼": {
+"file": "1f448_1f3fc.json",
+"name": "point left",
+"category": "Smileys and emotions"
+},
+"👈🏽": {
+"file": "1f448_1f3fd.json",
+"name": "point left",
+"category": "Smileys and emotions"
+},
+"👈🏾": {
+"file": "1f448_1f3fe.json",
+"name": "point left",
+"category": "Smileys and emotions"
+},
+"👈🏿": {
+"file": "1f448_1f3ff.json",
+"name": "point left",
+"category": "Smileys and emotions"
+},
+"☝️": {
+"file": "261d_fe0f.json",
+"name": "index finger",
+"category": "Smileys and emotions"
+},
+"☝": {
+"file": "261d_fe0f.json",
+"name": "index finger",
+"category": "Smileys and emotions"
+},
+"☝🏻": {
+"file": "261d_1f3fb.json",
+"name": "index finger",
+"category": "Smileys and emotions"
+},
+"☝🏼": {
+"file": "261d_1f3fc.json",
+"name": "index finger",
+"category": "Smileys and emotions"
+},
+"☝🏽": {
+"file": "261d_1f3fd.json",
+"name": "index finger",
+"category": "Smileys and emotions"
+},
+"☝🏾": {
+"file": "261d_1f3fe.json",
+"name": "index finger",
+"category": "Smileys and emotions"
+},
+"☝🏿": {
+"file": "261d_1f3ff.json",
+"name": "index finger",
+"category": "Smileys and emotions"
+},
+"👆": {
+"file": "1f446.json",
+"name": "point up",
+"category": "Smileys and emotions"
+},
+"👆🏻": {
+"file": "1f446_1f3fb.json",
+"name": "point up",
+"category": "Smileys and emotions"
+},
+"👆🏼": {
+"file": "1f446_1f3fc.json",
+"name": "point up",
+"category": "Smileys and emotions"
+},
+"👆🏽": {
+"file": "1f446_1f3fd.json",
+"name": "point up",
+"category": "Smileys and emotions"
+},
+"👆🏾": {
+"file": "1f446_1f3fe.json",
+"name": "point up",
+"category": "Smileys and emotions"
+},
+"👆🏿": {
+"file": "1f446_1f3ff.json",
+"name": "point up",
+"category": "Smileys and emotions"
+},
+"👇": {
+"file": "1f447.json",
+"name": "point down",
+"category": "Smileys and emotions"
+},
+"👇🏻": {
+"file": "1f447_1f3fb.json",
+"name": "point down",
+"category": "Smileys and emotions"
+},
+"👇🏼": {
+"file": "1f447_1f3fc.json",
+"name": "point down",
+"category": "Smileys and emotions"
+},
+"👇🏽": {
+"file": "1f447_1f3fd.json",
+"name": "point down",
+"category": "Smileys and emotions"
+},
+"👇🏾": {
+"file": "1f447_1f3fe.json",
+"name": "point down",
+"category": "Smileys and emotions"
+},
+"👇🏿": {
+"file": "1f447_1f3ff.json",
+"name": "point down",
+"category": "Smileys and emotions"
+},
+"🖕": {
+"file": "1f595.json",
+"name": "middle finger",
+"category": "Smileys and emotions"
+},
+"🖕🏻": {
+"file": "1f595_1f3fb.json",
+"name": "middle finger",
+"category": "Smileys and emotions"
+},
+"🖕🏼": {
+"file": "1f595_1f3fc.json",
+"name": "middle finger",
+"category": "Smileys and emotions"
+},
+"🖕🏽": {
+"file": "1f595_1f3fd.json",
+"name": "middle finger",
+"category": "Smileys and emotions"
+},
+"🖕🏾": {
+"file": "1f595_1f3fe.json",
+"name": "middle finger",
+"category": "Smileys and emotions"
+},
+"🖕🏿": {
+"file": "1f595_1f3ff.json",
+"name": "middle finger",
+"category": "Smileys and emotions"
+},
+"✍️": {
+"file": "270d_fe0f.json",
+"name": "writing hand",
+"category": "Smileys and emotions"
+},
+"✍": {
+"file": "270d_fe0f.json",
+"name": "writing hand",
+"category": "Smileys and emotions"
+},
+"✍🏻": {
+"file": "270d_1f3fb.json",
+"name": "writing hand",
+"category": "Smileys and emotions"
+},
+"✍🏼": {
+"file": "270d_1f3fc.json",
+"name": "writing hand",
+"category": "Smileys and emotions"
+},
+"✍🏽": {
+"file": "270d_1f3fd.json",
+"name": "writing hand",
+"category": "Smileys and emotions"
+},
+"✍🏾": {
+"file": "270d_1f3fe.json",
+"name": "writing hand",
+"category": "Smileys and emotions"
+},
+"✍🏿": {
+"file": "270d_1f3ff.json",
+"name": "writing hand",
+"category": "Smileys and emotions"
+},
+"🤳": {
+"file": "1f933.json",
+"name": "selfie",
+"category": "Smileys and emotions"
+},
+"🤳🏻": {
+"file": "1f933_1f3fb.json",
+"name": "selfie",
+"category": "Smileys and emotions"
+},
+"🤳🏼": {
+"file": "1f933_1f3fc.json",
+"name": "selfie",
+"category": "Smileys and emotions"
+},
+"🤳🏽": {
+"file": "1f933_1f3fd.json",
+"name": "selfie",
+"category": "Smileys and emotions"
+},
+"🤳🏾": {
+"file": "1f933_1f3fe.json",
+"name": "selfie",
+"category": "Smileys and emotions"
+},
+"🤳🏿": {
+"file": "1f933_1f3ff.json",
+"name": "selfie",
+"category": "Smileys and emotions"
+},
+"🙏": {
+"file": "1f64f.json",
+"name": "folded hands",
+"category": "Smileys and emotions"
+},
+"🙏🏻": {
+"file": "1f64f_1f3fb.json",
+"name": "folded hands",
+"category": "Smileys and emotions"
+},
+"🙏🏼": {
+"file": "1f64f_1f3fc.json",
+"name": "folded hands",
+"category": "Smileys and emotions"
+},
+"🙏🏽": {
+"file": "1f64f_1f3fd.json",
+"name": "folded hands",
+"category": "Smileys and emotions"
+},
+"🙏🏾": {
+"file": "1f64f_1f3fe.json",
+"name": "folded hands",
+"category": "Smileys and emotions"
+},
+"🙏🏿": {
+"file": "1f64f_1f3ff.json",
+"name": "folded hands",
+"category": "Smileys and emotions"
+},
+"💅": {
+"file": "1f485.json",
+"name": "nail care",
+"category": "Smileys and emotions"
+},
+"💅🏻": {
+"file": "1f485_1f3fb.json",
+"name": "nail care",
+"category": "Smileys and emotions"
+},
+"💅🏼": {
+"file": "1f485_1f3fc.json",
+"name": "nail care",
+"category": "Smileys and emotions"
+},
+"💅🏽": {
+"file": "1f485_1f3fd.json",
+"name": "nail care",
+"category": "Smileys and emotions"
+},
+"💅🏾": {
+"file": "1f485_1f3fe.json",
+"name": "nail care",
+"category": "Smileys and emotions"
+},
+"💅🏿": {
+"file": "1f485_1f3ff.json",
+"name": "nail care",
+"category": "Smileys and emotions"
+},
+"🤝": {
+"file": "1f91d.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🤝🏻": {
+"file": "1f91d_1f3fb.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🫱🏻‍🫲🏼": {
+"file": "1faf1_1f3fb_200d_1faf2_1f3fc.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🫱🏻‍🫲🏽": {
+"file": "1faf1_1f3fb_200d_1faf2_1f3fd.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🫱🏻‍🫲🏾": {
+"file": "1faf1_1f3fb_200d_1faf2_1f3fe.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🫱🏻‍🫲🏿": {
+"file": "1faf1_1f3fb_200d_1faf2_1f3ff.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🫱🏼‍🫲🏻": {
+"file": "1faf1_1f3fc_200d_1faf2_1f3fb.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🤝🏼": {
+"file": "1f91d_1f3fc.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🫱🏼‍🫲🏽": {
+"file": "1faf1_1f3fc_200d_1faf2_1f3fd.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🫱🏼‍🫲🏾": {
+"file": "1faf1_1f3fc_200d_1faf2_1f3fe.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🫱🏼‍🫲🏿": {
+"file": "1faf1_1f3fc_200d_1faf2_1f3ff.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🫱🏽‍🫲🏻": {
+"file": "1faf1_1f3fd_200d_1faf2_1f3fb.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🫱🏽‍🫲🏼": {
+"file": "1faf1_1f3fd_200d_1faf2_1f3fc.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🤝🏽": {
+"file": "1f91d_1f3fd.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🫱🏽‍🫲🏾": {
+"file": "1faf1_1f3fd_200d_1faf2_1f3fe.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🫱🏽‍🫲🏿": {
+"file": "1faf1_1f3fd_200d_1faf2_1f3ff.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🫱🏾‍🫲🏻": {
+"file": "1faf1_1f3fe_200d_1faf2_1f3fb.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🫱🏾‍🫲🏼": {
+"file": "1faf1_1f3fe_200d_1faf2_1f3fc.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🫱🏾‍🫲🏽": {
+"file": "1faf1_1f3fe_200d_1faf2_1f3fd.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🤝🏾": {
+"file": "1f91d_1f3fe.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🫱🏾‍🫲🏿": {
+"file": "1faf1_1f3fe_200d_1faf2_1f3ff.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🫱🏿‍🫲🏻": {
+"file": "1faf1_1f3ff_200d_1faf2_1f3fb.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🫱🏿‍🫲🏼": {
+"file": "1faf1_1f3ff_200d_1faf2_1f3fc.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🫱🏿‍🫲🏽": {
+"file": "1faf1_1f3ff_200d_1faf2_1f3fd.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🫱🏿‍🫲🏾": {
+"file": "1faf1_1f3ff_200d_1faf2_1f3fe.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🤝🏿": {
+"file": "1f91d_1f3ff.json",
+"name": "handshake",
+"category": "Smileys and emotions"
+},
+"🪂": {
+"file": "1fa82.json",
+"name": "parachute",
+"category": "People"
+},
+"🫈": {
+"file": "1fac8.json",
+"name": "hairy creature",
+"category": "People"
+},
+"💃": {
+"file": "1f483.json",
+"name": "dancer woman",
+"category": "People"
+},
+"💃🏻": {
+"file": "1f483_1f3fb.json",
+"name": "dancer woman",
+"category": "People"
+},
+"💃🏼": {
+"file": "1f483_1f3fc.json",
+"name": "dancer woman",
+"category": "People"
+},
+"💃🏽": {
+"file": "1f483_1f3fd.json",
+"name": "dancer woman",
+"category": "People"
+},
+"💃🏾": {
+"file": "1f483_1f3fe.json",
+"name": "dancer woman",
+"category": "People"
+},
+"💃🏿": {
+"file": "1f483_1f3ff.json",
+"name": "dancer woman",
+"category": "People"
+},
+"💐": {
+"file": "1f490.json",
+"name": "bouquet",
+"category": "Animals and nature"
+},
+"🌹": {
+"file": "1f339.json",
+"name": "rose",
+"category": "Animals and nature"
+},
+"🥀": {
+"file": "1f940.json",
+"name": "wilted flower",
+"category": "Animals and nature"
+},
+"🌷": {
+"file": "1f337.json",
+"name": "tulip",
+"category": "Animals and nature"
+},
+"🪷": {
+"file": "1fab7.json",
+"name": "lotus",
+"category": "Animals and nature"
+},
+"🌸": {
+"file": "1f338.json",
+"name": "cherry blossom",
+"category": "Animals and nature"
+},
+"🪻": {
+"file": "1fabb.json",
+"name": "hyacinth",
+"category": "Animals and nature"
+},
+"🌼": {
+"file": "1f33c.json",
+"name": "blossom",
+"category": "Animals and nature"
+},
+"🍂": {
+"file": "1f342.json",
+"name": "fallen leaf",
+"category": "Animals and nature"
+},
+"🍁": {
+"file": "1f341.json",
+"name": "maple leaf",
+"category": "Animals and nature"
+},
+"🍄": {
+"file": "1f344.json",
+"name": "mushroom",
+"category": "Animals and nature"
+},
+"🌿": {
+"file": "1f33f.json",
+"name": "herb",
+"category": "Animals and nature"
+},
+"🌱": {
+"file": "1f331.json",
+"name": "plant",
+"category": "Animals and nature"
+},
+"🍃": {
+"file": "1f343.json",
+"name": "leaves",
+"category": "Animals and nature"
+},
+"🍀": {
+"file": "1f340.json",
+"name": "luck",
+"category": "Animals and nature"
+},
+"🌵": {
+"file": "1f335.json",
+"name": "cactus",
+"category": "Animals and nature"
+},
+"🪾": {
+"file": "1fabe.json",
+"name": "leafless tree",
+"category": "Animals and nature"
+},
+"🌲": {
+"file": "1f332.json",
+"name": "evergreen tree",
+"category": "Animals and nature"
+},
+"🪨": {
+"file": "1faa8.json",
+"name": "rock",
+"category": "Animals and nature"
+},
+"🛘": {
+"file": "1f6d8.json",
+"name": "debris",
+"category": "Animals and nature"
+},
+"🌋": {
+"file": "1f30b.json",
+"name": "volcano",
+"category": "Animals and nature"
+},
+"🏞️": {
+"file": "1f3de_fe0f.json",
+"name": "national park",
+"category": "Animals and nature"
+},
+"🏞": {
+"file": "1f3de_fe0f.json",
+"name": "national park",
+"category": "Animals and nature"
+},
+"🌅": {
+"file": "1f305.json",
+"name": "sunrise",
+"category": "Animals and nature"
+},
+"🌄": {
+"file": "1f304.json",
+"name": "sunrise over mountains",
+"category": "Animals and nature"
+},
+"🌊": {
+"file": "1f30a.json",
+"name": "ocean",
+"category": "Animals and nature"
+},
+"🌬️": {
+"file": "1f32c_fe0f.json",
+"name": "wind face",
+"category": "Animals and nature"
+},
+"🌬": {
+"file": "1f32c_fe0f.json",
+"name": "wind face",
+"category": "Animals and nature"
+},
+"❄️": {
+"file": "2744_fe0f.json",
+"name": "snowflake",
+"category": "Animals and nature"
+},
+"❄": {
+"file": "2744_fe0f.json",
+"name": "snowflake",
+"category": "Animals and nature"
+},
+"🌀": {
+"file": "1f300.json",
+"name": "cyclone",
+"category": "Animals and nature"
+},
+"🌪️": {
+"file": "1f32a_fe0f.json",
+"name": "tornado",
+"category": "Animals and nature"
+},
+"🌪": {
+"file": "1f32a_fe0f.json",
+"name": "tornado",
+"category": "Animals and nature"
+},
+"🌈": {
+"file": "1f308.json",
+"name": "rainbow",
+"category": "Animals and nature"
+},
+"💧": {
+"file": "1f4a7.json",
+"name": "droplet",
+"category": "Animals and nature"
+},
+"☁️": {
+"file": "2601_fe0f.json",
+"name": "cloud",
+"category": "Animals and nature"
+},
+"☁": {
+"file": "2601_fe0f.json",
+"name": "cloud",
+"category": "Animals and nature"
+},
+"🌧️": {
+"file": "1f327_fe0f.json",
+"name": "rain cloud",
+"category": "Animals and nature"
+},
+"🌧": {
+"file": "1f327_fe0f.json",
+"name": "rain cloud",
+"category": "Animals and nature"
+},
+"🌩️": {
+"file": "1f329_fe0f.json",
+"name": "cloud with lightning",
+"category": "Animals and nature"
+},
+"🌩": {
+"file": "1f329_fe0f.json",
+"name": "cloud with lightning",
+"category": "Animals and nature"
+},
+"⛅": {
+"file": "26c5.json",
+"name": "partly sunny",
+"category": "Animals and nature"
+},
+"🪐": {
+"file": "1fa90.json",
+"name": "ringed planet",
+"category": "Animals and nature"
+},
+"🌍": {
+"file": "1f30d.json",
+"name": "globe showing Europe Africa",
+"category": "Animals and nature"
+},
+"🌎": {
+"file": "1f30e.json",
+"name": "globe showing Americas",
+"category": "Animals and nature"
+},
+"🌏": {
+"file": "1f30f.json",
+"name": "globe showing Asia Australia",
+"category": "Animals and nature"
+},
+"🌌": {
+"file": "1f30c.json",
+"name": "milky way",
+"category": "Animals and nature"
+},
+"☄️": {
+"file": "2604_fe0f.json",
+"name": "comet",
+"category": "Animals and nature"
+},
+"☄": {
+"file": "2604_fe0f.json",
+"name": "comet",
+"category": "Animals and nature"
+},
+"🦁": {
+"file": "1f981.json",
+"name": "lion face",
+"category": "Animals and nature"
+},
+"🐺": {
+"file": "1f43a.json",
+"name": "wolf",
+"category": "Animals and nature"
+},
+"🐻": {
+"file": "1f43b.json",
+"name": "bear face",
+"category": "Animals and nature"
+},
+"🐼": {
+"file": "1f43c.json",
+"name": "panda",
+"category": "Animals and nature"
+},
+"🦊": {
+"file": "1f98a.json",
+"name": "fox face",
+"category": "Animals and nature"
+},
+"🐮": {
+"file": "1f42e.json",
+"name": "cow face",
+"category": "Animals and nature"
+},
+"🦄": {
+"file": "1f984.json",
+"name": "unicorn",
+"category": "Animals and nature"
+},
+"🦎": {
+"file": "1f98e.json",
+"name": "lizard",
+"category": "Animals and nature"
+},
+"🐉": {
+"file": "1f409.json",
+"name": "dragon",
+"category": "Animals and nature"
+},
+"🦖": {
+"file": "1f996.json",
+"name": "t rex",
+"category": "Animals and nature"
+},
+"🦕": {
+"file": "1f995.json",
+"name": "dinosaur",
+"category": "Animals and nature"
+},
+"🐢": {
+"file": "1f422.json",
+"name": "turtle",
+"category": "Animals and nature"
+},
+"🐊": {
+"file": "1f40a.json",
+"name": "crocodile",
+"category": "Animals and nature"
+},
+"🐍": {
+"file": "1f40d.json",
+"name": "snake",
+"category": "Animals and nature"
+},
+"🐸": {
+"file": "1f438.json",
+"name": "frog",
+"category": "Animals and nature"
+},
+"🐇": {
+"file": "1f407.json",
+"name": "rabbit",
+"category": "Animals and nature"
+},
+"🐀": {
+"file": "1f400.json",
+"name": "rat",
+"category": "Animals and nature"
+},
+"🐩": {
+"file": "1f429.json",
+"name": "poodle",
+"category": "Animals and nature"
+},
+"🐕": {
+"file": "1f415.json",
+"name": "dog",
+"category": "Animals and nature"
+},
+"🦮": {
+"file": "1f9ae.json",
+"name": "guide dog",
+"category": "Animals and nature"
+},
+"🐕‍🦺": {
+"file": "1f415_200d_1f9ba.json",
+"name": "service dog",
+"category": "Animals and nature"
+},
+"🐖": {
+"file": "1f416.json",
+"name": "pig",
+"category": "Animals and nature"
+},
+"🐎": {
+"file": "1f40e.json",
+"name": "racehorse",
+"category": "Animals and nature"
+},
+"🫏": {
+"file": "1facf.json",
+"name": "donkey",
+"category": "Animals and nature"
+},
+"🐂": {
+"file": "1f402.json",
+"name": "ox",
+"category": "Animals and nature"
+},
+"🐐": {
+"file": "1f410.json",
+"name": "goat",
+"category": "Animals and nature"
+},
+"🦥": {
+"file": "1f9a5.json",
+"name": "sloth",
+"category": "Animals and nature"
+},
+"🦘": {
+"file": "1f998.json",
+"name": "kangaroo",
+"category": "Animals and nature"
+},
+"🐅": {
+"file": "1f405.json",
+"name": "tiger",
+"category": "Animals and nature"
+},
+"🐒": {
+"file": "1f412.json",
+"name": "monkey",
+"category": "Animals and nature"
+},
+"🦍": {
+"file": "1f98d.json",
+"name": "gorilla",
+"category": "Animals and nature"
+},
+"🦧": {
+"file": "1f9a7.json",
+"name": "orangutan",
+"category": "Animals and nature"
+},
+"🐿️": {
+"file": "1f43f_fe0f.json",
+"name": "chipmunk",
+"category": "Animals and nature"
+},
+"🐿": {
+"file": "1f43f_fe0f.json",
+"name": "chipmunk",
+"category": "Animals and nature"
+},
+"🦝": {
+"file": "1f99d.json",
+"name": "raccoon",
+"category": "Animals and nature"
+},
+"🦔": {
+"file": "1f994.json",
+"name": "hedgehog",
+"category": "Animals and nature"
+},
+"🦦": {
+"file": "1f9a6.json",
+"name": "otter",
+"category": "Animals and nature"
+},
+"🦇": {
+"file": "1f987.json",
+"name": "bat",
+"category": "Animals and nature"
+},
+"🐦": {
+"file": "1f426.json",
+"name": "bird",
+"category": "Animals and nature"
+},
+"🐦‍⬛": {
+"file": "1f426_200d_2b1b.json",
+"name": "black bird",
+"category": "Animals and nature"
+},
+"🐓": {
+"file": "1f413.json",
+"name": "rooster",
+"category": "Animals and nature"
+},
+"🐣": {
+"file": "1f423.json",
+"name": "hatching chick",
+"category": "Animals and nature"
+},
+"🐤": {
+"file": "1f424.json",
+"name": "baby chick",
+"category": "Animals and nature"
+},
+"🐥": {
+"file": "1f425.json",
+"name": "hatched chick",
+"category": "Animals and nature"
+},
+"🦅": {
+"file": "1f985.json",
+"name": "eagle",
+"category": "Animals and nature"
+},
+"🦉": {
+"file": "1f989.json",
+"name": "owl",
+"category": "Animals and nature"
+},
+"🕊️": {
+"file": "1f54a_fe0f.json",
+"name": "peace",
+"category": "Animals and nature"
+},
+"🕊": {
+"file": "1f54a_fe0f.json",
+"name": "peace",
+"category": "Animals and nature"
+},
+"🪿": {
+"file": "1fabf.json",
+"name": "goose",
+"category": "Animals and nature"
+},
+"🦩": {
+"file": "1f9a9.json",
+"name": "flamingo",
+"category": "Animals and nature"
+},
+"🦚": {
+"file": "1f99a.json",
+"name": "peacock",
+"category": "Animals and nature"
+},
+"🐦‍🔥": {
+"file": "1f426_200d_1f525.json",
+"name": "phoenix",
+"category": "Animals and nature"
+},
+"🐧": {
+"file": "1f427.json",
+"name": "penguin",
+"category": "Animals and nature"
+},
+"🦭": {
+"file": "1f9ad.json",
+"name": "seal",
+"category": "Animals and nature"
+},
+"🦈": {
+"file": "1f988.json",
+"name": "shark",
+"category": "Animals and nature"
+},
+"🫍": {
+"file": "1facd.json",
+"name": "orca",
+"category": "Animals and nature"
+},
+"🐬": {
+"file": "1f42c.json",
+"name": "dolphin",
+"category": "Animals and nature"
+},
+"🐳": {
+"file": "1f433.json",
+"name": "whale",
+"category": "Animals and nature"
+},
+"🐟": {
+"file": "1f41f.json",
+"name": "fish",
+"category": "Animals and nature"
+},
+"🐡": {
+"file": "1f421.json",
+"name": "blowfish",
+"category": "Animals and nature"
+},
+"🦞": {
+"file": "1f99e.json",
+"name": "lobster",
+"category": "Animals and nature"
+},
+"🦀": {
+"file": "1f980.json",
+"name": "crab",
+"category": "Animals and nature"
+},
+"🐙": {
+"file": "1f419.json",
+"name": "octopus",
+"category": "Animals and nature"
+},
+"🪼": {
+"file": "1fabc.json",
+"name": "jellyfish",
+"category": "Animals and nature"
+},
+"🫧": {
+"file": "1fae7.json",
+"name": "bubbles",
+"category": "Animals and nature"
+},
+"🦂": {
+"file": "1f982.json",
+"name": "scorpion",
+"category": "Animals and nature"
+},
+"🕷️": {
+"file": "1f577_fe0f.json",
+"name": "spider",
+"category": "Animals and nature"
+},
+"🕷": {
+"file": "1f577_fe0f.json",
+"name": "spider",
+"category": "Animals and nature"
+},
+"🐌": {
+"file": "1f40c.json",
+"name": "snail",
+"category": "Animals and nature"
+},
+"🐜": {
+"file": "1f41c.json",
+"name": "ant",
+"category": "Animals and nature"
+},
+"🦗": {
+"file": "1f997.json",
+"name": "cricket",
+"category": "Animals and nature"
+},
+"🦟": {
+"file": "1f99f.json",
+"name": "mosquito",
+"category": "Animals and nature"
+},
+"🪳": {
+"file": "1fab3.json",
+"name": "cockroach",
+"category": "Animals and nature"
+},
+"🪰": {
+"file": "1fab0.json",
+"name": "fly",
+"category": "Animals and nature"
+},
+"🐝": {
+"file": "1f41d.json",
+"name": "bee",
+"category": "Animals and nature"
+},
+"🐞": {
+"file": "1f41e.json",
+"name": "lady bug",
+"category": "Animals and nature"
+},
+"🦋": {
+"file": "1f98b.json",
+"name": "butterfly",
+"category": "Animals and nature"
+},
+"🐛": {
+"file": "1f41b.json",
+"name": "bug",
+"category": "Animals and nature"
+},
+"🪱": {
+"file": "1fab1.json",
+"name": "worm",
+"category": "Animals and nature"
+},
+"🐾": {
+"file": "1f43e.json",
+"name": "paw prints",
+"category": "Animals and nature"
+},
+"🍓": {
+"file": "1f353.json",
+"name": "strawberry",
+"category": "Food and drink"
+},
+"🍒": {
+"file": "1f352.json",
+"name": "cherries",
+"category": "Food and drink"
+},
+"🍎": {
+"file": "1f34e.json",
+"name": "red apple",
+"category": "Food and drink"
+},
+"🍅": {
+"file": "1f345.json",
+"name": "tomato",
+"category": "Food and drink"
+},
+"🍉": {
+"file": "1f349.json",
+"name": "watermelon",
+"category": "Food and drink"
+},
+"🍊": {
+"file": "1f34a.json",
+"name": "tangerine",
+"category": "Food and drink"
+},
+"🥕": {
+"file": "1f955.json",
+"name": "carrot",
+"category": "Food and drink"
+},
+"🥭": {
+"file": "1f96d.json",
+"name": "mango",
+"category": "Food and drink"
+},
+"🍍": {
+"file": "1f34d.json",
+"name": "pineapple",
+"category": "Food and drink"
+},
+"🌽": {
+"file": "1f33d.json",
+"name": "ear of corn",
+"category": "Food and drink"
+},
+"🍋": {
+"file": "1f34b.json",
+"name": "lemon",
+"category": "Food and drink"
+},
+"🍈": {
+"file": "1f348.json",
+"name": "melon",
+"category": "Food and drink"
+},
+"🍐": {
+"file": "1f350.json",
+"name": "pear",
+"category": "Food and drink"
+},
+"🫛": {
+"file": "1fadb.json",
+"name": "pea pod",
+"category": "Food and drink"
+},
+"🥬": {
+"file": "1f96c.json",
+"name": "leafy green",
+"category": "Food and drink"
+},
+"🫑": {
+"file": "1fad1.json",
+"name": "bell pepper",
+"category": "Food and drink"
+},
+"🥝": {
+"file": "1f95d.json",
+"name": "kiwi fruit",
+"category": "Food and drink"
+},
+"🥑": {
+"file": "1f951.json",
+"name": "avocado",
+"category": "Food and drink"
+},
+"🥦": {
+"file": "1f966.json",
+"name": "broccoli",
+"category": "Food and drink"
+},
+"🥒": {
+"file": "1f952.json",
+"name": "cucumber",
+"category": "Food and drink"
+},
+"🫐": {
+"file": "1fad0.json",
+"name": "blueberries",
+"category": "Food and drink"
+},
+"🍇": {
+"file": "1f347.json",
+"name": "grapes",
+"category": "Food and drink"
+},
+"🫜": {
+"file": "1fadc.json",
+"name": "root vegetable",
+"category": "Food and drink"
+},
+"🥔": {
+"file": "1f954.json",
+"name": "potato",
+"category": "Food and drink"
+},
+"🧅": {
+"file": "1f9c5.json",
+"name": "onion",
+"category": "Food and drink"
+},
+"🫚": {
+"file": "1fada.json",
+"name": "ginger",
+"category": "Food and drink"
+},
+"🧄": {
+"file": "1f9c4.json",
+"name": "garlic",
+"category": "Food and drink"
+},
+"🫘": {
+"file": "1fad8.json",
+"name": "beans",
+"category": "Food and drink"
+},
+"🍞": {
+"file": "1f35e.json",
+"name": "bread",
+"category": "Food and drink"
+},
+"🥞": {
+"file": "1f95e.json",
+"name": "pancakes",
+"category": "Food and drink"
+},
+"🍳": {
+"file": "1f373.json",
+"name": "cooking",
+"category": "Food and drink"
+},
+"🧀": {
+"file": "1f9c0.json",
+"name": "cheese wedge",
+"category": "Food and drink"
+},
+"🥓": {
+"file": "1f953.json",
+"name": "bacon",
+"category": "Food and drink"
+},
+"🍗": {
+"file": "1f357.json",
+"name": "poultry leg",
+"category": "Food and drink"
+},
+"🍔": {
+"file": "1f354.json",
+"name": "hamburger",
+"category": "Food and drink"
+},
+"🌭": {
+"file": "1f32d.json",
+"name": "hot dog",
+"category": "Food and drink"
+},
+"🥨": {
+"file": "1f968.json",
+"name": "pretzel",
+"category": "Food and drink"
+},
+"🍕": {
+"file": "1f355.json",
+"name": "pizza",
+"category": "Food and drink"
+},
+"🌮": {
+"file": "1f32e.json",
+"name": "taco",
+"category": "Food and drink"
+},
+"🌯": {
+"file": "1f32f.json",
+"name": "burrito",
+"category": "Food and drink"
+},
+"🍝": {
+"file": "1f35d.json",
+"name": "spaghetti",
+"category": "Food and drink"
+},
+"🥗": {
+"file": "1f957.json",
+"name": "green salad",
+"category": "Food and drink"
+},
+"🍜": {
+"file": "1f35c.json",
+"name": "steaming bowl",
+"category": "Food and drink"
+},
+"🍢": {
+"file": "1f362.json",
+"name": "oden",
+"category": "Food and drink"
+},
+"🍡": {
+"file": "1f361.json",
+"name": "dango",
+"category": "Food and drink"
+},
+"🍨": {
+"file": "1f368.json",
+"name": "ice cream",
+"category": "Food and drink"
+},
+"🍦": {
+"file": "1f366.json",
+"name": "soft ice cream",
+"category": "Food and drink"
+},
+"🥧": {
+"file": "1f967.json",
+"name": "pie",
+"category": "Food and drink"
+},
+"🍩": {
+"file": "1f369.json",
+"name": "doughnut",
+"category": "Food and drink"
+},
+"🍪": {
+"file": "1f36a.json",
+"name": "cookie",
+"category": "Food and drink"
+},
+"🧂": {
+"file": "1f9c2.json",
+"name": "salt",
+"category": "Food and drink"
+},
+"🍿": {
+"file": "1f37f.json",
+"name": "popcorn",
+"category": "Food and drink"
+},
+"🧋": {
+"file": "1f9cb.json",
+"name": "bubble tea",
+"category": "Food and drink"
+},
+"🧃": {
+"file": "1f9c3.json",
+"name": "beverage box",
+"category": "Food and drink"
+},
+"🍼": {
+"file": "1f37c.json",
+"name": "baby bottle",
+"category": "Food and drink"
+},
+"🍵": {
+"file": "1f375.json",
+"name": "teacup without handle",
+"category": "Food and drink"
+},
+"☕": {
+"file": "2615.json",
+"name": "hot beverage",
+"category": "Food and drink"
+},
+"🫖": {
+"file": "1fad6.json",
+"name": "teapot",
+"category": "Food and drink"
+},
+"🧉": {
+"file": "1f9c9.json",
+"name": "mate",
+"category": "Food and drink"
+},
+"🍻": {
+"file": "1f37b.json",
+"name": "clinking beer mugs",
+"category": "Food and drink"
+},
+"🥂": {
+"file": "1f942.json",
+"name": "clinking glasses",
+"category": "Food and drink"
+},
+"🍾": {
+"file": "1f37e.json",
+"name": "bottle with popping cork",
+"category": "Food and drink"
+},
+"🍷": {
+"file": "1f377.json",
+"name": "wine glass",
+"category": "Food and drink"
+},
+"🫗": {
+"file": "1fad7.json",
+"name": "pour",
+"category": "Food and drink"
+},
+"🍹": {
+"file": "1f379.json",
+"name": "tropical drink",
+"category": "Food and drink"
+},
+"🥢": {
+"file": "1f962.json",
+"name": "chopsticks",
+"category": "Food and drink"
+},
+"🍽️": {
+"file": "1f37d_fe0f.json",
+"name": "fork and knife with plate",
+"category": "Food and drink"
+},
+"🍽": {
+"file": "1f37d_fe0f.json",
+"name": "fork and knife with plate",
+"category": "Food and drink"
+},
+"🛑": {
+"file": "1f6d1.json",
+"name": "stop sign",
+"category": "Travel and places"
+},
+"🚧": {
+"file": "1f6a7.json",
+"name": "construction",
+"category": "Travel and places"
+},
+"🚨": {
+"file": "1f6a8.json",
+"name": "police car light",
+"category": "Travel and places"
+},
+"⛽": {
+"file": "26fd.json",
+"name": "fuel pump",
+"category": "Travel and places"
+},
+"🛟": {
+"file": "1f6df.json",
+"name": "ring buoy",
+"category": "Travel and places"
+},
+"⚓": {
+"file": "2693.json",
+"name": "anchor",
+"category": "Travel and places"
+},
+"🚦": {
+"file": "1f6a6.json",
+"name": "vertical traffic light",
+"category": "Travel and places"
+},
+"🚲": {
+"file": "1f6b2.json",
+"name": "bicycle",
+"category": "Travel and places"
+},
+"🏍️": {
+"file": "1f3cd_fe0f.json",
+"name": "motorcycle",
+"category": "Travel and places"
+},
+"🏍": {
+"file": "1f3cd_fe0f.json",
+"name": "motorcycle",
+"category": "Travel and places"
+},
+"🚗": {
+"file": "1f697.json",
+"name": "automobile",
+"category": "Travel and places"
+},
+"🚚": {
+"file": "1f69a.json",
+"name": "delivery truck",
+"category": "Travel and places"
+},
+"🚜": {
+"file": "1f69c.json",
+"name": "tractor",
+"category": "Travel and places"
+},
+"🏎️": {
+"file": "1f3ce_fe0f.json",
+"name": "racing car",
+"category": "Travel and places"
+},
+"🏎": {
+"file": "1f3ce_fe0f.json",
+"name": "racing car",
+"category": "Travel and places"
+},
+"🚕": {
+"file": "1f695.json",
+"name": "taxi",
+"category": "Travel and places"
+},
+"🚌": {
+"file": "1f68c.json",
+"name": "bus",
+"category": "Travel and places"
+},
+"🚂": {
+"file": "1f682.json",
+"name": "locomotive",
+"category": "Travel and places"
+},
+"⛵": {
+"file": "26f5.json",
+"name": "sailboat",
+"category": "Travel and places"
+},
+"🛶": {
+"file": "1f6f6.json",
+"name": "canoe",
+"category": "Travel and places"
+},
+"🛸": {
+"file": "1f6f8.json",
+"name": "flying saucer",
+"category": "Travel and places"
+},
+"🚀": {
+"file": "1f680.json",
+"name": "rocket",
+"category": "Travel and places"
+},
+"✈️": {
+"file": "2708_fe0f.json",
+"name": "airplane",
+"category": "Travel and places"
+},
+"✈": {
+"file": "2708_fe0f.json",
+"name": "airplane",
+"category": "Travel and places"
+},
+"🛫": {
+"file": "1f6eb.json",
+"name": "airplane departure",
+"category": "Travel and places"
+},
+"🛬": {
+"file": "1f6ec.json",
+"name": "airplane arrival",
+"category": "Travel and places"
+},
+"🎢": {
+"file": "1f3a2.json",
+"name": "roller coaster",
+"category": "Travel and places"
+},
+"🎡": {
+"file": "1f3a1.json",
+"name": "ferris wheel",
+"category": "Travel and places"
+},
+"🎠": {
+"file": "1f3a0.json",
+"name": "carousel horse",
+"category": "Travel and places"
+},
+"🗿": {
+"file": "1f5ff.json",
+"name": "moai",
+"category": "Travel and places"
+},
+"🏚️": {
+"file": "1f3da_fe0f.json",
+"name": "derelict house",
+"category": "Travel and places"
+},
+"🏚": {
+"file": "1f3da_fe0f.json",
+"name": "derelict house",
+"category": "Travel and places"
+},
+"🏠": {
+"file": "1f3e0.json",
+"name": "house",
+"category": "Travel and places"
+},
+"🏕️": {
+"file": "1f3d5_fe0f.json",
+"name": "camping",
+"category": "Travel and places"
+},
+"🏕": {
+"file": "1f3d5_fe0f.json",
+"name": "camping",
+"category": "Travel and places"
+},
+"🌇": {
+"file": "1f307.json",
+"name": "sunset",
+"category": "Travel and places"
+},
+"🎈": {
+"file": "1f388.json",
+"name": "balloon",
+"category": "Activities and events"
+},
+"🎂": {
+"file": "1f382.json",
+"name": "birthday cake",
+"category": "Activities and events"
+},
+"🎁": {
+"file": "1f381.json",
+"name": "wrapped gift",
+"category": "Activities and events"
+},
+"🎆": {
+"file": "1f386.json",
+"name": "fireworks",
+"category": "Activities and events"
+},
+"🪔": {
+"file": "1fa94.json",
+"name": "diya lamp",
+"category": "Activities and events"
+},
+"🪅": {
+"file": "1fa85.json",
+"name": "piñata",
+"category": "Activities and events"
+},
+"🪩": {
+"file": "1faa9.json",
+"name": "mirror ball",
+"category": "Activities and events"
+},
+"🥇": {
+"file": "1f947.json",
+"name": "gold medal",
+"category": "Activities and events"
+},
+"🥈": {
+"file": "1f948.json",
+"name": "silver medal",
+"category": "Activities and events"
+},
+"🥉": {
+"file": "1f949.json",
+"name": "bronze medal",
+"category": "Activities and events"
+},
+"🏆": {
+"file": "1f3c6.json",
+"name": "trophy",
+"category": "Activities and events"
+},
+"⚽": {
+"file": "26bd.json",
+"name": "soccer ball",
+"category": "Activities and events"
+},
+"⚾": {
+"file": "26be.json",
+"name": "baseball",
+"category": "Activities and events"
+},
+"🥎": {
+"file": "1f94e.json",
+"name": "softball",
+"category": "Activities and events"
+},
+"🏀": {
+"file": "1f3c0.json",
+"name": "basketball",
+"category": "Activities and events"
+},
+"🏉": {
+"file": "1f3c9.json",
+"name": "rugby football",
+"category": "Activities and events"
+},
+"🎾": {
+"file": "1f3be.json",
+"name": "tennis",
+"category": "Activities and events"
+},
+"🏸": {
+"file": "1f3f8.json",
+"name": "badminton",
+"category": "Activities and events"
+},
+"🥍": {
+"file": "1f94d.json",
+"name": "lacrosse",
+"category": "Activities and events"
+},
+"🏏": {
+"file": "1f3cf.json",
+"name": "cricket game",
+"category": "Activities and events"
+},
+"🏑": {
+"file": "1f3d1.json",
+"name": "field hockey",
+"category": "Activities and events"
+},
+"🏒": {
+"file": "1f3d2.json",
+"name": "ice hockey",
+"category": "Activities and events"
+},
+"🎿": {
+"file": "1f3bf.json",
+"name": "skis",
+"category": "Activities and events"
+},
+"⛸️": {
+"file": "26f8_fe0f.json",
+"name": "ice skate",
+"category": "Activities and events"
+},
+"⛸": {
+"file": "26f8_fe0f.json",
+"name": "ice skate",
+"category": "Activities and events"
+},
+"🛼": {
+"file": "1f6fc.json",
+"name": "roller skates",
+"category": "Activities and events"
+},
+"🩰": {
+"file": "1fa70.json",
+"name": "ballet shoes",
+"category": "Activities and events"
+},
+"🛹": {
+"file": "1f6f9.json",
+"name": "skateboard",
+"category": "Activities and events"
+},
+"⛳": {
+"file": "26f3.json",
+"name": "flag in hole",
+"category": "Activities and events"
+},
+"🎯": {
+"file": "1f3af.json",
+"name": "direct hit",
+"category": "Activities and events"
+},
+"🥏": {
+"file": "1f94f.json",
+"name": "flying disc",
+"category": "Activities and events"
+},
+"🪃": {
+"file": "1fa83.json",
+"name": "boomerang",
+"category": "Activities and events"
+},
+"🪁": {
+"file": "1fa81.json",
+"name": "kite",
+"category": "Activities and events"
+},
+"🎣": {
+"file": "1f3a3.json",
+"name": "fishing pole",
+"category": "Activities and events"
+},
+"🥋": {
+"file": "1f94b.json",
+"name": "martial arts uniform",
+"category": "Activities and events"
+},
+"🎱": {
+"file": "1f3b1.json",
+"name": "8 ball",
+"category": "Activities and events"
+},
+"🏓": {
+"file": "1f3d3.json",
+"name": "ping pong",
+"category": "Activities and events"
+},
+"🎳": {
+"file": "1f3b3.json",
+"name": "bowling",
+"category": "Activities and events"
+},
+"♟️": {
+"file": "265f_fe0f.json",
+"name": "chess pawn",
+"category": "Activities and events"
+},
+"♟": {
+"file": "265f_fe0f.json",
+"name": "chess pawn",
+"category": "Activities and events"
+},
+"🎲": {
+"file": "1f3b2.json",
+"name": "die",
+"category": "Activities and events"
+},
+"🎰": {
+"file": "1f3b0.json",
+"name": "slot machine",
+"category": "Activities and events"
+},
+"🪄": {
+"file": "1fa84.json",
+"name": "wand",
+"category": "Activities and events"
+},
+"📷": {
+"file": "1f4f7.json",
+"name": "camera",
+"category": "Activities and events"
+},
+"📸": {
+"file": "1f4f8.json",
+"name": "camera flash",
+"category": "Activities and events"
+},
+"🫟": {
+"file": "1fadf.json",
+"name": "splatter",
+"category": "Activities and events"
+},
+"🎷": {
+"file": "1f3b7.json",
+"name": "saxophone",
+"category": "Activities and events"
+},
+"🎺": {
+"file": "1f3ba.json",
+"name": "trumpet",
+"category": "Activities and events"
+},
+"🪊": {
+"file": "1fa8a.json",
+"name": "trombone",
+"category": "Activities and events"
+},
+"🎸": {
+"file": "1f3b8.json",
+"name": "guitar",
+"category": "Activities and events"
+},
+"🪕": {
+"file": "1fa95.json",
+"name": "banjo",
+"category": "Activities and events"
+},
+"🎻": {
+"file": "1f3bb.json",
+"name": "violin",
+"category": "Activities and events"
+},
+"🪉": {
+"file": "1fa89.json",
+"name": "harp",
+"category": "Activities and events"
+},
+"🥁": {
+"file": "1f941.json",
+"name": "drum",
+"category": "Activities and events"
+},
+"🪇": {
+"file": "1fa87.json",
+"name": "maracas",
+"category": "Activities and events"
+},
+"📺": {
+"file": "1f4fa.json",
+"name": "television",
+"category": "Activities and events"
+},
+"🎞️": {
+"file": "1f39e_fe0f.json",
+"name": "film",
+"category": "Activities and events"
+},
+"🎞": {
+"file": "1f39e_fe0f.json",
+"name": "film",
+"category": "Activities and events"
+},
+"🎬": {
+"file": "1f3ac.json",
+"name": "clapper",
+"category": "Activities and events"
+},
+"🎭": {
+"file": "1f3ad.json",
+"name": "performing arts",
+"category": "Activities and events"
+},
+"🎟️": {
+"file": "1f39f_fe0f.json",
+"name": "admission tickets",
+"category": "Activities and events"
+},
+"🎟": {
+"file": "1f39f_fe0f.json",
+"name": "admission tickets",
+"category": "Activities and events"
+},
+"📟": {
+"file": "1f4df.json",
+"name": "pager",
+"category": "Objects"
+},
+"🔌": {
+"file": "1f50c.json",
+"name": "electric plug",
+"category": "Objects"
+},
+"🔋": {
+"file": "1f50b.json",
+"name": "battery full",
+"category": "Objects"
+},
+"🪫": {
+"file": "1faab.json",
+"name": "battery low",
+"category": "Objects"
+},
+"💿": {
+"file": "1f4bf.json",
+"name": "optical disk",
+"category": "Objects"
+},
+"💻": {
+"file": "1f4bb.json",
+"name": "laptop computer",
+"category": "Objects"
+},
+"🖨️": {
+"file": "1f5a8_fe0f.json",
+"name": "printer",
+"category": "Objects"
+},
+"🖨": {
+"file": "1f5a8_fe0f.json",
+"name": "printer",
+"category": "Objects"
+},
+"🪎": {
+"file": "1fa8e.json",
+"name": "treasure",
+"category": "Objects"
+},
+"🪙": {
+"file": "1fa99.json",
+"name": "coin",
+"category": "Objects"
+},
+"💎": {
+"file": "1f48e.json",
+"name": "gem stone",
+"category": "Objects"
+},
+"💸": {
+"file": "1f4b8.json",
+"name": "money with wings",
+"category": "Objects"
+},
+"⚖️": {
+"file": "2696_fe0f.json",
+"name": "balance scale",
+"category": "Objects"
+},
+"⚖": {
+"file": "2696_fe0f.json",
+"name": "balance scale",
+"category": "Objects"
+},
+"🛒": {
+"file": "1f6d2.json",
+"name": "shopping cart",
+"category": "Objects"
+},
+"💡": {
+"file": "1f4a1.json",
+"name": "light bulb",
+"category": "Objects"
+},
+"🧹": {
+"file": "1f9f9.json",
+"name": "broom",
+"category": "Objects"
+},
+"🧦": {
+"file": "1f9e6.json",
+"name": "socks",
+"category": "Objects"
+},
+"🎓": {
+"file": "1f393.json",
+"name": "graduation cap",
+"category": "Objects"
+},
+"👑": {
+"file": "1f451.json",
+"name": "crown",
+"category": "Objects"
+},
+"💍": {
+"file": "1f48d.json",
+"name": "ring",
+"category": "Objects"
+},
+"🪭": {
+"file": "1faad.json",
+"name": "fan",
+"category": "Objects"
+},
+"☂️": {
+"file": "2602_fe0f.json",
+"name": "umbrella",
+"category": "Objects"
+},
+"☂": {
+"file": "2602_fe0f.json",
+"name": "umbrella",
+"category": "Objects"
+},
+"👠": {
+"file": "1f460.json",
+"name": "high heeled shoe",
+"category": "Objects"
+},
+"👟": {
+"file": "1f45f.json",
+"name": "running shoe",
+"category": "Objects"
+},
+"🌡️": {
+"file": "1f321_fe0f.json",
+"name": "thermometer",
+"category": "Objects"
+},
+"🌡": {
+"file": "1f321_fe0f.json",
+"name": "thermometer",
+"category": "Objects"
+},
+"🩺": {
+"file": "1fa7a.json",
+"name": "stethoscope",
+"category": "Objects"
+},
+"🛠️": {
+"file": "1f6e0_fe0f.json",
+"name": "hammer and wrench",
+"category": "Objects"
+},
+"🛠": {
+"file": "1f6e0_fe0f.json",
+"name": "hammer and wrench",
+"category": "Objects"
+},
+"🪏": {
+"file": "1fa8f.json",
+"name": "shovel",
+"category": "Objects"
+},
+"⚙️": {
+"file": "2699_fe0f.json",
+"name": "gear",
+"category": "Objects"
+},
+"⚙": {
+"file": "2699_fe0f.json",
+"name": "gear",
+"category": "Objects"
+},
+"⛓️‍💥": {
+"file": "26d3_fe0f_200d_1f4a5.json",
+"name": "broken chain",
+"category": "Objects"
+},
+"⛓‍💥": {
+"file": "26d3_fe0f_200d_1f4a5.json",
+"name": "broken chain",
+"category": "Objects"
+},
+"⛓️": {
+"file": "26d3_fe0f.json",
+"name": "chains",
+"category": "Objects"
+},
+"⛓": {
+"file": "26d3_fe0f.json",
+"name": "chains",
+"category": "Objects"
+},
+"🖇️": {
+"file": "1f587_fe0f.json",
+"name": "linked paperclips",
+"category": "Objects"
+},
+"🖇": {
+"file": "1f587_fe0f.json",
+"name": "linked paperclips",
+"category": "Objects"
+},
+"✂️": {
+"file": "2702_fe0f.json",
+"name": "scissors",
+"category": "Objects"
+},
+"✂": {
+"file": "2702_fe0f.json",
+"name": "scissors",
+"category": "Objects"
+},
+"✏️": {
+"file": "270f_fe0f.json",
+"name": "pencil",
+"category": "Objects"
+},
+"✏": {
+"file": "270f_fe0f.json",
+"name": "pencil",
+"category": "Objects"
+},
+"📚": {
+"file": "1f4da.json",
+"name": "books",
+"category": "Objects"
+},
+"📊": {
+"file": "1f4ca.json",
+"name": "bar chart",
+"category": "Objects"
+},
+"📈": {
+"file": "1f4c8.json",
+"name": "chart increasing",
+"category": "Objects"
+},
+"📉": {
+"file": "1f4c9.json",
+"name": "chart decreasing",
+"category": "Objects"
+},
+"🗑️": {
+"file": "1f5d1_fe0f.json",
+"name": "wastebasket",
+"category": "Objects"
+},
+"🗑": {
+"file": "1f5d1_fe0f.json",
+"name": "wastebasket",
+"category": "Objects"
+},
+"📦": {
+"file": "1f4e6.json",
+"name": "package",
+"category": "Objects"
+},
+"🗳️": {
+"file": "1f5f3_fe0f.json",
+"name": "ballot box",
+"category": "Objects"
+},
+"🗳": {
+"file": "1f5f3_fe0f.json",
+"name": "ballot box",
+"category": "Objects"
+},
+"⏰": {
+"file": "23f0.json",
+"name": "alarm clock",
+"category": "Objects"
+},
+"⌛": {
+"file": "231b.json",
+"name": "hourglass done",
+"category": "Objects"
+},
+"⏳": {
+"file": "23f3.json",
+"name": "hourglass not done",
+"category": "Objects"
+},
+"🛎️": {
+"file": "1f6ce_fe0f.json",
+"name": "bellhop bell",
+"category": "Objects"
+},
+"🛎": {
+"file": "1f6ce_fe0f.json",
+"name": "bellhop bell",
+"category": "Objects"
+},
+"🔔": {
+"file": "1f514.json",
+"name": "bell",
+"category": "Objects"
+},
+"📣": {
+"file": "1f4e3.json",
+"name": "megaphone",
+"category": "Objects"
+},
+"🔎": {
+"file": "1f50e.json",
+"name": "magnifying glass tilted right",
+"category": "Objects"
+},
+"🔮": {
+"file": "1f52e.json",
+"name": "crystal ball",
+"category": "Objects"
+},
+"💣": {
+"file": "1f4a3.json",
+"name": "bomb",
+"category": "Objects"
+},
+"🪤": {
+"file": "1faa4.json",
+"name": "mouse trap",
+"category": "Objects"
+},
+"🔒": {
+"file": "1f512.json",
+"name": "locked",
+"category": "Objects"
+},
+"♠️": {
+"file": "2660_fe0f.json",
+"name": "spade",
+"category": "Symbols"
+},
+"♠": {
+"file": "2660_fe0f.json",
+"name": "spade",
+"category": "Symbols"
+},
+"♈": {
+"file": "2648.json",
+"name": "Aries",
+"category": "Symbols"
+},
+"♉": {
+"file": "2649.json",
+"name": "Taurus",
+"category": "Symbols"
+},
+"♊": {
+"file": "264a.json",
+"name": "Gemini",
+"category": "Symbols"
+},
+"♋": {
+"file": "264b.json",
+"name": "Cancer",
+"category": "Symbols"
+},
+"♌": {
+"file": "264c.json",
+"name": "Leo",
+"category": "Symbols"
+},
+"♍": {
+"file": "264d.json",
+"name": "Virgo",
+"category": "Symbols"
+},
+"♎": {
+"file": "264e.json",
+"name": "Libra",
+"category": "Symbols"
+},
+"♏": {
+"file": "264f.json",
+"name": "Scorpio",
+"category": "Symbols"
+},
+"♐": {
+"file": "2650.json",
+"name": "Sagittarius",
+"category": "Symbols"
+},
+"♑": {
+"file": "2651.json",
+"name": "Capricorn",
+"category": "Symbols"
+},
+"♒": {
+"file": "2652.json",
+"name": "Aquarius",
+"category": "Symbols"
+},
+"♓": {
+"file": "2653.json",
+"name": "Pisces",
+"category": "Symbols"
+},
+"⛎": {
+"file": "26ce.json",
+"name": "Ophiuchus",
+"category": "Symbols"
+},
+"🗯️": {
+"file": "1f5ef_fe0f.json",
+"name": "anger bubble",
+"category": "Symbols"
+},
+"🗯": {
+"file": "1f5ef_fe0f.json",
+"name": "anger bubble",
+"category": "Symbols"
+},
+"💬": {
+"file": "1f4ac.json",
+"name": "speech bubble",
+"category": "Symbols"
+},
+"❗": {
+"file": "2757.json",
+"name": "exclamation",
+"category": "Symbols"
+},
+"❓": {
+"file": "2753.json",
+"name": "question",
+"category": "Symbols"
+},
+"⁉️": {
+"file": "2049_fe0f.json",
+"name": "exclamation question mark",
+"category": "Symbols"
+},
+"⁉": {
+"file": "2049_fe0f.json",
+"name": "exclamation question mark",
+"category": "Symbols"
+},
+"‼️": {
+"file": "203c_fe0f.json",
+"name": "exclamation double",
+"category": "Symbols"
+},
+"‼": {
+"file": "203c_fe0f.json",
+"name": "exclamation double",
+"category": "Symbols"
+},
+"❌": {
+"file": "274c.json",
+"name": "cross mark",
+"category": "Symbols"
+},
+"🆘": {
+"file": "1f198.json",
+"name": "sos",
+"category": "Symbols"
+},
+"♨️": {
+"file": "2668_fe0f.json",
+"name": "hot springs",
+"category": "Symbols"
+},
+"♨": {
+"file": "2668_fe0f.json",
+"name": "hot springs",
+"category": "Symbols"
+},
+"📴": {
+"file": "1f4f4.json",
+"name": "phone off",
+"category": "Symbols"
+},
+"☢️": {
+"file": "2622_fe0f.json",
+"name": "radioactive",
+"category": "Symbols"
+},
+"☢": {
+"file": "2622_fe0f.json",
+"name": "radioactive",
+"category": "Symbols"
+},
+"☣️": {
+"file": "2623_fe0f.json",
+"name": "biohazard",
+"category": "Symbols"
+},
+"☣": {
+"file": "2623_fe0f.json",
+"name": "biohazard",
+"category": "Symbols"
+},
+"⚠️": {
+"file": "26a0_fe0f.json",
+"name": "warning",
+"category": "Symbols"
+},
+"⚠": {
+"file": "26a0_fe0f.json",
+"name": "warning",
+"category": "Symbols"
+},
+"✅": {
+"file": "2705.json",
+"name": "check mark",
+"category": "Symbols"
+},
+"🆕": {
+"file": "1f195.json",
+"name": "new",
+"category": "Symbols"
+},
+"🆓": {
+"file": "1f193.json",
+"name": "free",
+"category": "Symbols"
+},
+"🆙": {
+"file": "1f199.json",
+"name": "up!",
+"category": "Symbols"
+},
+"🆗": {
+"file": "1f197.json",
+"name": "ok button",
+"category": "Symbols"
+},
+"🆒": {
+"file": "1f192.json",
+"name": "cool",
+"category": "Symbols"
+},
+"🚮": {
+"file": "1f6ae.json",
+"name": "litter",
+"category": "Symbols"
+},
+"☮️": {
+"file": "262e_fe0f.json",
+"name": "peace symbol",
+"category": "Symbols"
+},
+"☮": {
+"file": "262e_fe0f.json",
+"name": "peace symbol",
+"category": "Symbols"
+},
+"☯️": {
+"file": "262f_fe0f.json",
+"name": "yin yang",
+"category": "Symbols"
+},
+"☯": {
+"file": "262f_fe0f.json",
+"name": "yin yang",
+"category": "Symbols"
+},
+"♾️": {
+"file": "267e_fe0f.json",
+"name": "infinity",
+"category": "Symbols"
+},
+"♾": {
+"file": "267e_fe0f.json",
+"name": "infinity",
+"category": "Symbols"
+},
+"🎶": {
+"file": "1f3b6.json",
+"name": "musical notes",
+"category": "Symbols"
+},
+"➕": {
+"file": "2795.json",
+"name": "plus sign",
+"category": "Symbols"
+},
+"©️": {
+"file": "a9_fe0f.json",
+"name": "copyright",
+"category": "Symbols"
+},
+"©": {
+"file": "a9_fe0f.json",
+"name": "copyright",
+"category": "Symbols"
+},
+"®️": {
+"file": "ae_fe0f.json",
+"name": "registered",
+"category": "Symbols"
+},
+"®": {
+"file": "ae_fe0f.json",
+"name": "registered",
+"category": "Symbols"
+},
+"™️": {
+"file": "2122_fe0f.json",
+"name": "trade mark",
+"category": "Symbols"
+},
+"™": {
+"file": "2122_fe0f.json",
+"name": "trade mark",
+"category": "Symbols"
+},
+"🏁": {
+"file": "1f3c1.json",
+"name": "chequered flag",
+"category": "Flags"
+},
+"🚩": {
+"file": "1f6a9.json",
+"name": "triangular flag",
+"category": "Flags"
+},
+"🏴": {
+"file": "1f3f4.json",
+"name": "black flag",
+"category": "Flags"
+},
+"🏳️": {
+"file": "1f3f3_fe0f.json",
+"name": "white flag",
+"category": "Flags"
+},
+"🏳": {
+"file": "1f3f3_fe0f.json",
+"name": "white flag",
+"category": "Flags"
+}
+}

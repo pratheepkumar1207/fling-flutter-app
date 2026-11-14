@@ -1,4 +1,5 @@
 import '../../widgets/view_once.dart';
+import '../../widgets/animated_emoji.dart';
 import '../../widgets/permission_primer.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -505,7 +506,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         ),
       );
     }
-    return Text(m.text,
+    // Animated emoji: a message of only 1–3 emoji shows them big.
+    return ChatEmojiText(m.text,
+        bigSize: 72,
         style: TextStyle(
             color: mine ? Colors.white : AppColors.text,
             fontSize: 15,
