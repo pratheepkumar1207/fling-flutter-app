@@ -88,7 +88,6 @@ class _VoiceStageViewState extends State<VoiceStageView> {
         hostId: widget.hostId,
         coHostId: widget.coHostId,
         activeMics: widget.activeMics);
-    final listening = widget.roster.length - seats.length;
     final hostName = byId[widget.hostId]?.name.split(' ').first ?? 'The host';
     final firstRequest = widget.pendingRequests
         .where(byId.containsKey)
@@ -171,31 +170,6 @@ class _VoiceStageViewState extends State<VoiceStageView> {
             }),
           );
         }),
-        const SizedBox(height: 10),
-        Semantics(
-          button: true,
-          label: '$listening listening, open the list',
-          child: InkWell(
-            borderRadius: BorderRadius.circular(999),
-            onTap: widget.onOpenListeners,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                const InIcon(InIcons.users,
-                    size: 15, color: VolaPartyColors.textDim),
-                const SizedBox(width: 6),
-                Text('$listening listening',
-                    style: const TextStyle(
-                        color: VolaPartyColors.textDim,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600)),
-                const SizedBox(width: 2),
-                const InIcon(InIcons.right,
-                    size: 13, color: VolaPartyColors.textFaint),
-              ]),
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -491,10 +465,7 @@ class VoiceTypingRow extends StatelessWidget {
       if (shown.isNotEmpty) const SizedBox(width: 8),
       Expanded(
         child: Text(
-            [
-              if (talkingName != null) '$talkingName is talking',
-              '$listening listening',
-            ].join(' · '),
+            talkingName != null ? '$talkingName is talking' : '',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(

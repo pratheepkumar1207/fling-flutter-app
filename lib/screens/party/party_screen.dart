@@ -2612,6 +2612,9 @@ class _PartyScreenState extends State<PartyScreen>
                                   children: [
                                     NestedScrollView(
                                       controller: _watchScrollController,
+                                      // The stage stays put; only chat scrolls.
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
                                       headerSliverBuilder: (context, _) => [
                                         SliverToBoxAdapter(
                                           child: Padding(

@@ -126,13 +126,13 @@ void main() {
     expect(_actions(owner: false), isNot(contains(PersonAction.ban)));
   });
 
-  testWidgets('A listener sees the seats, count and Ask to speak', (t) async {
+  testWidgets('A listener sees the seats and Ask to speak, no count', (t) async {
     await t.pumpWidget(_stage());
     expect(find.text('Bala'), findsOneWidget);
     expect(find.text('Anu'), findsOneWidget);
     expect(find.text('Ask to speak'), findsOneWidget);
     expect(find.text('Empty'), findsNWidgets(4));
-    expect(find.text('2 listening'), findsOneWidget);
+    expect(find.text('2 listening'), findsNothing);
     expect(find.text('You’re hosting'), findsNothing);
   });
 
