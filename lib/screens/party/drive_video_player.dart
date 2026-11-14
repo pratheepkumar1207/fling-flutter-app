@@ -492,6 +492,20 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
           fit: StackFit.expand,
           children: [
             VideoPlayer(controller),
+            // A thin red line while the controls are hidden, as on YouTube.
+            if (!_controlsVisible && duration > 0)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: LinearProgressIndicator(
+                  minHeight: 3,
+                  value: (position / duration).clamp(0.0, 1.0).toDouble(),
+                  backgroundColor: Colors.white24,
+                  valueColor:
+                      const AlwaysStoppedAnimation(Color(0xFFFF0033)),
+                ),
+              ),
             // See the matching comments in sync_video_player.dart for both
             // of these — same auto-hide-controls treatment.
             if (!_controlsVisible)

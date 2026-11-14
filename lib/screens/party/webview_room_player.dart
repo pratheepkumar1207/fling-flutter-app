@@ -1325,13 +1325,13 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         : 0.0;
     return IgnorePointer(
       child: SizedBox(
-        height: 2,
+        height: 3,
         child: Stack(fit: StackFit.expand, children: [
           const ColoredBox(color: Colors.white24),
           FractionallySizedBox(
             alignment: Alignment.centerLeft,
             widthFactor: value,
-            child: const ColoredBox(color: Color(0xE6FFFFFF)),
+            child: const ColoredBox(color: Color(0xFFFF0033)),
           ),
         ]),
       ),
