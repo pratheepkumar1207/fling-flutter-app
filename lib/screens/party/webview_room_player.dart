@@ -111,9 +111,16 @@ class WebviewRoomPlayer extends StatefulWidget {
   final void Function(String videoUrl, String? title)? onHostNavigate;
   // Room setting: hold everyone while anyone's player shows an ad.
   final bool waitForAds;
+  // The video's real shape if the room already knows it (measured on
+  // someone's phone), so the box is right from the start; onAspect shares a
+  // shape this player measures.
+  final double? knownAspect;
+  final void Function(double aspect)? onAspect;
 
   const WebviewRoomPlayer({
     super.key,
+    this.knownAspect,
+    this.onAspect,
     required this.videoUrl,
     this.title,
     this.compact = false,
@@ -1005,6 +1012,10 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
       if (ar != null &&
           (_shownAspect == null || (ar - _shownAspect!).abs() > 0.02)) {
         setState(() => _shownAspect = ar);
+        final known = widget.knownAspect;
+        if (known == null || (known - ar).abs() > 0.02) {
+          widget.onAspect?.call(ar);
+        }
       }
       _reportStatus(status, sync.offset);
       unawaited(_readPageSuggestions());
@@ -1797,7 +1808,8 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     ));
     // The title's own shape once its video reports one (ads included), so
     // it fits exactly; 16:9 until then.
-    final seen = _shownAspect ?? _webSync?.local?.aspect;
+    final seen =
+        _shownAspect ?? widget.knownAspect ?? _webSync?.local?.aspect;
     final screen = MediaQuery.sizeOf(context);
     // Full screen: the box is the whole screen; the page itself fits or
     // fills the picture inside it (see _fillsScreen).

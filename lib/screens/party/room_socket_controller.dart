@@ -41,6 +41,12 @@ class RoomSocketController extends ChangeNotifier {
   };
   String? micDenied;
   Map<String, dynamic>? game;
+  // Each video's real shape, measured on someone's phone (videoUrl → w/h).
+  Map<String, double> videoAspects = const {};
+
+  void shareAspect(String videoUrl, double aspect) => socket?.emit(
+      'room:aspect',
+      {'roomId': roomId, 'videoUrl': videoUrl, 'aspect': aspect});
   // Who has asked the host for a game seat, and who the host has offered
   // one to — see syncHandler.js's game:request / game:invite.
   List<String> gameRequests = [];
@@ -357,6 +363,14 @@ class RoomSocketController extends ChangeNotifier {
       micDenied = data['reason'] as String?;
       notifyListeners();
     });
+    s.on('room:aspects', (data) {
+      if (data is! Map) return;
+      videoAspects = {
+        for (final e in data.entries)
+          if (e.value is num) '${e.key}': (e.value as num).toDouble()
+      };
+      notifyListeners();
+    });
     s.on('game:state', (data) {
       game = data == null ? null : Map<String, dynamic>.from(data);
       notifyListeners();
@@ -462,6 +476,7 @@ class RoomSocketController extends ChangeNotifier {
     socket?.off('call:state');
     socket?.off('call:denied');
     socket?.off('game:state');
+    socket?.off('room:aspects');
     socket?.off('game:seats');
     socket?.off('game:seatDenied');
     socket?.off('call:speaking');

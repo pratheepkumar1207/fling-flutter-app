@@ -1349,6 +1349,10 @@ class _PartyScreenState extends State<PartyScreen>
         return WebviewRoomPlayer(
           key: playerKey,
           videoUrl: playerVideoUrl,
+          knownAspect: rs.videoAspects[playerVideoUrl],
+          onAspect: playerVideoUrl == null
+              ? null
+              : (a) => rs.shareAspect(playerVideoUrl, a),
           title: currentItem?['title'] as String? ?? room['title'] as String?,
           compact: compact,
           // Always the standard 16:9 box, same as YouTube — not full-bleed. Full-bleed
