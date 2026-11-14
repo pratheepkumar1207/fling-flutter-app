@@ -1,4 +1,5 @@
 import 'dart:collection';
+import '../../widgets/insync_brand.dart';
 import '../../theme/insync_icons.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -1849,11 +1850,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
             const ColoredBox(
               color: Colors.black,
               child: Center(
-                child: SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white54)),
+                child: InsyncSpinner(size: 30),
               ),
             ),
           ])

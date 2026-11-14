@@ -1,4 +1,5 @@
 import '../../theme/insync_icons.dart';
+import '../../widgets/insync_brand.dart';
 import 'dart:collection';
 import 'dart:async';
 import 'dart:convert';
@@ -984,11 +985,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
               const ColoredBox(
                 color: Colors.black,
                 child: Center(
-                  child: SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white54)),
+                  child: InsyncSpinner(size: 30),
                 ),
               ),
             if (fullScreen)

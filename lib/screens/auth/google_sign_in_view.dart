@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import '../../widgets/insync_brand.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -174,8 +175,7 @@ class _FloatingLogoState extends State<_FloatingLogo>
             left: 76,
             top: 100,
             width: 156,
-            child: Image.asset('assets/icon/insync-logo.png',
-                semanticLabel: 'Insync'),
+            child: const InsyncLogo(width: 156, tagline: false),
           ),
           for (final icon in _icons)
             Positioned(

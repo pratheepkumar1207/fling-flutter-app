@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import '../widgets/insync_brand.dart';
 import 'package:provider/provider.dart';
 import '../core/auth_provider.dart';
 import '../core/avatar_frame_cache.dart';
 import '../core/app_navigator.dart';
 import '../core/location_service.dart';
 import '../theme/app_colors.dart';
-import '../widgets/animated_logo.dart';
 import 'auth/complete_profile_screen.dart';
 import 'auth/login_screen.dart';
 import 'auth/onboarding_screen.dart';
@@ -127,16 +127,19 @@ class _SplashScaffold extends StatelessWidget {
               ),
             ),
           ),
-          Center(
+          // The brand splash: orbiting features, turning symbol, wordmark
+          // and progress. After the intro (still signing in), the logo
+          // with the spinner.
+          Positioned.fill(
             child: onIntroDone != null
-                ? AnimatedLogo(width: 250, onDone: onIntroDone)
-                : Image.asset('assets/icon/insync-logo.png', width: 250),
-          ),
-          const Positioned(
-            left: 0,
-            right: 0,
-            bottom: 70,
-            child: Center(child: SplashLoadingBar()),
+                ? InsyncSplash(onDone: onIntroDone)
+                : const Center(
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      InsyncLogo(width: 220),
+                      SizedBox(height: 28),
+                      InsyncSpinner(size: 32, showPlay: false),
+                    ]),
+                  ),
           ),
         ],
       ),

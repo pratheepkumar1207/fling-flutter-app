@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
+import 'insync_brand.dart';
 
 class Spinner extends StatelessWidget {
   final double size;
@@ -7,11 +7,7 @@ class Spinner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: const CircularProgressIndicator(
-          strokeWidth: 2.5, color: AppColors.primary),
-    );
+    // The brand loader (sync arrows turning around the play button).
+    return InsyncSpinner(size: size);
   }
 }

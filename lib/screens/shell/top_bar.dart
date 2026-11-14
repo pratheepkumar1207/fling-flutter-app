@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_brand.dart';
 import 'create_sheet.dart';
 import 'package:provider/provider.dart';
 import '../../core/auth_provider.dart';
@@ -102,19 +103,8 @@ class InsyncWordmark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final base = TextStyle(
-        fontSize: size,
-        fontWeight: FontWeight.w600,
-        letterSpacing: -0.5,
-        color: AppColors.text);
-    return Text.rich(
-      TextSpan(style: base, children: const [
-        TextSpan(text: 'ins'),
-        TextSpan(text: 'y', style: TextStyle(color: Color(0xFFC268F2))),
-        TextSpan(text: 'nc'),
-      ]),
-      maxLines: 1,
-    );
+    // Brand wordmark: "in" solid, "sync" in the gradient.
+    return InsyncWordmarkText(size: size, inColor: AppColors.text);
   }
 }
 
