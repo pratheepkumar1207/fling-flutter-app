@@ -1,4 +1,5 @@
 import 'dart:ui' show ImageFilter;
+import '../../widgets/insync_brand.dart';
 import '../../widgets/animated_emoji.dart';
 import 'pick_banner.dart';
 import 'package:flutter/material.dart';
@@ -40,6 +41,9 @@ class ChatOverlay extends StatefulWidget {
       {Map<String, dynamic>? replyTo}) onSend;
   // Long-press a message → pick an emoji: reacts to that message.
   final void Function(String messageId, String emoji)? onReact;
+  // Room chat typing: who's typing now, and a ping while you type.
+  final List<String> typingUserIds;
+  final VoidCallback? onTyping;
   final String? myUserId;
   final Color primaryColor;
   final Color textColor;
@@ -109,6 +113,8 @@ class ChatOverlay extends StatefulWidget {
     required this.messages,
     required this.onSend,
     this.onReact,
+    this.typingUserIds = const [],
+    this.onTyping,
     this.myUserId,
     required this.primaryColor,
     required this.textColor,
@@ -180,6 +186,9 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _controller.addListener(_updateMentionQuery);
+    _controller.addListener(() {
+      if (_controller.text.trim().isNotEmpty) widget.onTyping?.call();
+    });
     // Collapses the attachment/gift/share/invite row and hands the parent
     // screen's AppBar space back while typing — restored once focus is
     // lost so the full control set is there the rest of the time.
@@ -531,6 +540,44 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
   }
 
   static const _quickReactions = ['❤️', '😂', '😮', '😢', '🔥', '👏'];
+
+  Widget _typingRow() {
+    final people = [
+      for (final id in widget.typingUserIds)
+        if (id != widget.myUserId) _person(id)
+    ].whereType<RosterEntry>().take(3).toList();
+    final names = people.map((p) => p.name.split(' ').first).join(', ');
+    return Semantics(
+      label: '$names typing',
+      excludeSemantics: true,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 6, left: 2),
+        child: Row(children: [
+          SizedBox(
+            width: people.isEmpty ? 0 : 20.0 + (people.length - 1) * 13,
+            height: 20,
+            child: Stack(children: [
+              for (var i = 0; i < people.length; i++)
+                Positioned(
+                  left: i * 13.0,
+                  child: SizedBox.square(
+                    dimension: 20,
+                    child: FittedBox(
+                      child: Avatar(
+                          src: people[i].avatarUrl,
+                          name: people[i].name,
+                          size: AvatarSize.sm),
+                    ),
+                  ),
+                ),
+            ]),
+          ),
+          const SizedBox(width: 7),
+          const InsyncDots(size: 5),
+        ]),
+      ),
+    );
+  }
 
   // Long-press a message: react with an emoji, reply or copy.
   void _openMessageSheet(Map<String, dynamic> m) {
@@ -1062,6 +1109,11 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
           ),
         if (widget.pickEndsAt != null || widget.pickWaiting)
           PickBanner(endsAt: widget.pickEndsAt, waiting: widget.pickWaiting),
+        // Who's typing: their faces and the bouncing dots, no words.
+        if (widget.typingUserIds
+            .where((id) => id != widget.myUserId)
+            .isNotEmpty)
+          _typingRow(),
         if (_replyTo != null)
           Container(
             margin: const EdgeInsets.only(bottom: 6),

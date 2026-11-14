@@ -2214,6 +2214,8 @@ class _PartyScreenState extends State<PartyScreen>
                                     fanIds: extras.fanIds,
                                     messagesRightInset: 62,
                                     messages: rs.messages,
+                                    typingUserIds: rs.typingUserIds,
+                                    onTyping: rs.sendTyping,
                                     onReact: rs.reactToMessage,
                                     onSend: (text, mentionedUserIds,
                                             {replyTo}) =>
@@ -2532,6 +2534,8 @@ class _PartyScreenState extends State<PartyScreen>
                                 newestCard: privacyCard,
                                 compact: _peopleOpen,
                                 messages: rs.messages,
+                                typingUserIds: rs.typingUserIds,
+                                onTyping: rs.sendTyping,
                                 onReact: rs.reactToMessage,
                                 onSend: (text, mentionedUserIds, {replyTo}) =>
                                     rs.sendMessage(text,
@@ -2655,6 +2659,8 @@ class _PartyScreenState extends State<PartyScreen>
                                           newestCard: privacyCard,
                                           compact: _peopleOpen,
                                           messages: rs.messages,
+                                          typingUserIds: rs.typingUserIds,
+                                          onTyping: rs.sendTyping,
                                           onReact: rs.reactToMessage,
                                           onSend: (text, mentionedUserIds,
                                                   {replyTo}) =>
@@ -2790,6 +2796,8 @@ class _PartyScreenState extends State<PartyScreen>
                                       newestCard: privacyCard,
                                       compact: _peopleOpen,
                                       messages: rs.messages,
+                                      typingUserIds: rs.typingUserIds,
+                                      onTyping: rs.sendTyping,
                                       onReact: rs.reactToMessage,
                                       onSend: (text, mentionedUserIds,
                                               {replyTo}) =>
@@ -3026,6 +3034,8 @@ class _PartyScreenState extends State<PartyScreen>
                                             newestCard: privacyCard,
                                             compact: _peopleOpen,
                                             messages: rs.messages,
+                                            typingUserIds: rs.typingUserIds,
+                                            onTyping: rs.sendTyping,
                                             onReact: rs.reactToMessage,
                                             onSend: (text, mentionedUserIds,
                                                     {replyTo}) =>
@@ -3160,6 +3170,8 @@ class _PartyScreenState extends State<PartyScreen>
                                 newestCard: privacyCard,
                                 compact: _peopleOpen,
                                 messages: rs.messages,
+                                typingUserIds: rs.typingUserIds,
+                                onTyping: rs.sendTyping,
                                 onReact: rs.reactToMessage,
                                 onSend: (text, mentionedUserIds, {replyTo}) =>
                                     rs.sendMessage(text,

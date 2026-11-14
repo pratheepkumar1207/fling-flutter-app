@@ -1,4 +1,5 @@
 import '../create/create_flow.dart';
+import '../../widgets/skeletons.dart';
 import 'package:flutter/material.dart';
 import 'friends_in_rooms_strip.dart';
 import '../../widgets/post_media_box.dart';
@@ -23,7 +24,6 @@ import '../../widgets/post_composer_sheet.dart';
 import '../../widgets/post_likes_sheet.dart';
 import '../../widgets/share_row.dart';
 import '../../widgets/verified_tick.dart';
-import '../../widgets/spinner.dart';
 import '../../widgets/story_bar.dart';
 import '../../widgets/story_viewer_screen.dart';
 import '../../widgets/comments_sheet.dart';
@@ -288,8 +288,7 @@ class _FeedScreenState extends State<FeedScreen> {
             ),
             const FriendsInRoomsStrip(),
             if (_loading)
-              const Center(
-                  child: Padding(padding: EdgeInsets.all(24), child: Spinner()))
+              const SkeletonPosts()
             else if (_regularPosts.isEmpty)
               const _EmptyFeed()
             else

@@ -1,4 +1,6 @@
 import 'dart:async';
+import '../../widgets/insync_brand.dart';
+import '../../widgets/skeletons.dart';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -16,7 +18,6 @@ import '../../theme/insync_icons.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/in_icon_button.dart';
 import '../../widgets/read_ticks.dart';
-import '../../widgets/spinner.dart';
 import '../blend/blend_entry.dart';
 import '../discover/discover_matches_screen.dart';
 import '../friends/friends_screen.dart';
@@ -553,8 +554,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                     _RequestsBanner(count: _requestCount, onTap: _openRequests),
               ),
             if (_loading)
-              const SliverFillRemaining(
-                  hasScrollBody: false, child: Center(child: Spinner(size: 28)))
+              const SliverToBoxAdapter(child: SkeletonRows())
             else if (_filter == 'groups' && entries.isEmpty)
               SliverFillRemaining(
                 hasScrollBody: false,
@@ -1198,12 +1198,11 @@ class _Preview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (typing) {
-      return const Text('typing…',
-          maxLines: 1,
-          style: TextStyle(
-              color: AppColors.lilac,
-              fontWeight: FontWeight.w600,
-              fontSize: 13.5));
+      return const Align(
+          alignment: Alignment.centerLeft,
+          child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 4),
+              child: InsyncDots(size: 6)));
     }
     final unread = c.unreadCount > 0;
     final color = unread ? AppColors.text : AppColors.textDim;

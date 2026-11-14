@@ -1052,6 +1052,14 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                   ),
                 ),
               ),
+            // YouTube says it's buffering: the white sweep on the line.
+            if (_stateCode == 3 && !fullScreen)
+              const Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: IgnorePointer(child: BufferingSweep()),
+              ),
             if (_controlsVisible && overlayControls)
               Listener(
                 onPointerDown: (_) => _scheduleHideControls(),

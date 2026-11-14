@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../../widgets/insync_brand.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -252,7 +253,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
     if (widget.isVideo) {
       final v = _video;
       if (v == null) {
-        return const Center(child: CircularProgressIndicator());
+        return const Center(child: InsyncSpinner(size: 32));
       }
       return FittedBox(
         fit: BoxFit.cover,
@@ -466,7 +467,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
             const Positioned.fill(
               child: ColoredBox(
                 color: Colors.black38,
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(child: InsyncSpinner(size: 32)),
               ),
             ),
         ]),

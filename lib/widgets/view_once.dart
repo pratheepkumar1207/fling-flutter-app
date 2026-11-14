@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'insync_brand.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -460,7 +461,7 @@ class _SeenBySheetState extends State<_SeenBySheet> {
                     style: const TextStyle(color: AppColors.textDim)))
           else if (d == null)
             const Padding(
-                padding: EdgeInsets.all(24), child: CircularProgressIndicator())
+                padding: EdgeInsets.all(24), child: InsyncSpinner(size: 32))
           else if (viewers.isEmpty)
             const Padding(
                 padding: EdgeInsets.all(24),

@@ -1,4 +1,5 @@
 import '../../theme/insync_icons.dart';
+import '../../widgets/insync_brand.dart';
 import 'dart:async';
 
 import '../../models/room_models.dart';
@@ -506,6 +507,12 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
             else
               VideoPlayer(controller),
             // A thin red line while the controls are hidden, as on YouTube.
+            if (controller.value.isBuffering)
+              const Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: IgnorePointer(child: BufferingSweep())),
             if (!_controlsVisible && duration > 0)
               Positioned(
                 left: 0,

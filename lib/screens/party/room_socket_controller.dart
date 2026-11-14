@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../../models/room_models.dart';
@@ -45,6 +46,25 @@ class RoomSocketController extends ChangeNotifier {
   Map<String, double> videoAspects = const {};
 
   // React to a chat message (the same emoji again takes it back).
+  // Room chat typing: userId → when it stops showing.
+  final Map<String, DateTime> _typingUntil = {};
+  DateTime _lastTypingSent = DateTime(0);
+  Timer? _typingSweep;
+
+  /// Who's typing in room chat right now (not you).
+  List<String> get typingUserIds => [
+        for (final e in _typingUntil.entries)
+          if (e.value.isAfter(DateTime.now())) e.key
+      ];
+
+  /// Call while composing; sends at most one every few seconds.
+  void sendTyping() {
+    final now = DateTime.now();
+    if (now.difference(_lastTypingSent).inSeconds < 3) return;
+    _lastTypingSent = now;
+    socket?.emit('chat:typing', {'roomId': roomId});
+  }
+
   void reactToMessage(String messageId, String emoji) => socket?.emit(
       'chat:react', {'roomId': roomId, 'messageId': messageId, 'emoji': emoji});
 
@@ -228,6 +248,24 @@ class RoomSocketController extends ChangeNotifier {
       ];
     }
 
+    s.on('chat:typing', (data) {
+      final uid = data is Map ? data['userId'] as String? : null;
+      if (uid == null) return;
+      _typingUntil[uid] = DateTime.now().add(const Duration(seconds: 5));
+      _typingSweep ??= Timer.periodic(const Duration(seconds: 1), (t) {
+        _typingUntil.removeWhere((_, until) => until.isBefore(DateTime.now()));
+        notifyListeners();
+        if (_typingUntil.isEmpty) {
+          t.cancel();
+          _typingSweep = null;
+        }
+      });
+      notifyListeners();
+    });
+    s.on('chat:message', (data) {
+      final uid = data is Map ? data['senderId'] as String? : null;
+      if (uid != null && _typingUntil.remove(uid) != null) notifyListeners();
+    });
     s.on('chat:reactions', (data) {
       if (data is! Map) return;
       applyReactions(data['messageId'] as String?, data['reactions']);
@@ -503,6 +541,8 @@ class RoomSocketController extends ChangeNotifier {
     socket?.off('call:denied');
     socket?.off('game:state');
     socket?.off('chat:reactions');
+    socket?.off('chat:typing');
+    _typingSweep?.cancel();
     socket?.off('chat:reactionsAll');
     socket?.off('room:aspects');
     socket?.off('game:seats');

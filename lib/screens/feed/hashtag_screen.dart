@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_brand.dart';
 import '../../core/api_client.dart';
 import '../../models/post.dart';
 import '../../theme/app_colors.dart';
@@ -145,7 +146,7 @@ class _HashtagScreenState extends State<HashtagScreen> {
           const SizedBox(height: 6),
           Expanded(
             child: _loading && posts.isEmpty
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: InsyncSpinner(size: 32))
                 : RefreshIndicator(
                     onRefresh: _load,
                     child: ProfilePostGrid(

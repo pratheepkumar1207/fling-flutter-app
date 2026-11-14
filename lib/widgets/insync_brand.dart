@@ -672,3 +672,62 @@ class _InsyncSplashState extends State<InsyncSplash>
     );
   }
 }
+
+
+/// Buffering: a soft white light sweeping along the video's bottom line,
+/// again and again, until it plays. Covers nothing.
+class BufferingSweep extends StatefulWidget {
+  final double height;
+  const BufferingSweep({super.key, this.height = 3});
+
+  @override
+  State<BufferingSweep> createState() => _BufferingSweepState();
+}
+
+class _BufferingSweepState extends State<BufferingSweep>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1100))
+    ..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        label: 'Buffering',
+        child: SizedBox(
+          height: widget.height,
+          child: LayoutBuilder(
+            builder: (context, box) => AnimatedBuilder(
+              animation: _c,
+              builder: (context, _) {
+                final w = box.maxWidth * 0.4;
+                return ClipRect(
+                  child: Stack(children: [
+                    Positioned(
+                      left: -w + (box.maxWidth + w) * _c.value,
+                      top: 0,
+                      bottom: 0,
+                      width: w,
+                      child: const DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(colors: [
+                            Color(0x00FFFFFF),
+                            Color(0xEEFFFFFF),
+                            Color(0x00FFFFFF),
+                          ]),
+                        ),
+                      ),
+                    ),
+                  ]),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+}

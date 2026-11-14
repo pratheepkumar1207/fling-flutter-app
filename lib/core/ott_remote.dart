@@ -11,6 +11,8 @@ class OttPlayerState {
   final double? durationSec;
   // The site is showing an ad instead of the title.
   final bool inAd;
+  // Stalled waiting for data (shows the buffering sweep).
+  final bool buffering;
   // The picture's width over its height, when the player reports it.
   final double? aspect;
   // The shape above is final (black bands checked), not a first guess.
@@ -22,6 +24,7 @@ class OttPlayerState {
       this.title,
       this.durationSec,
       this.inAd = false,
+      this.buffering = false,
       this.aspect,
       this.sized = true});
 }

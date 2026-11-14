@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_brand.dart';
 
 import '../../core/api_client.dart';
 import '../../models/post.dart';
@@ -69,7 +70,7 @@ class _ReelsTabState extends State<ReelsTab> {
               ? TextButton(
                   onPressed: _load,
                   child: const Text("Couldn't load reels. Try again"))
-              : const CircularProgressIndicator(),
+              : const InsyncSpinner(size: 32),
         ),
       );
     }

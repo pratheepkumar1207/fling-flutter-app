@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_brand.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
@@ -11,7 +12,6 @@ import '../../widgets/avatar.dart';
 import '../../widgets/in_icon_button.dart';
 import '../messages/messages_screen.dart';
 import '../../widgets/interest_picker.dart';
-import '../../widgets/spinner.dart';
 import 'map_explore_screen.dart';
 import 'random_match_screen.dart';
 import 'swipe_card.dart';
@@ -238,8 +238,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               ),
             ),
             Expanded(
+              // Finding people: the beating heart.
               child: _loading
-                  ? const Center(child: Spinner(size: 28))
+                  ? const Center(child: InsyncHeartbeat(size: 56))
                   : (deck == null || deck.isEmpty)
                       ? _EmptyDeck(onFilters: _openFilters)
                       : Padding(

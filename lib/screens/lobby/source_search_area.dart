@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_brand.dart';
 
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
@@ -372,7 +373,7 @@ class _SourceSearchAreaState extends State<SourceSearchArea> {
       if (_searching)
         const Padding(
             padding: EdgeInsets.all(28),
-            child: Center(child: CircularProgressIndicator()))
+            child: Center(child: InsyncSpinner(size: 32)))
       else if (_error != null)
         Padding(
           padding: const EdgeInsets.all(20),

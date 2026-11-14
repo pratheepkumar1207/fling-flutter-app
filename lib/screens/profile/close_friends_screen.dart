@@ -1,4 +1,5 @@
 import '../../theme/insync_icons.dart';
+import '../../widgets/insync_brand.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
@@ -79,7 +80,7 @@ class _CloseFriendsScreenState extends State<CloseFriendsScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: InsyncSpinner(size: 32))
           : ListView(
               children: [
                 const Padding(
@@ -181,7 +182,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
       backgroundColor: AppColors.bg,
       appBar: AppBar(title: const InsyncPageTitle('Archive')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: InsyncSpinner(size: 32))
           : Column(
               children: [
                 const Padding(

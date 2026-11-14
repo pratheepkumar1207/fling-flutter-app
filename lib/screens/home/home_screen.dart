@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../widgets/skeletons.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
@@ -470,9 +471,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 4),
           ],
           if (_loading)
-            const Padding(
-                padding: EdgeInsets.all(32),
-                child: Center(child: CircularProgressIndicator()))
+            const SkeletonRoomCards()
           else if (_roomsLoadFailed && active.isEmpty)
             _actionRow(InIcons.cloud, 'Could not load rooms',
                 'Tap to try again', () => _load())

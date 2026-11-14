@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import '../../widgets/insync_brand.dart';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -192,7 +193,7 @@ class _CreateGalleryScreenState extends State<CreateGalleryScreen> {
       ),
       body: Stack(children: [
         if (_loading)
-          const Center(child: CircularProgressIndicator())
+          const Center(child: InsyncSpinner(size: 32))
         else if (_denied)
           Center(
             child: Column(mainAxisSize: MainAxisSize.min, children: [

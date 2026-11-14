@@ -1,4 +1,5 @@
 import '../../widgets/profile_song_chip.dart';
+import '../../widgets/skeletons.dart';
 import '../../widgets/verified_tick.dart';
 import '../../widgets/two_row_carousel.dart';
 import '../../theme/insync_icons.dart';
@@ -29,7 +30,6 @@ import '../../widgets/photo_verification.dart';
 import '../../widgets/profile_completeness_meter.dart';
 import '../../widgets/prompt_editor.dart';
 import '../../widgets/share_bottom_sheet.dart';
-import '../../widgets/spinner.dart';
 import '../achievements/achievements_screen.dart';
 import '../auth/login_screen.dart';
 import '../challenges/challenges_screen.dart';
@@ -636,7 +636,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: Spinner(size: 28))
+          ? const SkeletonProfile()
           : DefaultTabController(
               key: ValueKey(tabs.join(',')),
               length: tabs.length,

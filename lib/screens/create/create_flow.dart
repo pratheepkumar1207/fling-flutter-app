@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../widgets/insync_brand.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -743,7 +744,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
             color: Colors.black54,
             alignment: Alignment.center,
             child: const Column(mainAxisSize: MainAxisSize.min, children: [
-              CircularProgressIndicator(),
+              InsyncSpinner(size: 32),
               SizedBox(height: 10),
               Text('Getting it ready…', style: TextStyle(color: Colors.white)),
             ]),
@@ -1224,7 +1225,7 @@ class _CreateEditScreenState extends State<CreateEditScreen> {
     final Widget base;
     final v = _video;
     if (widget.isVideo) {
-      if (v == null) return const CircularProgressIndicator();
+      if (v == null) return const InsyncSpinner(size: 32);
       final f = _look.preview;
       final player = VideoPlayer(v);
       return _clipWithText(v.value.aspectRatio,
@@ -1277,7 +1278,7 @@ class _CreateEditScreenState extends State<CreateEditScreen> {
                   color: Colors.black54,
                   alignment: Alignment.center,
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    const CircularProgressIndicator(),
+                    const InsyncSpinner(size: 32),
                     const SizedBox(height: 10),
                     Text(_workingText,
                         style: const TextStyle(color: Colors.white)),

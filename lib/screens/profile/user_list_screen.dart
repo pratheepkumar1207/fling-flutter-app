@@ -1,10 +1,10 @@
 import '../../theme/insync_icons.dart';
+import '../../widgets/skeletons.dart';
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/avatar.dart';
-import '../../widgets/spinner.dart';
 import 'creator_profile_screen.dart';
 
 /// Followers/Following — both are just GET /social/followers or
@@ -127,7 +127,7 @@ class _UserListScreenState extends State<UserListScreen> {
           ),
           Expanded(
             child: _loading
-                ? const Center(child: Spinner())
+                ? const SingleChildScrollView(child: SkeletonRows())
                 : results.isEmpty
                     ? Center(
                         child: Text(

@@ -1761,6 +1761,12 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
             !_appOnly &&
             !_noWidevine) ...[
           Positioned(left: 0, right: 0, bottom: 0, child: _progressLine()),
+          if (_webSync?.local?.buffering == true)
+            const Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: IgnorePointer(child: BufferingSweep())),
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -1985,7 +1991,7 @@ class _WebPlayerTarget implements OttTarget {
       // The shape is settled: checked enough, remembered, or the picture
       // can't be read (protected streams) after a few tries.
       var sized = !!v.__lbSaved || (v.__lbSeen || []).length >= 3 || (v.__lbTries || 0) >= 8;
-      return JSON.stringify({playing: !v.paused, pos: pos, dur: isFinite(dur) ? dur : 0, canSeek: true, ad: inAd(), ar: ar, sized: sized});
+      return JSON.stringify({playing: !v.paused, pos: pos, dur: isFinite(dur) ? dur : 0, canSeek: true, ad: inAd(), ar: ar, sized: sized, buf: !v.paused && v.readyState < 3});
     },
     play: function(){ var p = nfPlayer(); if (p && p.play) p.play(); else { var v = video(); if (v) v.play(); } },
     pause: function(){ var p = nfPlayer(); if (p && p.pause) p.pause(); else { var v = video(); if (v) v.pause(); } },
@@ -2020,6 +2026,7 @@ class _WebPlayerTarget implements OttTarget {
       durationSec:
           ((m['dur'] as num?) ?? 0) > 0 ? (m['dur'] as num).toDouble() : null,
       inAd: m['ad'] == true,
+      buffering: m['buf'] == true,
       aspect: ((m['ar'] as num?) ?? 0) > 0 ? (m['ar'] as num).toDouble() : null,
       sized: m['sized'] != false,
     );

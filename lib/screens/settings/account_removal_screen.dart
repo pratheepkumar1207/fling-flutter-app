@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_brand.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
@@ -78,7 +79,7 @@ class _AccountRemovalScreenState extends State<AccountRemovalScreen> {
       appBar: AppBar(title: const Text('Deactivate or delete')),
       body: SafeArea(
         child: status == null
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: InsyncSpinner(size: 32))
             : ListView(padding: const EdgeInsets.all(16), children: [
                 _option(
                     'Deactivate for now',

@@ -1,4 +1,5 @@
 import '../theme/insync_icons.dart';
+import 'insync_brand.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../core/api_client.dart';
@@ -192,7 +193,7 @@ class _PeoplePickerState extends State<_PeoplePicker> {
                 child: _loading && _results == null
                     ? const Padding(
                         padding: EdgeInsets.all(24),
-                        child: CircularProgressIndicator())
+                        child: InsyncSpinner(size: 32))
                     : list.isEmpty
                         ? Padding(
                             padding: const EdgeInsets.all(24),

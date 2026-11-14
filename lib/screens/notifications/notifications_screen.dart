@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import '../../widgets/skeletons.dart';
 import '../../widgets/insync_clay.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
 import '../../models/notification_item.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
-import '../../widgets/spinner.dart';
 import 'notification_actions.dart';
 
 /// Full notifications list — the bell dropdown only ever shows the 10 most
@@ -192,7 +192,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: Spinner())
+          ? const SingleChildScrollView(child: SkeletonRows())
           : _items.isEmpty
               ? const Center(
                   child: Padding(

@@ -1,4 +1,5 @@
 import '../../theme/insync_icons.dart';
+import '../../widgets/insync_brand.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../core/youtube_util.dart';
@@ -490,7 +491,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
 
   Widget _resultsList() {
     if (_searching) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: InsyncSpinner(size: 32));
     }
     if (_searchError != null) {
       return Center(

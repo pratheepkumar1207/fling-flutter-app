@@ -1,4 +1,5 @@
 import '../../widgets/view_once.dart';
+import '../../widgets/insync_brand.dart';
 import '../../widgets/animated_emoji.dart';
 import '../../widgets/permission_primer.dart';
 import 'dart:async';
@@ -906,7 +907,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         ));
       }
     }
-    if (_theyTyping) out.add(_TypingBubble(name: _firstName));
+    if (_theyTyping) {
+      out.add(_TypingBubble(name: _firstName, avatarUrl: widget.avatarUrl));
+    }
     return out;
   }
 
@@ -1112,7 +1115,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                       fontSize: 15, fontWeight: FontWeight.w700)),
-              Text(_theyTyping ? 'typing…' : 'In this room',
+              Text('In this room',
                   style:
                       const TextStyle(color: AppColors.textDim, fontSize: 12)),
             ]),
@@ -1175,13 +1178,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.w700)),
-                        if (_theyTyping)
-                          const Text('typing…',
-                              style: TextStyle(
-                                  color: AppColors.lilac,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600))
-                        else if (_online)
+                        if (_online)
                           const Text('Active now',
                               style: TextStyle(
                                   color: AppColors.success,
@@ -1433,8 +1430,10 @@ class _Meta extends StatelessWidget {
 
 class _TypingBubble extends StatelessWidget {
   final String name;
-  const _TypingBubble({required this.name});
+  final String? avatarUrl;
+  const _TypingBubble({required this.name, this.avatarUrl});
 
+  // Their photo and the bouncing brand dots; no words.
   @override
   Widget build(BuildContext context) {
     return Semantics(
@@ -1442,29 +1441,28 @@ class _TypingBubble extends StatelessWidget {
       excludeSemantics: true,
       child: Align(
         alignment: Alignment.centerLeft,
-        child: Container(
-          margin: const EdgeInsets.only(top: 6),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-          decoration: const BoxDecoration(
-            color: Color(0xFF1F1C29),
-            borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-                bottomRight: Radius.circular(20),
-                bottomLeft: Radius.circular(6)),
-          ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            for (final o in [1.0, 0.7, 0.4]) ...[
-              Container(
-                width: 7,
-                height: 7,
-                decoration: BoxDecoration(
-                    color: AppColors.textDim.withValues(alpha: o),
-                    shape: BoxShape.circle),
-              ),
-              if (o != 0.4) const SizedBox(width: 5),
-            ],
-          ]),
+        child: Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Avatar(src: avatarUrl, name: name, size: AvatarSize.sm),
+                const SizedBox(width: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF1F1C29),
+                    borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
+                        bottomRight: Radius.circular(20),
+                        bottomLeft: Radius.circular(6)),
+                  ),
+                  child: const InsyncDots(size: 7),
+                ),
+              ]),
         ),
       ),
     );

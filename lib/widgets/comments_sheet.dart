@@ -1,4 +1,5 @@
 import '../theme/insync_icons.dart';
+import 'skeletons.dart';
 import 'animated_emoji.dart';
 import 'package:flutter/material.dart';
 import '../core/api_client.dart';
@@ -9,7 +10,6 @@ import '../theme/app_colors.dart';
 import 'avatar.dart';
 import 'mention_text_field.dart';
 import 'report_user_sheet.dart';
-import 'spinner.dart';
 
 /// Comments, Instagram-style: half-height sheet over the post/reel (which
 /// keeps playing behind), each comment with a like count and Reply,
@@ -282,7 +282,8 @@ class _CommentsSheetState extends State<CommentsSheet> {
             const Divider(height: 1, color: AppColors.border),
             Expanded(
               child: _loading
-                  ? const Center(child: Spinner())
+                  ? const SingleChildScrollView(
+                      child: SkeletonRows(count: 5, avatar: 32))
                   : children.isEmpty
                       ? Center(
                           child: Text(

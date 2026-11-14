@@ -1,4 +1,5 @@
 import '../../theme/insync_icons.dart';
+import '../../widgets/insync_brand.dart';
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
@@ -283,7 +284,7 @@ class _NewHighlightScreenState extends State<NewHighlightScreen> {
           ),
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: InsyncSpinner(size: 32))
                 : _stories.isEmpty
                     ? const Center(
                         child: Text('Post a story first, then add it here.',
