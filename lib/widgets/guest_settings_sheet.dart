@@ -106,13 +106,13 @@ class RoomPersonalSettings extends StatelessWidget {
                               fontWeight: FontWeight.w600)),
                     ),
               const Row(children: [
-                InIcon(InIcons.users, size: 15, color: Color(0xFFBBBBBB)),
+                InIcon(InIcons.users, size: 15, color: Colors.white),
                 SizedBox(width: 6),
                 Expanded(
                   child: Text('Voices louder',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Color(0xFFBBBBBB), fontSize: 12)),
+                      style: TextStyle(color: Colors.white, fontSize: 12)),
                 ),
                 SizedBox(width: 8),
                 Expanded(
@@ -120,10 +120,10 @@ class RoomPersonalSettings extends StatelessWidget {
                       maxLines: 1,
                       textAlign: TextAlign.end,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Color(0xFFBBBBBB), fontSize: 12)),
+                      style: TextStyle(color: Colors.white, fontSize: 12)),
                 ),
                 SizedBox(width: 6),
-                InIcon(InIcons.film, size: 15, color: Color(0xFFBBBBBB)),
+                InIcon(InIcons.film, size: 15, color: Colors.white),
               ]),
               SliderTheme(
                 data: SliderTheme.of(context).copyWith(

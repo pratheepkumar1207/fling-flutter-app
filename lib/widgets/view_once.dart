@@ -376,7 +376,7 @@ Future<void> showRoomViewOnceSeen(BuildContext context,
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.surface,
+    backgroundColor: Colors.black,
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
     builder: (_) => _SeenBySheet(roomId: roomId, photoId: photoId),

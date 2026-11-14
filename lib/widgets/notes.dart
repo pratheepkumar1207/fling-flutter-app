@@ -80,7 +80,7 @@ class _NotesRowState extends State<NotesRow> {
     final mine = _mine;
     final changed = await showModalBottomSheet<bool>(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.black,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),

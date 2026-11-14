@@ -3271,7 +3271,7 @@ class _PartyScreenState extends State<PartyScreen>
                 : '${n}th';
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.sheet,
+      backgroundColor: Colors.black,
       builder: (sheet) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(22, 8, 22, 20),

@@ -40,7 +40,7 @@ Future<Blend?> showDmBlendSheet(BuildContext context, String userId) async {
   if (blend == null || !context.mounted) return blend;
   await showModalBottomSheet(
     context: context,
-    backgroundColor: AppColors.surface,
+    backgroundColor: Colors.black,
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
     builder: (sheet) => SafeArea(

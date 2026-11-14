@@ -233,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen> {
         context: context,
         isScrollControlled: true,
         showDragHandle: true,
-        backgroundColor: AppColors.surface,
+        backgroundColor: Colors.black,
         builder: (sheetContext) => Padding(
               padding: EdgeInsets.fromLTRB(
                   24, 8, 24, MediaQuery.viewInsetsOf(sheetContext).bottom + 24),

@@ -239,7 +239,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _openMenu() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.black,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
@@ -367,7 +367,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Widget card(String title, Widget body, Widget full) => GestureDetector(
           onTap: () => showModalBottomSheet(
             context: context,
-            backgroundColor: AppColors.bg,
+            backgroundColor: Colors.black,
             isScrollControlled: true,
             builder: (_) => SafeArea(
               child: SingleChildScrollView(
@@ -500,7 +500,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _editPlaylist(Playlist p) => showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        backgroundColor: AppColors.surface,
+        backgroundColor: Colors.black,
         builder: (_) => SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -1265,7 +1265,7 @@ class EditProfileSheetState extends State<EditProfileSheet> {
         .toList();
     final pick = await showModalBottomSheet<Map>(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.black,
       builder: (sheet) => SafeArea(
         child: yt.isEmpty
             ? const Padding(

@@ -315,7 +315,7 @@ void showOttPeople(BuildContext context,
     ..sort((a, b) => '${a['name']}'.compareTo('${b['name']}'));
   showModalBottomSheet(
     context: context,
-    backgroundColor: AppColors.sheet,
+    backgroundColor: Colors.black,
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
     builder: (_) => SafeArea(

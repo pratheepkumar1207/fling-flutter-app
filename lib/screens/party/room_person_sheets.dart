@@ -183,7 +183,7 @@ Future<void> showRoomPersonCard(
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.sheet,
+    backgroundColor: Colors.black,
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
     builder: (sheet) => _PersonCard(
@@ -290,7 +290,7 @@ class _PersonCardState extends State<_PersonCard> {
               style:
                   const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           Text(label,
-              style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
+              style: const TextStyle(color: Colors.white70, fontSize: 12)),
         ]),
       );
 
@@ -336,7 +336,7 @@ class _PersonCardState extends State<_PersonCard> {
           padding: const EdgeInsets.only(top: 8),
           child: Text('You can message $first once you’re friends',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
+              style: const TextStyle(color: Colors.white70, fontSize: 12)),
         ),
       const SizedBox(height: 8),
     ];
@@ -386,7 +386,7 @@ class _PersonCardState extends State<_PersonCard> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                              color: AppColors.textDim, fontSize: 12.5)),
+                              color: Colors.white70, fontSize: 12.5)),
                     ]),
               ),
             ]),
@@ -410,7 +410,7 @@ class _PersonCardState extends State<_PersonCard> {
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                   style:
-                      const TextStyle(color: AppColors.textDim, fontSize: 12)),
+                      const TextStyle(color: Colors.white70, fontSize: 12)),
             ],
             const SizedBox(height: 14),
             if (!widget.isMe && p != null) ..._buttons(),
@@ -442,7 +442,7 @@ Future<void> showListenersSheet(
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.sheet,
+    backgroundColor: Colors.black,
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
     builder: (sheet) => ConstrainedBox(
@@ -469,7 +469,7 @@ Future<void> showListenersSheet(
                 const Padding(
                   padding: EdgeInsets.fromLTRB(20, 16, 20, 28),
                   child: Text('Nobody’s listening yet.',
-                      style: TextStyle(color: AppColors.textDim)),
+                      style: TextStyle(color: Colors.white70)),
                 ),
               Flexible(
                 child: ListView.builder(
@@ -494,7 +494,7 @@ Future<void> showListenersSheet(
                         subtitle: wants
                             ? const Text('Wants to speak',
                                 style: TextStyle(
-                                    color: AppColors.lilac, fontSize: 12))
+                                    color: Colors.white, fontSize: 12))
                             : null,
                         trailing: mod && r.userId != myUserId
                             ? wants
@@ -609,7 +609,7 @@ class RoomDmBubble extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(2),
               decoration: const BoxDecoration(
-                  shape: BoxShape.circle, color: AppColors.lilac),
+                  shape: BoxShape.circle, color: Colors.white),
               child: FittedBox(
                   child:
                       Avatar(src: avatarUrl, name: name, size: AvatarSize.lg)),

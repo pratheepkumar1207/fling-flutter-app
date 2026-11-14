@@ -13,7 +13,7 @@ Future<void> showPlayerSettings(BuildContext context, WidgetBuilder builder) {
   if (!landscape) {
     return showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.sheet,
+      backgroundColor: Colors.black,
       isScrollControlled: true,
       builder: builder,
     );
@@ -183,24 +183,24 @@ class _PlayerSettingsSheetState extends State<PlayerSettingsSheet> {
           child: Row(children: [
             InIcon(locked ? InIcons.lock : icon,
                 size: 18,
-                color: locked ? AppColors.textFaint : AppColors.textDim),
+                color: locked ? Colors.white54 : Colors.white70),
             const SizedBox(width: 12),
             Expanded(
               child: Text(label,
                   style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: locked ? AppColors.textFaint : null)),
+                      color: locked ? Colors.white54 : null)),
             ),
             Flexible(
               child: Text(value,
                   overflow: TextOverflow.ellipsis,
                   style:
-                      const TextStyle(color: AppColors.textDim, fontSize: 13)),
+                      const TextStyle(color: Colors.white70, fontSize: 13)),
             ),
             if (onTap != null) ...[
               const SizedBox(width: 6),
-              const InIcon(InIcons.right, size: 16, color: AppColors.textFaint),
+              const InIcon(InIcons.right, size: 16, color: Colors.white54),
             ],
           ]),
         ),
@@ -226,7 +226,7 @@ class _PlayerSettingsSheetState extends State<PlayerSettingsSheet> {
                           fontWeight: on ? FontWeight.w800 : FontWeight.w600)),
                 ),
                 if (on)
-                  const InIcon(InIcons.check, size: 18, color: AppColors.lilac),
+                  const InIcon(InIcons.check, size: 18, color: Colors.white),
               ]),
             ),
           ),
@@ -246,7 +246,7 @@ class _PlayerSettingsSheetState extends State<PlayerSettingsSheet> {
           else
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 10),
-              child: InIcon(InIcons.gear, size: 18, color: AppColors.lilac),
+              child: InIcon(InIcons.gear, size: 18, color: Colors.white),
             ),
           Expanded(
             child: Text(title,
@@ -255,7 +255,7 @@ class _PlayerSettingsSheetState extends State<PlayerSettingsSheet> {
           ),
           if (!back)
             const Text('Only on your phone',
-                style: TextStyle(color: AppColors.textFaint, fontSize: 11)),
+                style: TextStyle(color: Colors.white54, fontSize: 11)),
         ]),
       );
 
@@ -323,7 +323,7 @@ class _PlayerSettingsSheetState extends State<PlayerSettingsSheet> {
           padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
           child: Row(children: [
             InIcon(_volume == 0 ? InIcons.mute : InIcons.speaker,
-                size: 18, color: AppColors.textDim),
+                size: 18, color: Colors.white70),
             const SizedBox(width: 12),
             const Text('Volume',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),

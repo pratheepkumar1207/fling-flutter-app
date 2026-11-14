@@ -87,7 +87,7 @@ class _BlendSettingsScreenState extends State<BlendSettingsScreen> {
     final creatorName = _blend.creator?.firstName ?? 'the creator';
     final choice = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.black,
       builder: (sheet) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           for (final (value, label) in [

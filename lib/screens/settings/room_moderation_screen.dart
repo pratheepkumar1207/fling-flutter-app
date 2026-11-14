@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
-import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/in_icon_button.dart';
@@ -96,7 +95,7 @@ class _RoomModerationScreenState extends State<RoomModerationScreen> {
     };
     final pick = await showModalBottomSheet<Map>(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.black,
       builder: (sheet) => SafeArea(
         child: friends.isEmpty
             ? const Padding(
@@ -104,7 +103,7 @@ class _RoomModerationScreenState extends State<RoomModerationScreen> {
                 child: Text(
                     'Add friends first — co-hosts are picked from them.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textDim)),
+                    style: TextStyle(color: Colors.white70)),
               )
             : ListView(shrinkWrap: true, children: [
                 const Padding(
@@ -414,7 +413,7 @@ class _RoomModerationScreenState extends State<RoomModerationScreen> {
                                       color: const Color(0xFF555555))),
                               child: const Center(
                                   child: InIcon(InIcons.plus,
-                                      size: 20, color: AppColors.lilac)),
+                                      size: 20, color: Colors.white)),
                             ),
                             name: 'Add',
                             onTap: _addCoHost,
@@ -487,18 +486,18 @@ class _RoomModerationScreenState extends State<RoomModerationScreen> {
               color: const Color(0xFF111111),
               borderRadius: BorderRadius.circular(999),
               border: Border.all(
-                  color: dashed ? AppColors.lilac : kSheetBorder),
+                  color: dashed ? Colors.white : kSheetBorder),
             ),
             child: ExcludeSemantics(
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 if (icon != null) ...[
-                  InIcon(icon, size: 14, color: AppColors.lilac),
+                  InIcon(icon, size: 14, color: Colors.white),
                   const SizedBox(width: 4),
                 ],
                 Text(label,
                     style: TextStyle(
                         fontSize: 12,
-                        color: dashed ? AppColors.lilac : const Color(0xFFDDDDDD))),
+                        color: dashed ? Colors.white : const Color(0xFFDDDDDD))),
                 if (trailing != null) ...[
                   const SizedBox(width: 4),
                   InIcon(trailing, size: 13, color: kSheetDim),

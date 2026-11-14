@@ -71,7 +71,7 @@ Future<void> ensureStartupPermissions(BuildContext context,
     context: context,
     isScrollControlled: true,
     isDismissible: false,
-    backgroundColor: AppColors.surface,
+    backgroundColor: Colors.black,
     builder: (sheet) => _PrimerSheet(
         missing: missing.keys.toList(),
         firstTime: firstTime,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
 import '../theme/insync_icons.dart';
 
 // The room's black sheets (settings, your settings): they open under the
@@ -11,7 +10,7 @@ const kSheetTile = Color(0xFF141414);
 const kSheetBorder = Color(0xFF262626);
 const kSheetOn = Color(0xFF2A1D4A);
 const kSheetOnBorder = Color(0xFF8B6CFF);
-const kSheetDim = Color(0xFF9A9AA5);
+const kSheetDim = Color(0xB3FFFFFF);
 const _kOnDot = Color(0xFF3AD17A);
 
 /// Opens [builder]'s content as a black sheet over the room. [builder]
@@ -157,7 +156,7 @@ class RoomChoiceRow extends StatelessWidget {
                       InIcon(icon,
                           size: 18,
                           color:
-                              value == key ? Colors.white : AppColors.lilac),
+                              value == key ? Colors.white : Colors.white),
                       const SizedBox(height: 4),
                       Text(label,
                           maxLines: 1,
@@ -167,7 +166,7 @@ class RoomChoiceRow extends StatelessWidget {
                               fontSize: 11,
                               color: value == key
                                   ? Colors.white
-                                  : const Color(0xFFBBBBBB))),
+                                  : Colors.white)),
                     ]),
                   ),
                 ),
@@ -279,7 +278,7 @@ class RoomToggleCard extends StatelessWidget {
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
                       InIcon(icon,
                           size: 20,
-                          color: on ? Colors.white : const Color(0xFF777777)),
+                          color: Colors.white),
                       const SizedBox(height: 6),
                       Text(label,
                           textAlign: TextAlign.center,
@@ -288,7 +287,7 @@ class RoomToggleCard extends StatelessWidget {
                           style: TextStyle(
                               fontSize: 11,
                               height: 1.3,
-                              color: on ? Colors.white : const Color(0xFF999999))),
+                              color: Colors.white)),
                     ]),
                   ),
                 ),

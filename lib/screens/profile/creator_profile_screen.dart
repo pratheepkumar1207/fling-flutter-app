@@ -189,7 +189,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
     final restricted = _relationship['restricted'] == true;
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.black,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => SafeArea(
@@ -847,7 +847,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
     final name = _profile?['name'] as String? ?? 'this creator';
     final action = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.black,
       builder: (ctx) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(22, 20, 22, 16),

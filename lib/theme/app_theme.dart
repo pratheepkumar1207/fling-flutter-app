@@ -101,8 +101,12 @@ class AppTheme {
           backgroundColor: clay.surface,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(26))),
+      // Every sheet: black, white icons and text.
       bottomSheetTheme: BottomSheetThemeData(
-          backgroundColor: clay.surface,
+          backgroundColor:
+              brightness == Brightness.dark ? Colors.black : clay.surface,
+          modalBackgroundColor:
+              brightness == Brightness.dark ? Colors.black : clay.surface,
           surfaceTintColor: Colors.transparent,
           showDragHandle: true,
           shape: const RoundedRectangleBorder(

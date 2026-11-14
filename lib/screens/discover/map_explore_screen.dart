@@ -326,7 +326,7 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
   void _showProfileCard(Map<String, dynamic> u) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface2,
+      backgroundColor: Colors.black,
       builder: (_) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),

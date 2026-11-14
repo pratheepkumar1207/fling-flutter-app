@@ -724,7 +724,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   void _openStickerPicker() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface2,
+      backgroundColor: Colors.black,
       builder: (_) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),

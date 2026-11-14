@@ -371,7 +371,6 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
     final pendingPick = _roomType != _savedType;
     // Only voice and game rooms can switch between each other here.
     final canSwitchType = _savedType == 'voice' || _savedType == 'game';
-    const off = Color(0xFF666666);
     return ListView(
       controller: widget.scroll,
       padding: EdgeInsets.fromLTRB(
@@ -415,7 +414,7 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: AppColors.gold))
                   : const InIcon(InIcons.star,
-                      size: 20, color: AppColors.gold, filled: true),
+                      size: 20, color: Colors.white, filled: true),
               label: _boostLabel,
               onTap: _boosting ? null : _boost,
             ),
@@ -430,7 +429,7 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
           Expanded(
             child: RoomQuickTile(
               icon: const InIcon(InIcons.shield,
-                  size: 20, color: AppColors.lilac),
+                  size: 20, color: Colors.white),
               label: 'Moderation',
               onTap: widget.onModeration == null
                   ? null
@@ -440,7 +439,7 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
           Expanded(
             child: RoomQuickTile(
               icon: InIcon(InIcons.chat,
-                  size: 20, color: _chatOn ? Colors.white : off),
+                  size: 20, color: Colors.white),
               label: _chatOn ? 'Chat on' : 'Chat off',
               on: _chatOn,
               onTap: _saving ? null : () => _setChat(!_chatOn),
@@ -449,7 +448,7 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
           Expanded(
             child: RoomQuickTile(
               icon: InIcon(InIcons.hourglass,
-                  size: 20, color: _waitForAds ? Colors.white : off),
+                  size: 20, color: Colors.white),
               label: _waitForAds ? 'Wait for ads' : 'Ads: no wait',
               on: _waitForAds,
               onTap: _saving ? null : () => _setWaitForAds(!_waitForAds),

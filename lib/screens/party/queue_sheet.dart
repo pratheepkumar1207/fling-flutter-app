@@ -361,7 +361,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
         padding: const EdgeInsets.fromLTRB(4, 12, 0, 6),
         child: Text(text,
             style: const TextStyle(
-                color: AppColors.textDim,
+                color: Colors.white70,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.6)),
@@ -377,7 +377,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
               ? AppImage(source: src, fit: BoxFit.cover)
               : const Center(
                   child:
-                      InIcon(InIcons.tv, size: 18, color: AppColors.textFaint)),
+                      InIcon(InIcons.tv, size: 18, color: Colors.white54)),
         ),
       );
 
@@ -386,14 +386,14 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
         tooltip: label,
         onPressed: onTap,
         visualDensity: VisualDensity.compact,
-        icon: InIcon(icon, size: 17, color: AppColors.textDim),
+        icon: InIcon(icon, size: 17, color: Colors.white70),
       );
 
   Widget _queueList(List items, int current) {
     if (items.isEmpty) {
       return Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const InIcon(InIcons.queue, size: 30, color: AppColors.textFaint),
+          const InIcon(InIcons.queue, size: 30, color: Colors.white54),
           const SizedBox(height: 10),
           const Text('Nothing queued yet',
               style: TextStyle(fontWeight: FontWeight.w600)),
@@ -402,7 +402,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
               widget.canAddSongs
                   ? 'Search above or pick a source to add something'
                   : 'The host picks what plays here',
-              style: const TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+              style: const TextStyle(color: Colors.white70, fontSize: 12.5)),
         ]),
       );
     }
@@ -422,7 +422,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
               const Padding(
                   padding: EdgeInsets.only(right: 8),
                   child: InIcon(InIcons.menu,
-                      size: 18, color: AppColors.textFaint)),
+                      size: 18, color: Colors.white54)),
             _thumb(item['thumbnail'] as String?, 80, 46),
             const SizedBox(width: 10),
             Expanded(
@@ -438,7 +438,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            color: AppColors.textDim, fontSize: 11)),
+                            color: Colors.white70, fontSize: 11)),
                   ]),
             ),
             if (dim && widget.canPin)
@@ -468,7 +468,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                       : 'The host picks what plays next',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                      color: AppColors.textDim, fontSize: 12.5)),
+                      color: Colors.white70, fontSize: 12.5)),
             ),
           ),
         if (upNext.isNotEmpty) ...[
@@ -498,13 +498,13 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
               padding: const EdgeInsets.all(24),
               child: Text(_searchError!,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.textDim))));
+                  style: const TextStyle(color: Colors.white70))));
     }
     final r = _results ?? const [];
     if (r.isEmpty) {
       return const Center(
           child:
-              Text('No results', style: TextStyle(color: AppColors.textDim)));
+              Text('No results', style: TextStyle(color: Colors.white70)));
     }
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
@@ -529,13 +529,13 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                              color: AppColors.textDim, fontSize: 11)),
+                              color: Colors.white70, fontSize: 11)),
                     ]),
               ),
               const SizedBox(width: 6),
               if (_addedUrls.contains(v['videoUrl']))
                 const Text('✓ Added',
-                    style: TextStyle(color: AppColors.textDim, fontSize: 12))
+                    style: TextStyle(color: Colors.white70, fontSize: 12))
               else ...[
                 if (widget.canPin)
                   TextButton(
@@ -628,7 +628,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                   prefixIcon: const Padding(
                       padding: EdgeInsets.all(12),
                       child: InIcon(InIcons.search,
-                          size: 18, color: AppColors.textFaint)),
+                          size: 18, color: Colors.white54)),
                   suffixIcon: _search.text.isEmpty
                       ? null
                       : IconButton(
@@ -639,7 +639,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                                 _searchError = null;
                               }),
                           icon: const InIcon(InIcons.close,
-                              size: 16, color: AppColors.textFaint)),
+                              size: 16, color: Colors.white54)),
                   filled: true,
                   fillColor: const Color(0xFF111111),
                   isDense: true,

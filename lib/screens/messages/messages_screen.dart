@@ -351,7 +351,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
   void _openChatOptions(ConversationSummary c) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface2,
+      backgroundColor: Colors.black,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),

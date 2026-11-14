@@ -1489,7 +1489,7 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
     final total = v.value.duration.inMilliseconds.toDouble();
     final chosen = await showModalBottomSheet<Duration>(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.black,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, set) => SafeArea(
           child: Padding(

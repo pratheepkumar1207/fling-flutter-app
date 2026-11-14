@@ -8,7 +8,7 @@ import 'spinner.dart';
 void showPostLikesSheet(BuildContext context, {required String postId}) {
   showModalBottomSheet(
     context: context,
-    backgroundColor: AppColors.surface,
+    backgroundColor: Colors.black,
     isScrollControlled: true,
     builder: (_) => _PostLikesSheet(postId: postId),
   );

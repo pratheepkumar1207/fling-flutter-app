@@ -119,7 +119,7 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
     }.toList();
     final pick = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.black,
       builder: (sheet) => SafeArea(
         child: ListView(shrinkWrap: true, children: [
           const Padding(

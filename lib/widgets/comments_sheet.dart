@@ -22,7 +22,7 @@ Future<void> showCommentsSheet(BuildContext context,
     String? authorName}) {
   return showModalBottomSheet(
     context: context,
-    backgroundColor: AppColors.surface,
+    backgroundColor: Colors.black,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20))),

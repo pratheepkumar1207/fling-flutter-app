@@ -516,7 +516,7 @@ class _StoryStickerLayerState extends State<StoryStickerLayer> {
     final text = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.black,
       builder: (ctx) => Padding(
         padding: EdgeInsets.fromLTRB(
             16, 16, 16, 16 + MediaQuery.of(ctx).viewInsets.bottom),
@@ -589,7 +589,7 @@ class _StoryStickerLayerState extends State<StoryStickerLayer> {
     widget.onPause();
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.black,
       builder: (ctx) => SafeArea(
         child: ListView(shrinkWrap: true, children: [
           Padding(
@@ -638,7 +638,7 @@ class _StoryStickerLayerState extends State<StoryStickerLayer> {
     widget.onPause();
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.black,
       builder: (ctx) => SafeArea(
         child: rows.isEmpty
             ? const Padding(
