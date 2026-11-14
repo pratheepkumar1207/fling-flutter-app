@@ -13,6 +13,8 @@ class OttPlayerState {
   final bool inAd;
   // The picture's width over its height, when the player reports it.
   final double? aspect;
+  // The shape above is final (black bands checked), not a first guess.
+  final bool sized;
   const OttPlayerState(
       {required this.playing,
       required this.positionSec,
@@ -20,7 +22,8 @@ class OttPlayerState {
       this.title,
       this.durationSec,
       this.inAd = false,
-      this.aspect});
+      this.aspect,
+      this.sized = true});
 }
 
 /// Plays, pauses and seeks the Netflix / Prime Video app's own player for

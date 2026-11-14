@@ -263,6 +263,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
       _lastReportedIsPlaying = null;
       _lastAppliedUpdatedAt = null;
       _aspectRatio = 16 / 9;
+      _waitForSize();
       _controller?.evaluateJavascript(source: 'window.__insyncAR = 0;');
       _loadAspectRatio(videoId);
       _controller?.loadUrl(
@@ -706,11 +707,14 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
   try {
     if (/(^|\.)youtube(-nocookie)?\.com$/.test(location.hostname)) {
       var last = 0;
-      var cv = document.createElement('canvas'), cx = null, seen = [], cut = 0, cutX = 0, lastSrc = '';
+      var cv = document.createElement('canvas'), cx = null, seen = [], cut = 0, cutX = 0, lastSrc = '', tries = 0;
       function lum(d, i) { return d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11; }
       function scan(v) {
-        if (v.currentSrc !== lastSrc) { lastSrc = v.currentSrc; seen = []; cut = 0; cutX = 0; }
-        if (v.paused || v.readyState < 2) return;
+        if (v.currentSrc !== lastSrc) { lastSrc = v.currentSrc; seen = []; cut = 0; cutX = 0; tries = 0; }
+        // A paused first frame counts too, so the shape is known before
+        // the video starts.
+        if (v.readyState < 2) return;
+        tries++;
         var W = 48, H = Math.max(27, Math.round(48 * v.videoHeight / v.videoWidth));
         cv.width = W; cv.height = H;
         cx = cx || cv.getContext('2d', { willReadFrequently: true });
@@ -761,6 +765,9 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
         var v = document.querySelector('video');
         if (!v || !v.videoWidth || !v.videoHeight) return;
         try { scan(v); } catch (e) {}
+        // Only report once the shape is settled (or the picture can't be
+        // read), so the box takes its size once instead of jumping.
+        if (seen.length < 3 && tries < 8) return;
         var ar = (v.videoWidth * (1 - 2 * cutX)) / (v.videoHeight * (1 - 2 * cut));
         if (Math.abs(ar - last) < 0.01) return;
         last = ar;
@@ -776,20 +783,43 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
 ''';
 
   Timer? _realSizeTimer;
+  // Until the picture's real shape is known the video sits behind a
+  // loading cover, then shows at its final size (no jump). Gives up
+  // waiting after a few seconds.
+  bool _sized = false;
+  DateTime _sizeWaitFrom = DateTime.now();
+
+  void _waitForSize() {
+    _sized = false;
+    _sizeWaitFrom = DateTime.now();
+  }
+
   // Polls the size the player frame reported; the measured shape wins over
   // the lookup's guess, so the box has no black bands above or below.
   void _readRealSize() {
     _realSizeTimer?.cancel();
-    _realSizeTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
+    _waitForSize();
+    _realSizeTimer =
+        Timer.periodic(const Duration(milliseconds: 400), (_) async {
       if (!mounted) return;
       try {
         final v = await _controller?.evaluateJavascript(
             source: 'window.__insyncAR || 0');
         final ar = (v is num) ? v.toDouble() : double.tryParse('$v') ?? 0;
-        if (ar <= 0 || !mounted) return;
+        if (!mounted) return;
+        if (ar <= 0) {
+          if (!_sized &&
+              DateTime.now().difference(_sizeWaitFrom).inSeconds >= 5) {
+            setState(() => _sized = true);
+          }
+          return;
+        }
         final next = ar.clamp(0.5, 3.0).toDouble();
-        if ((next - _aspectRatio).abs() > 0.01) {
-          setState(() => _aspectRatio = next);
+        if ((next - _aspectRatio).abs() > 0.01 || !_sized) {
+          setState(() {
+            _aspectRatio = next;
+            _sized = true;
+          });
         }
       } catch (_) {}
     });
@@ -942,6 +972,18 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
               duration: const Duration(milliseconds: 200),
               child: _buildWebView(),
             ),
+            // Measuring the picture's real shape: cover until it's known.
+            if (!_sized && !fullScreen)
+              const ColoredBox(
+                color: Colors.black,
+                child: Center(
+                  child: SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white54)),
+                ),
+              ),
             if (fullScreen)
               Positioned.fill(
                 child: ListenableBuilder(

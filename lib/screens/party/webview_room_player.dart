@@ -880,6 +880,10 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
   }
   // The video shape the box was last laid out for.
   double? _shownAspect;
+  // The picture's shape is settled (see _webSyncTick); until then the
+  // video sits behind a loading cover so the box doesn't jump.
+  bool _ottSized = false;
+  DateTime? _sizeWaitFrom;
   // Upright the box already has the video's own shape. In full screen the
   // picture zooms to fill the screen (edges trimmed) unless this person
   // picked Fit; a tall video (a reel) always shows whole there.
@@ -1009,7 +1013,17 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
       // (and again when it changes, e.g. an ad then the film), so there are
       // no black bands above and below eating into the chat.
       final ar = sync.local?.aspect;
+      // Wait for the settled shape (bands trimmed) before sizing the box,
+      // so it takes its size once instead of jumping; give up after a bit.
+      final sized = sync.local?.sized ?? false;
+      _sizeWaitFrom ??= DateTime.now();
+      final waited =
+          DateTime.now().difference(_sizeWaitFrom!).inSeconds >= 6;
+      if (!_ottSized && (sized || waited || widget.knownAspect != null)) {
+        setState(() => _ottSized = true);
+      }
       if (ar != null &&
+          (sized || waited) &&
           (_shownAspect == null || (ar - _shownAspect!).abs() > 0.02)) {
         setState(() => _shownAspect = ar);
         final known = widget.knownAspect;
@@ -1821,8 +1835,31 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     // Same widgets around the page either way (only the strip comes and
     // goes after it), so turning the phone never moves the page and makes
     // it load again.
-    if (widget.fillHeight) return webview;
-    return FitVideoBox(aspectRatio: ratio, child: webview);
+    // Measuring the picture's real shape: a loading cover until it's
+    // settled (never over a sign-in page).
+    final cover = _isOtt &&
+        !_ottSized &&
+        !_appOnly &&
+        !_needsLogin &&
+        !_onLoginPage &&
+        !_signingIn;
+    final shown = cover
+        ? Stack(fit: StackFit.expand, children: [
+            webview,
+            const ColoredBox(
+              color: Colors.black,
+              child: Center(
+                child: SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white54)),
+              ),
+            ),
+          ])
+        : webview;
+    if (widget.fillHeight) return shown;
+    return FitVideoBox(aspectRatio: ratio, child: shown);
   }
 }
 
@@ -1873,16 +1910,17 @@ class _WebPlayerTarget implements OttTarget {
   // come back blank) are left alone.
   var lbCanvas = document.createElement('canvas'), lbCtx = null;
   function lbScan(v){
-    if (!v.videoWidth || !v.videoHeight || v.paused || v.readyState < 2) return;
+    if (!v.videoWidth || !v.videoHeight || v.readyState < 2) return;
     if (v.__lbSrc !== v.currentSrc) {
-      v.__lbSrc = v.currentSrc; v.__lbSeen = []; v.__insyncCropAR = 0; v.__lbCut = [0, 0];
+      v.__lbSrc = v.currentSrc; v.__lbSeen = []; v.__insyncCropAR = 0; v.__lbCut = [0, 0]; v.__lbTries = 0; v.__lbSaved = false;
       // This title's shape from last time: fit straight away.
       try {
         var saved = JSON.parse(localStorage.getItem(lbKey()) || 'null');
-        if (saved && saved.length === 2) lbApply(v, saved[0], saved[1]);
+        if (saved && saved.length === 2) { lbApply(v, saved[0], saved[1]); v.__lbSaved = true; }
       } catch (e) {}
     }
     var W = 40, H = Math.max(24, Math.round(80 * v.videoHeight / v.videoWidth));
+    v.__lbTries = (v.__lbTries || 0) + 1;
     lbCanvas.width = W; lbCanvas.height = H;
     lbCtx = lbCtx || lbCanvas.getContext('2d', { willReadFrequently: true });
     var d;
@@ -1944,7 +1982,10 @@ class _WebPlayerTarget implements OttTarget {
       var dur = p && p.getDuration ? p.getDuration() / 1000 : v.duration;
       try { lbScan(v); } catch (e) {}
       var ar = v.__insyncCropAR || ((v.videoWidth && v.videoHeight) ? v.videoWidth / v.videoHeight : 0);
-      return JSON.stringify({playing: !v.paused, pos: pos, dur: isFinite(dur) ? dur : 0, canSeek: true, ad: inAd(), ar: ar});
+      // The shape is settled: checked enough, remembered, or the picture
+      // can't be read (protected streams) after a few tries.
+      var sized = !!v.__lbSaved || (v.__lbSeen || []).length >= 3 || (v.__lbTries || 0) >= 8;
+      return JSON.stringify({playing: !v.paused, pos: pos, dur: isFinite(dur) ? dur : 0, canSeek: true, ad: inAd(), ar: ar, sized: sized});
     },
     play: function(){ var p = nfPlayer(); if (p && p.play) p.play(); else { var v = video(); if (v) v.play(); } },
     pause: function(){ var p = nfPlayer(); if (p && p.pause) p.pause(); else { var v = video(); if (v) v.pause(); } },
@@ -1980,6 +2021,7 @@ class _WebPlayerTarget implements OttTarget {
           ((m['dur'] as num?) ?? 0) > 0 ? (m['dur'] as num).toDouble() : null,
       inAd: m['ad'] == true,
       aspect: ((m['ar'] as num?) ?? 0) > 0 ? (m['ar'] as num).toDouble() : null,
+      sized: m['sized'] != false,
     );
   }
 
