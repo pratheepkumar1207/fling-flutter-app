@@ -384,7 +384,8 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
           // Only 1–3 emoji: big and animated; otherwise emoji in the
           // text play once at text size.
           if (ChatEmojiText.isBigEmoji(text))
-            ChatEmojiText(text, bigSize: 48)
+            ChatEmojiText(text,
+                style: const TextStyle(fontSize: 13, color: Colors.white))
           else
             Text.rich(
               TextSpan(children: animateEmojiSpans(_textSpans(text), 13)),

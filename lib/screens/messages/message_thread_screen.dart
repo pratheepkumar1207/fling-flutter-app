@@ -508,7 +508,6 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     }
     // Animated emoji: a message of only 1–3 emoji shows them big.
     return ChatEmojiText(m.text,
-        bigSize: 72,
         style: TextStyle(
             color: mine ? Colors.white : AppColors.text,
             fontSize: 15,

@@ -1,4 +1,5 @@
 import '../../theme/insync_icons.dart';
+import '../../widgets/animated_emoji.dart';
 import 'package:flutter/material.dart';
 import '../../core/format.dart';
 import '../../widgets/insync_clay.dart';
@@ -422,7 +423,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                               fontWeight: FontWeight.w700)),
                     ]),
                     const SizedBox(height: 5),
-                    Text(p['text'] as String? ?? '',
+                    ChatEmojiText(p['text'] as String? ?? '',
                         style: const TextStyle(
                             color: AppColors.text, fontSize: 13, height: 1.4)),
                     // A room posted from its invite screen.

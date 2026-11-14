@@ -1,4 +1,5 @@
 import '../theme/insync_icons.dart';
+import 'animated_emoji.dart';
 import 'package:flutter/material.dart';
 import '../core/api_client.dart';
 import '../core/api_exception.dart';
@@ -180,14 +181,14 @@ class _CommentsSheetState extends State<CommentsSheet> {
                           color: AppColors.textFaint, fontSize: 11.5)),
                   const SizedBox(height: 2),
                   Text.rich(
-                    TextSpan(children: [
+                    TextSpan(children: animateEmojiSpans([
                       for (final part in text.split(RegExp(r'(?=@)|(?<=\s)')))
                         TextSpan(
                             text: part,
                             style: part.startsWith('@')
                                 ? const TextStyle(color: Color(0xFF6F9BFF))
                                 : null),
-                    ]),
+                    ], 13.5)),
                     style: const TextStyle(
                         color: AppColors.text, fontSize: 13.5, height: 1.35),
                   ),

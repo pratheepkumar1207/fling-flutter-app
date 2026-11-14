@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/animated_emoji.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
@@ -219,8 +220,9 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
     if (type == 'sticker' && media != null) {
       return Text(media, style: const TextStyle(fontSize: 40));
     }
-    return Text(m['text'] as String? ?? '',
-        style: TextStyle(color: mine ? Colors.white : AppColors.text));
+    return ChatEmojiText(m['text'] as String? ?? '',
+        style: TextStyle(
+            color: mine ? Colors.white : AppColors.text, fontSize: 14));
   }
 
   @override

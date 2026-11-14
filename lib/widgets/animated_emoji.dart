@@ -100,7 +100,7 @@ List<InlineSpan> animateEmojiSpans(List<InlineSpan> spans, double fontSize) {
         }
         out.add(WidgetSpan(
           alignment: PlaceholderAlignment.middle,
-          child: AnimatedEmoji(c, size: fontSize * 1.3, repeat: false),
+          child: AnimatedEmoji(c, size: fontSize * 1.25, repeat: false),
         ));
       } else {
         buf.write(c);
@@ -114,15 +114,13 @@ List<InlineSpan> animateEmojiSpans(List<InlineSpan> spans, double fontSize) {
   return out;
 }
 
-/// Message text with animated emoji. A message of only 1–3 emoji shows them
-/// big and playing; emoji inside normal text play once at text size.
+/// Message text with animated emoji, each 1.25× the text size. A message of
+/// only 1–3 emoji keeps playing; emoji inside normal text play once.
 class ChatEmojiText extends StatelessWidget {
   final String text;
   final TextStyle? style;
-  final double bigSize;
   final int? maxLines;
-  const ChatEmojiText(this.text,
-      {super.key, this.style, this.bigSize = 64, this.maxLines});
+  const ChatEmojiText(this.text, {super.key, this.style, this.maxLines});
 
   /// True when the message is only 1–3 animated emoji (shown big).
   static bool isBigEmoji(String text) {
@@ -136,17 +134,18 @@ class ChatEmojiText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final base = style ?? DefaultTextStyle.of(context).style;
+    final size = (base.fontSize ?? 14) * 1.25;
     if (isBigEmoji(text)) {
       final chars =
           text.trim().characters.where((c) => c.trim().isNotEmpty).toList();
       return Wrap(spacing: 2, children: [
-        for (final c in chars) AnimatedEmoji(c, size: bigSize),
+        for (final c in chars) AnimatedEmoji(c, size: size),
       ]);
     }
     if (!text.characters.any(AnimatedEmojiRegistry.hasAnimation)) {
       return Text(text, style: base, maxLines: maxLines);
     }
-    final inline = (base.fontSize ?? 14) * 1.3;
+    final inline = size;
     final spans = <InlineSpan>[];
     final buf = StringBuffer();
     for (final c in text.characters) {
