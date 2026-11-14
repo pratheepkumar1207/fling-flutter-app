@@ -649,7 +649,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
                                         ? position.clamp(0, duration)
                                         : 0,
                                     max: duration > 0 ? duration : 1,
-                                    activeColor: AppColors.primary,
+                                    activeColor: const Color(0xFFFF0033),
                                     inactiveColor: Colors.white24,
                                     onChanged: widget.isHost
                                         ? _handleSeekChanged

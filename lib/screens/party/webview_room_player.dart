@@ -1426,7 +1426,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
             child: Slider(
               value: elapsed.clamp(0, max),
               max: max,
-              activeColor: const Color(0xE6FFFFFF),
+              activeColor: const Color(0xFFFF0033),
               inactiveColor: Colors.white24,
               onChanged: (v) {
                 _tapHide?.cancel();
