@@ -93,6 +93,9 @@ class InIcons {
       '<path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>');
   static const game = InIconData('game',
       '<path d="M7 7h10a4.5 4.5 0 014.4 5.4l-.9 4.4a2.5 2.5 0 01-4.3 1.2L14 16h-4l-2.2 2a2.5 2.5 0 01-4.3-1.2l-.9-4.4A4.5 4.5 0 017 7z"/><path d="M8 10.5v3M6.5 12h3M15.5 11h.01M17.5 13h.01"/>');
+  // Popcorn tab: a striped tub with kernels on top.
+  static const popcorn = InIconData('popcorn',
+      '<path d="M5.5 10.5h13l-1.5 9.6a1 1 0 01-1 .9H8a1 1 0 01-1-.9z"/><path d="M10 10.5l.5 10.5M14 10.5l-.5 10.5"/><path d="M5.5 10.5a2.2 2.2 0 01.8-3.6 2.5 2.5 0 014.2-2.1 2.4 2.4 0 013 0 2.5 2.5 0 014.2 2.1 2.2 2.2 0 01.8 3.6"/>');
   static const tv = InIconData('tv',
       '<rect x="3" y="5" width="18" height="12" rx="3"/><path d="M8 21h8M10 9.5v4l3.5-2z"/>');
   static const camera = InIconData('camera',

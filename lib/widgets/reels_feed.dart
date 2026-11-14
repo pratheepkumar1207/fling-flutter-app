@@ -560,6 +560,8 @@ class ReelsScreen extends StatefulWidget {
   final VoidCallback onCreate;
   // The next page of the ranked Reels tab, or empty when there's no more.
   final Future<List<Post>> Function(int page)? loadPage;
+  // False in the Reels tab, where there's nothing to go back to.
+  final bool showBack;
 
   const ReelsScreen(
       {super.key,
@@ -568,7 +570,8 @@ class ReelsScreen extends StatefulWidget {
       required this.onSave,
       required this.onOpenComments,
       required this.onCreate,
-      this.loadPage});
+      this.loadPage,
+      this.showBack = true});
 
   @override
   State<ReelsScreen> createState() => _ReelsScreenState();
@@ -627,11 +630,14 @@ class _ReelsScreenState extends State<ReelsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Row(
                 children: [
-                  IconButton(
-                    tooltip: 'Back',
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const InIcon(InIcons.back, color: Colors.white),
-                  ),
+                  if (widget.showBack)
+                    IconButton(
+                      tooltip: 'Back',
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const InIcon(InIcons.back, color: Colors.white),
+                    )
+                  else
+                    const SizedBox(width: 12),
                   const Text('Reels',
                       style: TextStyle(
                           color: Colors.white,

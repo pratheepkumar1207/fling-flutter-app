@@ -13,12 +13,13 @@ import '../calls/incoming_call_view.dart';
 import '../discover/discover_screen.dart';
 import '../feed/feed_screen.dart';
 import '../home/home_screen.dart';
-import '../live/live_feed_screen.dart';
+import '../messages/messages_screen.dart';
+import '../../core/unread_messages.dart';
+import 'reels_tab.dart';
 import '../party/mention_notifier.dart';
 import '../party/party_screen.dart';
 import '../party/persistent_room_audio.dart';
 import '../../theme/insync_icons.dart';
-import 'create_sheet.dart';
 import 'liquid_glass_bottom_nav.dart';
 import 'top_bar.dart';
 import '../settings/account_removal_screen.dart';
@@ -42,21 +43,45 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _index = 0;
 
+  // Home (the feed) · Reels · Popcorn (rooms) · Discover · Chat. Live
+  // streams are in Popcorn (its Live filter and the live feed link).
+  static const _reelsTab = 1;
+  static const _chatTab = 4;
   static const _screens = [
-    HomeScreen(),
     FeedScreen(),
-    LiveFeedScreen(),
+    SizedBox.shrink(), // Reels: built only while showing, see build()
+    HomeScreen(),
     DiscoverScreen(),
+    MessagesScreen(),
   ];
 
-  static const _items = [
-    NavItemData(InIcons.home, 'Home'),
-    NavItemData(InIcons.feed, 'Feed'),
-    NavItemData(InIcons.live, 'Live', tag: 'LIVE'),
-    NavItemData(InIcons.flame, 'Discover'),
+  static final _items = [
+    const NavItemData(InIcons.home, 'Home'),
+    const NavItemData(InIcons.reel, 'Reels'),
+    const NavItemData(InIcons.popcorn, 'Popcorn'),
+    const NavItemData(InIcons.flame, 'Discover'),
+    NavItemData(InIcons.chat, 'Chat', badge: UnreadMessages.count),
   ];
 
-  void _onNavTap(int i) => setState(() => _index = i);
+  void _onNavTap(int i) {
+    final wasChat = _index == _chatTab;
+    setState(() => _index = i);
+    if (wasChat || i == _chatTab) UnreadMessages.refresh();
+  }
+
+  bool _unreadBound = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_unreadBound) return;
+    final socket = context.read<SocketService>().socket;
+    if (socket == null) return;
+    _unreadBound = true;
+    UnreadMessages.refresh();
+    socket.on('dm:message', (_) => UnreadMessages.refresh());
+    socket.on('group:message', (_) => UnreadMessages.refresh());
+  }
 
   bool _handlingIncomingCall = false;
   // Channel of the incoming-call dialog currently showing, if any — lets
@@ -285,7 +310,8 @@ class _AppShellState extends State<AppShell> {
   Widget _buildScaffold() {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: const InsyncTopBar(),
+      // Reels play full screen, without the top bar.
+      appBar: _index == _reelsTab ? null : const InsyncTopBar(),
       // Lets Home's own scroll content show (blurred) through the glass
       // bottom nav instead of the bar sitting over a dead solid-color gap —
       // see LiquidGlassBottomNav.
@@ -295,7 +321,11 @@ class _AppShellState extends State<AppShell> {
       // screens like Home use TickerMode to pause their background polling.
       body: IndexedStack(index: _index, children: [
         for (var i = 0; i < _screens.length; i++)
-          TickerMode(enabled: i == _index, child: _screens[i]),
+          TickerMode(
+              enabled: i == _index,
+              child: i == _reelsTab
+                  ? (_index == _reelsTab ? const ReelsTab() : const SizedBox.shrink())
+                  : _screens[i]),
       ]),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
@@ -315,7 +345,6 @@ class _AppShellState extends State<AppShell> {
             currentIndex: _index,
             onTap: _onNavTap,
             items: _items,
-            onCreateTap: () => showCreateSheet(context),
           ),
         ],
       ),

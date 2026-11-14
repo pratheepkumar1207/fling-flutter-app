@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
@@ -8,7 +9,10 @@ class NavItemData {
 
   /// Small pink tag on the icon (the Live tab's "LIVE").
   final String? tag;
-  const NavItemData(this.icon, this.label, {this.tag});
+
+  /// A red count on the icon (Chat's unread), hidden at 0.
+  final ValueListenable<int>? badge;
+  const NavItemData(this.icon, this.label, {this.tag, this.badge});
 }
 
 /// Bottom bar from the approved design: four labelled tabs with the
@@ -18,13 +22,14 @@ class LiquidGlassBottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
   final List<NavItemData> items;
-  final VoidCallback onCreateTap;
+  // The centre "+"; null leaves it out (create lives in the top bar).
+  final VoidCallback? onCreateTap;
   const LiquidGlassBottomNav(
       {super.key,
       required this.currentIndex,
       required this.onTap,
       required this.items,
-      required this.onCreateTap});
+      this.onCreateTap});
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +45,8 @@ class LiquidGlassBottomNav extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(8, 6, 8, 4),
             child: Row(children: [
               for (var i = 0; i < items.length; i++) ...[
-                if (i == middle) _CreateButton(onTap: onCreateTap),
+                if (i == middle && onCreateTap != null)
+                  _CreateButton(onTap: onCreateTap!),
                 Expanded(
                   child: _Tab(
                       item: items[i],
@@ -77,6 +83,31 @@ class _Tab extends StatelessWidget {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Stack(clipBehavior: Clip.none, children: [
               InIcon(item.icon, size: 23, color: color),
+              if (item.badge != null)
+                Positioned(
+                  top: -5,
+                  right: -9,
+                  child: ValueListenableBuilder<int>(
+                    valueListenable: item.badge!,
+                    builder: (context, n, _) => n <= 0
+                        ? const SizedBox.shrink()
+                        : Container(
+                            constraints: const BoxConstraints(minWidth: 16),
+                            height: 16,
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            decoration: BoxDecoration(
+                                color: const Color(0xFFFF375F),
+                                borderRadius: BorderRadius.circular(8)),
+                            child: Center(
+                              child: Text(n > 99 ? '99+' : '$n',
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w700)),
+                            ),
+                          ),
+                  ),
+                ),
               if (item.tag != null)
                 Positioned(
                   top: -6,

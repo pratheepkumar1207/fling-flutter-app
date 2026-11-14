@@ -1,144 +1,103 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
+import '../../widgets/room_sheet.dart';
 import '../create/create_flow.dart';
 import '../lobby/lobby_create_screen.dart';
 
-/// The centre "+" in the bottom bar: start any kind of room, go live, or
-/// post. Go live is highlighted, as in the design.
+/// The ＋ in the top bar: one sheet for everything you can make — Post,
+/// Reel, Story, Room (then Watch · Talk · Game) and Go live.
 Future<void> showCreateSheet(BuildContext context) {
   return showModalBottomSheet(
     context: context,
-    showDragHandle: true,
+    backgroundColor: Colors.black,
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        side: BorderSide(color: kSheetBorder)),
     builder: (sheet) => _CreateSheet(parent: context),
   );
 }
 
-class _CreateSheet extends StatelessWidget {
+class _CreateSheet extends StatefulWidget {
   final BuildContext parent;
   const _CreateSheet({required this.parent});
 
-  void _room(BuildContext sheet, String type) {
-    Navigator.of(sheet).pop();
-    Navigator.of(parent).push(MaterialPageRoute(
+  @override
+  State<_CreateSheet> createState() => _CreateSheetState();
+}
+
+class _CreateSheetState extends State<_CreateSheet> {
+  // Room picked: the same sheet asks how it starts.
+  bool _room = false;
+
+  void _openRoom(String type) {
+    Navigator.of(context).pop();
+    Navigator.of(widget.parent).push(MaterialPageRoute(
         builder: (_) => LobbyCreateScreen(initialRoomType: type)));
   }
 
-  void _goLive(BuildContext sheet) => _room(sheet, 'live');
-
-  void _create(BuildContext sheet, CreateMode mode) {
-    Navigator.of(sheet).pop();
-    openCreateFlow(parent, mode: mode);
+  void _create(CreateMode mode) {
+    Navigator.of(context).pop();
+    openCreateFlow(widget.parent, mode: mode);
   }
+
+  Widget _grid(List<Widget> cards) => LayoutBuilder(
+        builder: (context, box) => Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final c in cards)
+              SizedBox(width: (box.maxWidth - 16) / 3, child: c),
+          ],
+        ),
+      );
+
+  Widget _card(InIconData icon, String label, VoidCallback onTap) =>
+      RoomToggleCard(
+          icon: icon, label: label, on: false, onChanged: (_) => onTap());
 
   @override
   Widget build(BuildContext context) {
-    final items = [
-      _Item(
-          InIcons.tv,
-          'Watch party',
-          'Movies, YouTube, Netflix',
-          AppColors.pink,
-          const Color(0xFF2A1028),
-          () => _room(context, 'watch')),
-      _Item(InIcons.mic, 'Voice room', 'Talk and sing', const Color(0xFFB97CF8),
-          const Color(0xFF1C1638), () => _room(context, 'voice')),
-      _Item(
-          InIcons.game,
-          'Game room',
-          'Ludo, UNO, Chess',
-          const Color(0xFF6E95FD),
-          const Color(0xFF122046),
-          () => _room(context, 'game')),
-      _Item(InIcons.live, 'Go live', 'Stream to everyone', Colors.white,
-          Colors.white24, () => _goLive(context),
-          highlight: true),
-      _Item(InIcons.image, 'Post', 'Photo, poll, voice note', AppColors.lilac,
-          const Color(0xFF1F1A2C), () => _create(context, CreateMode.post)),
-      _Item(InIcons.reel, 'Reel', 'Short video', const Color(0xFFFF9F5A),
-          const Color(0xFF2A1A10), () => _create(context, CreateMode.reel)),
-    ];
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
-        child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Create',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 12),
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                childAspectRatio: 1.45,
-                children: items,
-              ),
-            ]),
-      ),
-    );
-  }
-}
-
-class _Item extends StatelessWidget {
-  final InIconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final Color tile;
-  final VoidCallback onTap;
-  final bool highlight;
-  const _Item(
-      this.icon, this.title, this.subtitle, this.color, this.tile, this.onTap,
-      {this.highlight = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: title,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Ink(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            color: highlight ? null : AppColors.surface2,
-            gradient: highlight
-                ? const LinearGradient(
-                    colors: [AppColors.pink, AppColors.purple])
-                : null,
-            border: Border.all(color: AppColors.border),
-          ),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: DefaultTextStyle.merge(
+          style: const TextStyle(color: Colors.white),
           child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                      color: tile, borderRadius: BorderRadius.circular(12)),
-                  child: Center(child: InIcon(icon, size: 19, color: color)),
-                ),
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(title,
-                      style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w700)),
-                  Text(subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: highlight
-                              ? const Color(0xFFF4E8FF)
-                              : AppColors.textDim)),
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const RoomSheetHandle(),
+              if (!_room)
+                _grid([
+                  _card(InIcons.image, 'Post', () => _create(CreateMode.post)),
+                  _card(InIcons.reel, 'Reel', () => _create(CreateMode.reel)),
+                  _card(InIcons.camera, 'Story',
+                      () => _create(CreateMode.story)),
+                  _card(InIcons.popcorn, 'Room',
+                      () => setState(() => _room = true)),
+                  _card(InIcons.live, 'Go live', () => _openRoom('live')),
+                ])
+              else ...[
+                Row(children: [
+                  IconButton(
+                    tooltip: 'Back',
+                    onPressed: () => setState(() => _room = false),
+                    icon: const InIcon(InIcons.back,
+                        size: 20, color: Colors.white),
+                  ),
+                  const Text('New room',
+                      style:
+                          TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                 ]),
-              ]),
+                const SizedBox(height: 6),
+                _grid([
+                  _card(InIcons.film, 'Watch', () => _openRoom('watch')),
+                  _card(InIcons.mic, 'Talk', () => _openRoom('voice')),
+                  _card(InIcons.game, 'Game', () => _openRoom('game')),
+                ]),
+              ],
+            ],
+          ),
         ),
       ),
     );

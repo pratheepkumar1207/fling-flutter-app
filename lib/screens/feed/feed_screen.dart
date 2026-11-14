@@ -1,5 +1,6 @@
 import '../create/create_flow.dart';
 import 'package:flutter/material.dart';
+import 'friends_in_rooms_strip.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -355,6 +356,7 @@ class _FeedScreenState extends State<FeedScreen> {
                   onOpen: _openStoryViewer,
                   leading: _yourStoryTile()),
             ),
+            const FriendsInRoomsStrip(),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.fromLTRB(18, 2, 18, 12),
