@@ -60,7 +60,8 @@ class CallPushReceiver : BroadcastReceiver() {
         )
         val video = push.getStringExtra("mode") == "video"
         val notification = NotificationCompat.Builder(context, CHANNEL)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_stat_insync)
+            .setColor(0xFFE5179B.toInt())
             .setContentTitle(push.getStringExtra("fromName") ?: "Someone")
             .setContentText(if (video) "Incoming video call" else "Incoming voice call")
             .setCategory(NotificationCompat.CATEGORY_CALL)

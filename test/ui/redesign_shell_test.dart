@@ -6,7 +6,7 @@ import 'package:insync/screens/shell/liquid_glass_bottom_nav.dart';
 import 'package:insync/theme/app_colors.dart';
 import 'package:insync/theme/app_theme.dart';
 import 'package:insync/theme/insync_icons.dart';
-import 'package:insync/widgets/animated_logo.dart';
+import 'package:insync/widgets/insync_brand.dart';
 import 'package:insync/screens/home/home_lobby_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -147,7 +147,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Splash logo finishes and reports done', (tester) async {
+  testWidgets('Brand splash fills its bar and reports done', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -159,30 +159,15 @@ void main() {
         key: key,
         child: Scaffold(
           backgroundColor: AppColors.bg,
-          body: Center(child: AnimatedLogo(onDone: () => done = true)),
+          body: InsyncSplash(onDone: () => done = true),
         ),
       ),
     ));
     await tester.pump(const Duration(milliseconds: 1200));
     expect(done, isFalse);
-    await tester.pump(AnimatedLogo.total);
+    await tester.pump(const Duration(milliseconds: 1400));
     expect(done, isTrue);
-    await tester.runAsync(() async {
-      for (final n in [
-        'loop',
-        'head_left',
-        'head_right',
-        'bubble',
-        'pad',
-        'play',
-        'word',
-        'tag'
-      ]) {
-        await precacheImage(
-            AssetImage('assets/logo/$n.png'), key.currentContext!);
-      }
-    });
-    await tester.pump();
+    expect(find.text('Ready!'), findsOneWidget);
     await _snap(tester, key, 'splash-final');
   });
 }

@@ -136,9 +136,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon/insync-icon.png
-    - assets/icon/insync-logo.png
     - assets/icon/insync-symbol.png
-    - assets/logo/
     - assets/icons/app/
     - assets/sounds/
     # Animated emoji (Google Noto, CC BY 4.0): the most used, built in.
@@ -148,4 +146,9 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/icon/insync-icon.png"
+  # Android 8+: gradient layer + white symbol layer (fits any icon shape);
+  # Android 13 themed icon uses the symbol layer.
+  adaptive_icon_background: "assets/icon/insync-adaptive-bg.png"
+  adaptive_icon_foreground: "assets/icon/insync-adaptive-fg.png"
+  adaptive_icon_monochrome: "assets/icon/insync-adaptive-fg.png"
   min_sdk_android: 21

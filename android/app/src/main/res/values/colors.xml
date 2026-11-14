@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- insync brand (brand guide 1.0) -->
+    <color name="insync_pink">#E5179B</color>
+    <color name="insync_night">#0E0A1C</color>
+</resources>
