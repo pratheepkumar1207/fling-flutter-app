@@ -186,6 +186,21 @@ class _PartyScreenState extends State<PartyScreen>
         duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
   }
 
+  // Watch rooms: drag the video up to tuck it away under the top bar
+  // (sound keeps playing); the half-circle ▾ on the bar brings it back.
+  bool _videoHidden = false;
+
+  // On the video, or just under it (Hotstar and the other sites take every
+  // touch on the video itself).
+  bool _dragStartedNearPlayer() {
+    final global = _dragStartGlobal;
+    if (global == null) return false;
+    final box = _playerAreaKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.attached) return false;
+    final r = box.localToGlobal(Offset.zero) & box.size;
+    return Rect.fromLTRB(r.left, r.top, r.right, r.bottom + 56).contains(global);
+  }
+
   bool _dragStartedOnPlayer() {
     final global = _dragStartGlobal;
     if (global == null) return false;
@@ -1658,6 +1673,8 @@ class _PartyScreenState extends State<PartyScreen>
     // it wherever the viewer had scrolled to for the previous video.
     if (isWatch && playerVideoUrl != _lastSeenPlayerVideoUrl) {
       _lastSeenPlayerVideoUrl = playerVideoUrl;
+      // A new video shows itself again.
+      _videoHidden = false;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _scrollWatchHeaderToTop();
       });
@@ -2462,6 +2479,13 @@ class _PartyScreenState extends State<PartyScreen>
                       _dragStartGlobal = details.globalPosition,
                   onVerticalDragEnd: (details) {
                     if (hideChromeForChat) return;
+                    if (isWatch &&
+                        !_videoHidden &&
+                        (details.primaryVelocity ?? 0) < -250 &&
+                        _dragStartedNearPlayer()) {
+                      setState(() => _videoHidden = true);
+                      return;
+                    }
                     final fromBottom = MediaQuery.sizeOf(context).height -
                         (_dragStartGlobal?.dy ?? 0);
                     if ((details.primaryVelocity ?? 0) < -250 &&
@@ -2904,15 +2928,73 @@ class _PartyScreenState extends State<PartyScreen>
                                 // the chat field visible, which pushed the video
                                 // up off-screen mid-chat. Only the banner,
                                 // participants and poll below still collapse.
-                                Padding(
-                                  key: _playerAreaKey,
-                                  padding: EdgeInsets.zero,
-                                  child: player(
-                                    mediaMode:
-                                        currentItem?['mediaMode'] as String? ??
+                                // Slides up under the top bar when hidden (the
+                                // player stays playing behind the clip).
+                                ClipRect(
+                                  child: AnimatedAlign(
+                                    duration:
+                                        const Duration(milliseconds: 300),
+                                    curve: Curves.easeOutCubic,
+                                    alignment: Alignment.bottomCenter,
+                                    heightFactor: _videoHidden ? 0 : 1,
+                                    child: Padding(
+                                      key: _playerAreaKey,
+                                      padding: EdgeInsets.zero,
+                                      child: player(
+                                        mediaMode: currentItem?['mediaMode']
+                                                as String? ??
                                             'video',
-                                    compact: false,
+                                        compact: false,
+                                      ),
+                                    ),
                                   ),
+                                ),
+                                // The half-circle ▾ hanging from the top bar.
+                                AnimatedSize(
+                                  duration: const Duration(milliseconds: 240),
+                                  curve: Curves.easeOutCubic,
+                                  child: _videoHidden
+                                      ? Center(
+                                          child: Semantics(
+                                            button: true,
+                                            label: 'Show video',
+                                            excludeSemantics: true,
+                                            child: GestureDetector(
+                                              onTap: () => setState(
+                                                  () => _videoHidden = false),
+                                              child: Container(
+                                                width: 44,
+                                                height: 22,
+                                                decoration: const BoxDecoration(
+                                                  color: Colors.black,
+                                                  borderRadius:
+                                                      BorderRadius.vertical(
+                                                          bottom:
+                                                              Radius.circular(
+                                                                  22)),
+                                                  border: Border(
+                                                    left: BorderSide(
+                                                        color:
+                                                            Color(0x14FFFFFF)),
+                                                    right: BorderSide(
+                                                        color:
+                                                            Color(0x14FFFFFF)),
+                                                    bottom: BorderSide(
+                                                        color:
+                                                            Color(0x14FFFFFF)),
+                                                  ),
+                                                ),
+                                                alignment: Alignment.topCenter,
+                                                child: const InIcon(
+                                                    InIcons.down,
+                                                    size: 17,
+                                                    color: Colors.white),
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                      : const SizedBox(
+                                          width: double.infinity, height: 0),
                                 ),
                                 Expanded(
                                   child: Stack(
