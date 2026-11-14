@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import 'game_seat.dart';
 
 /// Presentational only — every rule (yard-exit-on-6, capture, safe squares,
@@ -14,11 +13,14 @@ import 'game_seat.dart';
 
 const List<String> _colors = ['red', 'green', 'yellow', 'blue'];
 const Map<String, Color> _colorHex = {
-  'red': AppColors.danger,
-  'green': AppColors.success,
-  'yellow': AppColors.gold,
-  'blue': Color(0xFF4F9DFF), // one-off, matches LudoBoard.jsx's blue
+  'red': Color(0xFFE53935),
+  'green': Color(0xFF2E9E4F),
+  'yellow': Color(0xFFF6B21A),
+  'blue': Color(0xFF1E7BE0),
 };
+const _kBoard = Color(0xFFFBF6EC); // cream playing surface
+const _kLine = Color(0xFFE2D8C6); // square outlines
+const _kFrame = Color(0xFFB9874E); // wooden frame
 const Map<String, String> _colorName = {
   'red': 'Red',
   'green': 'Green',
@@ -164,10 +166,17 @@ List<int>? _cellForPos(String color, int pos) {
 
 Offset _cellTopLeft(int r, int c) => Offset(c * _cellPct, r * _cellPct);
 
+// Waiting spots sit in a 2x2 inside the yard's white panel: pulled a
+// third of the way in from the slot cells toward the yard's centre.
 Offset _yardSlotPos(String color, int tokenIdx) {
   final rc = _baseSlots[color]![tokenIdx];
-  final p = _cellTopLeft(rc[0], rc[1]);
-  return Offset(p.dx + _cellPct / 2, p.dy + _cellPct / 2);
+  double inward(int cell) {
+    final origin = (cell ~/ 9) * 9;
+    final c = cell + 0.5 - origin;
+    return origin + 3 + (c - 3) * (2 / 3);
+  }
+
+  return Offset(inward(rc[1]) * _cellPct, inward(rc[0]) * _cellPct);
 }
 
 // pos === 0 (yard) falls through to the defensive fallback below too, along
@@ -524,21 +533,30 @@ class LudoBoard extends StatelessWidget {
             child: AspectRatio(
               aspectRatio: 1,
               child: Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.surface2,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border),
+                  gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFFD9A867), _kFrame, Color(0xFF8E6334)]),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: const [
+                    BoxShadow(
+                        color: Color(0x66000000),
+                        blurRadius: 14,
+                        offset: Offset(0, 6))
+                  ],
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(10),
                   child: LayoutBuilder(builder: (context, constraints) {
                     final size = constraints.maxWidth;
                     return Container(
-                      color: AppColors.surface.withValues(alpha: 0.6),
+                      color: _kBoard,
                       child: Stack(
                         children: [
                           for (final c in _colors) _yardBlock(c, size),
+                          for (final c in _colors) ..._yardSlots(c, size),
                           for (var i = 0; i < _ring.length; i++)
                             _ringCell(i, size),
                           for (final c in _colors)
@@ -621,35 +639,54 @@ class LudoBoard extends StatelessWidget {
       width: side,
       height: side,
       child: Container(
-        margin: const EdgeInsets.all(6),
-        padding: const EdgeInsets.all(8),
+        margin: EdgeInsets.all(side * 0.02),
+        padding: EdgeInsets.all(side * 0.14),
         decoration: BoxDecoration(
-          color: hex.withValues(alpha: 0.08),
-          border: Border.all(color: hex.withValues(alpha: 0.25)),
-          borderRadius: BorderRadius.circular(16),
+          color: hex,
+          borderRadius: BorderRadius.circular(side * 0.12),
+          boxShadow: [
+            BoxShadow(
+                color: hex.withValues(alpha: 0.35),
+                blurRadius: 6,
+                offset: const Offset(0, 2))
+          ],
         ),
-        child: GridView.count(
-          crossAxisCount: 2,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          children: List.generate(4, (_) {
-            return Container(
-              decoration: BoxDecoration(
-                color: hex.withValues(alpha: 0.13),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                      color: hex.withValues(alpha: 0.33),
-                      blurRadius: 0,
-                      spreadRadius: 2)
-                ],
-              ),
-            );
-          }),
+        // White panel; the four waiting spots are drawn by _yardSlots so
+        // they sit exactly where the tokens wait.
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(side * 0.09),
+          ),
         ),
       ),
     );
+  }
+
+  // The four round spots in a yard, centred on the token positions.
+  List<Widget> _yardSlots(String color, double size) {
+    final hex = _colorHex[color]!;
+    final d = _cellPct * size * 1.45;
+    return [
+      for (var i = 0; i < 4; i++)
+        Builder(builder: (context) {
+          final c = _yardSlotPos(color, i);
+          return Positioned(
+            left: c.dx * size - d / 2,
+            top: c.dy * size - d / 2,
+            width: d,
+            height: d,
+            child: Container(
+              decoration: BoxDecoration(
+                color: hex.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+                border:
+                    Border.all(color: hex.withValues(alpha: 0.55), width: 2),
+              ),
+            ),
+          );
+        }),
+    ];
   }
 
   Widget _ringCell(int i, double size) {
@@ -668,24 +705,18 @@ class LudoBoard extends StatelessWidget {
       height: cell,
       child: Container(
         decoration: BoxDecoration(
-          color: isStart
-              ? _colorHex[startColor]!.withValues(alpha: 0.4)
-              : Colors.white.withValues(alpha: 0.04),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-          boxShadow: isStart
-              ? [
-                  BoxShadow(
-                      color: _colorHex[startColor]!.withValues(alpha: 0.33),
-                      blurRadius: 6)
-                ]
-              : null,
+          color: isStart ? _colorHex[startColor]! : Colors.white,
+          border: Border.all(color: _kLine, width: 0.8),
         ),
         alignment: Alignment.center,
-        child: isSafe
+        child: isSafe && !isStart
             ? Text('★',
-                style:
-                    TextStyle(fontSize: cell * 0.4, color: AppColors.textFaint))
-            : null,
+                style: TextStyle(
+                    fontSize: cell * 0.5, color: const Color(0xFFC9BCA5)))
+            : isStart
+                ? Icon(Icons.arrow_forward_rounded,
+                    size: cell * 0.55, color: Colors.white)
+                : null,
       ),
     );
   }
@@ -702,8 +733,7 @@ class LudoBoard extends StatelessWidget {
       height: cell,
       child: Container(
         decoration: BoxDecoration(
-            color: hex.withValues(alpha: 0.27),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.06))),
+            color: hex, border: Border.all(color: _kLine, width: 0.8)),
       ),
     );
   }
@@ -716,31 +746,7 @@ class LudoBoard extends StatelessWidget {
       top: offset,
       width: side,
       height: side,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.white.withValues(alpha: 0.15), blurRadius: 20)
-          ],
-          gradient: SweepGradient(
-            transform: const GradientRotation(
-                -math.pi / 4 + math.pi / 2), // from 45deg, clockwise
-            colors: [
-              _colorHex['red']!,
-              _colorHex['red']!,
-              _colorHex['yellow']!,
-              _colorHex['yellow']!,
-              _colorHex['blue']!,
-              _colorHex['blue']!,
-              _colorHex['green']!,
-              _colorHex['green']!,
-              _colorHex['red']!,
-            ],
-            stops: const [0, 0.25, 0.25, 0.5, 0.5, 0.75, 0.75, 1, 1],
-          ),
-        ),
-      ),
+      child: const CustomPaint(painter: _HomeTriangles()),
     );
   }
 
@@ -830,22 +836,30 @@ class _TokenDotState extends State<_TokenDot>
             label: widget.isMovable ? widget.label : null,
             child: Container(
               decoration: BoxDecoration(
-                color: widget.hex,
                 shape: BoxShape.circle,
-                border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.75), width: 2),
+                gradient: RadialGradient(
+                  center: const Alignment(-0.35, -0.4),
+                  radius: 0.9,
+                  colors: [
+                    Color.lerp(widget.hex, Colors.white, 0.55)!,
+                    widget.hex,
+                    Color.lerp(widget.hex, Colors.black, 0.25)!,
+                  ],
+                  stops: const [0, 0.55, 1],
+                ),
+                border: Border.all(color: Colors.white, width: 2),
                 boxShadow: widget.isMovable
                     ? [
-                        const BoxShadow(
-                            color: Colors.white,
-                            blurRadius: 0,
-                            spreadRadius: 3),
-                        BoxShadow(color: widget.hex, blurRadius: 10)
-                      ]
-                    : [
                         BoxShadow(
-                            color: widget.hex.withValues(alpha: 0.67),
-                            blurRadius: 8)
+                            color: widget.hex.withValues(alpha: 0.9),
+                            blurRadius: 10,
+                            spreadRadius: 2),
+                      ]
+                    : const [
+                        BoxShadow(
+                            color: Color(0x55000000),
+                            blurRadius: 3,
+                            offset: Offset(0, 2))
                       ],
               ),
             ),
@@ -854,4 +868,39 @@ class _TokenDotState extends State<_TokenDot>
       },
     );
   }
+}
+
+
+/// The finish in the middle: four coloured triangles meeting at the centre,
+/// each pointing from its colour's home lane.
+class _HomeTriangles extends CustomPainter {
+  const _HomeTriangles();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    final c = Offset(w / 2, h / 2);
+    void tri(Offset a, Offset b, Color color) {
+      final path = Path()
+        ..moveTo(a.dx, a.dy)
+        ..lineTo(b.dx, b.dy)
+        ..lineTo(c.dx, c.dy)
+        ..close();
+      canvas.drawPath(path, Paint()..color = color);
+      canvas.drawPath(
+          path,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..color = Colors.white
+            ..strokeWidth = 1);
+    }
+
+    tri(Offset.zero, Offset(0, h), _colorHex['red']!); // left
+    tri(Offset.zero, Offset(w, 0), _colorHex['green']!); // top
+    tri(Offset(w, 0), Offset(w, h), _colorHex['yellow']!); // right
+    tri(Offset(0, h), Offset(w, h), _colorHex['blue']!); // bottom
+  }
+
+  @override
+  bool shouldRepaint(covariant _HomeTriangles old) => false;
 }
