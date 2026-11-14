@@ -97,9 +97,11 @@ void main() {
     await t.tap(find.bySemanticsLabel('Send a gift'));
     expect(giftFor, isNull);
 
-    // Long-press Bala's message to reply.
+    // Long-press Bala's message: the sheet offers reactions, Reply, Copy.
     await t.longPress(find.text('hi @Me', findRichText: true));
-    await t.pump();
+    await t.pumpAndSettle();
+    await t.tap(find.text('Reply'));
+    await t.pumpAndSettle();
     expect(find.text('Replying to Bala Kumar'), findsOneWidget);
 
     // @ suggestions: tap to tag; the name goes in the box.

@@ -38,6 +38,8 @@ class ChatOverlay extends StatefulWidget {
   // is actually in the room) to notify just those people.
   final void Function(String text, List<String> mentionedUserIds,
       {Map<String, dynamic>? replyTo}) onSend;
+  // Long-press a message → pick an emoji: reacts to that message.
+  final void Function(String messageId, String emoji)? onReact;
   final String? myUserId;
   final Color primaryColor;
   final Color textColor;
@@ -106,6 +108,7 @@ class ChatOverlay extends StatefulWidget {
     super.key,
     required this.messages,
     required this.onSend,
+    this.onReact,
     this.myUserId,
     required this.primaryColor,
     required this.textColor,
@@ -319,7 +322,8 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
   /// One chat message: yours on the right, everyone else's on the left,
   /// each with the person's picture. Plain white text, no bubble (a soft
   /// shadow keeps it readable over video). Long-press or swipe to reply.
-  Widget _messageLine(Map<String, dynamic> m, String name, String? senderId) {
+  Widget _messageLine(Map<String, dynamic> m, String name, String? senderId,
+      {bool continued = false, bool nextContinues = false}) {
     final mine = senderId != null && senderId == widget.myUserId;
     final vip = m['isVip'] == true;
     final text = m['text'] as String? ?? '';
@@ -334,41 +338,44 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
             mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(mainAxisSize: MainAxisSize.min, children: [
-            if (vip)
-              Container(
-                margin: const EdgeInsets.only(right: 5),
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                decoration: BoxDecoration(
-                    color: AppColors.gold,
-                    borderRadius: BorderRadius.circular(5)),
-                child: const Text('VIP',
+          // Same person again: just the text, under their first line.
+          if (!continued)
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              if (vip)
+                Container(
+                  margin: const EdgeInsets.only(right: 5),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  decoration: BoxDecoration(
+                      color: AppColors.gold,
+                      borderRadius: BorderRadius.circular(5)),
+                  child: const Text('VIP',
+                      style: TextStyle(
+                          color: Color(0xFF3A2300),
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800)),
+                ),
+              if (!mine && widget.fanIds.contains(senderId))
+                const Padding(
+                  padding: EdgeInsets.only(right: 4),
+                  child: InIcon(InIcons.heart,
+                      size: 12, color: AppColors.pink, filled: true),
+                ),
+              Flexible(
+                child: Text(shownName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        color: Color(0xFF3A2300),
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800)),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        shadows: _textShadow,
+                        color: mine
+                            ? AppColors.lilac
+                            : vip
+                                ? AppColors.gold
+                                : _nameColor(senderId))),
               ),
-            if (!mine && widget.fanIds.contains(senderId))
-              const Padding(
-                padding: EdgeInsets.only(right: 4),
-                child: InIcon(InIcons.heart,
-                    size: 12, color: AppColors.pink, filled: true),
-              ),
-            Flexible(
-              child: Text(shownName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      shadows: _textShadow,
-                      color: mine
-                          ? AppColors.lilac
-                          : vip
-                              ? AppColors.gold
-                              : _nameColor(senderId))),
-            ),
-          ]),
+            ]),
           if (quote != null)
             Padding(
               padding: const EdgeInsets.only(top: 2),
@@ -393,59 +400,48 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
               style: const TextStyle(
                   fontSize: 13, color: Colors.white, shadows: _textShadow),
             ),
+          if (m['reactions'] is Map && (m['reactions'] as Map).isNotEmpty)
+            _reactionChips(m, mine),
         ]);
     final line = Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       textDirection: mine ? TextDirection.rtl : TextDirection.ltr,
       children: [
-        GestureDetector(
-          onTap: mine ? null : () => openRoomPerson(context, senderId),
-          child: Padding(
-            padding: const EdgeInsets.only(top: 1),
-            child: SizedBox.square(
-              dimension: 24,
-              child: FittedBox(
-                  child: Avatar(
-                      src: person?.avatarUrl ?? m['avatarUrl'] as String?,
-                      name: name,
-                      size: AvatarSize.sm)),
+        if (continued)
+          const SizedBox(width: 24)
+        else
+          GestureDetector(
+            onTap: mine ? null : () => openRoomPerson(context, senderId),
+            child: Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: SizedBox.square(
+                dimension: 24,
+                child: FittedBox(
+                    child: Avatar(
+                        src: person?.avatarUrl ?? m['avatarUrl'] as String?,
+                        name: name,
+                        size: AvatarSize.sm)),
+              ),
             ),
           ),
-        ),
         const SizedBox(width: 7),
         Flexible(child: body),
       ],
     );
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Dismissible(
-        key: ValueKey('msg-${m['id'] ?? m['ts']}-$senderId'),
-        direction:
-            mine ? DismissDirection.endToStart : DismissDirection.startToEnd,
-        dismissThresholds: const {
-          DismissDirection.startToEnd: 0.25,
-          DismissDirection.endToStart: 0.25,
-        },
-        confirmDismiss: (_) async {
-          _startReply(m);
-          return false;
-        },
-        background: Align(
-          alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12),
-            child: InIcon(InIcons.reply, size: 18, color: AppColors.lilac),
-          ),
-        ),
+      padding: EdgeInsets.only(bottom: nextContinues ? 3 : 8),
+      child: _SwipeToReply(
+        mine: mine,
+        onReply: () => _startReply(m),
         child: Align(
           alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 300),
             child: Semantics(
-              label: '$shownName: $text. Long-press to reply',
+              label: '$shownName: $text. Long-press to react or reply',
               child: GestureDetector(
-                onLongPress: () => _startReply(m),
+                onLongPress: () => _openMessageSheet(m),
                 child: line,
               ),
             ),
@@ -534,8 +530,131 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
     );
   }
 
-  // Quick reactions: one tap sends it to the room.
-  static const _quickReactions = ['😂', '🔥', '❤️', '😮', '👏'];
+  static const _quickReactions = ['❤️', '😂', '😮', '😢', '🔥', '👏'];
+
+  // Long-press a message: react with an emoji, reply or copy.
+  void _openMessageSheet(Map<String, dynamic> m) {
+    HapticFeedback.selectionClick();
+    final id = m['id'] as String?;
+    void react(BuildContext sheet, String e) {
+      Navigator.of(sheet).pop();
+      if (id != null) widget.onReact?.call(id, e);
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.black,
+      isScrollControlled: true,
+      builder: (sheet) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            if (id != null && widget.onReact != null) ...[
+              Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+                for (final e in _quickReactions)
+                  Semantics(
+                    button: true,
+                    label: 'React $e',
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(24),
+                      onTap: () => react(sheet, e),
+                      child: Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: AnimatedEmoji(e, size: 36),
+                      ),
+                    ),
+                  ),
+              ]),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 150,
+                child: GridView.count(
+                  crossAxisCount: 8,
+                  children: [
+                    for (final e in _emojiGrid)
+                      Semantics(
+                        button: true,
+                        label: 'React $e',
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () => react(sheet, e),
+                          child: Center(
+                              child: Text(e,
+                                  style: const TextStyle(fontSize: 24))),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const Divider(color: Color(0x22FFFFFF)),
+            ],
+            ListTile(
+              leading: const InIcon(InIcons.reply, color: Colors.white),
+              title: const Text('Reply', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.of(sheet).pop();
+                _startReply(m);
+              },
+            ),
+            ListTile(
+              leading: const InIcon(InIcons.copy, color: Colors.white),
+              title: const Text('Copy', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.of(sheet).pop();
+                Clipboard.setData(
+                    ClipboardData(text: m['text'] as String? ?? ''));
+              },
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  // The emoji people reacted with, under the message; tap one to add or
+  // take back yours.
+  Widget _reactionChips(Map<String, dynamic> m, bool mine) {
+    final r = Map<String, dynamic>.from(m['reactions'] as Map);
+    final id = m['id'] as String?;
+    return Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: Wrap(
+        spacing: 4,
+        runSpacing: 4,
+        alignment: mine ? WrapAlignment.end : WrapAlignment.start,
+        children: [
+          for (final e in r.entries)
+            if (e.value is List && (e.value as List).isNotEmpty)
+              GestureDetector(
+                onTap:
+                    id == null ? null : () => widget.onReact?.call(id, e.key),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: (e.value as List).contains(widget.myUserId)
+                        ? const Color(0x667C5CFF)
+                        : const Color(0x33FFFFFF),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    AnimatedEmoji(e.key, size: 15, repeat: false),
+                    if ((e.value as List).length > 1) ...[
+                      const SizedBox(width: 3),
+                      Text('${(e.value as List).length}',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w600)),
+                    ],
+                  ]),
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+
   static const _emojiGrid = [
     '😂',
     '🤣',
@@ -570,9 +689,6 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
     '👀',
     '😅',
   ];
-
-  void _sendReaction(String emoji) =>
-      widget.onSend(emoji, const [], replyTo: null);
 
   void _openEmoji() => showModalBottomSheet(
         context: context,
@@ -808,7 +924,8 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                   reverse: true,
                   padding:
                       EdgeInsets.fromLTRB(0, 8, widget.messagesRightInset, 8),
-                  itemCount: visible.length + (widget.newestCard != null ? 1 : 0),
+                  itemCount:
+                      visible.length + (widget.newestCard != null ? 1 : 0),
                   itemBuilder: (context, i) {
                     if (widget.newestCard != null) {
                       if (i == 0) return widget.newestCard!;
@@ -851,7 +968,22 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                     if (viewOnceId != null) {
                       return _viewOnceLine(m, viewOnceId, name, senderId);
                     }
-                    return _messageLine(m, name, senderId);
+                    // Back-to-back messages from one person: photo and
+                    // name only on the first.
+                    bool plain(Map<String, dynamic>? x) =>
+                        x != null &&
+                        x['system'] != true &&
+                        x['type'] == null &&
+                        x['gift'] != true &&
+                        x['viewOnceId'] == null;
+                    final older =
+                        i + 1 < visible.length ? visible[i + 1] : null;
+                    final newer = i > 0 ? visible[i - 1] : null;
+                    return _messageLine(m, name, senderId,
+                        continued:
+                            plain(older) && older!['senderId'] == senderId,
+                        nextContinues:
+                            plain(newer) && newer!['senderId'] == senderId);
                   },
                 ),
         ),
@@ -930,32 +1062,6 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
           ),
         if (widget.pickEndsAt != null || widget.pickWaiting)
           PickBanner(endsAt: widget.pickEndsAt, waiting: widget.pickWaiting),
-        if (!_focused)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Row(children: [
-              for (final e in _quickReactions)
-                Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: Semantics(
-                    button: true,
-                    label: 'Send $e',
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () => _sendReaction(e),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 9, vertical: 3),
-                        decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.09),
-                            borderRadius: BorderRadius.circular(16)),
-                        child: Text(e, style: const TextStyle(fontSize: 15)),
-                      ),
-                    ),
-                  ),
-                ),
-            ]),
-          ),
         if (_replyTo != null)
           Container(
             margin: const EdgeInsets.only(bottom: 6),
@@ -1051,46 +1157,46 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
               ),
             Expanded(
               child: Container(
-                  constraints: const BoxConstraints(minHeight: 42),
-                  padding: const EdgeInsets.only(left: 14, right: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _controller,
-                          focusNode: _focusNode,
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 14),
-                          // Otherwise picks up the app's default theme
-                          // accent for the cursor/selection handles — a
-                          // stray splash of color against this glass bar's
-                          // neutral look while typing.
-                          cursorColor: Colors.white,
-                          onSubmitted: (_) => _send(),
-                          decoration: const InputDecoration(
-                            hintText: 'Message…',
-                            hintStyle: TextStyle(color: Colors.white54),
-                            // No second box inside the bar: the app's
-                            // filled field style is switched off here.
-                            filled: false,
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            disabledBorder: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.symmetric(vertical: 9),
-                          ),
+                constraints: const BoxConstraints(minHeight: 42),
+                padding: const EdgeInsets.only(left: 14, right: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _controller,
+                        focusNode: _focusNode,
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 14),
+                        // Otherwise picks up the app's default theme
+                        // accent for the cursor/selection handles — a
+                        // stray splash of color against this glass bar's
+                        // neutral look while typing.
+                        cursorColor: Colors.white,
+                        onSubmitted: (_) => _send(),
+                        decoration: const InputDecoration(
+                          hintText: 'Message…',
+                          hintStyle: TextStyle(color: Colors.white54),
+                          // No second box inside the bar: the app's
+                          // filled field style is switched off here.
+                          filled: false,
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(vertical: 9),
                         ),
                       ),
-                      _inlineIcon(InIcons.smile, 'Emoji', _openEmoji),
-                      if (!widget.compact)
-                        _inlineIcon(InIcons.clip, 'Attach', _openAttach),
-                    ],
-                  ),
+                    ),
+                    _inlineIcon(InIcons.smile, 'Emoji', _openEmoji),
+                    if (!widget.compact)
+                      _inlineIcon(InIcons.clip, 'Attach', _openAttach),
+                  ],
+                ),
               ),
             ),
             const SizedBox(width: 6),
@@ -1479,6 +1585,58 @@ class _GiftChatCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Swipe a message sideways to reply. The message itself stays still; a
+/// small reply arrow fades in at the side while you swipe.
+class _SwipeToReply extends StatefulWidget {
+  final bool mine;
+  final VoidCallback onReply;
+  final Widget child;
+  const _SwipeToReply(
+      {required this.mine, required this.onReply, required this.child});
+
+  @override
+  State<_SwipeToReply> createState() => _SwipeToReplyState();
+}
+
+class _SwipeToReplyState extends State<_SwipeToReply> {
+  double _dx = 0;
+
+  // Yours swipe left, everyone else's right.
+  double get _pull => widget.mine ? -_dx : _dx;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = (_pull / 60).clamp(0.0, 1.0);
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onHorizontalDragUpdate: (d) => setState(() => _dx += d.delta.dx),
+      onHorizontalDragEnd: (d) {
+        final v = d.primaryVelocity ?? 0;
+        if (_pull > 50 || (widget.mine ? -v : v) > 500) widget.onReply();
+        setState(() => _dx = 0);
+      },
+      onHorizontalDragCancel: () => setState(() => _dx = 0),
+      child: Stack(clipBehavior: Clip.none, children: [
+        widget.child,
+        if (t > 0)
+          Positioned(
+            top: 0,
+            bottom: 0,
+            left: widget.mine ? 0 : null,
+            right: widget.mine ? null : 0,
+            child: Center(
+              child: Opacity(
+                opacity: t,
+                child:
+                    const InIcon(InIcons.reply, size: 18, color: Colors.white),
+              ),
+            ),
+          ),
+      ]),
     );
   }
 }

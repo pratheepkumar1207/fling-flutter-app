@@ -44,6 +44,10 @@ class RoomSocketController extends ChangeNotifier {
   // Each video's real shape, measured on someone's phone (videoUrl → w/h).
   Map<String, double> videoAspects = const {};
 
+  // React to a chat message (the same emoji again takes it back).
+  void reactToMessage(String messageId, String emoji) => socket?.emit(
+      'chat:react', {'roomId': roomId, 'messageId': messageId, 'emoji': emoji});
+
   void shareAspect(String videoUrl, double aspect) => socket?.emit(
       'room:aspect',
       {'roomId': roomId, 'videoUrl': videoUrl, 'aspect': aspect});
@@ -210,6 +214,28 @@ class RoomSocketController extends ChangeNotifier {
     });
     s.on('chat:message', (data) {
       messages = [...messages, Map<String, dynamic>.from(data)];
+      notifyListeners();
+    });
+    // Emoji reactions on messages: {messageId, reactions: {emoji: [userIds]}},
+    // or all of a room's at once when joining.
+    void applyReactions(String? id, dynamic r) {
+      if (id == null) return;
+      messages = [
+        for (final m in messages)
+          m['id'] == id
+              ? {...m, 'reactions': r is Map ? Map<String, dynamic>.from(r) : {}}
+              : m
+      ];
+    }
+
+    s.on('chat:reactions', (data) {
+      if (data is! Map) return;
+      applyReactions(data['messageId'] as String?, data['reactions']);
+      notifyListeners();
+    });
+    s.on('chat:reactionsAll', (data) {
+      if (data is! Map) return;
+      data.forEach((k, v) => applyReactions('$k', v));
       notifyListeners();
     });
     // Your view-once photo was just opened by someone: bump its count.
@@ -476,6 +502,8 @@ class RoomSocketController extends ChangeNotifier {
     socket?.off('call:state');
     socket?.off('call:denied');
     socket?.off('game:state');
+    socket?.off('chat:reactions');
+    socket?.off('chat:reactionsAll');
     socket?.off('room:aspects');
     socket?.off('game:seats');
     socket?.off('game:seatDenied');

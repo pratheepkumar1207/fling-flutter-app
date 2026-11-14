@@ -2214,6 +2214,7 @@ class _PartyScreenState extends State<PartyScreen>
                                     fanIds: extras.fanIds,
                                     messagesRightInset: 62,
                                     messages: rs.messages,
+                                    onReact: rs.reactToMessage,
                                     onSend: (text, mentionedUserIds,
                                             {replyTo}) =>
                                         rs.sendMessage(text,
@@ -2531,6 +2532,7 @@ class _PartyScreenState extends State<PartyScreen>
                                 newestCard: privacyCard,
                                 compact: _peopleOpen,
                                 messages: rs.messages,
+                                onReact: rs.reactToMessage,
                                 onSend: (text, mentionedUserIds, {replyTo}) =>
                                     rs.sendMessage(text,
                                         mentionedUserIds: mentionedUserIds,
@@ -2653,6 +2655,7 @@ class _PartyScreenState extends State<PartyScreen>
                                           newestCard: privacyCard,
                                           compact: _peopleOpen,
                                           messages: rs.messages,
+                                          onReact: rs.reactToMessage,
                                           onSend: (text, mentionedUserIds,
                                                   {replyTo}) =>
                                               rs.sendMessage(text,
@@ -2787,6 +2790,7 @@ class _PartyScreenState extends State<PartyScreen>
                                       newestCard: privacyCard,
                                       compact: _peopleOpen,
                                       messages: rs.messages,
+                                      onReact: rs.reactToMessage,
                                       onSend: (text, mentionedUserIds,
                                               {replyTo}) =>
                                           rs.sendMessage(text,
@@ -3022,6 +3026,7 @@ class _PartyScreenState extends State<PartyScreen>
                                             newestCard: privacyCard,
                                             compact: _peopleOpen,
                                             messages: rs.messages,
+                                            onReact: rs.reactToMessage,
                                             onSend: (text, mentionedUserIds,
                                                     {replyTo}) =>
                                                 rs.sendMessage(text,
@@ -3155,6 +3160,7 @@ class _PartyScreenState extends State<PartyScreen>
                                 newestCard: privacyCard,
                                 compact: _peopleOpen,
                                 messages: rs.messages,
+                                onReact: rs.reactToMessage,
                                 onSend: (text, mentionedUserIds, {replyTo}) =>
                                     rs.sendMessage(text,
                                         mentionedUserIds: mentionedUserIds,
