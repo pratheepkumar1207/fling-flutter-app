@@ -736,21 +736,25 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
         while (r < W - le && cols[W - 1 - r] < T) r++;
         seen.push([Math.min(t, b) / H, Math.min(le, r) / W]);
         if (seen.length > 6) seen.shift();
-        if (seen.length < 4) return;
+        if (seen.length < 3) return;
         var vy = 1, vx = 1;
         seen.forEach(function (q) { vy = Math.min(vy, q[0]); vx = Math.min(vx, q[1]); });
         cut = vy >= 0.05 && vy < 0.3 ? vy : 0;
         cutX = vx >= 0.05 && vx < 0.3 ? vx : 0;
         var on = cut > 0 || cutX > 0;
         var st = v.style;
+        // Fixed to the player frame's own viewport (YouTube's video
+        // container has no height of its own, so 100% collapsed the video
+        // to nothing and left a black screen).
         if (on) {
+          st.setProperty('position', 'fixed', 'important');
           st.setProperty('object-fit', 'cover', 'important');
-          st.setProperty('width', '100%', 'important');
-          st.setProperty('height', '100%', 'important');
+          st.setProperty('width', '100vw', 'important');
+          st.setProperty('height', '100vh', 'important');
           st.setProperty('left', '0', 'important');
           st.setProperty('top', '0', 'important');
         } else if (st.getPropertyValue('object-fit')) {
-          ['object-fit', 'width', 'height', 'left', 'top'].forEach(function (k) { st.removeProperty(k); });
+          ['position', 'object-fit', 'width', 'height', 'left', 'top'].forEach(function (k) { st.removeProperty(k); });
         }
       }
       setInterval(function () {
@@ -761,7 +765,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
         if (Math.abs(ar - last) < 0.01) return;
         last = ar;
         try { window.top.postMessage({ insyncAR: ar }, '*'); } catch (e) {}
-      }, 1500);
+      }, 500);
     } else if (window === window.top) {
       window.addEventListener('message', function (e) {
         if (e && e.data && typeof e.data.insyncAR === 'number') window.__insyncAR = e.data.insyncAR;
