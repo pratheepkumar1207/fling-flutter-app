@@ -217,7 +217,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
         final ratio = width / height;
         final exact = data['exact'] == true;
         setState(() => _aspectRatio = exact
-            ? ratio.clamp(0.5, 2.6)
+            ? ratio.clamp(0.5, 3.0)
             : (width > height ? 16 / 9 : ratio));
       }
     } catch (_) {
@@ -783,7 +783,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
             source: 'window.__insyncAR || 0');
         final ar = (v is num) ? v.toDouble() : double.tryParse('$v') ?? 0;
         if (ar <= 0 || !mounted) return;
-        final next = ar.clamp(0.5, 2.6).toDouble();
+        final next = ar.clamp(0.5, 3.0).toDouble();
         if ((next - _aspectRatio).abs() > 0.01) {
           setState(() => _aspectRatio = next);
         }

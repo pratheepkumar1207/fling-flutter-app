@@ -800,6 +800,9 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         var main = candidates[0];
         if (!main || (!main.offsetWidth && !main.videoWidth)) return false;
         var fit = window.__insyncFit || 'cover';
+        // Black bands trimmed (see lbScan): the picture fills the box, which
+        // already has the film's real shape, so only the bands are cut.
+        if (fit === 'contain' && main.__insyncCropAR) fit = 'cover';
         if (main.getAttribute('data-insync-full') === fit) return true;
         videos.forEach(function(v) {
           if (v !== main && v.hasAttribute('data-insync-full')) {
@@ -1802,7 +1805,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         ? 21 / 9
         : _fullScreen
             ? screen.width / screen.height
-            : (seen != null && seen >= 0.5 && seen <= 2.6 ? seen : 16 / 9);
+            : (seen != null && seen >= 0.5 && seen <= 3.0 ? seen : 16 / 9);
     // Same widgets around the page either way (only the strip comes and
     // goes after it), so turning the phone never moves the page and makes
     // it load again.
@@ -1850,6 +1853,49 @@ class _WebPlayerTarget implements OttTarget {
     var t = document.body ? document.body.innerText.slice(0, 4000) : '';
     return /Error Code|Pardon the interruption|isn.t available to watch/i.test(t);
   }
+  // Black bands that are part of the picture itself (a wide film sent as
+  // 16:9): about once a second a tiny copy of the frame is checked for rows
+  // and columns that are almost pure black. Only a band seen in every recent
+  // check counts (the smallest wins, so a dark scene can't over-crop), and
+  // only 5% or more. Sites whose picture can't be read (protected streams
+  // come back blank) are left alone.
+  var lbCanvas = document.createElement('canvas'), lbCtx = null;
+  function lbScan(v){
+    if (!v.videoWidth || !v.videoHeight || v.paused || v.readyState < 2) return;
+    if (v.__lbSrc !== v.currentSrc) { v.__lbSrc = v.currentSrc; v.__lbSeen = []; v.__insyncCropAR = 0; v.__lbCut = [0, 0]; }
+    var W = 40, H = Math.max(24, Math.round(80 * v.videoHeight / v.videoWidth));
+    lbCanvas.width = W; lbCanvas.height = H;
+    lbCtx = lbCtx || lbCanvas.getContext('2d', { willReadFrequently: true });
+    var d;
+    try { lbCtx.drawImage(v, 0, 0, W, H); d = lbCtx.getImageData(0, 0, W, H).data; } catch (e) { return; }
+    var rows = [], cols = [], any = false, x, y;
+    for (x = 0; x < W; x++) cols.push(0);
+    for (y = 0; y < H; y++) {
+      var m = 0;
+      for (x = 0; x < W; x++) {
+        var j = (y * W + x) * 4, l = d[j] * 0.3 + d[j + 1] * 0.59 + d[j + 2] * 0.11;
+        if (l > m) m = l;
+        if (l > cols[x]) cols[x] = l;
+      }
+      rows.push(m);
+      if (m > 40) any = true;
+    }
+    if (!any) return;
+    var T = 22, t = 0, b = 0, le = 0, r = 0;
+    while (t < H && rows[t] < T) t++;
+    while (b < H - t && rows[H - 1 - b] < T) b++;
+    while (le < W && cols[le] < T) le++;
+    while (r < W - le && cols[W - 1 - r] < T) r++;
+    var seen = v.__lbSeen = v.__lbSeen || [];
+    seen.push([Math.min(t, b) / H, Math.min(le, r) / W]);
+    if (seen.length > 6) seen.shift();
+    if (seen.length < 4) return;
+    var vy = 1, vx = 1;
+    seen.forEach(function(q){ vy = Math.min(vy, q[0]); vx = Math.min(vx, q[1]); });
+    var cy = vy >= 0.05 && vy < 0.3 ? vy : 0, cx = vx >= 0.05 && vx < 0.3 ? vx : 0;
+    v.__lbCut = [cy, cx];
+    v.__insyncCropAR = (cy || cx) ? (v.videoWidth * (1 - 2 * cx)) / (v.videoHeight * (1 - 2 * cy)) : 0;
+  }
   window.__insync = {
     state: function(){
       if (hasError()) {
@@ -1861,7 +1907,9 @@ class _WebPlayerTarget implements OttTarget {
       var p = nfPlayer();
       var pos = p && p.getCurrentTime ? p.getCurrentTime() / 1000 : v.currentTime;
       var dur = p && p.getDuration ? p.getDuration() / 1000 : v.duration;
-      return JSON.stringify({playing: !v.paused, pos: pos, dur: isFinite(dur) ? dur : 0, canSeek: true, ad: inAd(), ar: (v.videoWidth && v.videoHeight) ? v.videoWidth / v.videoHeight : 0});
+      try { lbScan(v); } catch (e) {}
+      var ar = v.__insyncCropAR || ((v.videoWidth && v.videoHeight) ? v.videoWidth / v.videoHeight : 0);
+      return JSON.stringify({playing: !v.paused, pos: pos, dur: isFinite(dur) ? dur : 0, canSeek: true, ad: inAd(), ar: ar});
     },
     play: function(){ var p = nfPlayer(); if (p && p.play) p.play(); else { var v = video(); if (v) v.play(); } },
     pause: function(){ var p = nfPlayer(); if (p && p.pause) p.pause(); else { var v = video(); if (v) v.pause(); } },
