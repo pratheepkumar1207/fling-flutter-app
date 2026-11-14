@@ -1862,7 +1862,14 @@ class _WebPlayerTarget implements OttTarget {
   var lbCanvas = document.createElement('canvas'), lbCtx = null;
   function lbScan(v){
     if (!v.videoWidth || !v.videoHeight || v.paused || v.readyState < 2) return;
-    if (v.__lbSrc !== v.currentSrc) { v.__lbSrc = v.currentSrc; v.__lbSeen = []; v.__insyncCropAR = 0; v.__lbCut = [0, 0]; }
+    if (v.__lbSrc !== v.currentSrc) {
+      v.__lbSrc = v.currentSrc; v.__lbSeen = []; v.__insyncCropAR = 0; v.__lbCut = [0, 0];
+      // This title's shape from last time: fit straight away.
+      try {
+        var saved = JSON.parse(localStorage.getItem(lbKey()) || 'null');
+        if (saved && saved.length === 2) lbApply(v, saved[0], saved[1]);
+      } catch (e) {}
+    }
     var W = 40, H = Math.max(24, Math.round(80 * v.videoHeight / v.videoWidth));
     lbCanvas.width = W; lbCanvas.height = H;
     lbCtx = lbCtx || lbCanvas.getContext('2d', { willReadFrequently: true });
@@ -1886,16 +1893,32 @@ class _WebPlayerTarget implements OttTarget {
     while (b < H - t && rows[H - 1 - b] < T) b++;
     while (le < W && cols[le] < T) le++;
     while (r < W - le && cols[W - 1 - r] < T) r++;
+    // The smallest band over the last checks wins, so a dark scene can't
+    // over-crop for long; three quick checks are enough to start.
     var seen = v.__lbSeen = v.__lbSeen || [];
     seen.push([Math.min(t, b) / H, Math.min(le, r) / W]);
-    if (seen.length > 6) seen.shift();
-    if (seen.length < 4) return;
+    if (seen.length > 12) seen.shift();
+    if (seen.length < 3) return;
     var vy = 1, vx = 1;
     seen.forEach(function(q){ vy = Math.min(vy, q[0]); vx = Math.min(vx, q[1]); });
     var cy = vy >= 0.05 && vy < 0.3 ? vy : 0, cx = vx >= 0.05 && vx < 0.3 ? vx : 0;
+    lbApply(v, cy, cx);
+    try { localStorage.setItem(lbKey(), JSON.stringify([cy, cx])); } catch (e) {}
+  }
+  function lbKey(){ return '__insyncLB:' + location.pathname; }
+  function lbApply(v, cy, cx){
     v.__lbCut = [cy, cx];
     v.__insyncCropAR = (cy || cx) ? (v.videoWidth * (1 - 2 * cx)) / (v.videoHeight * (1 - 2 * cy)) : 0;
   }
+  // Quick checks for the first seconds of each video, so the box fits
+  // almost at once; after that the room's regular state check keeps it up
+  // to date.
+  setInterval(function(){
+    var v = video();
+    if (!v || !v.videoWidth) return;
+    if ((v.__lbSeen || []).length >= 6 && v.__lbSrc === v.currentSrc) return;
+    try { lbScan(v); } catch (e) {}
+  }, 250);
   window.__insync = {
     state: function(){
       if (hasError()) {
