@@ -1079,13 +1079,19 @@ class _CreateEditScreenState extends State<CreateEditScreen> {
               onPressed: () => setState(() => _turns = (_turns + 1) % 4),
               icon: const Icon(Icons.rotate_right_rounded, color: Colors.white),
             ),
-            for (final (label, value) in const <(String, double?)>[
-              ('Original', null),
-              ('1:1', 1.0),
-              ('4:5', 0.8),
-              ('9:16', 9 / 16),
-              ('16:9', 16 / 9),
-            ])
+            // Posts: Instagram's shapes (4:5 to 1.91:1). Stories and
+            // reels: full-screen tall.
+            for (final (label, value) in widget.mode == CreateMode.post
+                ? const <(String, double?)>[
+                    ('Original', null),
+                    ('1:1', 1.0),
+                    ('4:5', 0.8),
+                    ('1.91:1', 1.91),
+                  ]
+                : const <(String, double?)>[
+                    ('Original', null),
+                    ('9:16', 9 / 16),
+                  ])
               _FilterChip(
                 label: label,
                 selected: _aspect == value,

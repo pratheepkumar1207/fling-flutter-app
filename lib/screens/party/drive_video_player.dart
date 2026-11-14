@@ -486,12 +486,25 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
       // initialized from the actual stream's metadata) — was hardcoded
       // 16:9, which pillarboxed/letterboxed anything else (e.g. a portrait
       // phone recording) inside a wrong-shaped box.
-      aspectRatio: controller.value.aspectRatio,
+      // Portrait recordings keep a 16:9 box, the video whole in the middle.
+      aspectRatio: controller.value.aspectRatio < 1
+          ? 16 / 9
+          : controller.value.aspectRatio,
       child: ClipRect(
         child: Stack(
           fit: StackFit.expand,
           children: [
-            VideoPlayer(controller),
+            if (controller.value.aspectRatio < 1)
+              ColoredBox(
+                color: Colors.black,
+                child: Center(
+                  child: AspectRatio(
+                      aspectRatio: controller.value.aspectRatio,
+                      child: VideoPlayer(controller)),
+                ),
+              )
+            else
+              VideoPlayer(controller),
             // A thin red line while the controls are hidden, as on YouTube.
             if (!_controlsVisible && duration > 0)
               Positioned(

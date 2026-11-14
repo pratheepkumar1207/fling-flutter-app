@@ -216,9 +216,12 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
         // counts for tall videos.
         final ratio = width / height;
         final exact = data['exact'] == true;
-        setState(() => _aspectRatio = exact
-            ? ratio.clamp(0.5, 3.0)
-            : (width > height ? 16 / 9 : ratio));
+        // Portrait videos (Shorts) keep a 16:9 box, sides dark.
+        setState(() => _aspectRatio = ratio < 1
+            ? 16 / 9
+            : exact
+                ? ratio.clamp(1.0, 3.0)
+                : 16 / 9);
       }
     } catch (_) {
       // Best-effort — stays on the current (default 16:9) ratio.
@@ -745,6 +748,9 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
         seen.forEach(function (q) { vy = Math.min(vy, q[0]); vx = Math.min(vx, q[1]); });
         cut = vy >= 0.05 && vy < 0.3 ? vy : 0;
         cutX = vx >= 0.05 && vx < 0.3 ? vx : 0;
+        // A portrait picture (a Short inside a wide frame) isn't trimmed:
+        // it stays whole in a 16:9 box.
+        if ((v.videoWidth * (1 - 2 * cutX)) / (v.videoHeight * (1 - 2 * cut)) < 1) { cut = 0; cutX = 0; }
         var on = cut > 0 || cutX > 0;
         var st = v.style;
         // Fixed to the player frame's own viewport (YouTube's video
@@ -814,7 +820,8 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
           }
           return;
         }
-        final next = ar.clamp(0.5, 3.0).toDouble();
+        // Portrait videos keep a 16:9 box.
+        final next = ar < 1 ? 16 / 9 : ar.clamp(1.0, 3.0).toDouble();
         if ((next - _aspectRatio).abs() > 0.01 || !_sized) {
           setState(() {
             _aspectRatio = next;

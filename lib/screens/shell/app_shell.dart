@@ -57,7 +57,7 @@ class _AppShellState extends State<AppShell> {
 
   static final _items = [
     const NavItemData(InIcons.home, 'Home'),
-    const NavItemData(InIcons.reel, 'Reels'),
+    const NavItemData(InIcons.reels, 'Reels'),
     const NavItemData(InIcons.popcorn, 'Popcorn'),
     const NavItemData(InIcons.flame, 'Discover'),
     NavItemData(InIcons.chat, 'Chat', badge: UnreadMessages.count),

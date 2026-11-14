@@ -1,6 +1,7 @@
 import '../create/create_flow.dart';
 import 'package:flutter/material.dart';
 import 'friends_in_rooms_strip.dart';
+import '../../widgets/post_media_box.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -20,7 +21,6 @@ import '../../widgets/app_image.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/post_composer_sheet.dart';
 import '../../widgets/post_likes_sheet.dart';
-import '../../widgets/reels_feed.dart';
 import '../../widgets/share_row.dart';
 import '../../widgets/verified_tick.dart';
 import '../../widgets/spinner.dart';
@@ -33,7 +33,6 @@ import 'hashtag_screen.dart';
 import '../create/text_post_screen.dart';
 import '../../widgets/post_images.dart';
 import 'post_detail_screen.dart';
-import 'saved_posts_screen.dart';
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -167,76 +166,6 @@ class _FeedScreenState extends State<FeedScreen> {
     }
   }
 
-  Post _flipped(Post post, {bool like = false, bool save = false}) => Post(
-        id: post.id,
-        author: post.author,
-        mediaType: post.mediaType,
-        text: post.text,
-        textBackground: post.textBackground,
-        imageData: post.imageData,
-        voiceData: post.voiceData,
-        videoUrl: post.videoUrl,
-        videoData: post.videoData,
-        coverData: post.coverData,
-        extraImages: post.extraImages,
-        pollOptions: post.pollOptions,
-        myVote: post.myVote,
-        likesCount: like
-            ? (post.likedByMe ? post.likesCount - 1 : post.likesCount + 1)
-            : post.likesCount,
-        commentsCount: post.commentsCount,
-        likedByMe: like ? !post.likedByMe : post.likedByMe,
-        savedByMe: save ? !post.savedByMe : post.savedByMe,
-        isOwn: post.isOwn,
-        likesHidden: post.likesHidden,
-        createdAt: post.createdAt,
-      );
-
-  // A page of the ranked Reels tab (everyone's reels, not just people you
-  // follow).
-  Future<List<Post>> _reelsPage(int page) async {
-    final data =
-        await ApiClient.get('/feed/reels?page=$page') as Map<String, dynamic>;
-    return (data['reels'] as List)
-        .map((e) => Post.fromJson(e as Map<String, dynamic>))
-        .toList();
-  }
-
-  // Full-screen reels; likes/saves made there update this feed too.
-  Future<void> _openReels() async {
-    var reels = _reels;
-    try {
-      final ranked = await _reelsPage(0);
-      if (ranked.isNotEmpty) reels = ranked;
-    } catch (_) {
-      // Fall back to the reels already in the feed.
-    }
-    if (!mounted) return;
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => ReelsScreen(
-        reels: reels,
-        loadPage: _reelsPage,
-        onLike: (post) async {
-          final next = _flipped(post, like: true);
-          await _toggleLike(post);
-          return next;
-        },
-        onSave: (post) async {
-          try {
-            await ApiClient.post('/feed/${post.id}/save');
-            _load();
-            return _flipped(post, save: true);
-          } catch (_) {
-            _snack('Failed to save post');
-            return null;
-          }
-        },
-        onOpenComments: _openComments,
-        onCreate: () => openCreateFlow(context, onPosted: _load),
-      ),
-    ));
-  }
-
   Future<void> _toggleSave(Post post) async {
     try {
       await ApiClient.post('/feed/${post.id}/save');
@@ -258,10 +187,11 @@ class _FeedScreenState extends State<FeedScreen> {
   Widget _yourStoryTile() {
     final user = context.watch<AuthProvider>().user;
     return GestureDetector(
-      onTap: () => showPostComposerSheet(context, onPosted: () {
+      onTap: () => openCreateFlow(context, mode: CreateMode.story,
+          onPosted: () {
         _load();
         _loadStories();
-      }, initialIsStory: true),
+      }),
       child: SizedBox(
         width: 64,
         child: Column(
@@ -357,18 +287,6 @@ class _FeedScreenState extends State<FeedScreen> {
                   leading: _yourStoryTile()),
             ),
             const FriendsInRoomsStrip(),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(18, 2, 18, 12),
-              child: Row(children: [
-                _chip('Posts', selected: true, onTap: () {}),
-                _chip('Reels', icon: InIcons.reel, onTap: _openReels),
-                _chip('Saved',
-                    icon: InIcons.bookmark,
-                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => const SavedPostsScreen()))),
-              ]),
-            ),
             if (_loading)
               const Center(
                   child: Padding(padding: EdgeInsets.all(24), child: Spinner()))
@@ -379,56 +297,11 @@ class _FeedScreenState extends State<FeedScreen> {
           ],
         ),
       ),
-      Positioned(
-        right: 18,
-        bottom: 18,
-        child: Semantics(
-          button: true,
-          label: 'New post',
-          child: Material(
-            color: AppColors.primary,
-            borderRadius: BorderRadius.circular(18),
-            elevation: 3,
-            shadowColor: Colors.black,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(18),
-              onTap: () => showPostComposerSheet(context, onPosted: _load),
-              child: const SizedBox(
-                width: 56,
-                height: 56,
-                child: Center(
-                    child: InIcon(InIcons.plus, size: 26, color: Colors.white)),
-              ),
-            ),
-          ),
-        ),
-      ),
     ]);
-  }
-
-  Widget _chip(String label,
-      {required VoidCallback onTap, InIconData? icon, bool selected = false}) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: ChoiceChip(
-        avatar: icon == null
-            ? null
-            : InIcon(icon,
-                size: 15, color: selected ? Colors.white : AppColors.text),
-        label: Text(label),
-        selected: selected,
-        showCheckmark: false,
-        labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: selected ? Colors.white : AppColors.text,
-            fontWeight: FontWeight.w500),
-        onSelected: (_) => onTap(),
-      ),
-    );
   }
 
   List<Post> get _regularPosts =>
       _posts.where((p) => p.mediaType != 'reel').toList();
-  List<Post> get _reels => _posts.where((p) => p.mediaType == 'reel').toList();
 
   // #tags and @mentions in captions stand out (tappable once hashtag
   // pages land); the rest of the caption is plain.
@@ -779,8 +652,9 @@ class _FeedScreenState extends State<FeedScreen> {
               onTap: () => _openPostDetail(post),
               child: SizedBox(
                 width: double.infinity,
-                child: AspectRatio(
-                    aspectRatio: 1, child: PostImages(images: post.images)),
+                child: PostMediaBox(
+                    images: post.images,
+                    child: PostImages(images: post.images)),
               ),
             ),
           if (post.repostOf != null) _repostBlock(post.repostOf!),

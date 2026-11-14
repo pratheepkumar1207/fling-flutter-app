@@ -18,6 +18,16 @@ class AppImage extends StatelessWidget {
       this.fit = BoxFit.cover,
       this.placeholder});
 
+  /// The image itself, for reading its size (see PostMediaBox).
+  static ImageProvider? providerFor(String? src) {
+    if (src == null || src.isEmpty) return null;
+    if (src.startsWith('data:image')) {
+      final bytes = _decodeDataUri(src);
+      return bytes == null ? null : MemoryImage(bytes);
+    }
+    return CachedNetworkImageProvider(src);
+  }
+
   static Uint8List? _decodeDataUri(String uri) {
     final commaIndex = uri.indexOf(',');
     if (commaIndex == -1) return null;

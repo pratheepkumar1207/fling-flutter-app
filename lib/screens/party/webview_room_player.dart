@@ -1831,7 +1831,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         ? 21 / 9
         : _fullScreen
             ? screen.width / screen.height
-            : (seen != null && seen >= 0.5 && seen <= 3.0 ? seen : 16 / 9);
+            : (seen != null && seen >= 1.0 && seen <= 3.0 ? seen : 16 / 9);
     // Same widgets around the page either way (only the strip comes and
     // goes after it), so turning the phone never moves the page and makes
     // it load again.
@@ -1957,8 +1957,11 @@ class _WebPlayerTarget implements OttTarget {
   }
   function lbKey(){ return '__insyncLB:' + location.pathname; }
   function lbApply(v, cy, cx){
+    var arC = (cy || cx) ? (v.videoWidth * (1 - 2 * cx)) / (v.videoHeight * (1 - 2 * cy)) : 0;
+    // A portrait picture isn't trimmed: it stays whole in a 16:9 box.
+    if (arC && arC < 1) { cy = 0; cx = 0; arC = 0; }
     v.__lbCut = [cy, cx];
-    v.__insyncCropAR = (cy || cx) ? (v.videoWidth * (1 - 2 * cx)) / (v.videoHeight * (1 - 2 * cy)) : 0;
+    v.__insyncCropAR = arC;
   }
   // Quick checks for the first seconds of each video, so the box fits
   // almost at once; after that the room's regular state check keeps it up

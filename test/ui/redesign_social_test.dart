@@ -75,11 +75,13 @@ void main() {
     await loader.load();
   });
 
-  testWidgets('Feed renders its header, chips and new-post button', (t) async {
+  testWidgets('Feed: stories and posts, no tab row or floating button',
+      (t) async {
     final key = await _render(t, const FeedScreen());
     expect(t.takeException(), isNull);
-    expect(find.text('Reels'), findsOneWidget);
-    expect(find.bySemanticsLabel('New post'), findsOneWidget);
+    // Reels has its own tab and create is the top bar's ＋.
+    expect(find.text('Reels'), findsNothing);
+    expect(find.bySemanticsLabel('New post'), findsNothing);
     await _snap(t, key, 'feed');
   });
 
