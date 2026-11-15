@@ -147,6 +147,9 @@ class _PartyScreenState extends State<PartyScreen>
   // See the auto-return check next to promptPin in build().
   bool _wasNothingPlaying = false;
   final _playerAreaKey = GlobalKey();
+  // The suggestions list around the player: carried across rotation so the
+  // list isn't fetched again.
+  final _suggestionsKey = GlobalKey();
   Offset? _dragStartGlobal;
   // Last queue:promptPin token this screen has already reacted to — see
   // room_socket_controller.dart's promptPinToken. Compared (not just
@@ -1580,6 +1583,45 @@ class _PartyScreenState extends State<PartyScreen>
       }
     }
 
+    // The player inside its suggestions list (loaded behind it all along;
+    // see VideoSuggestionsPanel). [rows]: 2 portrait, 3 landscape.
+    Widget playerWithSuggestions({int rows = 2}) => VideoSuggestionsPanel(
+          key: _suggestionsKey,
+          open: _suggestionsMode,
+          rows: rows,
+          showNowPlaying: rs.playback != null,
+          roster: rs.roster,
+          sourceType: playerSourceType,
+          videoUrl: playerVideoUrl,
+          nowPlayingTitle:
+              currentItem?['title'] as String? ?? room['title'] as String?,
+          player: player(
+            mediaMode: currentItem?['mediaMode'] as String? ?? 'video',
+            compact: _suggestionsMode,
+          ),
+          onPin: ({required videoUrl, required title, thumbnail, required sourceType}) =>
+              rs.queueAdd({
+            'videoUrl': videoUrl,
+            'title': title,
+            'thumbnail': thumbnail,
+            'sourceType': sourceType,
+            'mediaMode': 'video',
+          }, position: 'top'),
+          isHost: rs.isHost,
+          onVoteAdd: ({required videoUrl, required title, thumbnail, required sourceType}) =>
+              rs.voteAdd({
+            'videoUrl': videoUrl,
+            'title': title,
+            'thumbnail': thumbnail,
+            'sourceType': sourceType,
+            'mediaMode': 'video',
+          }),
+          onUnvoteAdd: rs.unvoteAdd,
+          myUserId: myId,
+          addVotes: rs.addVotes,
+          onRestore: () => setState(() => _suggestionsMode = false),
+        );
+
     // Shared by the Watch collapsing header (see the NestedScrollView below)
     // and the plain unconditional spot every other room type still uses —
     // same widget either way, just two different places it can end up in
@@ -1836,11 +1878,7 @@ class _PartyScreenState extends State<PartyScreen>
                 backgroundColor: Colors.black,
                 body: _ImmersiveWhileShown(
                   child: Stack(children: [
-                    Center(
-                      child: player(
-                          mediaMode:
-                              currentItem?['mediaMode'] as String? ?? 'video'),
-                    ),
+                    Center(child: playerWithSuggestions(rows: 3)),
                     // Clear of the player's own buttons above and time below.
                     if (RoomPrefs.instance.chatOverVideo)
                       Positioned(
@@ -2874,57 +2912,7 @@ class _PartyScreenState extends State<PartyScreen>
                         // otherwise) instead of being conditionally nested, lets Flutter
                         // recognize it as the same widget across a type change instead
                         // of tearing it down.
-                        if (isWatch && _suggestionsMode)
-                          // Swiped the player left (or the queue ran dry) — a
-                          // two-row carousel of 16:9 tiles at its natural
-                          // height, the live player as its first tile while
-                          // something's playing; chat below takes the rest.
-                          // mediaMode/compact mirror what the normal branch
-                          // below would have used, just rendered small.
-                          VideoSuggestionsPanel(
-                            showNowPlaying: rs.playback != null,
-                            roster: rs.roster,
-                            sourceType: playerSourceType,
-                            videoUrl: playerVideoUrl,
-                            nowPlayingTitle: currentItem?['title'] as String? ??
-                                room['title'] as String?,
-                            miniPlayer: player(
-                              mediaMode: currentItem?['mediaMode'] as String? ??
-                                  'video',
-                              compact: true,
-                            ),
-                            onPin: (
-                                    {required videoUrl,
-                                    required title,
-                                    thumbnail,
-                                    required sourceType}) =>
-                                rs.queueAdd({
-                              'videoUrl': videoUrl,
-                              'title': title,
-                              'thumbnail': thumbnail,
-                              'sourceType': sourceType,
-                              'mediaMode': 'video',
-                            }, position: 'top'),
-                            isHost: rs.isHost,
-                            onVoteAdd: (
-                                    {required videoUrl,
-                                    required title,
-                                    thumbnail,
-                                    required sourceType}) =>
-                                rs.voteAdd({
-                              'videoUrl': videoUrl,
-                              'title': title,
-                              'thumbnail': thumbnail,
-                              'sourceType': sourceType,
-                              'mediaMode': 'video',
-                            }),
-                            onUnvoteAdd: rs.unvoteAdd,
-                            myUserId: myId,
-                            addVotes: rs.addVotes,
-                            onRestore: () =>
-                                setState(() => _suggestionsMode = false),
-                          )
-                        else if (isWatch)
+                        if (isWatch)
                           // Video is pinned right under the app bar; scrolling
                           // the chat below it up scrolls the header under it
                           // (boosted banner + participants + poll) away — NestedScrollView links the two
@@ -2955,12 +2943,7 @@ class _PartyScreenState extends State<PartyScreen>
                                     child: Padding(
                                       key: _playerAreaKey,
                                       padding: EdgeInsets.zero,
-                                      child: player(
-                                        mediaMode: currentItem?['mediaMode']
-                                                as String? ??
-                                            'video',
-                                        compact: false,
-                                      ),
+                                      child: playerWithSuggestions(),
                                     ),
                                   ),
                                 ),
@@ -3157,75 +3140,6 @@ class _PartyScreenState extends State<PartyScreen>
                         // Only the suggestions-grid case still needs this —
                         // plain isWatch now has chat built into the collapsing
                         // header above instead (see the NestedScrollView).
-                        if (isWatch && _suggestionsMode)
-                          // Chat floats over an open "stage" instead of living in
-                          // its own boxed panel — matches WatchPartyDark.dc.html.
-                          // No more floating icon rail alongside it (mic/boost/
-                          // gift/poll/share/invite all now live inside the chat
-                          // bar itself — see ChatOverlay).
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-                              child: ChatOverlay(
-                                newestCard: privacyCard,
-                                compact: _peopleOpen,
-                                messages: rs.messages,
-                                typingUserIds: rs.typingUserIds,
-                                onTyping: rs.sendTyping,
-                                onReact: rs.reactToMessage,
-                                onSend: (text, mentionedUserIds, {replyTo}) =>
-                                    rs.sendMessage(text,
-                                        mentionedUserIds: mentionedUserIds,
-                                        replyTo: replyTo),
-                                myUserId: myId,
-                                primaryColor: roomPrimary,
-                                textColor: roomText,
-                                roster: rs.roster,
-                                myMicOn: myMicOn,
-                                myMicRequested: myMicRequested,
-                                onMicTap: handleMicTap,
-                                onPoll: () {
-                                  if (rs.isHost) {
-                                    showPollCreatorBottomSheet(context,
-                                        onCreate: rs.createPoll);
-                                  } else if (rs.poll['active'] == true) {
-                                    showPollBottomSheet(context,
-                                        poll: rs.poll,
-                                        myUserId: myId ?? '',
-                                        isHost: rs.isHost,
-                                        roster: rs.roster,
-                                        onVote: rs.votePoll,
-                                        onReset: rs.resetPoll);
-                                  }
-                                },
-                                onGift: () => showGiftBottomSheet(context,
-                                    toUserId: room['hostId'] as String? ?? '',
-                                    roomId: widget.roomId,
-                                    recipients: _giftRecipients()),
-                                onShare: _shareRoom,
-                                onInvite: _openInvite,
-                                onGiftFor: (taggedUserId) =>
-                                    showGiftBottomSheet(context,
-                                        toUserId: taggedUserId ?? '',
-                                        roomId: widget.roomId,
-                                        recipients: _giftRecipients(),
-                                        requirePick: true),
-                                isHost: rs.isHost,
-                                onSkip: rs.isHost ? rs.queueSkip : null,
-                                onVoteSkip: rs.isHost ? null : rs.voteSkip,
-                                skipVoteCount:
-                                    (rs.skipVote['count'] as int?) ?? 0,
-                                skipVoteRequired:
-                                    (rs.skipVote['required'] as int?) ?? 1,
-                                onFocusChanged: _setChatFocused,
-                                pickEndsAt: rs.pickVoteEndsAt,
-                                pickWaiting: rs.pickWaiting,
-                                onViewOncePhoto: _shareViewOncePhoto,
-                                onOpenViewOnce: _openRoomViewOnce,
-                                onViewOnceSeen: _showViewOnceSeen,
-                              ),
-                            ),
-                          ),
                       ],
                     ),
                   ),

@@ -32,7 +32,15 @@ import 'autoplay_feed.dart';
 /// filtered to the same sourceType — not true suggestions, but a real,
 /// buildable "something to pin" list rather than an empty grid.
 class VideoSuggestionsPanel extends StatefulWidget {
-  final Widget miniPlayer;
+  // The room's live player. Always here, in the same spot: full size while
+  // [open] is false, shrunk into the first tile while it's true — never
+  // moved elsewhere in the tree, so it doesn't load again.
+  final Widget player;
+  // Suggestions showing. Closed, the list still stays loaded behind the
+  // player, ready the moment it opens.
+  final bool open;
+  // Rows of tiles: 2 in portrait, 3 in landscape full screen.
+  final int rows;
   // False once nothing is playing (the room's playback state cleared) — the
   // live "now playing" tile is left out of the carousel then.
   final bool showNowPlaying;
@@ -64,7 +72,9 @@ class VideoSuggestionsPanel extends StatefulWidget {
 
   const VideoSuggestionsPanel({
     super.key,
-    required this.miniPlayer,
+    required this.player,
+    this.open = true,
+    this.rows = 2,
     this.showNowPlaying = true,
     this.nowPlayingTitle,
     required this.sourceType,
@@ -86,6 +96,9 @@ class VideoSuggestionsPanel extends StatefulWidget {
 class _VideoSuggestionsPanelState extends State<VideoSuggestionsPanel> {
   bool _loading = true;
   List<Map<String, dynamic>> _suggestions = [];
+  final _scroll = ScrollController();
+  // Only the latest fetch may land (the video can change mid-fetch).
+  int _loadSeq = 0;
 
   @override
   void initState() {
@@ -94,9 +107,21 @@ class _VideoSuggestionsPanelState extends State<VideoSuggestionsPanel> {
     _load();
   }
 
+  // The video changed: fetch its list now, behind the player, keeping the
+  // old one on screen until the new one is in.
+  @override
+  void didUpdateWidget(covariant VideoSuggestionsPanel old) {
+    super.didUpdateWidget(old);
+    if (old.videoUrl != widget.videoUrl ||
+        old.sourceType != widget.sourceType) {
+      _load();
+    }
+  }
+
   @override
   void dispose() {
     OttPageSuggestions.current.removeListener(_onPageList);
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -114,6 +139,7 @@ class _VideoSuggestionsPanelState extends State<VideoSuggestionsPanel> {
   }
 
   Future<void> _load() async {
+    final seq = ++_loadSeq;
     var items = <Map<String, dynamic>>[];
     if (const {'amazon', 'netflix', 'hotstar'}.contains(widget.sourceType)) {
       items = OttPageSuggestions.itemsFor(widget.videoUrl);
@@ -136,7 +162,7 @@ class _VideoSuggestionsPanelState extends State<VideoSuggestionsPanel> {
     // The page's own list may have come in while this was loading.
     final page = OttPageSuggestions.itemsFor(widget.videoUrl);
     if (page.isNotEmpty) items = page;
-    if (mounted) {
+    if (mounted && seq == _loadSeq) {
       setState(() {
         _suggestions = items;
         _loading = false;
@@ -194,131 +220,107 @@ class _VideoSuggestionsPanelState extends State<VideoSuggestionsPanel> {
   @override
   Widget build(BuildContext context) {
     final rosterById = {for (final r in widget.roster) r.userId: r};
+    final open = widget.open;
     final leading = widget.showNowPlaying ? 1 : 0;
-    // While suggestions load, the now-playing tile is already there (with a
-    // loading tile beside it): if the player left the screen for that
-    // moment its page was dropped and the video restarted.
-    if (_loading && leading == 0) return const Center(child: Spinner());
-    final count = (_loading ? 1 : _suggestions.length) + leading;
-    if (count == 0) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24),
-          child: Text(
-            'No suggestions yet — use Search & queue to add the next song.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.textFaint, fontSize: 13),
-          ),
-        ),
-      );
-    }
     return LayoutBuilder(builder: (context, constraints) {
-      // Two tiles across the full width, each 16:9, two rows tall — four
-      // visible at a time, edge to edge, scrolling sideways for the rest.
-      final tileWidth = constraints.maxWidth / 2;
-      final tileHeight = tileWidth * 9 / 16;
-      final grid = Align(
-        alignment: Alignment.topCenter,
-        child: SizedBox(
-          height: tileHeight * 2,
-          child: GridView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.zero,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2, // two rows
-              mainAxisExtent: tileWidth,
-            ),
-            itemCount: count,
-            itemBuilder: (context, i) {
-              if (i < leading) {
-                return _KeepAlive(
-                  child: _NowPlayingTile(
-                    player: widget.miniPlayer,
-                    title: widget.nowPlayingTitle,
-                    onTap: widget.onRestore,
-                  ),
+      final w = constraints.maxWidth;
+      final rows = widget.rows;
+      // Two rows of half-width 16:9 tiles: together exactly a full-width
+      // 16:9 player's height. Three (landscape): the screen's height split.
+      final tileH = rows > 2 && constraints.hasBoundedHeight
+          ? constraints.maxHeight / rows
+          : (w / 2) * 9 / 16;
+      final tileW = tileH * 16 / 9;
+      final count = (_loading ? 1 : _suggestions.length) + leading;
+      final Widget grid = !_loading && count == leading
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  'No suggestions yet \u2014 use Search & queue to add the next song.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.textFaint, fontSize: 13),
+                ),
+              ),
+            )
+          : GridView.builder(
+              controller: _scroll,
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.zero,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: rows,
+                mainAxisExtent: tileW,
+              ),
+              itemCount: count,
+              itemBuilder: (context, i) {
+                // The live player sits over this first slot.
+                if (i < leading) return const ColoredBox(color: Colors.black);
+                if (_loading) return const Center(child: Spinner(size: 22));
+                final item = _suggestions[i - leading];
+                final videoUrl = item['videoUrl'] as String;
+                return _SuggestionTile(
+                  item: item,
+                  pinners: [
+                    for (final id in _pinnerIds(videoUrl))
+                      if (rosterById[id] != null) rosterById[id]!,
+                  ],
+                  pinnedByMe: _hasPinned(videoUrl),
+                  onTap: () => _handleTap(item),
+                  onLongPress: widget.isHost ? () => _pinNow(item) : null,
                 );
-              }
-              if (_loading) {
-                return const Center(child: Spinner(size: 22));
-              }
-              final item = _suggestions[i - leading];
-              final videoUrl = item['videoUrl'] as String;
-              return _SuggestionTile(
-                item: item,
-                pinners: [
-                  for (final id in _pinnerIds(videoUrl))
-                    if (rosterById[id] != null) rosterById[id]!,
-                ],
-                pinnedByMe: _hasPinned(videoUrl),
-                onTap: () => _handleTap(item),
-                onLongPress: widget.isHost ? () => _pinNow(item) : null,
-              );
-            },
-          ),
+              },
+            );
+      // The same widgets around the player open or closed — only sizes and
+      // flags change — so it keeps playing without loading again.
+      final player = AnimatedBuilder(
+        animation: _scroll,
+        builder: (context, child) => Transform.translate(
+          offset: Offset(
+              open && _scroll.hasClients ? -_scroll.offset : 0, 0),
+          child: child,
         ),
-      );
-      return grid;
-    });
-  }
-}
-
-// Keeps the now-playing tile (and so the live player inside it) mounted
-// when it scrolls out of view — GridView.builder would otherwise dispose
-// it, killing the WebView and restarting the video.
-class _KeepAlive extends StatefulWidget {
-  final Widget child;
-  const _KeepAlive({required this.child});
-
-  @override
-  State<_KeepAlive> createState() => _KeepAliveState();
-}
-
-class _KeepAliveState extends State<_KeepAlive>
-    with AutomaticKeepAliveClientMixin {
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    return widget.child;
-  }
-}
-
-// Row 1, column 1 while something's playing — the live miniPlayer (not a
-// static thumbnail). Tapping it goes back to the full-size player.
-class _NowPlayingTile extends StatelessWidget {
-  final Widget player;
-  final String? title;
-  final VoidCallback onTap;
-
-  const _NowPlayingTile(
-      {required this.player, required this.title, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      label: 'Now playing: ${title ?? 'video'}',
-      button: true,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            const ColoredBox(color: Colors.black),
-            IgnorePointer(child: player),
-            // Inset border so it doesn't change the tile's 16:9 size.
-            IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.primary, width: 2)),
+        child: Offstage(
+          offstage: open && !widget.showNowPlaying,
+          child: Semantics(
+            button: open,
+            label: open ? 'Now playing: ${widget.nowPlayingTitle ?? 'video'}' : null,
+            child: GestureDetector(
+              behavior: open
+                  ? HitTestBehavior.opaque
+                  : HitTestBehavior.deferToChild,
+              onTap: open ? widget.onRestore : null,
+              child: IgnorePointer(
+                ignoring: open,
+                child: DecoratedBox(
+                  position: DecorationPosition.foreground,
+                  decoration: open
+                      ? BoxDecoration(
+                          border:
+                              Border.all(color: AppColors.primary, width: 2))
+                      : const BoxDecoration(),
+                  child: SizedBox(
+                    width: open ? tileW : w,
+                    height: open ? tileH : null,
+                    child: widget.player,
+                  ),
+                ),
               ),
             ),
-          ],
+          ),
         ),
-      ),
-    );
+      );
+      return Stack(
+        clipBehavior: Clip.hardEdge,
+        children: [
+          // Always built (and so loaded, thumbnails too); only shown open.
+          Offstage(
+            offstage: !open,
+            child: SizedBox(width: w, height: tileH * rows, child: grid),
+          ),
+          player,
+        ],
+      );
+    });
   }
 }
 
