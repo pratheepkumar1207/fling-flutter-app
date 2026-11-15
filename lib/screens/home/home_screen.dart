@@ -463,7 +463,7 @@ class _HomeScreenState extends State<HomeScreen> {
               TextButton(
                 onPressed: () => Navigator.of(context).push(MaterialPageRoute(
                     builder: (_) => Scaffold(
-                        appBar: AppBar(title: const Text('Live')),
+                        appBar: AppBar(toolbarHeight: 44),
                         body: const LiveFeedScreen()))),
                 child: const Text('Live feed'),
               ),

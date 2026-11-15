@@ -137,6 +137,7 @@ flutter:
   assets:
     - assets/icon/insync-icon.png
     - assets/icon/insync-symbol.png
+    - assets/icon/popcorn-tab.png
     - assets/icons/app/
     - assets/sounds/
     # Animated emoji (Google Noto, CC BY 4.0): the most used, built in.

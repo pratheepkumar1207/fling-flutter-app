@@ -12,7 +12,11 @@ class NavItemData {
 
   /// A red count on the icon (Chat's unread), hidden at 0.
   final ValueListenable<int>? badge;
-  const NavItemData(this.icon, this.label, {this.tag, this.badge});
+
+  /// A picture in place of the icon (Popcorn's character), bigger and
+  /// rising above the bar; grey when the tab isn't open.
+  final String? image;
+  const NavItemData(this.icon, this.label, {this.tag, this.badge, this.image});
 }
 
 /// Bottom bar from the approved design: four labelled tabs with the
@@ -82,7 +86,37 @@ class _Tab extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Stack(clipBehavior: Clip.none, children: [
-              InIcon(item.icon, size: 23, color: color),
+              if (item.image != null)
+                SizedBox(
+                  width: 23,
+                  height: 23,
+                  child: OverflowBox(
+                    maxWidth: 60,
+                    maxHeight: 60,
+                    alignment: Alignment.bottomCenter,
+                    child: AnimatedScale(
+                      scale: selected ? 1 : 0.86,
+                      duration: const Duration(milliseconds: 260),
+                      curve: Curves.easeOutBack,
+                      alignment: Alignment.bottomCenter,
+                      child: ColorFiltered(
+                        colorFilter: selected
+                            ? const ColorFilter.mode(
+                                Colors.transparent, BlendMode.dst)
+                            : const ColorFilter.matrix([
+                                0.2126, 0.7152, 0.0722, 0, 0,
+                                0.2126, 0.7152, 0.0722, 0, 0,
+                                0.2126, 0.7152, 0.0722, 0, 0,
+                                0, 0, 0, 0.75, 0,
+                              ]),
+                        child: Image.asset(item.image!,
+                            height: 52, fit: BoxFit.contain),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                InIcon(item.icon, size: 23, color: color),
               if (item.badge != null)
                 Positioned(
                   top: -5,

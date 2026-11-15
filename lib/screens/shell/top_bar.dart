@@ -74,10 +74,11 @@ class InsyncTopBar extends StatelessWidget implements PreferredSizeWidget {
                       child: GestureDetector(
                         onTap: () => push(Scaffold(
                           backgroundColor: Colors.black,
+                          // The live screen has its own "Live" header.
                           appBar: AppBar(
                               backgroundColor: Colors.black,
                               foregroundColor: Colors.white,
-                              title: const Text('Live')),
+                              toolbarHeight: 44),
                           body: const LiveFeedScreen(),
                         )),
                         child: SizedBox(

@@ -75,6 +75,8 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
   late String _savedType = _roomType;
   late String _gameType = widget.room['gameType'] as String? ?? 'tictactoe';
   late String _visibility = widget.room['visibility'] as String? ?? 'public';
+  // Subscriber rooms: the lowest level that can join.
+  late String _subTier = widget.room['subscriberTier'] as String? ?? 'silver';
   late bool _micEnabled = widget.room['micEnabled'] != false;
   late String _songPermission =
       widget.room['songPermission'] as String? ?? 'anyone';
@@ -171,6 +173,12 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
     setState(apply);
     final ok = await _patch('/settings', body);
     if (!ok && mounted) setState(revert);
+  }
+
+  void _setSubTier(String v) {
+    final old = _subTier;
+    _saveSettings({'visibility': 'subscribers', 'subscriberTier': v},
+        () => _subTier = v, () => _subTier = old);
   }
 
   void _setVisibility(String v) {
@@ -479,6 +487,18 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
           value: _visibility,
           onChanged: _saving ? null : _setVisibility,
         ),
+        if (_visibility == 'subscribers') ...[
+          const RoomSheetLabel('SUBSCRIBERS FROM'),
+          RoomChoiceRow(
+            options: const [
+              ('silver', InIcons.star, 'Silver+'),
+              ('gold', InIcons.star, 'Gold+'),
+              ('platinum', InIcons.diamond, 'Platinum'),
+            ],
+            value: _subTier,
+            onChanged: _saving ? null : _setSubTier,
+          ),
+        ],
         const RoomSheetLabel('MICS'),
         RoomChoiceRow(
           options: const [

@@ -1,4 +1,5 @@
 import '../../widgets/profile_song_chip.dart';
+import '../../widgets/sub_tiers.dart';
 import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
@@ -752,8 +753,8 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
           if (_subscription['priceCoins'] != null)
             _pillButton(
               _subscription['subscribed'] == true
-                  ? '⭐ Subscribed'
-                  : '⭐ Subscribe · ${_subscription['priceCoins']}/mo',
+                  ? '\u25C6 ${subTierName(_subscription['tier'] as String? ?? 'silver')}'
+                  : '\u25C6 Subscribe · from ${_subscription['priceCoins']}/mo',
               onTap: _subscriptionSheet,
               gradient: _subscription['subscribed'] == true
                   ? null
@@ -834,10 +835,13 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
   }
 
   // Subscribe, or manage an existing subscription.
+  // Silver, Gold and Platinum: pick a level (or change / cancel yours).
   Future<void> _subscriptionSheet() async {
     final sub = _subscription;
-    final price = sub['priceCoins'];
+    final tiers = Map<String, dynamic>.from(
+        (sub['tiers'] as Map?) ?? {'silver': sub['priceCoins']});
     final subscribed = sub['subscribed'] == true;
+    final mine = sub['tier'] as String?;
     final renews = sub['autoRenew'] == true;
     final until = sub['expiresAt'] == null
         ? null
@@ -845,57 +849,151 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
     final untilText =
         until == null ? '' : '${until.day}/${until.month}/${until.year}';
     final name = _profile?['name'] as String? ?? 'this creator';
+    final offered = [
+      for (final t in kSubTiers)
+        if (tiers[t] != null) t,
+    ];
+    String? picked = mine ?? (offered.contains('gold') ? 'gold' : offered.firstOrNull);
     final action = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: Colors.black,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(22, 20, 22, 16),
-          child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(subscribed ? 'Subscribed to $name' : 'Subscribe to $name',
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 8),
-                Text(
-                    subscribed
-                        ? (renews
-                            ? 'Renews on $untilText for $price coins.'
-                            : 'Ends on $untilText. It won’t renew.')
-                        : '$price coins a month. You’ll see their subscriber-only '
-                            'stories. Renews each month from your coins; cancel '
-                            'any time.',
-                    style: const TextStyle(
-                        color: AppColors.textDim, fontSize: 14, height: 1.4)),
-                const SizedBox(height: 18),
-                if (!subscribed || !renews)
-                  FilledButton(
-                    onPressed: () => Navigator.of(ctx).pop('subscribe'),
-                    style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(50)),
-                    child: Text(subscribed
-                        ? 'Turn renewal back on'
-                        : 'Subscribe for $price coins'),
-                  )
-                else
-                  OutlinedButton(
-                    onPressed: () => Navigator.of(ctx).pop('cancel'),
-                    style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(50)),
-                    child: const Text('Cancel renewal'),
-                  ),
-              ]),
+      backgroundColor: const Color(0xFF121116),
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(subscribed ? 'Your level with $name' : 'Subscribe to $name',
+                      style: const TextStyle(
+                          fontSize: 17, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 4),
+                  Text(
+                      subscribed
+                          ? (renews
+                              ? 'Renews on $untilText.'
+                              : 'Ends on $untilText. It won’t renew.')
+                          : 'Pick a level · renews monthly from your coins',
+                      style: const TextStyle(
+                          color: AppColors.textDim, fontSize: 13)),
+                  const SizedBox(height: 14),
+                  for (final t in offered) ...[
+                    Builder(builder: (_) {
+                      final (accent, bg, onAccent) = subTierColors(t);
+                      final on = picked == t;
+                      return GestureDetector(
+                        onTap: () => setSheet(() => picked = t),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                          decoration: BoxDecoration(
+                            color: bg,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                                color: on ? accent : accent.withValues(alpha: 0.35),
+                                width: on ? 2 : 1),
+                          ),
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(children: [
+                                  Text('\u25C6 ',
+                                      style: TextStyle(color: accent, fontSize: 15)),
+                                  Text(subTierName(t),
+                                      style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700)),
+                                  if (t == 'gold' && offered.length > 1) ...[
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 5, vertical: 1),
+                                      decoration: BoxDecoration(
+                                          color: accent,
+                                          borderRadius: BorderRadius.circular(4)),
+                                      child: Text('Most popular',
+                                          style: TextStyle(
+                                              color: onAccent,
+                                              fontSize: 9.5,
+                                              fontWeight: FontWeight.w700)),
+                                    ),
+                                  ],
+                                  if (mine == t) ...[
+                                    const SizedBox(width: 6),
+                                    const Text('Yours',
+                                        style: TextStyle(
+                                            color: AppColors.textDim,
+                                            fontSize: 11.5)),
+                                  ],
+                                  const Spacer(),
+                                  Text('${tiers[t]} coins/mo',
+                                      style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600)),
+                                ]),
+                                const SizedBox(height: 6),
+                                for (final perk in subTierPerks(t))
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2),
+                                    child: Text('\u2713 $perk',
+                                        style: const TextStyle(
+                                            color: Color(0xFFCFCBE0),
+                                            fontSize: 12.5)),
+                                  ),
+                              ]),
+                        ),
+                      );
+                    }),
+                  ],
+                  const SizedBox(height: 4),
+                  if (picked != null && !(subscribed && picked == mine && renews))
+                    FilledButton(
+                      onPressed: () => Navigator.of(ctx).pop('subscribe'),
+                      style: FilledButton.styleFrom(
+                          backgroundColor: subTierColors(picked!).$1,
+                          foregroundColor: subTierColors(picked!).$3,
+                          minimumSize: const Size.fromHeight(48)),
+                      child: Text(subscribed && picked == mine
+                          ? 'Turn renewal back on'
+                          : subscribed
+                              ? 'Switch to ${subTierName(picked!)} · ${tiers[picked]}/mo'
+                              : 'Subscribe · ${tiers[picked]} coins/mo',
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                    ),
+                  if (subscribed && renews)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(ctx).pop('cancel'),
+                        style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(46)),
+                        child: const Text('Cancel renewal'),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  Text(
+                      subscribed && picked != mine
+                          ? 'A new level starts a fresh month at its price.'
+                          : 'Cancel anytime · you keep it till the month ends',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          color: AppColors.textFaint, fontSize: 11.5)),
+                ]),
+          ),
         ),
       ),
     );
     if (action == null || !mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final res = await ApiClient.post(action == 'subscribe'
-          ? '/creators/${widget.userId}/subscribe'
-          : '/creators/${widget.userId}/subscription/cancel');
+      final res = action == 'subscribe'
+          ? await ApiClient.post('/creators/${widget.userId}/subscribe',
+              body: {'tier': picked})
+          : await ApiClient.post(
+              '/creators/${widget.userId}/subscription/cancel');
       if (!mounted) return;
       setState(() => _subscription = {
             ..._subscription,
@@ -903,7 +1001,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
           });
       messenger.showSnackBar(SnackBar(
           content: Text(action == 'subscribe'
-              ? 'Subscribed to $name'
+              ? '${subTierName(picked ?? 'silver')} with $name'
               : 'Renewal cancelled. You keep access until $untilText.')));
     } on ApiException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.message)));

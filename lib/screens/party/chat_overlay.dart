@@ -2,6 +2,7 @@ import 'dart:ui' show ImageFilter;
 import '../../widgets/insync_brand.dart';
 import '../../widgets/animated_emoji.dart';
 import '../../widgets/emoji_panel.dart';
+import '../../widgets/sub_tiers.dart';
 import 'pick_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -369,6 +370,12 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                       fontWeight: FontWeight.w800)),
             ),
           ),
+        // The host's subscribers: their level's badge.
+        if (m['subTier'] is String)
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: SubTierBadge(m['subTier'] as String),
+          ),
         if (!mine && widget.fanIds.contains(senderId))
           const WidgetSpan(
             alignment: PlaceholderAlignment.middle,
@@ -380,7 +387,12 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
           ),
         TextSpan(
             text: '$first: ',
-            style: TextStyle(fontWeight: FontWeight.w700, color: nameColor)),
+            style: m['subTier'] == 'platinum'
+                ? const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFFD6CCFF),
+                    shadows: [Shadow(color: Color(0xFFB9A7FF), blurRadius: 8)])
+                : TextStyle(fontWeight: FontWeight.w700, color: nameColor)),
       ],
     ];
     // 1–3 emoji alone: big and animated after the name.
@@ -533,6 +545,47 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
 
   Widget _eventLine(Map<String, dynamic> m) {
     final event = m['event'] as String?;
+    // A Platinum subscriber joining: a purple banner, not a small note.
+    if (event == 'joined' && m['subTier'] == 'platinum') {
+      final who = _person(m['userId'] as String?);
+      final name = (m['text'] as String? ?? '').replaceAll(' joined', '');
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(4, 4, 24, 4),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+                colors: [Color(0xFF6B55D9), Color(0x006B55D9)]),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [BoxShadow(color: Color(0xFFD6CCFF), spreadRadius: 2)]),
+              child: SizedBox.square(
+                dimension: 26,
+                child: FittedBox(
+                    child: Avatar(
+                        src: who?.avatarUrl ?? m['avatarUrl'] as String?,
+                        name: name,
+                        size: AvatarSize.sm)),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(name,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12.5)),
+            const SizedBox(width: 6),
+            const SubTierBadge('platinum'),
+            const Text('joined',
+                style: TextStyle(color: Colors.white, fontSize: 12)),
+          ]),
+        ),
+      );
+    }
     final text = m['text'] as String? ?? '';
     final removed = event == 'removed';
     final color = removed ? const Color(0xFFE08A8A) : const Color(0xFFB0ADC2);
