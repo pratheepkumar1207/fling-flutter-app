@@ -114,7 +114,8 @@ List<InlineSpan> animateEmojiSpans(List<InlineSpan> spans, double fontSize) {
   return out;
 }
 
-/// Message text with animated emoji, each 1.25× the text size. A message of
+/// Message text with animated emoji: 2.5× the text size when the message is
+/// only emoji, 1.25× inside a sentence. A message of
 /// only 1–3 emoji keeps playing; emoji inside normal text play once.
 class ChatEmojiText extends StatelessWidget {
   final String text;
@@ -139,7 +140,8 @@ class ChatEmojiText extends StatelessWidget {
       final chars =
           text.trim().characters.where((c) => c.trim().isNotEmpty).toList();
       return Wrap(spacing: 2, children: [
-        for (final c in chars) AnimatedEmoji(c, size: size),
+        for (final c in chars)
+          AnimatedEmoji(c, size: (base.fontSize ?? 14) * 2.5),
       ]);
     }
     if (!text.characters.any(AnimatedEmojiRegistry.hasAnimation)) {
