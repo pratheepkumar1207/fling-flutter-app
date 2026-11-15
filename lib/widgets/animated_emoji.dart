@@ -19,6 +19,10 @@ class AnimatedEmojiRegistry {
   static Map<String, String> _files = const {};
   static bool get isLoaded => _files.isNotEmpty;
 
+  /// Every emoji in order, with its name and group, for the emoji panel.
+  static List<({String emoji, String name, String category})> entries =
+      const [];
+
   /// Reads the emoji → animation list. Call once at start-up.
   static Future<void> load() async {
     if (isLoaded) return;
@@ -29,6 +33,14 @@ class AnimatedEmojiRegistry {
         for (final e in data.entries)
           e.key: (e.value as Map)['file'] as String,
       };
+      entries = [
+        for (final e in data.entries)
+          (
+            emoji: e.key,
+            name: (e.value as Map)['name'] as String? ?? '',
+            category: (e.value as Map)['category'] as String? ?? 'Symbols',
+          ),
+      ];
     } catch (_) {
       // No list: every emoji simply stays as text.
     }

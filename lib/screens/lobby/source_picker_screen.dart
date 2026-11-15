@@ -102,6 +102,10 @@ class SourcePickerBody extends StatelessWidget {
   /// queue sheet pulled up to full screen).
   final bool fullGrid;
 
+  /// Tiles per row in [fullGrid]: 6 when the queue sits below, 4 (big
+  /// tiles) when the sources have the sheet to themselves.
+  final int gridColumns;
+
   const SourcePickerBody({
     super.key,
     this.visibility = 'public',
@@ -117,6 +121,7 @@ class SourcePickerBody extends StatelessWidget {
     this.sourcesOnly = false,
     this.onMore,
     this.fullGrid = false,
+    this.gridColumns = 6,
   });
 
   bool get _inRoom => roomId != null;
@@ -267,12 +272,26 @@ class SourcePickerBody extends StatelessWidget {
       {required String title, required String endpoint}) {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => Scaffold(
-        backgroundColor: AppColors.bg,
-        appBar: AppBar(title: Text(title)),
+        backgroundColor: const Color(0xFF0F0F0F),
+        appBar: AppBar(
+            title: Text(title),
+            backgroundColor: const Color(0xFF0F0F0F),
+            foregroundColor: Colors.white),
         body: AppSongListTab(
           endpoint: endpoint,
-          // In a room the list is a 2-row carousel of thumbnails.
-          carousel: _inRoom,
+          onAddAll: _inRoom && onPlayAll != null
+              ? (songs) => onPlayAll!([
+                    for (final s in songs)
+                      if ((s.videoUrl ?? '').isNotEmpty)
+                        {
+                          'videoUrl': s.videoUrl,
+                          'title': s.title,
+                          'thumbnail': s.thumbnail,
+                          'sourceType': s.sourceType,
+                          'mediaMode': 'video',
+                        }
+                  ])
+              : null,
           onAdd: (
                   {required videoUrl,
                   required title,
@@ -293,9 +312,11 @@ class SourcePickerBody extends StatelessWidget {
   void _openPlaylists(BuildContext context) {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => Scaffold(
-        backgroundColor: AppColors.bg,
-        appBar:
-            AppBar(title: Text(audioOnly ? 'Music playlists' : 'Playlists')),
+        backgroundColor: const Color(0xFF0F0F0F),
+        appBar: AppBar(
+            title: Text(audioOnly ? 'Music playlists' : 'Playlists'),
+            backgroundColor: const Color(0xFF0F0F0F),
+            foregroundColor: Colors.white),
         body: AppPlaylistsTab(
           music: audioOnly,
           onAdd: (
@@ -529,7 +550,7 @@ class SourcePickerBody extends StatelessWidget {
             runSpacing: 12,
             children: [
               for (final n in order)
-                SizedBox(width: box.maxWidth / 6, child: tiles[n]!),
+                SizedBox(width: box.maxWidth / gridColumns, child: tiles[n]!),
             ],
           ),
         ),

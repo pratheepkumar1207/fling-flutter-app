@@ -10,6 +10,7 @@ import '../widgets/app_image.dart';
 import '../widgets/google_connect_gate.dart';
 import '../widgets/spinner.dart';
 import 'two_row_carousel.dart';
+import 'yt_lists.dart';
 
 /// Shared app-internal song list tabs — extracted from queue_sheet.dart so
 /// both the in-room Queue sheet and the (Lobby/in-room) source picker can
@@ -29,12 +30,15 @@ class AppSongListTab extends StatefulWidget {
   // In a room: a 2-row sideways carousel of 16:9 thumbnails (tap to add)
   // instead of the plain list.
   final bool carousel;
+  // In a room: Play all / Shuffle queue the whole list.
+  final void Function(List<Song> songs)? onAddAll;
   const AppSongListTab(
       {super.key,
       required this.endpoint,
       required this.onAdd,
       this.canAddSongs = true,
-      this.carousel = false});
+      this.carousel = false,
+      this.onAddAll});
 
   @override
   State<AppSongListTab> createState() => _AppSongListTabState();
@@ -42,6 +46,7 @@ class AppSongListTab extends StatefulWidget {
 
 class _AppSongListTabState extends State<AppSongListTab> {
   List<Song> _songs = [];
+  List<Map<String, dynamic>> _rows = [];
   bool _loading = true;
   // Added during this visit — shown as "Added" on the carousel tile.
   final Set<String> _added = {};
@@ -81,9 +86,10 @@ class _AppSongListTabState extends State<AppSongListTab> {
       final data = await ApiClient.get(widget.endpoint);
       if (!mounted) return;
       setState(() {
-        _songs = (data as List)
-            .map((e) => Song.fromJson(e as Map<String, dynamic>))
-            .toList();
+        _rows = [
+          for (final e in data as List) Map<String, dynamic>.from(e as Map)
+        ];
+        _songs = _rows.map(Song.fromJson).toList();
         _loading = false;
       });
     } catch (_) {
@@ -94,6 +100,25 @@ class _AppSongListTabState extends State<AppSongListTab> {
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: Spinner());
+    if (!widget.carousel) {
+      final history = widget.endpoint.startsWith('/song-history');
+      return YtSongList(
+        rows: _rows,
+        history: history,
+        onAdd: widget.canAddSongs ? (r) => _add(Song.fromJson(r)) : null,
+        onAddAll: widget.onAddAll == null
+            ? null
+            : (rows) => widget.onAddAll!(rows.map(Song.fromJson).toList()),
+        onRemove: (r) => ytRemove(widget.endpoint, r),
+        onClear: history
+            ? () async {
+                try {
+                  await ApiClient.delete('/song-history');
+                } catch (_) {}
+              }
+            : null,
+      );
+    }
     if (_songs.isEmpty) {
       return const Center(
           child: Text('Nothing here yet.',
@@ -200,68 +225,34 @@ class _AppPlaylistsTabState extends State<AppPlaylistsTab> {
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: Spinner());
     return ListView(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
-        const Padding(
-            padding: EdgeInsets.only(bottom: 6),
-            child: Text('My playlists',
-                style: TextStyle(
-                    color: AppColors.textFaint,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600))),
         if (_playlists.isEmpty)
           const Padding(
-              padding: EdgeInsets.only(bottom: 12),
+              padding: EdgeInsets.all(12),
               child: Text('No playlists yet.',
                   style: TextStyle(color: AppColors.textFaint))),
-        ..._playlists.map(
-          (p) => ExpansionTile(
-            title: Text(p.name,
-                style: const TextStyle(color: AppColors.text, fontSize: 13)),
-            subtitle: Text(
-                '${p.songs.length} song${p.songs.length == 1 ? '' : 's'}',
-                style:
-                    const TextStyle(color: AppColors.textFaint, fontSize: 11)),
-            trailing: widget.onAddAll != null && p.songs.isNotEmpty
-                ? Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _PlayAllButtons(
-                        onPlay: () => widget.onAddAll!(p.songs),
-                        onShuffle: () =>
-                            widget.onAddAll!([...p.songs]..shuffle()),
-                      ),
-                      const InIcon(InIcons.down, color: AppColors.textDim),
-                    ],
-                  )
-                : null,
-            iconColor: AppColors.textDim,
-            collapsedIconColor: AppColors.textDim,
-            children: p.songs
-                .map((s) => ListTile(
-                      dense: true,
-                      title: Text(s.title ?? 'Untitled',
-                          style: const TextStyle(
-                              color: AppColors.textDim, fontSize: 12)),
-                      trailing: widget.canAddSongs
-                          ? TextButton(
-                              onPressed: () => widget.onAdd(
-                                  videoUrl: s.videoUrl ?? '',
-                                  title: s.title ?? '',
-                                  thumbnail: s.thumbnail,
-                                  mediaMode: 'video',
-                                  sourceType: s.sourceType),
-                              child: const Text('+ Add',
-                                  style: TextStyle(
-                                      color: AppColors.primary, fontSize: 12)),
-                            )
-                          : null,
-                    ))
-                .toList(),
-          ),
+        YtPlaylistList(
+          playlists: _playlists,
+          subtitle: (p) =>
+              'Yours \u00B7 ${p.songs.length} song${p.songs.length == 1 ? '' : 's'}',
+          onOpen: (p) => Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => YtPlaylistScreen(
+              playlist: p,
+              onAdd: widget.canAddSongs
+                  ? (s) => widget.onAdd(
+                      videoUrl: s.videoUrl ?? '',
+                      title: s.title ?? '',
+                      thumbnail: s.thumbnail,
+                      mediaMode: 'video',
+                      sourceType: s.sourceType)
+                  : null,
+              onAddAll: widget.onAddAll,
+            ),
+          )),
         ),
         const Padding(
-            padding: EdgeInsets.fromLTRB(0, 16, 0, 6),
+            padding: EdgeInsets.fromLTRB(12, 16, 12, 6),
             child: Text('YouTube playlists',
                 style: TextStyle(
                     color: AppColors.textFaint,

@@ -1,4 +1,5 @@
 import '../../widgets/profile_song_chip.dart';
+import '../../widgets/yt_lists.dart';
 import '../../widgets/skeletons.dart';
 import '../../widgets/verified_tick.dart';
 import '../../widgets/two_row_carousel.dart';
@@ -487,15 +488,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Tap a playlist: all its songs play as the room's queue (your current
-  // room, or a new one). Long-press to edit it.
-  void _playPlaylist(Playlist p) {
-    if (p.songs.isEmpty) {
-      _showSnack('Add songs to "${p.name}" first');
-      return;
-    }
-    playPlaylistSmart(context, p.songs);
-  }
+  void _openPlaylist(Playlist p) => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => YtPlaylistScreen(
+            playlist: p,
+            onAdd: (s) => playSongSmart(context, s),
+            onAddAll: (songs) => playPlaylistSmart(context, songs),
+            onAddSongs: () => _addSongToPlaylist(p.id),
+            onRemoveSong: (s) async {
+              if (s.id != null) await _removeSongFromPlaylist(p.id, s.id!);
+            },
+            visibilityChip: DropdownButton<String>(
+              value: p.visibility,
+              dropdownColor: const Color(0xFF272727),
+              underline: const SizedBox.shrink(),
+              style: const TextStyle(color: Colors.white70, fontSize: 12.5),
+              items: kVisibilityLabels.entries
+                  .map((e) =>
+                      DropdownMenuItem(value: e.key, child: Text(e.value)))
+                  .toList(),
+              onChanged: (v) {
+                if (v != null) _updateVisibility(p.id, v);
+              },
+            ),
+          ),
+        ),
+      );
 
   void _editPlaylist(Playlist p) => showModalBottomSheet(
         context: context,
@@ -525,21 +543,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
           _sectionHeader('Playlists'),
           if (_playlists.isNotEmpty) ...[
-            TwoRowCarousel(tiles: [
-              for (final p in _playlists)
-                CarouselTile(
-                  title: p.name,
-                  thumbnail: p.songs.isEmpty ? null : p.songs.first.thumbnail,
-                  badge:
-                      '${p.songs.length} song${p.songs.length == 1 ? '' : 's'}',
-                  onTap: () => _playPlaylist(p),
-                  onLongPress: () => _editPlaylist(p),
-                ),
-            ]),
-            const Padding(
-              padding: EdgeInsets.only(top: 6),
-              child: Text('Tap to play all in a room · long-press to edit',
-                  style: TextStyle(color: AppColors.textFaint, fontSize: 11.5)),
+            // YouTube style: stacked covers with the song count; tap to
+            // open (Play all, Shuffle, add or remove songs).
+            SizedBox(
+              height: 128,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _playlists.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, i) {
+                  final p = _playlists[i];
+                  return GestureDetector(
+                    onTap: () => _openPlaylist(p),
+                    onLongPress: () => _editPlaylist(p),
+                    child: SizedBox(
+                      width: 140,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          YtPlaylistCover(playlist: p, width: 140),
+                          const SizedBox(height: 5),
+                          Text(p.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  color: AppColors.text,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600)),
+                          Text(kVisibilityLabels[p.visibility] ?? '',
+                              style: const TextStyle(
+                                  color: AppColors.textFaint, fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
           ],
           const SizedBox(height: 8),

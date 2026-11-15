@@ -32,7 +32,7 @@ Widget _chat(List<Map<String, dynamic>> messages,
     );
 
 void main() {
-  testWidgets('Queued songs show as their own line with who added them',
+  testWidgets('Queued songs stay out of the chat (they live in the queue)',
       (t) async {
     await t.pumpWidget(_chat([
       {
@@ -54,10 +54,8 @@ void main() {
         'ts': 2,
       },
     ]));
-    expect(find.textContaining('Queued · Kaavaalaa · You', findRichText: true),
-        findsOneWidget);
-    expect(find.textContaining('Naa Ready · Arun', findRichText: true),
-        findsOneWidget);
+    expect(find.textContaining('Kaavaalaa', findRichText: true), findsNothing);
+    expect(find.textContaining('Naa Ready', findRichText: true), findsNothing);
   });
 
   testWidgets('Privacy card sits in chat and sends the pick', (t) async {

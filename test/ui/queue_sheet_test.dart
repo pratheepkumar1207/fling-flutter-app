@@ -41,13 +41,14 @@ void main() {
     final calls = <int>[];
     await t.pumpWidget(_sheet(host: true, calls: calls));
     // No title, count, labels, now playing or played: just search,
-    // six source tiles and what's up next.
+    // every source in three rows and what's up next.
     expect(find.text('Up next'), findsNothing);
     expect(find.text('Search or paste a link'), findsOneWidget);
     expect(find.text('Queue · 4'), findsNothing);
     expect(find.text('YouTube Surf'), findsOneWidget);
     expect(find.text('YouTube Music'), findsOneWidget);
-    expect(find.text('All'), findsOneWidget);
+    expect(find.text('Hotstar'), findsOneWidget);
+    expect(find.text('All'), findsNothing);
     expect(find.text('NOW PLAYING'), findsNothing);
     expect(find.text('Netflix · added by Bala'), findsNothing);
     expect(find.text('YouTube · added by Ravi'), findsOneWidget);
@@ -55,11 +56,36 @@ void main() {
     // Last one can move up to play next.
     await t.tap(find.byTooltip('Move to top'));
     expect(calls, [1032]);
-    // "All" pulls it up to every source.
-    await t.tap(find.text('All'));
-    await t.pumpAndSettle();
+  });
+
+  testWidgets('Nothing queued: every source fills the sheet', (t) async {
+    t.view.physicalSize = const Size(390, 844);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+    await t.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: QueueSheetScreen(
+          roomId: 'r1',
+          queue: {
+            'currentIndex': 0,
+            'items': [_item('Now on')],
+          },
+          isHost: true,
+          participantCount: 2,
+          onAdd: (_, {position = 'bottom'}) {},
+          onJump: (_) {},
+          onRemove: (_) {},
+          onReorder: (_, __) {},
+          onOpenRoster: () {},
+          onSwitchSource: (a, b, {videoTitle, videoThumbnail}) async {},
+        ),
+      ),
+    ));
     expect(find.text('Hotstar'), findsOneWidget);
-    expect(find.text('All'), findsNothing);
+    expect(find.text('History'), findsOneWidget);
+    expect(find.text('Nothing queued yet'), findsNothing);
+    expect(t.takeException(), isNull);
   });
 
   testWidgets('Listeners without add rights only see the queue', (t) async {

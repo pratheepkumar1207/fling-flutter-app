@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/live_now.dart';
+import '../live/live_feed_screen.dart';
 import '../../widgets/insync_brand.dart';
 import 'create_sheet.dart';
 import 'package:provider/provider.dart';
@@ -16,7 +18,9 @@ import '../wallet/wallet_screen.dart';
 /// App bar from the approved design: profile photo, logo and wordmark on the
 /// left; coins, rankings, notifications and Messages on the right.
 class InsyncTopBar extends StatelessWidget implements PreferredSizeWidget {
-  const InsyncTopBar({super.key});
+  // Popcorn tab: the red live button (opens the live feed).
+  final bool showLive;
+  const InsyncTopBar({super.key, this.showLive = false});
   @override
   Size get preferredSize => const Size.fromHeight(60);
 
@@ -58,6 +62,73 @@ class InsyncTopBar extends StatelessWidget implements PreferredSizeWidget {
                   child: InsyncWordmark(size: 20),
                 ),
               ),
+              if (showLive)
+                ValueListenableBuilder<int>(
+                  valueListenable: liveNowCount,
+                  builder: (context, n, _) => Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: Semantics(
+                      button: true,
+                      label: n > 0 ? 'Live now, $n' : 'Live',
+                      excludeSemantics: true,
+                      child: GestureDetector(
+                        onTap: () => push(Scaffold(
+                          backgroundColor: Colors.black,
+                          appBar: AppBar(
+                              backgroundColor: Colors.black,
+                              foregroundColor: Colors.white,
+                              title: const Text('Live')),
+                          body: const LiveFeedScreen(),
+                        )),
+                        child: SizedBox(
+                          width: 36,
+                          height: 32,
+                          child: Stack(clipBehavior: Clip.none, children: [
+                            Center(
+                              child: Container(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: n > 0
+                                      ? const Color(0xFFE53935)
+                                      : const Color(0xFF3A3A40),
+                                  boxShadow: n > 0
+                                      ? const [
+                                          BoxShadow(
+                                              color: Color(0x40E53935),
+                                              spreadRadius: 4)
+                                        ]
+                                      : null,
+                                ),
+                                child: const Center(
+                                    child: InIcon(InIcons.live,
+                                        size: 16, color: Colors.white)),
+                              ),
+                            ),
+                            if (n > 0)
+                              Positioned(
+                                right: -4,
+                                top: -4,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 4, vertical: 1),
+                                  decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(7)),
+                                  child: Text(n > 99 ? '99+' : '$n',
+                                      style: const TextStyle(
+                                          color: Color(0xFFE53935),
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.w700)),
+                                ),
+                              ),
+                          ]),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               // Create: post, reel, story, room or go live.
               Padding(
                 padding: const EdgeInsets.only(right: 6),

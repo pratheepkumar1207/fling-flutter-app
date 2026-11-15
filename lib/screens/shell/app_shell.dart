@@ -311,7 +311,7 @@ class _AppShellState extends State<AppShell> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       // Reels play full screen, without the top bar.
-      appBar: _index == _reelsTab ? null : const InsyncTopBar(),
+      appBar: _index == _reelsTab ? null : InsyncTopBar(showLive: _index == 2),
       // Lets Home's own scroll content show (blurred) through the glass
       // bottom nav instead of the bar sitting over a dead solid-color gap —
       // see LiquidGlassBottomNav.

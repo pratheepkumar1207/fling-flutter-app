@@ -17,6 +17,8 @@ import '../../theme/insync_icons.dart';
 import 'home_room_cards.dart';
 import 'home_lobby_card.dart';
 import 'popcorn_cards.dart';
+import '../../core/live_now.dart';
+import '../feed/friends_in_rooms_strip.dart';
 import '../live/live_feed_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/api_exception.dart';
@@ -391,6 +393,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final active = _rooms.where((r) => asNum(r['memberCount']) > 0).toList();
     final shown = active.where(_matches).toList();
     final boosted = active.where((r) => r['isBoosted'] == true).toList();
+    final lives = active.where((r) => r['roomType'] == 'live').length;
+    if (liveNowCount.value != lives) {
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => liveNowCount.value = lives);
+    }
     return RefreshIndicator(
       onRefresh: () async {
         await Future.wait([_load(), _loadLikedPlaylists()]);
@@ -441,6 +448,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 18),
           ],
+          // Friends' faces with what they're doing; tap to join them.
+          if (_filter == 'all') const FriendsInRoomsStrip(),
           Row(children: [
             Expanded(
               child: Text(
@@ -504,12 +513,12 @@ class _HomeScreenState extends State<HomeScreen> {
             )
           else
             for (final r in shown) ...[
-              PopcornRoomCard(
+              PopcornPostCard(
                   room: r,
                   onTap: () => _openRoom(r['id'] as String),
                   onLongPress: () =>
                       showRoomPeoplePopup(context, room: r, line: '')),
-              const SizedBox(height: 9),
+              const SizedBox(height: 14),
             ],
           for (final b in _liveBlends) ...[
             const SizedBox(height: 6),

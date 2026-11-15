@@ -1,4 +1,5 @@
 import '../create/create_flow.dart';
+import '../home/boosted_rooms.dart';
 import '../../widgets/skeletons.dart';
 import 'package:flutter/material.dart';
 import 'friends_in_rooms_strip.dart';
@@ -292,11 +293,40 @@ class _FeedScreenState extends State<FeedScreen> {
             else if (_regularPosts.isEmpty)
               const _EmptyFeed()
             else
-              ..._regularPosts.map((post) => _postCard(post)),
+              ..._withBoosted(_regularPosts),
           ],
         ),
       ),
     ]);
+  }
+
+  // Boosted rooms as posts at random spots, every 6–12 posts.
+  List<Map<String, dynamic>> _boostedRooms = const [];
+  List<int> _boostedSlots = const [];
+  bool _boostedLoaded = false;
+
+  List<Widget> _withBoosted(List<Post> posts) {
+    if (!_boostedLoaded) {
+      _boostedLoaded = true;
+      BoostedRooms.load().then((rooms) {
+        if (!mounted) return;
+        setState(() {
+          _boostedRooms = rooms;
+          _boostedSlots = BoostedRooms.slots(400, min: 6, max: 12);
+        });
+      });
+    }
+    final out = <Widget>[];
+    var b = 0;
+    for (var i = 0; i < posts.length; i++) {
+      out.add(_postCard(posts[i]));
+      if (_boostedRooms.isNotEmpty && _boostedSlots.contains(i + 1)) {
+        out.add(BoostedRoomPost(
+            key: ValueKey('boosted-${i + 1}'),
+            room: _boostedRooms[b++ % _boostedRooms.length]));
+      }
+    }
+    return out;
   }
 
   List<Post> get _regularPosts =>

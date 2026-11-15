@@ -578,6 +578,10 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
     final items = (widget.queue['items'] as List?) ?? [];
     final current = widget.queue['currentIndex'] as int? ?? 0;
     final showResults = _results != null || _searching || _searchError != null;
+    // Something waiting to play: sources in 3 rows, the queue under them.
+    // Nothing waiting: every source as big tiles, filling the sheet.
+    final hasQueue = items.length > current + 1;
+    final sourcesFill = !hasQueue && !showResults && !widget.audioOnly;
     // Swipe on the top part (handle, search, sources) moves the sheet;
     // pulling the list down past its top does too.
     Widget dragArea(Widget child) => GestureDetector(
@@ -654,16 +658,29 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
               ),
             ),
           if (!widget.audioOnly && !showResults && widget.canAddSongs)
-            dragArea(SourcePickerBody(
-              quickRow: !_full,
-              fullGrid: _full,
-              compact: true,
-              roomId: widget.roomId,
-              onAddToQueue: _addToQueue,
-              onSwitchSource: widget.onSwitchSource,
-              onMore: () => setState(() => _full = true),
-            )),
-          if (!widget.audioOnly && !showResults)
+            if (sourcesFill)
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.only(top: 6, bottom: 16),
+                  child: dragArea(SourcePickerBody(
+                    fullGrid: true,
+                    gridColumns: 4,
+                    roomId: widget.roomId,
+                    onAddToQueue: _addToQueue,
+                    onSwitchSource: widget.onSwitchSource,
+                  )),
+                ),
+              )
+            else
+              dragArea(SourcePickerBody(
+                fullGrid: true,
+                gridColumns: 6,
+                compact: true,
+                roomId: widget.roomId,
+                onAddToQueue: _addToQueue,
+                onSwitchSource: widget.onSwitchSource,
+              )),
+          if (!widget.audioOnly && !showResults && !sourcesFill)
             const Padding(
               padding: EdgeInsets.fromLTRB(18, 14, 18, 2),
               child: Divider(height: 1, thickness: 1, color: Color(0xFF1C1C1C)),
@@ -692,6 +709,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                           })),
               ]),
             ),
+          if (!sourcesFill || !widget.canAddSongs)
           Expanded(
             child: showResults
                 ? _resultsList()

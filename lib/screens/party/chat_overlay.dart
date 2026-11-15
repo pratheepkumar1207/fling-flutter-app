@@ -1,6 +1,7 @@
 import 'dart:ui' show ImageFilter;
 import '../../widgets/insync_brand.dart';
 import '../../widgets/animated_emoji.dart';
+import '../../widgets/emoji_panel.dart';
 import 'pick_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -341,55 +342,71 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
         : null;
     final quoteMine = quote?['senderId'] == widget.myUserId;
     final person = _person(senderId);
-    final shownName = mine ? 'You' : name;
+    final first = name.trim().split(RegExp(r'\s+')).first;
+    final nameColor = mine
+        ? AppColors.lilac
+        : vip
+            ? AppColors.gold
+            : _nameColor(senderId);
+    const style =
+        TextStyle(fontSize: 13, color: Colors.white, shadows: _textShadow);
+    // Only the first of back-to-back messages carries the name.
+    final nameSpans = <InlineSpan>[
+      if (!continued) ...[
+        if (vip)
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Container(
+              margin: const EdgeInsets.only(right: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+              decoration: BoxDecoration(
+                  color: AppColors.gold,
+                  borderRadius: BorderRadius.circular(5)),
+              child: const Text('VIP',
+                  style: TextStyle(
+                      color: Color(0xFF3A2300),
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800)),
+            ),
+          ),
+        if (!mine && widget.fanIds.contains(senderId))
+          const WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(
+              padding: EdgeInsets.only(right: 3),
+              child: InIcon(InIcons.heart,
+                  size: 12, color: AppColors.pink, filled: true),
+            ),
+          ),
+        TextSpan(
+            text: '$first: ',
+            style: TextStyle(fontWeight: FontWeight.w700, color: nameColor)),
+      ],
+    ];
+    // 1–3 emoji alone: big and animated after the name.
+    final Widget textLine = ChatEmojiText.isBigEmoji(text)
+        ? Row(mainAxisSize: MainAxisSize.min, children: [
+            if (nameSpans.isNotEmpty)
+              Text.rich(TextSpan(children: nameSpans), style: style),
+            ChatEmojiText(text,
+                style: const TextStyle(fontSize: 13, color: Colors.white)),
+          ])
+        : Text.rich(
+            TextSpan(children: [
+              ...nameSpans,
+              ...animateEmojiSpans(_textSpans(text), 13),
+            ]),
+            style: style,
+          );
     final body = Column(
-        crossAxisAlignment:
-            mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Same person again: just the text, under their first line.
-          if (!continued)
-            Row(mainAxisSize: MainAxisSize.min, children: [
-              if (vip)
-                Container(
-                  margin: const EdgeInsets.only(right: 5),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                  decoration: BoxDecoration(
-                      color: AppColors.gold,
-                      borderRadius: BorderRadius.circular(5)),
-                  child: const Text('VIP',
-                      style: TextStyle(
-                          color: Color(0xFF3A2300),
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800)),
-                ),
-              if (!mine && widget.fanIds.contains(senderId))
-                const Padding(
-                  padding: EdgeInsets.only(right: 4),
-                  child: InIcon(InIcons.heart,
-                      size: 12, color: AppColors.pink, filled: true),
-                ),
-              Flexible(
-                child: Text(shownName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        shadows: _textShadow,
-                        color: mine
-                            ? AppColors.lilac
-                            : vip
-                                ? AppColors.gold
-                                : _nameColor(senderId))),
-              ),
-            ]),
           if (quote != null)
             Padding(
-              padding: const EdgeInsets.only(top: 2),
+              padding: const EdgeInsets.only(bottom: 2),
               child: Text(
-                  '↪ ${quoteMine ? 'You' : quote['name'] ?? 'Someone'}: ${quote['text'] ?? ''}',
+                  '\u21AA ${quoteMine ? 'You' : quote['name'] ?? 'Someone'}: ${quote['text'] ?? ''}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -397,45 +414,31 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                       fontSize: 11,
                       shadows: _textShadow)),
             ),
-          // Only 1–3 emoji: big and animated; otherwise emoji in the
-          // text play once at text size.
-          if (ChatEmojiText.isBigEmoji(text))
-            ChatEmojiText(text,
-                style: const TextStyle(fontSize: 13, color: Colors.white))
-          else
-            Text.rich(
-              TextSpan(children: animateEmojiSpans(_textSpans(text), 13)),
-              textAlign: mine ? TextAlign.right : TextAlign.left,
-              style: const TextStyle(
-                  fontSize: 13, color: Colors.white, shadows: _textShadow),
-            ),
+          textLine,
           if (m['reactions'] is Map && (m['reactions'] as Map).isNotEmpty)
-            _reactionChips(m, mine),
+            _reactionChips(m, false),
         ]);
     final line = Row(
-      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
-      textDirection: mine ? TextDirection.rtl : TextDirection.ltr,
       children: [
         if (continued)
           const SizedBox(width: 24)
         else
           GestureDetector(
             onTap: mine ? null : () => openRoomPerson(context, senderId),
-            child: Padding(
-              padding: const EdgeInsets.only(top: 1),
-              child: SizedBox.square(
-                dimension: 24,
-                child: FittedBox(
-                    child: Avatar(
-                        src: person?.avatarUrl ?? m['avatarUrl'] as String?,
-                        name: name,
-                        size: AvatarSize.sm)),
-              ),
+            child: SizedBox.square(
+              dimension: 24,
+              child: FittedBox(
+                  child: Avatar(
+                      src: person?.avatarUrl ?? m['avatarUrl'] as String?,
+                      name: name,
+                      size: AvatarSize.sm)),
             ),
           ),
         const SizedBox(width: 7),
-        Flexible(child: body),
+        Flexible(
+            child: Padding(
+                padding: const EdgeInsets.only(top: 3), child: body)),
       ],
     );
     return Padding(
@@ -444,13 +447,43 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
         mine: mine,
         onReply: () => _startReply(m),
         child: Align(
-          alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 300),
-            child: Semantics(
-              label: '$shownName: $text. Long-press to react or reply',
-              child: GestureDetector(
-                onLongPress: () => _openMessageSheet(m),
+          alignment: Alignment.centerLeft,
+          child: Semantics(
+            label: '$first: $text. Long-press to react or reply',
+            child: Builder(
+              builder: (lineContext) => GestureDetector(
+                onLongPress: () => _openMessageSheet(m,
+                    lineContext: lineContext,
+                    preview: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox.square(
+                            dimension: 24,
+                            child: FittedBox(
+                                child: Avatar(
+                                    src: person?.avatarUrl ??
+                                        m['avatarUrl'] as String?,
+                                    name: name,
+                                    size: AvatarSize.sm)),
+                          ),
+                          const SizedBox(width: 7),
+                          Flexible(
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 3),
+                              child: Text.rich(
+                                TextSpan(children: [
+                                  TextSpan(
+                                      text: '$first: ',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          color: nameColor)),
+                                  ...animateEmojiSpans(_textSpans(text), 13),
+                                ]),
+                                style: style,
+                              ),
+                            ),
+                          ),
+                        ])),
                 child: line,
               ),
             ),
@@ -539,8 +572,6 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
     );
   }
 
-  static const _quickReactions = ['❤️', '😂', '😮', '😢', '🔥', '👏'];
-
   Widget _typingRow() {
     final people = [
       for (final id in widget.typingUserIds)
@@ -579,80 +610,160 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
     );
   }
 
-  // Long-press a message: react with an emoji, reply or copy.
-  void _openMessageSheet(Map<String, dynamic> m) {
+  // Long-press a message: the chat dims, the message lights up where it
+  // is, the emoji panel opens right above it (below when there's no room)
+  // and Reply / Copy sit under it.
+  void _openMessageSheet(Map<String, dynamic> m,
+      {BuildContext? lineContext, Widget? preview}) {
     HapticFeedback.selectionClick();
     final id = m['id'] as String?;
-    void react(BuildContext sheet, String e) {
-      Navigator.of(sheet).pop();
-      if (id != null) widget.onReact?.call(id, e);
-    }
+    final canReact = id != null && widget.onReact != null;
+    final box = lineContext?.findRenderObject() as RenderBox?;
+    final rect = box != null && box.hasSize
+        ? box.localToGlobal(Offset.zero) & box.size
+        : null;
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Close',
+      barrierColor: Colors.black.withValues(alpha: 0.65),
+      transitionDuration: const Duration(milliseconds: 160),
+      pageBuilder: (dialog, _, __) {
+        void close() => Navigator.of(dialog).pop();
+        final media = MediaQuery.of(dialog);
+        final screen = media.size;
+        final keyboard = media.viewInsets.bottom;
+        final panelW = (screen.width - 16).clamp(0.0, 440.0);
+        final panelH = EmojiPanel.heightFor(panelW);
+        final msg = rect ??
+            Rect.fromLTWH(12, screen.height / 2 - 20, screen.width - 24, 40);
+        final roomAbove = msg.top - panelH - 12 > media.padding.top + 8;
+        final menu = Material(
+          color: const Color(0xFF16151B),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Color(0xFF333333), width: 0.5)),
+          child: IntrinsicWidth(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              for (final (icon, label, action) in [
+                (InIcons.reply, 'Reply', () => _startReply(m)),
+                (
+                  InIcons.copy,
+                  'Copy',
+                  () => Clipboard.setData(
+                      ClipboardData(text: m['text'] as String? ?? ''))
+                ),
+              ])
+                InkWell(
+                  onTap: () {
+                    close();
+                    action();
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    child: Row(children: [
+                      InIcon(icon, size: 17, color: Colors.white),
+                      const SizedBox(width: 10),
+                      Text(label,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 14)),
+                    ]),
+                  ),
+                ),
+            ]),
+          ),
+        );
+        final panel = Material(
+          color: const Color(0xFF16151B),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: const BorderSide(color: Color(0xFF333333), width: 0.5)),
+          clipBehavior: Clip.antiAlias,
+          child: SizedBox(
+            width: panelW,
+            child: EmojiPanel(onPick: (e) {
+              close();
+              widget.onReact?.call(id!, e);
+            }),
+          ),
+        );
+        return Material(
+          type: MaterialType.transparency,
+          child: Stack(children: [
+            Positioned.fill(
+                child: GestureDetector(
+                    behavior: HitTestBehavior.opaque, onTap: close)),
+            if (preview != null && keyboard == 0)
+              Positioned(
+                left: msg.left - 6,
+                top: msg.top - 4,
+                width: msg.width + 12,
+                child: IgnorePointer(
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(6, 4, 6, 4),
+                    decoration: BoxDecoration(
+                        color: const Color(0xFF1C1B22),
+                        borderRadius: BorderRadius.circular(10)),
+                    child: preview,
+                  ),
+                ),
+              ),
+            if (canReact)
+              Positioned(
+                left: (screen.width - panelW) / 2,
+                // Searching: just above the keyboard.
+                top: keyboard > 0
+                    ? null
+                    : roomAbove
+                        ? msg.top - panelH - 12
+                        : msg.bottom + 10,
+                bottom: keyboard > 0 ? keyboard + 8 : null,
+                child: panel,
+              ),
+            if (keyboard == 0)
+              Positioned(
+                left: msg.left + 25,
+                top: canReact && !roomAbove ? null : msg.bottom + 10,
+                bottom: canReact && !roomAbove
+                    ? screen.height - msg.top + 10
+                    : null,
+                child: menu,
+              ),
+          ]),
+        );
+      },
+    );
+  }
 
+  // Long-press a reaction: who reacted with what.
+  void _showReactors(Map<String, dynamic> m) {
+    final r = Map<String, dynamic>.from(m['reactions'] as Map);
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.black,
-      isScrollControlled: true,
       builder: (sheet) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            if (id != null && widget.onReact != null) ...[
-              Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-                for (final e in _quickReactions)
-                  Semantics(
-                    button: true,
-                    label: 'React $e',
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(24),
-                      onTap: () => react(sheet, e),
-                      child: Padding(
-                        padding: const EdgeInsets.all(6),
-                        child: AnimatedEmoji(e, size: 36),
-                      ),
-                    ),
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          children: [
+            for (final e in r.entries)
+              if (e.value is List)
+                for (final uid in (e.value as List).whereType<String>())
+                  ListTile(
+                    dense: true,
+                    leading: Avatar(
+                        src: _person(uid)?.avatarUrl,
+                        name: _person(uid)?.name ?? 'Someone',
+                        size: AvatarSize.sm),
+                    title: Text(
+                        uid == widget.myUserId
+                            ? 'You'
+                            : _person(uid)?.name ?? 'Someone',
+                        style: const TextStyle(color: Colors.white)),
+                    trailing: AnimatedEmoji(e.key, size: 24, repeat: false),
                   ),
-              ]),
-              const SizedBox(height: 10),
-              SizedBox(
-                height: 150,
-                child: GridView.count(
-                  crossAxisCount: 8,
-                  children: [
-                    for (final e in _emojiGrid)
-                      Semantics(
-                        button: true,
-                        label: 'React $e',
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () => react(sheet, e),
-                          child: Center(
-                              child: Text(e,
-                                  style: const TextStyle(fontSize: 24))),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const Divider(color: Color(0x22FFFFFF)),
-            ],
-            ListTile(
-              leading: const InIcon(InIcons.reply, color: Colors.white),
-              title: const Text('Reply', style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Navigator.of(sheet).pop();
-                _startReply(m);
-              },
-            ),
-            ListTile(
-              leading: const InIcon(InIcons.copy, color: Colors.white),
-              title: const Text('Copy', style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Navigator.of(sheet).pop();
-                Clipboard.setData(
-                    ClipboardData(text: m['text'] as String? ?? ''));
-              },
-            ),
-          ]),
+          ],
         ),
       ),
     );
@@ -675,6 +786,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
               GestureDetector(
                 onTap:
                     id == null ? null : () => widget.onReact?.call(id, e.key),
+                onLongPress: () => _showReactors(m),
                 child: Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -702,67 +814,23 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
     );
   }
 
-  static const _emojiGrid = [
-    '😂',
-    '🤣',
-    '😍',
-    '🥰',
-    '😘',
-    '😎',
-    '🤩',
-    '🥳',
-    '😮',
-    '😱',
-    '😭',
-    '😡',
-    '🤔',
-    '🙄',
-    '😴',
-    '🤯',
-    '👍',
-    '👎',
-    '👏',
-    '🙌',
-    '🙏',
-    '💪',
-    '🔥',
-    '❤️',
-    '💔',
-    '💯',
-    '✨',
-    '🎉',
-    '🎶',
-    '🍿',
-    '👀',
-    '😅',
-  ];
-
   void _openEmoji() => showModalBottomSheet(
         context: context,
-        backgroundColor: Colors.black,
-        builder: (sheet) => SafeArea(
-          child: GridView.count(
-            crossAxisCount: 8,
-            shrinkWrap: true,
-            padding: const EdgeInsets.all(12),
-            children: [
-              for (final e in _emojiGrid)
-                InkResponse(
-                  onTap: () {
-                    final t = _controller.text;
-                    final at = _controller.selection.baseOffset;
-                    final pos = at < 0 ? t.length : at;
-                    _controller.value = TextEditingValue(
-                      text: t.substring(0, pos) + e + t.substring(pos),
-                      selection:
-                          TextSelection.collapsed(offset: pos + e.length),
-                    );
-                    Navigator.of(sheet).pop();
-                  },
-                  child: Center(
-                      child: Text(e, style: const TextStyle(fontSize: 24))),
-                ),
-            ],
+        backgroundColor: const Color(0xFF16151B),
+        isScrollControlled: true,
+        builder: (sheet) => Padding(
+          padding:
+              EdgeInsets.only(bottom: MediaQuery.of(sheet).viewInsets.bottom),
+          child: SafeArea(
+            child: EmojiPanel(onPick: (e) {
+              final t = _controller.text;
+              final at = _controller.selection.baseOffset;
+              final pos = at < 0 ? t.length : at;
+              _controller.value = TextEditingValue(
+                text: t.substring(0, pos) + e + t.substring(pos),
+                selection: TextSelection.collapsed(offset: pos + e.length),
+              );
+            }),
           ),
         ),
       );
@@ -947,6 +1015,10 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
     // them.
     final visible = widget.messages
         .where((m) => m['gift'] != true || widget.showGiftCards)
+        // Who queued or picked what lives in the queue, not in chat.
+        .where((m) => m['type'] != 'queued')
+        .where((m) => !(m['system'] == true &&
+            RegExp(r'^\S+ .+ (picked|queued) ').hasMatch('${m['text'] ?? ''}')))
         .where((m) =>
             m['system'] != true ||
             m['type'] == 'nowPlaying' ||
@@ -990,10 +1062,8 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                       return _NowPlayingLine(
                         message: m,
                         playing: playing,
-                        pinnerName: pinnerId != null &&
-                                pinnerId == widget.myUserId
-                            ? 'You'
-                            : m['pinnedByName'] as String? ?? onRoster?.name,
+                        pinnerName:
+                            m['pinnedByName'] as String? ?? onRoster?.name,
                         pinnerAvatar: m['pinnedByAvatar'] as String? ??
                             onRoster?.avatarUrl,
                         liked:
@@ -1418,7 +1488,7 @@ class _NowPlayingLine extends StatelessWidget {
             text: cut ? '$title…' : title,
             style: const TextStyle(fontWeight: FontWeight.w700)),
         if (pinnerName != null) ...[
-          const TextSpan(text: '  ·  ', style: TextStyle(color: dim)),
+          const TextSpan(text: '  by ', style: TextStyle(color: dim)),
           WidgetSpan(
             alignment: PlaceholderAlignment.middle,
             child: Padding(

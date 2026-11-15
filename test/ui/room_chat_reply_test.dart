@@ -84,11 +84,13 @@ void main() {
         ),
       ),
     ));
-    // Mine on the right, theirs on the left; a tag shows the person's name.
-    final mine = t.getCenter(find.text('hello', findRichText: true));
-    final theirs = t.getCenter(find.text('hi @Me', findRichText: true));
-    expect(mine.dx, greaterThan(theirs.dx));
-    expect(find.text('You'), findsOneWidget);
+    // One line each: photo, first name and the message, all on the left;
+    // a tag shows the person's name.
+    final mine = t.getTopLeft(find.textContaining('Me: hello', findRichText: true));
+    final theirs =
+        t.getTopLeft(find.textContaining('Bala: hi @Me', findRichText: true));
+    expect(mine.dx, theirs.dx);
+    expect(find.text('You'), findsNothing);
     // Joins and removals show as their own lines.
     expect(find.text('Bala Kumar joined'), findsOneWidget);
     expect(find.text('Ravi was removed by the host'), findsOneWidget);
@@ -98,7 +100,7 @@ void main() {
     expect(giftFor, isNull);
 
     // Long-press Bala's message: the sheet offers reactions, Reply, Copy.
-    await t.longPress(find.text('hi @Me', findRichText: true));
+    await t.longPress(find.textContaining('Bala: hi @Me', findRichText: true));
     await t.pumpAndSettle();
     await t.tap(find.text('Reply'));
     await t.pumpAndSettle();

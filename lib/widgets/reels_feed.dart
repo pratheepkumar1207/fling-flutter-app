@@ -469,6 +469,8 @@ class ReelsFeed extends StatefulWidget {
   final bool paused;
   final void Function(Post post, VideoPlayerController player)? onPlayer;
   final String emptyText;
+  // Pages that aren't reels (boosted rooms), by their place in the feed.
+  final Map<int, Widget> extraPages;
 
   const ReelsFeed(
       {super.key,
@@ -482,6 +484,7 @@ class ReelsFeed extends StatefulWidget {
       this.badgeFor,
       this.paused = false,
       this.onPlayer,
+      this.extraPages = const {},
       this.emptyText = 'No reels yet — be the first to post one.'});
 
   @override
@@ -494,12 +497,31 @@ class _ReelsFeedState extends State<ReelsFeed> {
   // for the Reels ranking.
   final _watch = Stopwatch()..start();
 
+  // Reels with the extra pages slotted in.
+  List<Object> _items = const [];
+  List<Object> _build() {
+    final out = <Object>[];
+    var r = 0;
+    while (r < widget.reels.length) {
+      final extra = widget.extraPages[out.length];
+      if (extra != null) {
+        out.add(extra);
+      } else {
+        out.add(widget.reels[r++]);
+      }
+    }
+    return out;
+  }
+
   void _reportView(int index) {
-    if (index >= widget.reels.length) return;
+    if (index >= _items.length || _items[index] is! Post) {
+      _watch.reset();
+      return;
+    }
     final watchedMs = _watch.elapsedMilliseconds;
     _watch.reset();
     if (watchedMs < 300) return;
-    ApiClient.post('/feed/${widget.reels[index].id}/view',
+    ApiClient.post('/feed/${(_items[index] as Post).id}/view',
         body: {'watchedMs': watchedMs}).catchError((_) => null);
   }
 
@@ -520,18 +542,21 @@ class _ReelsFeedState extends State<ReelsFeed> {
             style: const TextStyle(color: AppColors.textFaint)),
       ));
     }
+    _items = _build();
     return PageView.builder(
       controller: widget.controller,
       physics: widget.physics,
       scrollDirection: Axis.vertical,
-      itemCount: widget.reels.length,
+      itemCount: _items.length,
       onPageChanged: (i) {
         _reportView(_page);
         setState(() => _page = i);
         widget.onPageChanged?.call(i);
       },
       itemBuilder: (context, i) {
-        final post = widget.reels[i];
+        final item = _items[i];
+        if (item is! Post) return item as Widget;
+        final post = item;
         return _ReelCard(
             key: ValueKey(post.id),
             post: post,
@@ -562,6 +587,7 @@ class ReelsScreen extends StatefulWidget {
   final Future<List<Post>> Function(int page)? loadPage;
   // False in the Reels tab, where there's nothing to go back to.
   final bool showBack;
+  final Map<int, Widget> extraPages;
 
   const ReelsScreen(
       {super.key,
@@ -571,7 +597,8 @@ class ReelsScreen extends StatefulWidget {
       required this.onOpenComments,
       required this.onCreate,
       this.loadPage,
-      this.showBack = true});
+      this.showBack = true,
+      this.extraPages = const {}});
 
   @override
   State<ReelsScreen> createState() => _ReelsScreenState();
@@ -620,6 +647,7 @@ class _ReelsScreenState extends State<ReelsScreen> {
         children: [
           ReelsFeed(
             reels: _reels,
+            extraPages: widget.extraPages,
             onPageChanged: _maybeLoadMore,
             onLike: (p) => _replace(widget.onLike, p),
             onSave: (p) => _replace(widget.onSave, p),

@@ -6,6 +6,7 @@ import '../../models/post.dart';
 import '../../widgets/comments_sheet.dart';
 import '../../widgets/reels_feed.dart';
 import '../create/create_flow.dart';
+import '../home/boosted_rooms.dart';
 
 /// The Reels tab: everyone's ranked reels, full screen, right in the tab.
 /// Built only while the tab is showing (see AppShell), so videos stop when
@@ -20,11 +21,26 @@ class ReelsTab extends StatefulWidget {
 class _ReelsTabState extends State<ReelsTab> {
   List<Post>? _reels;
   bool _failed = false;
+  // Boosted rooms: a page of them now and then, at random spots.
+  Map<int, Widget> _boosted = const {};
 
   @override
   void initState() {
     super.initState();
     _load();
+    BoostedRooms.load().then((rooms) {
+      if (!mounted || rooms.isEmpty) return;
+      final slots = BoostedRooms.slots(600, min: 8, max: 15);
+      setState(() => _boosted = {
+            for (var i = 0; i < slots.length; i++)
+              slots[i]: BoostedRoomsReelPage(
+                  key: ValueKey('boosted-$i'),
+                  rooms: [
+                    for (var k = 0; k < rooms.length; k++)
+                      rooms[(k + i * 4) % rooms.length]
+                  ]),
+          });
+    });
   }
 
   Future<List<Post>> _page(int page) async {
@@ -78,6 +94,7 @@ class _ReelsTabState extends State<ReelsTab> {
       reels: reels,
       loadPage: _page,
       showBack: false,
+      extraPages: _boosted,
       onLike: (p) => _toggle(p, 'like'),
       onSave: (p) => _toggle(p, 'save'),
       onOpenComments: (post) => showCommentsSheet(context,

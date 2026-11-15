@@ -625,3 +625,441 @@ class PopcornBoostedCard extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Post-style room cards: the Popcorn list and boosted rooms in the feed.
+// Picture (or banner) on top, the people playing or speaking inside it,
+// then a sideways row of only the people watching or listening with the
+// button on the right. [header] adds the host line used in the feed.
+
+const _ludoColors = [
+  Color(0xFFE53935),
+  Color(0xFF2E9E4F),
+  Color(0xFFF6B21A),
+  Color(0xFF1E7BE0),
+];
+
+class PopcornPostCard extends StatelessWidget {
+  final Map<String, dynamic> room;
+  final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+  final Widget? header;
+  const PopcornPostCard(
+      {super.key,
+      required this.room,
+      required this.onTap,
+      this.onLongPress,
+      this.header});
+
+  List<String> get _playerIds =>
+      ((room['game'] as Map?)?['playerIds'] as List? ?? const [])
+          .whereType<String>()
+          .toList();
+
+  // Only watchers / listeners: not the players, speakers or host.
+  List<Map<String, dynamic>> _audience() {
+    final players = _playerIds.toSet();
+    return _people(room)
+        .where((m) =>
+            !players.contains(m['userId']) &&
+            m['onStage'] != true &&
+            m['userId'] != room['hostId'])
+        .toList()
+      ..sort((a, b) =>
+          (b['isFriend'] == true ? 1 : 0) - (a['isFriend'] == true ? 1 : 0));
+  }
+
+  (String, Color) _button() {
+    switch (_type(room)) {
+      case 'game':
+        final seats = (room['game'] as Map?)?['seats'] as int?;
+        final open = seats == null || _playerIds.length < seats;
+        return open
+            ? ('Play', const Color(0xFF2E9E4F))
+            : ('Watch', const Color(0xFF2C2B33));
+      case 'voice':
+        return ('Join', const Color(0xFF2E9E4F));
+      case 'live':
+        return ('Watch', const Color(0xFFE53935));
+      default:
+        return ('Join', const Color(0xFF7F77DD));
+    }
+  }
+
+  Widget _tag(String text, Color bg, {InIconData? icon}) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration:
+            BoxDecoration(color: bg, borderRadius: BorderRadius.circular(5)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (icon != null) ...[
+            InIcon(icon, size: 11, color: Colors.white),
+            const SizedBox(width: 3),
+          ],
+          Text(text,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600)),
+        ]),
+      );
+
+  Widget _titleOnPicture(String title, String? line) => Positioned(
+        left: 0,
+        right: 0,
+        bottom: 0,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(10, 24, 10, 8),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0x00000000), Color(0xE6000000)]),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600)),
+            if (line != null && line.isNotEmpty)
+              Text(line,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style:
+                      const TextStyle(color: Color(0xFFDDDDDD), fontSize: 11)),
+          ]),
+        ),
+      );
+
+  Widget _watch() {
+    final thumb = room['nowPlayingThumbnail'] as String?;
+    final playing = room['nowPlayingSongTitle'] as String? ??
+        room['nowPlayingTitle'] as String?;
+    final dur = asNum(room['duration']);
+    final pos = asNum(room['playbackPosition']);
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: Stack(fit: StackFit.expand, children: [
+        const ColoredBox(color: Color(0xFF26215C)),
+        if (thumb != null && thumb.isNotEmpty)
+          AppImage(source: thumb, fit: BoxFit.cover),
+        Positioned(
+            left: 8,
+            top: 8,
+            child: _tag('Watch party', const Color(0xFF7F77DD),
+                icon: InIcons.play)),
+        Positioned(
+            right: 8,
+            top: 8,
+            child: _tag('${_count(room)}', const Color(0xB3000000),
+                icon: InIcons.users)),
+        _titleOnPicture(room['title'] as String? ?? 'Watch party',
+            playing == null || playing.isEmpty ? null : 'Now: $playing'),
+        if (dur > 0)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 2,
+            child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: (pos / dur).clamp(0, 1).toDouble(),
+              child: const ColoredBox(color: Color(0xFFFF0033)),
+            ),
+          ),
+      ]),
+    );
+  }
+
+  Widget _talk() {
+    final speakers =
+        _people(room).where((m) => m['onStage'] == true).toList();
+    final topic = (room['topic'] as String?)?.trim();
+    final speaking = room['speakingName'] as String?;
+    final listening = (_count(room) - speakers.length).clamp(0, 99999);
+    Widget tile(Map<String, dynamic> m) {
+      final first = ((m['name'] as String?) ?? '').split(' ').first;
+      final talking =
+          speaking != null && first == speaking.split(' ').first;
+      final host = m['userId'] == room['hostId'];
+      final url = m['avatarUrl'] as String?;
+      return Column(children: [
+        AspectRatio(
+          aspectRatio: 1,
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF3A3550),
+              borderRadius: BorderRadius.circular(16),
+              border: talking
+                  ? Border.all(color: const Color(0xFF5DCAA5), width: 2.5)
+                  : null,
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: url != null && url.isNotEmpty
+                ? AppImage(source: url, fit: BoxFit.cover)
+                : Center(
+                    child: Text(first.isEmpty ? '?' : first[0].toUpperCase(),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700))),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text('$first${host ? ' ★' : ''}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.white, fontSize: 10.5)),
+      ]);
+    }
+
+    final shown = speakers.take(4).toList();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const InIcon(InIcons.mic, size: 12, color: Color(0xFF5DCAA5)),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+                topic == null || topic.isEmpty || topic == room['title']
+                    ? 'TALK'
+                    : 'TALK · ${topic.toUpperCase()}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: _kDim, fontSize: 10.5, letterSpacing: 0.3)),
+          ),
+        ]),
+        const SizedBox(height: 4),
+        Text(room['title'] as String? ?? 'Talk',
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                height: 1.3)),
+        if (shown.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Row(children: [
+            for (var i = 0; i < 4; i++) ...[
+              Expanded(
+                  child: i < shown.length
+                      ? tile(shown[i])
+                      : const SizedBox.shrink()),
+              if (i < 3) const SizedBox(width: 8),
+            ],
+          ]),
+        ],
+        const SizedBox(height: 10),
+        Text(
+            '$listening listening · ${speakers.length} speaker${speakers.length == 1 ? '' : 's'}',
+            style: const TextStyle(color: _kDim, fontSize: 11)),
+      ]),
+    );
+  }
+
+  Widget _game() {
+    final (bg, fg, icon, label) = _gameLook(room['gameType'] as String?);
+    final game = room['game'] as Map?;
+    final seats = game?['seats'] as int? ?? 4;
+    final status = game?['status'] as String?;
+    final players = _playerIds;
+    final byId = {for (final m in _people(room)) m['userId']: m};
+    final open = (seats - players.length).clamp(0, seats);
+    final watching = (_count(room) - players.length).clamp(0, 99999);
+    final statusText = status == 'playing'
+        ? 'Playing'
+        : open > 0
+            ? 'Waiting for $open more'
+            : 'Ready';
+    String seatName(int i) {
+      final n = ((byId[players[i]]?['name'] as String?) ?? 'Player')
+          .split(' ')
+          .first;
+      return players[i] == room['hostId'] ? '$n ★' : n;
+    }
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Container(
+        height: 84,
+        color: bg,
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Expanded(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Row(children: [
+                    InIcon(icon, size: 12, color: fg),
+                    const SizedBox(width: 4),
+                    Text(label.toUpperCase(),
+                        style: TextStyle(
+                            color: fg, fontSize: 10.5, letterSpacing: 0.3)),
+                  ]),
+                  Text(room['title'] as String? ?? label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 3),
+                  _tag(statusText, const Color(0x73000000)),
+                ]),
+          ),
+          InIcon(icon, size: 46, color: fg.withValues(alpha: 0.85)),
+        ]),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+        child: Row(children: [
+          for (var i = 0; i < seats.clamp(1, 4); i++)
+            Expanded(
+              child: Column(children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: i < players.length
+                        ? Border.all(
+                            color: _ludoColors[i % _ludoColors.length],
+                            width: 3)
+                        : Border.all(color: const Color(0xFF777777)),
+                  ),
+                  child: i < players.length
+                      ? ClipOval(
+                          child: _Face(byId[players[i]] ?? const {}, size: 38))
+                      : const Center(
+                          child: InIcon(InIcons.plus,
+                              size: 16, color: Color(0xFFCCCCCC))),
+                ),
+                const SizedBox(height: 4),
+                Text(i < players.length ? seatName(i) : 'Open',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: i < players.length
+                            ? Colors.white
+                            : const Color(0xFFCCCCCC),
+                        fontSize: 10.5)),
+              ]),
+            ),
+        ]),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+        child: Text(
+            '${players.length} of $seats seats · $watching watching',
+            style: const TextStyle(color: _kDim, fontSize: 11)),
+      ),
+    ]);
+  }
+
+  Widget _live() {
+    final url = room['hostAvatarUrl'] as String?;
+    return AspectRatio(
+      aspectRatio: 4 / 5,
+      child: Stack(fit: StackFit.expand, children: [
+        const ColoredBox(color: Color(0xFF2A171C)),
+        if (url != null && url.isNotEmpty)
+          AppImage(source: url, fit: BoxFit.cover),
+        Positioned(
+            left: 8,
+            top: 8,
+            child: Row(children: [
+              _tag('LIVE', _kLive, icon: InIcons.live),
+              const SizedBox(width: 5),
+              _tag(_short(_count(room)), const Color(0x99000000),
+                  icon: InIcons.eye),
+            ])),
+        _titleOnPicture(room['title'] as String? ?? 'Live',
+            _liveFor(room).isEmpty ? null : 'Started ${_liveFor(room)} ago'),
+      ]),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final type = _type(room);
+    final (label, color) = _button();
+    final audience = _audience();
+    final picture = switch (type) {
+      'voice' => _talk(),
+      'game' => _game(),
+      'live' => _live(),
+      _ => _watch(),
+    };
+    return Semantics(
+      button: true,
+      label: _semantic(room),
+      child: Material(
+        color: const Color(0xFF17161C),
+        borderRadius: BorderRadius.circular(18),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          onLongPress: onLongPress,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            if (header != null) header!,
+            picture,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              child: Row(children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 28,
+                    child: audience.isEmpty
+                        ? Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                                type == 'voice'
+                                    ? 'Be the first to listen'
+                                    : 'Be the first to watch',
+                                style: const TextStyle(
+                                    color: _kDim, fontSize: 11.5)),
+                          )
+                        : ShaderMask(
+                            shaderCallback: (r) => const LinearGradient(
+                                colors: [
+                                  Colors.white,
+                                  Colors.white,
+                                  Color(0x00FFFFFF)
+                                ],
+                                stops: [0, 0.85, 1]).createShader(r),
+                            blendMode: BlendMode.dstIn,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: audience.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(width: 5),
+                              itemBuilder: (_, i) =>
+                                  _Face(audience[i], size: 28),
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: Colors.white,
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 18)),
+                  onPressed: onTap,
+                  child: Text(label,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                ),
+              ]),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
