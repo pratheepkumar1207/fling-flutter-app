@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../tournaments/tournament_create_screen.dart';
 import '../../widgets/creator_gate.dart';
 import '../../theme/insync_icons.dart';
 import '../../widgets/room_sheet.dart';
@@ -97,6 +98,11 @@ class _CreateSheetState extends State<_CreateSheet> {
                   _card(InIcons.film, 'Watch', () => _openRoom('watch')),
                   _card(InIcons.mic, 'Talk', () => _openRoom('voice')),
                   _card(InIcons.game, 'Game', () => _openRoom('game')),
+                  _card(InIcons.trophy, 'Tournament', () {
+                    Navigator.of(context).pop();
+                    Navigator.of(widget.parent).push(MaterialPageRoute(
+                        builder: (_) => const TournamentCreateScreen()));
+                  }),
                 ]),
               ],
             ],

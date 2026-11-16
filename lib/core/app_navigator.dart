@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../screens/tournaments/tournament_screen.dart';
 import 'package:provider/provider.dart';
 import 'active_room_holder.dart';
 import 'auth_provider.dart';
@@ -29,6 +30,14 @@ String? _pendingRoomId;
 /// not assumed: the payload was always there, waiting for a consumer.
 void handleNotificationTap(Map<String, dynamic> data) {
   final roomId = data['roomId'] as String?;
+  final tournamentId = data['tournamentId'] as String?;
+  if ((roomId == null || roomId.trim().isEmpty) && tournamentId != null) {
+    final context = navigatorKey.currentContext;
+    if (context != null && context.read<AuthProvider>().isAuthed) {
+      openTournament(context, tournamentId);
+    }
+    return;
+  }
   if (roomId == null || roomId.trim().isEmpty) return;
   _pendingRoomId = roomId.trim();
   openPendingPartyNotification();

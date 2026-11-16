@@ -822,6 +822,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           padding: const EdgeInsets.only(top: 6),
           child: Wrap(spacing: 6, runSpacing: 6, children: [
             if (user?.isVip == true) _badge('VIP', AppColors.gold),
+            if ((user?.tournamentWins ?? 0) > 0)
+              _badge(
+                  '🏆 ${user!.tournamentWins > 1 ? '${user.tournamentWins}× ' : ''}Champion',
+                  AppColors.gold),
             if (_gam?['rank'] != null)
               _badge(_gam!['rank'] as String, AppColors.accent),
             if (user?.equippedCarId != null &&

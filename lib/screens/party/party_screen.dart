@@ -1,4 +1,5 @@
 import '../../widgets/chat_media.dart' show pickChatPhoto;
+import '../tournaments/tournament_match_strip.dart';
 import '../../widgets/view_once.dart';
 import '../../widgets/gift_fx.dart';
 import '../../widgets/permission_primer.dart';
@@ -1805,7 +1806,8 @@ class _PartyScreenState extends State<PartyScreen>
           onInvite: rs.gameInvite,
         );
     final gameType = room['gameType'] as String?;
-    final computerGame = kComputerGames.contains(gameType);
+    final tournamentId = room['tournamentId'] as String?;
+    final computerGame = kComputerGames.contains(gameType) && tournamentId == null;
     final gameStatus = rs.game?['status'] as String?;
     final hasBots = gamePlayerIds.any(isBotId);
     Future<void> addComputer() async {
@@ -1836,6 +1838,15 @@ class _PartyScreenState extends State<PartyScreen>
     }
 
     List<Widget> gameBanners() {
+      if (tournamentId != null) {
+        return [
+          TournamentMatchStrip(
+              key: ValueKey('tour-${widget.roomId}'),
+              tournamentId: tournamentId,
+              roomId: widget.roomId,
+              myId: myId),
+        ];
+      }
       if (rs.isHost && computerGame) {
         // Alone at the table for 30 s: offer a computer.
         if (gameStatus == 'waiting' &&

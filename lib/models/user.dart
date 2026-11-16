@@ -50,6 +50,8 @@ class User {
   final int level;
   final bool isVip;
   final DateTime? vipExpiresAt;
+  // Tournaments won (Champion badge).
+  final int tournamentWins;
 
   /// { title, videoUrl, thumbnail } shown on the profile.
   final Map<String, dynamic>? profileSong;
@@ -113,6 +115,7 @@ class User {
     this.level = 1,
     this.isVip = false,
     this.vipExpiresAt,
+    this.tournamentWins = 0,
     this.profileSong,
     this.isVerified = false,
     this.isFake = false,
@@ -193,6 +196,7 @@ class User {
       profileSong: json['profileSong'] is Map
           ? Map<String, dynamic>.from(json['profileSong'] as Map)
           : null,
+      tournamentWins: (json['tournamentWins'] as num?)?.toInt() ?? 0,
       vipExpiresAt: json['vipExpiresAt'] != null
           ? DateTime.tryParse(json['vipExpiresAt'])
           : null,

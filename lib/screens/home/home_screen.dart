@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../tournaments/tournament_cards.dart';
 import '../../widgets/game_computer.dart';
 import '../../widgets/skeletons.dart';
 import 'package:flutter/material.dart';
@@ -450,6 +451,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
           // Friends' faces with what they're doing; tap to join them.
           if (_filter == 'all') const FriendsInRoomsStrip(),
+          if (_filter == 'all' || _filter == 'game')
+            TournamentPopcornSection(
+                key: ValueKey('tour-$_filter'), vertical: _filter == 'game'),
           Row(children: [
             Expanded(
               child: Text(

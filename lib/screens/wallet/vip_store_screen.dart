@@ -1,4 +1,5 @@
 import '../../theme/insync_icons.dart';
+import '../tournaments/trophy_coins_card.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
 import 'package:provider/provider.dart';
@@ -276,6 +277,8 @@ class _VipStoreScreenState extends State<VipStoreScreen> {
                             style:
                                 const TextStyle(fontWeight: FontWeight.w800)),
                       ),
+                      const SizedBox(height: 10),
+                      const TrophyCoinsCard(store: true),
                     ]),
               ),
             ),

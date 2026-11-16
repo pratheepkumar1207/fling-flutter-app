@@ -25,6 +25,8 @@ class GameSeatScope extends InheritedWidget {
   final VoidCallback? onAddComputer;
   final void Function(String botId, String name)? onRemoveBot;
   final String? Function(String? userId) avatarFor;
+  // Watching only (tournament watchers): no join or invite controls.
+  final bool spectator;
 
   const GameSeatScope({
     super.key,
@@ -38,6 +40,7 @@ class GameSeatScope extends InheritedWidget {
     this.onAddComputer,
     this.onRemoveBot,
     required this.avatarFor,
+    this.spectator = false,
     required super.child,
   });
 
@@ -49,6 +52,7 @@ class GameSeatScope extends InheritedWidget {
       isHost != old.isHost ||
       requested != old.requested ||
       invited != old.invited ||
+      spectator != old.spectator ||
       (onAddComputer == null) != (old.onAddComputer == null);
 }
 
@@ -168,7 +172,7 @@ class GameOpenSeat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scope = GameSeatScope.of(context);
-    final onTap = scope == null
+    final onTap = scope == null || scope.spectator
         ? null
         : scope.isHost
             ? (scope.onAddComputer == null
@@ -256,6 +260,7 @@ class GameJoinButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scope = GameSeatScope.of(context);
+    if (scope?.spectator == true) return const SizedBox.shrink();
     if (scope == null) {
       if (seated || full || fallbackJoin == null) {
         return const SizedBox.shrink();

@@ -1,4 +1,5 @@
 import '../../theme/insync_icons.dart';
+import '../tournaments/tournament_screen.dart';
 import 'package:flutter/material.dart';
 import '../../models/notification_item.dart';
 import '../../theme/app_colors.dart';
@@ -16,9 +17,15 @@ void openNotificationTarget(BuildContext context, NotificationItem n) {
   final data = n.data ?? const {};
   Widget? target;
   switch (n.type) {
-    case 'room_invite':
+    case 'room_invite' || 'tournament_match':
       final roomId = data['roomId'] as String?;
       if (roomId != null) target = PartyScreen(roomId: roomId);
+    case 'tournament':
+      final id = data['tournamentId'] as String?;
+      if (id != null) {
+        openTournament(context, id);
+        return;
+      }
     case 'mention' || 'like' || 'comment':
       final postId = data['postId'] as String?;
       if (postId != null) target = PostDetailScreen(postId: postId);

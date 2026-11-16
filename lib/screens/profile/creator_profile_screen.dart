@@ -754,6 +754,21 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                       fontWeight: FontWeight.w700)),
             ),
           ],
+          if ((p['tournamentWins'] as num? ?? 0) > 0) ...[
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                  color: AppColors.gold.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(999)),
+              child: Text(
+                  '🏆 ${(p['tournamentWins'] as num) > 1 ? '${p['tournamentWins']}× ' : ''}Champion',
+                  style: const TextStyle(
+                      color: AppColors.gold,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700)),
+            ),
+          ],
         ],
       ),
       if (p['bio'] != null && (p['bio'] as String).isNotEmpty) ...[

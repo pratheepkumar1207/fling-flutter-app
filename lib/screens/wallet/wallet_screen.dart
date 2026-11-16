@@ -1,4 +1,5 @@
 import '../../theme/insync_icons.dart';
+import '../tournaments/trophy_coins_card.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
@@ -198,6 +199,8 @@ class _WalletScreenState extends State<WalletScreen> {
               ],
             ),
           ),
+          const Padding(
+              padding: EdgeInsets.only(top: 14), child: TrophyCoinsCard()),
           const SizedBox(height: 14),
           Row(children: [
             _quickTile(InIcons.wheel, 'Daily spin', const Color(0xFFFF9F5A),
