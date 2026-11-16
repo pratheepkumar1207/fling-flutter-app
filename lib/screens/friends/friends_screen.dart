@@ -74,12 +74,12 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
   Future<void> _addSuggested(String userId) async {
     try {
-      await ApiClient.post('/friends/request', body: {'toUserId': userId});
+      await ApiClient.post('/social/follow/$userId');
       if (mounted) setState(() => _suggestedSent.add(userId));
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to send request')));
+            const SnackBar(content: Text('Couldn’t follow')));
       }
     }
   }
@@ -98,11 +98,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
               runSpacing: 8,
               children: [
                 _tabChip('friends', 'Friends'),
-                _tabChip(
-                    'requests',
-                    _requests.isNotEmpty
-                        ? 'Requests · ${_requests.length}'
-                        : 'Requests'),
+                if (_requests.isNotEmpty)
+                  _tabChip('requests', 'Requests · ${_requests.length}'),
                 _tabChip('find', 'People'),
                 _tabChip('communities', 'Communities'),
                 _tabChip('tags', '#Tags'),
@@ -119,7 +116,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                         : _tab == 'friends'
                             ? (_friends.isEmpty
                                 ? const Center(
-                                    child: Text('No friends yet',
+                                    child: Text('No friends yet. Follow people, and when they follow you back you’re friends.',
                                         style: TextStyle(
                                             color: AppColors.textFaint)))
                                 : ListView.builder(
@@ -381,7 +378,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                                               .border)),
                                                   alignment: Alignment.center,
                                                   child: Text(
-                                                      sent ? 'Sent' : 'Add',
+                                                      sent ? 'Following' : 'Follow',
                                                       style: const TextStyle(
                                                           color:
                                                               AppColors.textDim,
@@ -573,12 +570,12 @@ class _FindPeopleTabState extends State<_FindPeopleTab> {
 
   Future<void> _send(String userId) async {
     try {
-      await ApiClient.post('/friends/request', body: {'toUserId': userId});
+      await ApiClient.post('/social/follow/$userId');
       if (mounted) setState(() => _sentIds.add(userId));
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to send request')));
+            const SnackBar(content: Text('Couldn’t follow')));
       }
     }
   }
@@ -633,7 +630,7 @@ class _FindPeopleTabState extends State<_FindPeopleTab> {
                       ),
                       ElevatedButton(
                           onPressed: sent ? null : () => _send(id),
-                          child: Text(sent ? 'Sent' : 'Add',
+                          child: Text(sent ? 'Following' : 'Follow',
                               style: const TextStyle(fontSize: 11))),
                     ],
                   ),

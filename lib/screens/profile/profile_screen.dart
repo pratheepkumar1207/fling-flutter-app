@@ -1,4 +1,8 @@
 import '../../widgets/profile_song_chip.dart';
+import '../achievements/achievements_screen.dart';
+import '../experience/experience_hub.dart' show CreatorStudioScreen;
+import '../wallet/livestream_dashboard_screen.dart';
+import '../wallet/subscriptions_screen.dart';
 import '../../widgets/yt_lists.dart';
 import '../../widgets/skeletons.dart';
 import '../../widgets/verified_tick.dart';
@@ -31,43 +35,18 @@ import '../../widgets/photo_verification.dart';
 import '../../widgets/profile_completeness_meter.dart';
 import '../../widgets/prompt_editor.dart';
 import '../../widgets/share_bottom_sheet.dart';
-import '../achievements/achievements_screen.dart';
-import '../auth/login_screen.dart';
 import '../challenges/challenges_screen.dart';
-import '../communities/communities_screen.dart';
 import '../discover/discover_matches_screen.dart';
-import '../events/events_screen.dart';
 import '../feed/saved_posts_screen.dart';
-import '../friends/friends_screen.dart';
-import '../leaderboards/leaderboards_screen.dart';
 import '../lobby/youtube_browse_screen.dart';
-import '../messages/messages_screen.dart';
-import '../search/search_screen.dart';
 import '../settings/settings_screen.dart';
-import '../settings/privacy_screen.dart';
 import '../../widgets/notes.dart';
 import 'close_friends_screen.dart';
 import 'highlights.dart';
 import 'profile_layout.dart';
 import 'profile_post_grid.dart';
 import 'user_list_screen.dart';
-import '../wallet/livestream_dashboard_screen.dart';
 import '../wallet/referral_screen.dart';
-import '../wallet/vip_store_screen.dart';
-
-const _kMoreNav = [
-  {'label': 'Messages', 'icon': '💬'},
-  {'label': 'Friends', 'icon': '👥'},
-  {'label': 'Matches', 'icon': '💘'},
-  {'label': 'Communities', 'icon': '🏘️'},
-  {'label': 'Events', 'icon': '📅'},
-  {'label': 'Search', 'icon': '🔍'},
-  {'label': 'Leaderboards', 'icon': '🏆'},
-  {'label': 'Achievements', 'icon': '🎖️'},
-  {'label': 'Challenges', 'icon': '🎯'},
-  {'label': 'Livestream', 'icon': '🔴'},
-  {'label': 'VIP Store', 'icon': '🖼️'},
-];
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -226,17 +205,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  Future<void> _logout() async {
-    await context.read<AuthProvider>().clearSession();
-    if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
-  }
-
-  // Everything that isn't the profile itself — the old "More" grid, daily
-  // bonus, saved posts, privacy, arrange, invite, log out — lives behind ☰.
+  // ☰ More: Challenges, Achievements, daily bonus, saved posts, archive,
+  // close friends, arrange and invite. Privacy and Log out are in Settings.
   void _openMenu() {
     showModalBottomSheet(
       context: context,
@@ -253,19 +223,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
             children: [
               _sectionHeader('More'),
-              GridView.count(
-                crossAxisCount: 4,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                childAspectRatio: 0.9,
-                children: _kMoreNav
-                    .map((item) =>
-                        _moreNavTile(item['label']!, item['icon']!, sheet))
-                    .toList(),
-              ),
-              const SizedBox(height: 16),
+              // Everything else that used to be here (Messages, Friends,
+              // Leaderboards, VIP Store…) opens from its own place in the
+              // app; Challenges only lives here.
+              _navRow(
+                  icon: InIcons.target,
+                  label: 'Challenges',
+                  onTap: () => _openFromMenu(sheet,
+                      MaterialPageRoute(builder: (_) => const ChallengesScreen()))),
+              const SizedBox(height: 8),
+              _navRow(
+                  icon: InIcons.trophy,
+                  label: 'Achievements',
+                  onTap: () => _openFromMenu(sheet,
+                      MaterialPageRoute(builder: (_) => const AchievementsScreen()))),
+              const SizedBox(height: 8),
               if (_gam != null) ...[
                 _navRow(
                     icon: InIcons.gift,
@@ -309,28 +281,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   }),
               const SizedBox(height: 8),
               _navRow(
-                  icon: InIcons.lock,
-                  label: 'Privacy',
-                  onTap: () => _openFromMenu(
-                      sheet,
-                      MaterialPageRoute(
-                          builder: (_) => const PrivacyScreen()))),
-              const SizedBox(height: 8),
-              _navRow(
                   icon: InIcons.useradd,
                   label: 'Invite friends',
                   onTap: () => _openFromMenu(
                       sheet,
                       MaterialPageRoute(
                           builder: (_) => const ReferralScreen()))),
-              const SizedBox(height: 16),
-              OutlinedButton(
-                onPressed: _logout,
-                style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.danger,
-                    side: const BorderSide(color: AppColors.danger)),
-                child: const Text('Log out'),
-              ),
             ],
           ),
         ),
@@ -936,9 +892,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
         ),
+        if (user?.isCreator == true) _creatorToolsRow(),
       ],
     );
   }
+
+  // Creators: Creator Studio, Live dashboard and Subscription levels.
+  Widget _creatorToolsRow() => Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => showModalBottomSheet(
+              context: context,
+              backgroundColor: Colors.black,
+              builder: (sheet) => SafeArea(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  for (final (icon, label, sub, screen) in [
+                    (InIcons.chart, 'Creator Studio', 'Analytics and earnings',
+                        const CreatorStudioScreen() as Widget),
+                    (InIcons.live, 'Live dashboard', 'Your streams and gifts',
+                        const LivestreamDashboardScreen()),
+                    (InIcons.diamond, 'Subscription levels',
+                        'Silver, Gold and Platinum', const SubscriptionsScreen()),
+                  ])
+                    ListTile(
+                      leading: InIcon(icon, color: Colors.white),
+                      title: Text(label),
+                      subtitle: Text(sub,
+                          style: const TextStyle(color: AppColors.textDim)),
+                      onTap: () => _openFromMenu(
+                          sheet, MaterialPageRoute(builder: (_) => screen)),
+                    ),
+                ]),
+              ),
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                gradient: const LinearGradient(
+                    colors: [Color(0xFF2A1E55), Color(0xFF16151B)]),
+                border: Border.all(color: const Color(0xFF3C3489)),
+              ),
+              child: const Row(children: [
+                InIcon(InIcons.chart, size: 20, color: Color(0xFFB9A7FF)),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text('Creator tools',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+                InIcon(InIcons.chev, size: 18, color: AppColors.textFaint),
+              ]),
+            ),
+          ),
+        ),
+      );
 
   // Shrinks to fit when four stats share the row beside the avatar.
   Widget _profileStat(String value, String label) => FittedBox(
@@ -974,55 +984,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             style: TextStyle(
                 color: color, fontSize: 11, fontWeight: FontWeight.w600)),
       );
-
-  Widget _moreNavTile(String label, String icon, BuildContext sheet) {
-    return GestureDetector(
-      onTap: () {
-        final screen = switch (label) {
-          'Messages' => const MessagesScreen(),
-          'Friends' => const FriendsScreen(),
-          'Matches' => const DiscoverMatchesScreen(),
-          'Communities' => const CommunitiesScreen(),
-          'Events' => const EventsScreen(),
-          'Search' => const SearchScreen(),
-          'Leaderboards' => const LeaderboardsScreen(),
-          'Achievements' => const AchievementsScreen(),
-          'Challenges' => const ChallengesScreen(),
-          'Livestream' => const LivestreamDashboardScreen(),
-          'VIP Store' => const VipStoreScreen(),
-          _ => null,
-        };
-        if (screen != null) {
-          _openFromMenu(sheet, MaterialPageRoute(builder: (_) => screen));
-        }
-      },
-      child: Container(
-        decoration: insyncClay(radius: 22),
-        alignment: Alignment.center,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(icon, style: const TextStyle(fontSize: 22)),
-            const SizedBox(height: 4),
-            // One line, shrunk to fit — long names used to break mid-word
-            // ("Communitie / s").
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(label,
-                    maxLines: 1,
-                    style: const TextStyle(
-                        color: AppColors.textDim,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _sectionHeader(String title, {Widget? trailing}) => Padding(
         padding: const EdgeInsets.only(bottom: 8),

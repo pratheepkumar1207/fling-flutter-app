@@ -197,10 +197,11 @@ void main() {
       await t.pumpAndSettle();
     }
 
-    testWidgets('Friend: Message and Following', (t) async {
+    testWidgets('Friends (follow each other): Message and Friends', (t) async {
       await open(t, {
         'friendStatus': 'friends',
         'isFollowedByMe': true,
+        'followsMe': true,
         'postCount': 12,
         'followerCount': 1200,
         'followingCount': 3,
@@ -211,24 +212,23 @@ void main() {
         },
       });
       expect(find.text('Message'), findsOneWidget);
-      expect(find.text('Following'), findsNWidgets(2)); // button and count
+      expect(find.text('✓ Friends'), findsOneWidget);
       expect(find.text('@chitra · Listening'), findsOneWidget);
       expect(find.text('Followed by Anu and 2 others'), findsOneWidget);
       expect(find.text('View full profile'), findsOneWidget);
       expect(t.takeException(), isNull);
     });
 
-    testWidgets('Not a friend: Add friend, no Message', (t) async {
-      await open(t, {'friendStatus': 'none'});
-      expect(find.text('Add friend'), findsOneWidget);
-      expect(find.text('Message'), findsNothing);
+    testWidgets('They follow you: Follow back', (t) async {
+      await open(t, {'friendStatus': 'none', 'followsMe': true});
+      expect(find.text('Follow back'), findsOneWidget);
+      expect(find.text('Add friend'), findsNothing);
     });
 
-    testWidgets('Requested says when they can message', (t) async {
-      await open(t, {'friendStatus': 'pending_sent'});
-      expect(find.text('Requested'), findsOneWidget);
-      expect(find.text('You can message Chitra once you’re friends'),
-          findsOneWidget);
+    testWidgets('Nobody follows: Follow and Message', (t) async {
+      await open(t, {'friendStatus': 'none'});
+      expect(find.text('Follow'), findsOneWidget);
+      expect(find.text('Message'), findsOneWidget);
     });
   });
 }

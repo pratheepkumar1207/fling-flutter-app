@@ -90,6 +90,7 @@ class ProfileLayout {
         'photos' => 'Photos',
         'music' => 'Music',
         'tagged' => 'Tagged',
+        'subscribers' => 'Subscribers',
         'supporters' => 'Supporters',
         _ => id,
       };
@@ -104,6 +105,7 @@ class ProfileLayout {
         'photos' => InIcons.image,
         'music' => InIcons.music,
         'tagged' => InIcons.user,
+        'subscribers' => InIcons.diamond,
         'supporters' => InIcons.gift,
         _ => InIcons.target,
       };

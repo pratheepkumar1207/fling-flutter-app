@@ -10,7 +10,6 @@ import '../../models/room_models.dart';
 import '../../models/song.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/banner_carousel.dart';
-import '../experience/experience_hub.dart';
 import '../party/party_screen.dart';
 import '../lobby/lobby_create_screen.dart';
 import '../../theme/insync_icons.dart';
@@ -563,12 +562,6 @@ class _HomeScreenState extends State<HomeScreen> {
             }),
           ],
           const SizedBox(height: 12),
-          _actionRow(
-              InIcons.globe,
-              'More ways to connect',
-              'Vibe Match, communities & your creator space',
-              () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => const InsyncFeatureHubScreen()))),
           const SizedBox(height: 16),
           const BannerCarousel(placement: 'home'),
         ],

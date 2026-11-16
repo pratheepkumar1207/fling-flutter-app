@@ -260,17 +260,6 @@ class _PersonCardState extends State<_PersonCard> {
     }
   }
 
-  Future<void> _addFriend() => _act(() async {
-        await ApiClient.post('/friends/request',
-            body: {'toUserId': widget.person.userId});
-        if (mounted) setState(() => _p!['friendStatus'] = 'pending_sent');
-      });
-
-  Future<void> _accept() => _act(() async {
-        await ApiClient.post('/friends/${_p!['friendRequestId']}/accept');
-        if (mounted) setState(() => _p!['friendStatus'] = 'friends');
-      });
-
   Future<void> _toggleFollow() => _act(() async {
         final following = _p!['isFollowedByMe'] == true;
         await ApiClient.post(
@@ -280,6 +269,9 @@ class _PersonCardState extends State<_PersonCard> {
             _p!['isFollowedByMe'] = !following;
             _p!['followerCount'] =
                 ((_p!['followerCount'] as num?) ?? 0) + (following ? -1 : 1);
+            // Following each other = friends.
+            _p!['friendStatus'] =
+                !following && _p!['followsMe'] == true ? 'friends' : 'none';
           });
         }
       });
@@ -305,39 +297,29 @@ class _PersonCardState extends State<_PersonCard> {
         '${others > 0 ? ' and $others other${others == 1 ? '' : 's'}' : ''}';
   }
 
+  // Follow (following each other = friends) and Message.
   List<Widget> _buttons() {
-    final first = widget.person.name.split(' ').first;
-    final friend = _p?['friendStatus'] as String? ?? 'none';
+    final friends = _p?['friendStatus'] == 'friends';
     final following = _p?['isFollowedByMe'] == true;
-    final Widget primary = switch (friend) {
-      'friends' =>
-        FilledButton(onPressed: widget.onMessage, child: const Text('Message')),
-      'pending_sent' =>
-        const OutlinedButton(onPressed: null, child: Text('Requested')),
-      'pending_received' => FilledButton(
-          onPressed: _busy ? null : _accept, child: const Text('Accept')),
-      _ => FilledButton(
-          onPressed: _busy ? null : _addFriend,
-          child: const Text('Add friend')),
-    };
+    final followsMe = _p?['followsMe'] == true;
+    final label = following
+        ? (friends ? '✓ Friends' : 'Following')
+        : (followsMe ? 'Follow back' : 'Follow');
+    final follow = following
+        ? OutlinedButton(
+            onPressed: _busy ? null : _toggleFollow, child: Text(label))
+        : FilledButton(
+            onPressed: _busy ? null : _toggleFollow, child: Text(label));
+    final message = friends
+        ? FilledButton(onPressed: widget.onMessage, child: const Text('Message'))
+        : OutlinedButton(
+            onPressed: widget.onMessage, child: const Text('Message'));
     return [
       Row(children: [
-        Expanded(child: primary),
+        Expanded(child: friends ? message : follow),
         const SizedBox(width: 8),
-        Expanded(
-          child: OutlinedButton(
-            onPressed: _busy ? null : _toggleFollow,
-            child: Text(following ? 'Following' : 'Follow'),
-          ),
-        ),
+        Expanded(child: friends ? follow : message),
       ]),
-      if (friend == 'pending_sent')
-        Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: Text('You can message $first once you’re friends',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white70, fontSize: 12)),
-        ),
       const SizedBox(height: 8),
     ];
   }

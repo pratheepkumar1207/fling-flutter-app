@@ -1,4 +1,13 @@
 import '../../widgets/avatar.dart';
+import '../experience/experience_hub.dart' show CreatorStudioScreen;
+import '../wallet/livestream_dashboard_screen.dart';
+import '../wallet/subscriptions_screen.dart';
+import '../wallet/wallet_cashout_screen.dart';
+import '../wallet/wallet_screen.dart';
+import 'account_centers.dart';
+import 'creator_account_screen.dart';
+import 'my_subscriptions_screen.dart';
+import 'room_moderation_screen.dart';
 import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -94,7 +103,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(18, 4, 18, 28),
         children: [
-          Container(
+          GestureDetector(
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const EditProfileSheet())),
+            child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
                 color: AppColors.surface,
@@ -116,10 +128,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                               fontSize: 15, fontWeight: FontWeight.w600)),
-                      if (user?.phone != null && user!.phone!.isNotEmpty)
-                        Text(user.phone!,
-                            style: const TextStyle(
-                                color: AppColors.textDim, fontSize: 12)),
+                      const Text('Edit profile',
+                          style: TextStyle(
+                              color: AppColors.textDim, fontSize: 12)),
                     ]),
               ),
               if (user?.isVip == true)
@@ -135,14 +146,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           fontSize: 11,
                           fontWeight: FontWeight.w700)),
                 ),
+              const SizedBox(width: 6),
+              const InIcon(InIcons.chev, color: AppColors.textFaint, size: 18),
             ]),
+          ),
           ),
           _group('Account'),
           _card([
             _tile(context,
-                icon: InIcons.user,
-                label: 'Edit profile',
-                builder: (_) => const EditProfileSheet()),
+                icon: InIcons.star,
+                label: 'Account type',
+                value: user?.isCreator == true
+                    ? 'Creator${user?.creatorCategory == null ? '' : ' · ${user!.creatorCategory}'}'
+                    : 'Personal',
+                valueColor: user?.isCreator == true ? null : AppColors.lilac,
+                builder: (_) => const CreatorAccountScreen()),
             _tile(context,
                 icon: InIcons.verified,
                 color: AppColors.blue,
@@ -151,15 +169,80 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 valueColor: user?.photoVerificationStatus == 'verified'
                     ? AppColors.success
                     : null,
-                builder: (_) => const ProfileScreen()),
+                builder: (_) => const VerificationScreen()),
+            _tile(context,
+                icon: InIcons.lock,
+                label: 'Security',
+                builder: (_) => const SecurityScreen()),
+          ]),
+          if (user?.isCreator == true) ...[
+            _group('Creator'),
+            _card([
+              _tile(context,
+                  icon: InIcons.live,
+                  label: 'Going live',
+                  value: switch (user?.livestreamStatus) {
+                    'approved' => 'Approved',
+                    'pending' => 'Under review',
+                    'rejected' => 'Not approved',
+                    _ => 'Apply',
+                  },
+                  builder: (_) => const CreatorAccountScreen()),
+              _tile(context,
+                  icon: InIcons.diamond,
+                  label: 'Subscription levels',
+                  builder: (_) => const SubscriptionsScreen()),
+              _tile(context,
+                  icon: InIcons.chart,
+                  label: 'Creator Studio',
+                  builder: (_) => const CreatorStudioScreen()),
+              _tile(context,
+                  icon: InIcons.cam,
+                  label: 'Live dashboard',
+                  builder: (_) => const LivestreamDashboardScreen()),
+              _tile(context,
+                  icon: InIcons.bank,
+                  label: 'Payouts',
+                  builder: (_) => const WalletCashoutScreen()),
+            ]),
+          ],
+          _group('Privacy and safety'),
+          _card([
+            _tile(context,
+                icon: InIcons.eye,
+                label: 'Privacy centre',
+                builder: (_) => const PrivacyCenterScreen()),
             _tile(context,
                 icon: InIcons.lock,
                 label: 'Room activity and likes',
                 builder: (_) => const PrivacyScreen()),
             _tile(context,
+                icon: InIcons.shield,
+                label: 'Safety Center',
+                builder: (_) => const SafetyCenterScreen()),
+            _tile(context,
                 icon: InIcons.block,
                 label: 'Blocked accounts',
                 builder: (_) => const BlockedAccountsScreen()),
+          ]),
+          _group('Subscriptions and money'),
+          _card([
+            _tile(context,
+                icon: InIcons.diamond,
+                label: 'My subscriptions',
+                builder: (_) => const MySubscriptionsScreen()),
+            _tile(context,
+                icon: InIcons.wallet,
+                label: 'Wallet',
+                value: user?.coinBalance == null ? null : '${user!.coinBalance} coins',
+                builder: (_) => const WalletScreen()),
+          ]),
+          _group('Rooms'),
+          _card([
+            _tile(context,
+                icon: InIcons.tune,
+                label: 'Room moderation',
+                builder: (_) => const RoomModerationScreen()),
           ]),
           _group('App'),
           _card([
@@ -188,32 +271,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 builder: (_) => const HelpCenterScreen()),
             _tile(context,
                 icon: InIcons.info,
-                label: 'About Us',
-                builder: (_) => const LegalScreen(
-                      title: 'About Us',
-                      sections: [
-                        LegalSection('Insync',
-                            'Watch parties, voice rooms, and social discovery — all in one app.'),
-                        LegalSection('Version', '1.0.0'),
-                        // Required credit for the animated emoji in chat.
-                        LegalSection('Animated emoji',
-                            'Animated emoji by Google, Noto Emoji Animation, licensed under CC BY 4.0. https://googlefonts.github.io/noto-emoji-animation/'),
-                      ],
+                label: 'About, privacy policy and terms',
+                builder: (_) => Scaffold(
+                      backgroundColor: AppColors.bg,
+                      appBar: AppBar(title: const Text('About')),
+                      body: ListView(children: [
+                        for (final (label, page) in [
+                          (
+                            'About Us',
+                            const LegalScreen(
+                              title: 'About Us',
+                              sections: [
+                                LegalSection('Insync',
+                                    'Watch parties, voice rooms, and social discovery — all in one app.'),
+                                LegalSection('Version', '1.0.0'),
+                                // Required credit for the animated emoji in chat.
+                                LegalSection('Animated emoji',
+                                    'Animated emoji by Google, Noto Emoji Animation, licensed under CC BY 4.0. https://googlefonts.github.io/noto-emoji-animation/'),
+                              ],
+                            )
+                          ),
+                          (
+                            'Privacy Policy',
+                            const LegalScreen(
+                                title: 'Privacy Policy',
+                                lastUpdated: 'January 2026',
+                                sections: kPrivacyPolicySections)
+                          ),
+                          (
+                            'Terms of Service',
+                            const LegalScreen(
+                                title: 'Terms of Service',
+                                lastUpdated: 'January 2026',
+                                sections: kTermsOfServiceSections)
+                          ),
+                        ])
+                          ListTile(
+                            title: Text(label),
+                            trailing: const InIcon(InIcons.chev,
+                                color: AppColors.textFaint, size: 18),
+                            onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => page)),
+                          ),
+                      ]),
                     )),
-            _tile(context,
-                icon: InIcons.doc,
-                label: 'Privacy Policy',
-                builder: (_) => const LegalScreen(
-                    title: 'Privacy Policy',
-                    lastUpdated: 'January 2026',
-                    sections: kPrivacyPolicySections)),
-            _tile(context,
-                icon: InIcons.doc,
-                label: 'Terms of Service',
-                builder: (_) => const LegalScreen(
-                    title: 'Terms of Service',
-                    lastUpdated: 'January 2026',
-                    sections: kTermsOfServiceSections)),
           ]),
           const SizedBox(height: 20),
           OutlinedButton.icon(
@@ -294,12 +395,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _iconBadge(icon, color),
           const SizedBox(width: 12),
           Expanded(
+              flex: 2,
               child: Text(label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(color: AppColors.text, fontSize: 14))),
           if (value != null) ...[
-            Text(value,
-                style: TextStyle(
-                    color: valueColor ?? AppColors.textDim, fontSize: 13)),
+            Flexible(
+              child: Text(value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                      color: valueColor ?? AppColors.textDim, fontSize: 13)),
+            ),
             const SizedBox(width: 6),
           ],
           const InIcon(InIcons.chev, color: AppColors.textFaint, size: 18),

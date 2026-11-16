@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/creator_gate.dart';
 import '../../theme/insync_icons.dart';
 import '../../widgets/room_sheet.dart';
 import '../create/create_flow.dart';
@@ -75,7 +76,9 @@ class _CreateSheetState extends State<_CreateSheet> {
                       () => _create(CreateMode.story)),
                   _card(InIcons.popcorn, 'Room',
                       () => setState(() => _room = true)),
-                  _card(InIcons.live, 'Go live', () => _openRoom('live')),
+                  _card(InIcons.live, 'Go live', () async {
+                    if (await canGoLive(context)) _openRoom('live');
+                  }),
                 ])
               else ...[
                 Row(children: [

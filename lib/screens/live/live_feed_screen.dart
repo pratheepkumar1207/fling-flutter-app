@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/creator_gate.dart';
 import '../../core/api_client.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
@@ -81,6 +82,7 @@ class _LiveFeedScreenState extends State<LiveFeedScreen> {
   }
 
   Future<void> _goLive() async {
+    if (!await canGoLive(context) || !mounted) return;
     await Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => const LobbyCreateScreen(initialRoomType: 'live')));
     _load();

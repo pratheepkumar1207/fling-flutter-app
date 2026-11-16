@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'package:provider/provider.dart';
+import '../../core/auth_provider.dart';
+import '../../widgets/sub_tiers.dart';
 import '../../widgets/insync_brand.dart';
 import 'dart:convert';
 import 'dart:io';
@@ -1386,6 +1389,15 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
   PickedPerson? _collaborator;
   bool _comments = true;
   bool _hideLikes = false;
+  // Creators: who can see this — null = everyone, else that level and up.
+  String? _subTier;
+  bool _isCreator() {
+    try {
+      return context.read<AuthProvider>().user?.isCreator == true;
+    } catch (_) {
+      return false; // no signed-in user (e.g. previews)
+    }
+  }
   bool _closeFriends = false;
   bool _sharing = false;
   String? _cover;
@@ -1436,6 +1448,7 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
           'coverData':
               'data:image/jpeg;base64,${base64Encode(await File(_cover!).readAsBytes())}',
         if (_story && _closeFriends) 'audience': 'closeFriends',
+        if (_subTier != null) 'subTier': _subTier,
         if (!_story) ...{
           if (_tagged.isNotEmpty)
             'taggedUserIds': [for (final t in _tagged) t.id],
@@ -1641,6 +1654,30 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
             ),
           ]),
           const SizedBox(height: 6),
+          // Creators: Everyone, or subscribers from a level up.
+          if (_isCreator()) ...[
+            const Text('Who can see this',
+                style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+            const SizedBox(height: 6),
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              for (final (t, label) in [
+                (null, 'Everyone'),
+                ('silver', '◆ Silver+'),
+                ('gold', '◆ Gold+'),
+                ('platinum', '◆ Platinum'),
+              ])
+                ChoiceChip(
+                  label: Text(label),
+                  selected: _subTier == t,
+                  showCheckmark: false,
+                  selectedColor: t == null
+                      ? AppColors.primary
+                      : subTierColors(t).$1.withValues(alpha: 0.35),
+                  onSelected: (_) => setState(() => _subTier = t),
+                ),
+            ]),
+            const SizedBox(height: 6),
+          ],
           if (_story)
             SwitchListTile(
               contentPadding: EdgeInsets.zero,

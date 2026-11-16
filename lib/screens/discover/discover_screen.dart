@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../communities/communities_screen.dart';
+import '../events/events_screen.dart';
+import '../experience/experience_hub.dart' show VibeMatchScreen;
 import '../../widgets/insync_brand.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
@@ -236,6 +239,60 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                       onPressed: _openFilters),
                 ],
               ),
+            ),
+            // Vibe Match, Communities and Events (they used to sit in the
+            // "More ways to connect" hub).
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
+              child: Row(children: [
+                for (final (icon, label, sub, bg, fg, screen) in [
+                  (InIcons.spark, 'Vibe Match', 'Find your mood',
+                      const Color(0xFF3A1430), const Color(0xFFFF4FA3),
+                      const VibeMatchScreen() as Widget),
+                  (InIcons.community, 'Communities', 'Groups',
+                      const Color(0xFF0F2A22), const Color(0xFF5DCAA5),
+                      const CommunitiesScreen()),
+                  (InIcons.calendar, 'Events', 'Plan ahead',
+                      const Color(0xFF14203D), const Color(0xFF85B7EB),
+                      const EventsScreen()),
+                ])
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      child: Material(
+                        color: bg,
+                        borderRadius: BorderRadius.circular(14),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(14),
+                          onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => screen)),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(10, 9, 8, 9),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  InIcon(icon, size: 19, color: fg),
+                                  const SizedBox(height: 4),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(label,
+                                        style: const TextStyle(
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w700)),
+                                  ),
+                                  Text(sub,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                          color: AppColors.textDim,
+                                          fontSize: 10.5)),
+                                ]),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ]),
             ),
             Expanded(
               // Finding people: the beating heart.

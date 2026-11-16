@@ -51,6 +51,10 @@ class Post {
   final bool commentsDisabled;
   final bool hideLikes;
   final bool archived;
+  // Subscriber-only: the lowest level that can see it; [locked] when you
+  // can't (no media or text is sent then).
+  final String? subTier;
+  final bool locked;
   // Others may share it only if the author allows sharing.
   final bool canShare;
   final DateTime createdAt;
@@ -86,6 +90,8 @@ class Post {
     this.commentsDisabled = false,
     this.hideLikes = false,
     this.archived = false,
+    this.subTier,
+    this.locked = false,
     this.canShare = true,
     required this.createdAt,
   });
@@ -127,6 +133,8 @@ class Post {
         commentsDisabled: commentsDisabled ?? this.commentsDisabled,
         hideLikes: hideLikes ?? this.hideLikes,
         archived: archived ?? this.archived,
+        subTier: subTier,
+        locked: locked,
         canShare: canShare,
         createdAt: createdAt,
       );
@@ -168,6 +176,8 @@ class Post {
       canShare: json['canShare'] != false,
       hideLikes: json['hideLikes'] as bool? ?? false,
       archived: json['archived'] as bool? ?? false,
+      subTier: json['subTier'] as String?,
+      locked: json['locked'] == true,
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
           DateTime.now(),
     );

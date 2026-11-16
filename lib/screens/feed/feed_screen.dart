@@ -1,4 +1,5 @@
 import '../create/create_flow.dart';
+import '../../widgets/sub_tiers.dart';
 import '../home/boosted_rooms.dart';
 import '../../widgets/skeletons.dart';
 import 'package:flutter/material.dart';
@@ -606,6 +607,13 @@ class _FeedScreenState extends State<FeedScreen> {
                               TextSpan(
                                   text:
                                       ' and ${post.collaborator!['name'] ?? 'someone'}'),
+                            // Subscriber-only post: its level.
+                            if (post.subTier != null)
+                              WidgetSpan(
+                                  alignment: PlaceholderAlignment.middle,
+                                  child: Padding(
+                                      padding: const EdgeInsets.only(left: 6),
+                                      child: SubTierBadge(post.subTier!))),
                           ]),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

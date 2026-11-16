@@ -1,4 +1,6 @@
 import '../../widgets/profile_song_chip.dart';
+import '../../widgets/share_bottom_sheet.dart';
+import '../../core/active_room_holder.dart';
 import '../../widgets/sub_tiers.dart';
 import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
@@ -47,6 +49,8 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
   Map<String, dynamic> _subscription = const {};
   List<Post> _posts = [];
   List<Post> _reels = [];
+  // Subscriber-only posts and reels (their own ◆ tab).
+  List<Post> _subPosts = [];
   List<Post> _tagged = [];
   Map<String, dynamic>? _note;
   Map<String, dynamic> _relationship = const {};
@@ -107,6 +111,12 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
         _reels = ((results[7] as List?) ?? [])
             .map((e) => Post.fromJson(e as Map<String, dynamic>))
             .toList();
+        _subPosts = [
+          ..._posts.where((x) => x.subTier != null),
+          ..._reels.where((x) => x.subTier != null),
+        ];
+        _posts = _posts.where((x) => x.subTier == null).toList();
+        _reels = _reels.where((x) => x.subTier == null).toList();
         _tagged = ((results[8] as List?) ?? [])
             .map((e) => Post.fromJson(e as Map<String, dynamic>))
             .toList();
@@ -255,6 +265,26 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
 
   Future<void> _toggleFollow() async {
     final isFollowed = _profile?['isFollowedByMe'] == true;
+    if (isFollowed && _profile?['followsMe'] == true) {
+      final name = (_profile?['name'] as String? ?? '').split(' ').first;
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (d) => AlertDialog(
+          title: Text('Unfollow $name?'),
+          content: const Text(
+              'You won’t be friends any more. Messages you already have stay.'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(d).pop(false),
+                child: const Text('Cancel')),
+            TextButton(
+                onPressed: () => Navigator.of(d).pop(true),
+                child: const Text('Unfollow')),
+          ],
+        ),
+      );
+      if (ok != true) return;
+    }
     try {
       if (isFollowed) {
         await ApiClient.post('/social/unfollow/${widget.userId}');
@@ -267,13 +297,18 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
     }
   }
 
-  Future<void> _addFriend() async {
+  Future<void> _invite() async {
+    final roomId = ActiveRoomHolder.roomId;
+    if (roomId == null) {
+      _snack('Start or join a room first, then invite them');
+      return;
+    }
     try {
-      await ApiClient.post('/friends/request',
-          body: {'toUserId': widget.userId});
-      _snack('Friend request sent');
+      await ApiClient.post('/rooms/$roomId/invite',
+          body: {'userIds': [widget.userId]});
+      _snack('Invited to ${ActiveRoomHolder.roomTitle ?? 'your room'}');
     } catch (_) {
-      _snack('Failed to send request');
+      _snack('Couldn’t send the invite');
     }
   }
 
@@ -340,7 +375,26 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
           title: InsyncPageTitle(
               (_profile?['username'] as String?)?.isNotEmpty == true
                   ? _profile!['username'] as String
-                  : 'Profile')),
+                  : 'Profile'),
+          actions: [
+            if (_profile != null) ...[
+              IconButton(
+                tooltip: 'Share profile',
+                onPressed: () => showShareBottomSheet(
+                  context,
+                  text: 'Find ${_profile!['name'] ?? 'them'} on Insync',
+                  url: '${ApiClient.baseUrl}/u/${widget.userId}',
+                ),
+                icon: const InIcon(InIcons.share, color: AppColors.text),
+              ),
+              IconButton(
+                tooltip: 'More',
+                onPressed: () =>
+                    _moreSheet(_profile!['name'] as String? ?? ''),
+                icon: const InIcon(InIcons.more, color: AppColors.text),
+              ),
+            ],
+          ]),
       body: _loading
           ? const Center(child: Spinner(size: 28))
           : (_error != null || _profile == null)
@@ -359,6 +413,8 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
       case 'reels':
         return ProfilePostGrid(
             posts: _reels, reels: true, emptyText: 'No reels yet');
+      case 'subscribers':
+        return _subscribersTab();
       case 'photos':
         return _gallery.isEmpty
             ? const Center(
@@ -551,8 +607,15 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
     final layout = ProfileLayout.fromJson(p['profileLayout'] is Map
         ? Map<String, dynamic>.from(p['profileLayout'] as Map)
         : null);
-    final tabs = layout
-        .visibleTabs(const {'posts', 'reels', 'music', 'supporters', 'tagged'});
+    final tabs = [
+      ...layout.visibleTabs(
+          const {'posts', 'reels', 'music', 'supporters', 'tagged'}),
+    ];
+    // Subscriber-only posts get a ◆ tab right after Reels.
+    if (_subPosts.isNotEmpty) {
+      final at = tabs.indexOf('reels');
+      tabs.insert(at < 0 ? (tabs.isEmpty ? 0 : 1) : at + 1, 'subscribers');
+    }
     final inRoom = activeRoom != null;
     final header = <Widget>[
       // Avatar gets a green ring + "IN ROOM" tag while they're in a room
@@ -730,68 +793,112 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
         ]);
       }
     }
+    final followsMe = p['followsMe'] == true;
+    final followLabel = isFollowed
+        ? (followsMe ? '\u2713 Friends' : 'Following')
+        : (followsMe ? 'Follow back' : 'Follow');
+    Widget iconButton(InIconData icon, String label, VoidCallback onTap,
+            {Color color = Colors.white}) =>
+        Expanded(
+          child: Material(
+            color: AppColors.surface2,
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Column(children: [
+                  InIcon(icon, size: 19, color: color),
+                  const SizedBox(height: 2),
+                  Text(label,
+                      style: const TextStyle(
+                          color: AppColors.textDim, fontSize: 11.5)),
+                ]),
+              ),
+            ),
+          ),
+        );
     header.addAll([
       const SizedBox(height: 16),
-      Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          _pillButton(
-            isFollowed ? 'Unfollow' : 'Follow',
-            onTap: _toggleFollow,
-            gradient: isFollowed
-                ? null
-                : const LinearGradient(colors: AppGradients.brand),
-            fill: isFollowed ? AppColors.surface2 : null,
-            textColor: isFollowed ? AppColors.textDim : Colors.white,
+      // Follow (following each other = friends) and Subscribe.
+      Row(children: [
+        Expanded(
+          child: SizedBox(
+            height: 42,
+            child: isFollowed
+                ? OutlinedButton(
+                    onPressed: _toggleFollow,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: followsMe
+                          ? const Color(0xFF5DE08A)
+                          : AppColors.text,
+                      side: BorderSide(
+                          color: followsMe
+                              ? const Color(0xFF30D158)
+                              : AppColors.border),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text(followLabel,
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                  )
+                : DecoratedBox(
+                    decoration: BoxDecoration(
+                        gradient:
+                            const LinearGradient(colors: AppGradients.brand),
+                        borderRadius: BorderRadius.circular(12)),
+                    child: TextButton(
+                      onPressed: _toggleFollow,
+                      style: TextButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(42)),
+                      child: Text(followLabel,
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                    ),
+                  ),
           ),
-          _pillButton('Add friend',
-              onTap: _addFriend,
-              borderColor: AppColors.border,
-              textColor: AppColors.textDim),
-          if (_subscription['priceCoins'] != null)
-            _pillButton(
-              _subscription['subscribed'] == true
-                  ? '\u25C6 ${subTierName(_subscription['tier'] as String? ?? 'silver')}'
-                  : '\u25C6 Subscribe · from ${_subscription['priceCoins']}/mo',
-              onTap: _subscriptionSheet,
-              gradient: _subscription['subscribed'] == true
-                  ? null
-                  : const LinearGradient(colors: AppGradients.brand),
-              fill: _subscription['subscribed'] == true
-                  ? AppColors.surface2
-                  : null,
-              textColor: _subscription['subscribed'] == true
-                  ? AppColors.lilac
-                  : Colors.white,
+        ),
+        if (_subscription['priceCoins'] != null) ...[
+          const SizedBox(width: 8),
+          Expanded(
+            child: SizedBox(
+              height: 42,
+              child: OutlinedButton(
+                onPressed: _subscriptionSheet,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFFAC775),
+                  side: const BorderSide(color: Color(0xFFF7B21A)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                child: Text(
+                    _subscription['subscribed'] == true
+                        ? '\u25C6 ${subTierName(_subscription['tier'] as String? ?? 'silver')}'
+                        : '\u25C6 Subscribe',
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+              ),
             ),
-          _pillButton(
-            '🎁 Gift',
-            onTap: () => showGiftBottomSheet(context, toUserId: widget.userId),
-            borderColor: AppColors.gold.withValues(alpha: 0.5),
-            textColor: AppColors.gold,
-          ),
-          _pillButton(
-            '💬 Message',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                  builder: (_) => MessageThreadScreen(
-                      userId: widget.userId,
-                      name: p['name'] as String? ?? '',
-                      avatarUrl: p['avatarUrl'] as String?)),
-            ),
-            borderColor: AppColors.border,
-            textColor: AppColors.textDim,
-          ),
-          _pillButton(
-            '⋯ More',
-            onTap: () => _moreSheet(p['name'] as String? ?? ''),
-            borderColor: AppColors.danger.withValues(alpha: 0.5),
-            textColor: AppColors.danger,
           ),
         ],
-      ),
+      ]),
+      const SizedBox(height: 8),
+      Row(children: [
+        iconButton(
+            InIcons.chat,
+            'Message',
+            () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => MessageThreadScreen(
+                    userId: widget.userId,
+                    name: p['name'] as String? ?? '',
+                    avatarUrl: p['avatarUrl'] as String?)))),
+        const SizedBox(width: 8),
+        iconButton(InIcons.gift, 'Gift',
+            () => showGiftBottomSheet(context, toUserId: widget.userId),
+            color: AppColors.gold),
+        const SizedBox(width: 8),
+        iconButton(InIcons.useradd, 'Invite', _invite),
+      ]),
       const SizedBox(height: 8),
     ]);
     return RefreshIndicator(
@@ -832,6 +939,86 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
         ),
       ),
     );
+  }
+
+  // ◆ Subscriber-only posts: open ones in the grid, locked ones blurred
+  // with the level they need, and a Subscribe card if any are locked.
+  Widget _subscribersTab() {
+    final open = _subPosts.where((x) => !x.locked).toList();
+    final locked = _subPosts.where((x) => x.locked).toList();
+    final mine = _subscription['tier'] as String?;
+    return ListView(padding: EdgeInsets.zero, children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+        child: Text(
+            mine == null
+                ? '\u25C6 ${_subPosts.length} posts for subscribers'
+                : '\u25C6 ${open.length} of ${_subPosts.length} unlocked for you',
+            style: const TextStyle(color: Color(0xFFFAC775), fontSize: 13)),
+      ),
+      GridView.count(
+        crossAxisCount: 3,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        mainAxisSpacing: 2,
+        crossAxisSpacing: 2,
+        children: [
+          for (final x in [...open, ...locked])
+            x.locked
+                ? Stack(fit: StackFit.expand, children: [
+                    ColoredBox(
+                        color: subTierColors(x.subTier!).$2,
+                        child: const SizedBox.expand()),
+                    Center(
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        InIcon(InIcons.lock,
+                            size: 20, color: subTierColors(x.subTier!).$1),
+                        const SizedBox(height: 4),
+                        Text(subTierName(x.subTier!),
+                            style: TextStyle(
+                                color: subTierColors(x.subTier!).$1,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700)),
+                      ]),
+                    ),
+                  ])
+                : Stack(fit: StackFit.expand, children: [
+                    const ProfilePostGrid(posts: [], emptyText: '').tile(context, x),
+                    Positioned(
+                        left: 4,
+                        top: 4,
+                        child: SubTierBadge(x.subTier!, fontSize: 8)),
+                  ]),
+        ],
+      ),
+      if (locked.isNotEmpty && _subscription['tiers'] != null)
+        Padding(
+          padding: const EdgeInsets.all(14),
+          child: Material(
+            color: const Color(0xFF1E1A10),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: const BorderSide(color: Color(0xFFF7B21A))),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: _subscriptionSheet,
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(children: [
+                  Text(mine == null ? '\u25C6 Subscribe to unlock' : '\u25C6 Upgrade to unlock the rest',
+                      style: const TextStyle(
+                          color: Color(0xFFFAC775),
+                          fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 3),
+                  Text('From ${_subscription['priceCoins']} coins a month',
+                      style: const TextStyle(
+                          color: AppColors.textDim, fontSize: 12)),
+                ]),
+              ),
+            ),
+          ),
+        ),
+    ]);
   }
 
   // Subscribe, or manage an existing subscription.
@@ -1007,40 +1194,6 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
     }
   }
-
-  Widget _pillButton(String label,
-          {required VoidCallback onTap,
-          Gradient? gradient,
-          Color? fill,
-          Color? borderColor,
-          required Color textColor}) =>
-      GestureDetector(
-        onTap: onTap,
-        child: Container(
-          height: 36,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            gradient: gradient,
-            color: gradient == null ? (fill ?? Colors.transparent) : null,
-            border: (gradient == null && fill == null)
-                ? Border.all(color: borderColor ?? AppColors.border)
-                : null,
-          ),
-          // Sized to its label (a bare `alignment` made the pill stretch
-          // to the full width of the header).
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(label,
-                  style: TextStyle(
-                      color: textColor,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700)),
-            ],
-          ),
-        ),
-      );
 
   Widget _profileStatColumn(String value, String label,
           {Color color = AppColors.text}) =>

@@ -24,6 +24,10 @@ class User {
   final String photoVerificationStatus;
   final String? verificationSelfieUrl;
   final String livestreamStatus;
+  // 'personal' | 'creator'.
+  final String accountType;
+  final String? creatorCategory;
+  bool get isCreator => accountType == 'creator';
   final bool hideOnlineStatus;
   final bool hideAgeOnMap;
   // Monthly creator subscription price; null when not offered.
@@ -89,6 +93,8 @@ class User {
     this.photoVerificationStatus = 'none',
     this.verificationSelfieUrl,
     this.livestreamStatus = 'none',
+    this.accountType = 'personal',
+    this.creatorCategory,
     this.hideOnlineStatus = false,
     this.hideAgeOnMap = false,
     this.subscriptionPriceCoins,
@@ -159,6 +165,8 @@ class User {
           json['photoVerificationStatus'] as String? ?? 'none',
       verificationSelfieUrl: json['verificationSelfieUrl'] as String?,
       livestreamStatus: json['livestreamStatus'] as String? ?? 'none',
+      accountType: json['accountType'] as String? ?? 'personal',
+      creatorCategory: json['creatorCategory'] as String?,
       hideOnlineStatus: json['hideOnlineStatus'] as bool? ?? false,
       hideAgeOnMap: json['hideAgeOnMap'] as bool? ?? false,
       subscriptionPriceCoins: (json['subscriptionPriceCoins'] as num?)?.toInt(),
