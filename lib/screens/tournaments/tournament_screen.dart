@@ -696,6 +696,15 @@ class _TournamentScreenState extends State<TournamentScreen> {
         step(3, 52, '🥉'),
       ]),
       const SizedBox(height: 16),
+      if (d['prizesHeld'] == true)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _card(
+              const Text(
+                  '⏸ Prizes are held for this one: most of these players have already played several tournaments together this week.',
+                  style: TextStyle(fontSize: 12.5)),
+              border: _goldLine),
+        ),
       if (mine != null && (mine['trophy'] as int? ?? 0) > 0)
         _card(
           Column(children: [
