@@ -29,6 +29,7 @@ import '../lobby/source_picker_screen.dart';
 import '../../theme/vola_party_colors.dart';
 import '../../widgets/gift_bottom_sheet.dart';
 import '../../widgets/game_board_view.dart';
+import '../../widgets/game_computer.dart';
 import '../../widgets/game_seat.dart';
 import '../../widgets/avatar.dart';
 import '../../core/profile_nav.dart';
@@ -69,7 +70,10 @@ import '../../theme/room_themes.dart';
 
 class PartyScreen extends StatefulWidget {
   final String roomId;
-  const PartyScreen({super.key, required this.roomId});
+  // "Play vs computer": sit down and add one computer at this level as
+  // soon as the game is ready.
+  final String? vsComputerLevel;
+  const PartyScreen({super.key, required this.roomId, this.vsComputerLevel});
 
   @override
   State<PartyScreen> createState() => _PartyScreenState();
@@ -82,6 +86,7 @@ class _PartyScreenState extends State<PartyScreen>
   late final AnimationController _people =
       AnimationController.unbounded(vsync: this);
   bool _peopleOpen = false;
+  bool _vsComputerStarted = false;
   // A room sheet is up (queue, settings): the top bar hides so the video
   // and the sheet get its space; it comes back when the sheet closes.
   bool _sheetOpen = false;
@@ -487,6 +492,13 @@ class _PartyScreenState extends State<PartyScreen>
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(rs.queueDenied!)));
       rs.clearQueueDenied();
+    }
+    if (widget.vsComputerLevel != null &&
+        !_vsComputerStarted &&
+        rs.game != null &&
+        rs.isHost) {
+      _vsComputerStarted = true;
+      rs.gamePlayComputer(widget.vsComputerLevel!);
     }
     if (rs.gameSeatDenied != null) {
       ScaffoldMessenger.of(context)
@@ -1792,7 +1804,66 @@ class _PartyScreenState extends State<PartyScreen>
           myUserId: myId,
           onInvite: rs.gameInvite,
         );
+    final gameType = room['gameType'] as String?;
+    final computerGame = kComputerGames.contains(gameType);
+    final gameStatus = rs.game?['status'] as String?;
+    final hasBots = gamePlayerIds.any(isBotId);
+    Future<void> addComputer() async {
+      final level = await showComputerLevelSheet(context);
+      if (level != null) rs.gameAddBot(level);
+    }
+
+    Future<void> removeBot(String botId, String name) async {
+      if (gameStatus == 'playing') {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('You can remove a computer after this game')));
+        return;
+      }
+      final ok = await showModalBottomSheet<bool>(
+        context: context,
+        backgroundColor: const Color(0xFF16151B),
+        builder: (sheet) => SafeArea(
+          child: ListTile(
+            leading: const BotAvatar(size: 26),
+            title: Text('Remove $name'),
+            subtitle: const Text('Its seat opens for someone else',
+                style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+            onTap: () => Navigator.of(sheet).pop(true),
+          ),
+        ),
+      );
+      if (ok == true) rs.gameRemoveBot(botId);
+    }
+
     List<Widget> gameBanners() {
+      if (rs.isHost && computerGame) {
+        // Alone at the table for 30 s: offer a computer.
+        if (gameStatus == 'waiting' &&
+            gamePlayers.length == 1 &&
+            myId != null &&
+            gamePlayerIds.contains(myId) &&
+            rs.gameRequests.isEmpty) {
+          return [
+            ComputerOfferBanner(
+                key: ValueKey('offer-${widget.roomId}'), onAccept: addComputer),
+          ];
+        }
+        // A game with computers just ended: rematch, or bring a friend.
+        if (hasBots && (gameStatus == 'won' || gameStatus == 'draw')) {
+          return [
+            GameComputerBanner(
+              text: 'Good game! Play again, or invite a friend for a rematch',
+              primaryLabel: 'Play again',
+              onPrimary: rs.gameReset,
+              secondaryLabel: 'Invite a friend',
+              onSecondary: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => InviteScreen(
+                      roomId: widget.roomId,
+                      roomTitle: room['title'] as String?))),
+            ),
+          ];
+        }
+      }
       if (rs.isHost) {
         final waiting = [
           for (final id in rs.gameRequests)
@@ -1840,6 +1911,8 @@ class _PartyScreenState extends State<PartyScreen>
           },
           onCancelRequest: rs.gameCancelRequest,
           onInvite: rs.isHost ? openGameInvite : null,
+          onAddComputer: rs.isHost && computerGame ? addComputer : null,
+          onRemoveBot: rs.isHost ? removeBot : null,
           avatarFor: (id) => id == null ? null : rosterById[id]?.avatarUrl,
           child: GameBoardView(
             gameType: room['gameType'] as String?,

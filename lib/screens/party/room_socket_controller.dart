@@ -905,6 +905,27 @@ class RoomSocketController extends ChangeNotifier {
     socket?.emit('call:speaking', {'roomId': roomId, 'speaking': value});
   }
 
+  // Computer players — host only (server: game:addBot etc.).
+  void gameAddBot(String level) {
+    if (isHost) socket?.emit('game:addBot', {'roomId': roomId, 'level': level});
+  }
+
+  void gameFillBots(String level) {
+    if (isHost) socket?.emit('game:fillBots', {'roomId': roomId, 'level': level});
+  }
+
+  void gamePlayComputer(String level) {
+    if (isHost) {
+      socket?.emit('game:playComputer', {'roomId': roomId, 'level': level});
+    }
+  }
+
+  void gameRemoveBot(String botId) {
+    if (isHost) {
+      socket?.emit('game:removeBot', {'roomId': roomId, 'botId': botId});
+    }
+  }
+
   void gameMove(Map<String, dynamic> move) =>
       socket?.emit('game:move', {'roomId': roomId, 'move': move});
   void gameReset() {

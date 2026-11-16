@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../widgets/game_computer.dart';
 import '../../widgets/skeletons.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -472,6 +473,9 @@ class _HomeScreenState extends State<HomeScreen> {
             _viewToggle(InIcons.feed, 'Grid view', _grid, () => _setGrid(true)),
           ]),
           const SizedBox(height: 10),
+          if (_filter == 'game' || (!_loading && active.isEmpty))
+            _actionRow(InIcons.game, 'Play vs computer',
+                'Tic tac toe, UNO or Ludo · starts right away', _playComputer),
           if (context.watch<AuthProvider>().user?.locationSharingEnabled ==
               false) ...[
             _actionRow(
@@ -581,6 +585,60 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: AppColors.lilac,
                   fontWeight: FontWeight.w600)),
       ]);
+
+  // Solo game: a private game room with one computer, no setup.
+  Future<void> _playComputer() async {
+    final game = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: const Color(0xFF16151B),
+      builder: (sheet) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 14, 16, 4),
+            child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Play vs computer',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
+          ),
+          for (final (id, emoji, label) in const [
+            ('tictactoe', '❌', 'Tic tac toe'),
+            ('uno', '🃏', 'UNO'),
+            ('ludo', '🎲', 'Ludo'),
+          ])
+            ListTile(
+              leading: Text(emoji, style: const TextStyle(fontSize: 22)),
+              title: Text(label),
+              onTap: () => Navigator.of(sheet).pop(id),
+            ),
+        ]),
+      ),
+    );
+    if (game == null || !mounted) return;
+    final level = await showComputerLevelSheet(context);
+    if (level == null || !mounted) return;
+    try {
+      final room = await ApiClient.post('/rooms', body: {
+        'roomType': 'game',
+        'gameType': game,
+        'visibility': 'private',
+      }) as Map<String, dynamic>;
+      if (!mounted) return;
+      Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => PartyScreen(
+              roomId: room['id'] as String, vsComputerLevel: level)));
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Couldn’t start the game. Try again.')));
+      }
+    }
+  }
 
   Widget _actionRow(
           InIconData icon, String title, String subtitle, VoidCallback onTap) =>

@@ -23,7 +23,7 @@ class RoomPersonScope extends InheritedWidget {
 }
 
 void openRoomPerson(BuildContext context, String? userId) {
-  if (userId == null || userId.isEmpty) return;
+  if (userId == null || userId.isEmpty || userId.startsWith('bot:')) return;
   final scope = RoomPersonScope.maybeOf(context);
   if (scope == null) {
     openProfile(context, userId);

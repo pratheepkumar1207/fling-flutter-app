@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../core/room_person_scope.dart';
 import '../theme/app_colors.dart';
 import 'avatar.dart';
+import 'game_computer.dart';
 
 /// Who may sit down at the game and how — provided by party_screen.dart
 /// around whichever board is showing, so each board only decides *where*
@@ -20,6 +21,9 @@ class GameSeatScope extends InheritedWidget {
   final VoidCallback onCancelRequest;
   // Host only — opens the "who should play?" picker.
   final VoidCallback? onInvite;
+  // Host only, in games with computer players.
+  final VoidCallback? onAddComputer;
+  final void Function(String botId, String name)? onRemoveBot;
   final String? Function(String? userId) avatarFor;
 
   const GameSeatScope({
@@ -31,6 +35,8 @@ class GameSeatScope extends InheritedWidget {
     required this.onRequest,
     required this.onCancelRequest,
     required this.onInvite,
+    this.onAddComputer,
+    this.onRemoveBot,
     required this.avatarFor,
     required super.child,
   });
@@ -42,7 +48,8 @@ class GameSeatScope extends InheritedWidget {
   bool updateShouldNotify(GameSeatScope old) =>
       isHost != old.isHost ||
       requested != old.requested ||
-      invited != old.invited;
+      invited != old.invited ||
+      (onAddComputer == null) != (old.onAddComputer == null);
 }
 
 const kTurnRing = AppColors.accent;
@@ -75,8 +82,13 @@ class GameSeat extends StatelessWidget {
   Widget build(BuildContext context) {
     final scope = GameSeatScope.of(context);
     final ringColor = isTurn ? kTurnRing : (color ?? Colors.transparent);
+    final bot = isBotId(userId);
     final avatar = GestureDetector(
-      onTap: () => openRoomPerson(context, userId),
+      onTap: bot
+          ? (scope?.onRemoveBot == null
+              ? null
+              : () => scope!.onRemoveBot!(userId!, name ?? 'Computer'))
+          : () => openRoomPerson(context, userId),
       child: Container(
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
@@ -87,9 +99,11 @@ class GameSeat extends StatelessWidget {
           width: size,
           height: size,
           child: FittedBox(
-            child: GiftTarget(
-                userId: userId,
-                child: Avatar(src: scope?.avatarFor(userId), name: name)),
+            child: bot
+                ? BotAvatar(size: size)
+                : GiftTarget(
+                    userId: userId,
+                    child: Avatar(src: scope?.avatarFor(userId), name: name)),
           ),
         ),
       ),
@@ -111,7 +125,10 @@ class GameSeat extends StatelessWidget {
           : CrossAxisAlignment.start,
       children: [
         label,
-        if (detail != null)
+        if (bot && isTurn)
+          const Text('thinking…',
+              style: TextStyle(color: kComputerAccent, fontSize: 11))
+        else if (detail != null)
           DefaultTextStyle.merge(
             style: const TextStyle(color: AppColors.textFaint, fontSize: 11),
             child: detail!,
@@ -154,7 +171,9 @@ class GameOpenSeat extends StatelessWidget {
     final onTap = scope == null
         ? null
         : scope.isHost
-            ? scope.onInvite
+            ? (scope.onAddComputer == null
+                ? scope.onInvite
+                : () => _hostSeatSheet(context, scope))
             : (scope.requested || scope.invited ? null : scope.onRequest);
     final circle = Container(
       width: size + 4,
@@ -190,6 +209,35 @@ class GameOpenSeat extends StatelessWidget {
       ),
     );
   }
+}
+
+void _hostSeatSheet(BuildContext context, GameSeatScope scope) {
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: const Color(0xFF16151B),
+    builder: (sheet) => SafeArea(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        ListTile(
+          leading: const InIcon(InIcons.useradd, color: AppColors.text),
+          title: const Text('Invite someone'),
+          onTap: () {
+            Navigator.of(sheet).pop();
+            scope.onInvite?.call();
+          },
+        ),
+        ListTile(
+          leading: const BotAvatar(size: 26),
+          title: const Text('Add computer'),
+          subtitle: const Text('A real person who joins takes its seat',
+              style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+          onTap: () {
+            Navigator.of(sheet).pop();
+            scope.onAddComputer?.call();
+          },
+        ),
+      ]),
+    ),
+  );
 }
 
 /// The one "get into the game" control every board shows when I'm not
@@ -229,6 +277,21 @@ class GameJoinButton extends StatelessWidget {
     }
     if (scope.isHost && !full && scope.onInvite != null) {
       buttons.add(_secondary('Invite', scope.onInvite, icon: InIcons.useradd));
+    }
+    if (scope.isHost && !full && scope.onAddComputer != null) {
+      buttons.add(OutlinedButton.icon(
+        onPressed: scope.onAddComputer,
+        icon: const Text('🤖', style: TextStyle(fontSize: 14)),
+        label: const Text('Add computer'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFFCECBF6),
+          side: const BorderSide(color: Color(0xFF534AB7)),
+          visualDensity: VisualDensity.compact,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          textStyle:
+              const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+        ),
+      ));
     }
     if (buttons.isEmpty) return const SizedBox.shrink();
     return Wrap(
