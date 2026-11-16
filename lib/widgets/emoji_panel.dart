@@ -360,3 +360,136 @@ class _EmojiPanelState extends State<EmojiPanel> {
     });
   }
 }
+
+/// The long-press sheet's emoji: 7 across, 4 rows showing, scrolling down,
+/// with a search bar on top. [leading] go first (e.g. watch emoji on Now
+/// Playing), then Recent, then everything else.
+class EmojiSheetGrid extends StatefulWidget {
+  final ValueChanged<String> onPick;
+  final List<String> leading;
+  const EmojiSheetGrid(
+      {super.key, required this.onPick, this.leading = const []});
+
+  static const columns = 7;
+  static const rows = 4;
+
+  @override
+  State<EmojiSheetGrid> createState() => _EmojiSheetGridState();
+}
+
+class _EmojiSheetGridState extends State<EmojiSheetGrid> {
+  final _query = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    EmojiPanel._loadRecent().then((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _query.dispose();
+    super.dispose();
+  }
+
+  List<String> _all() {
+    final q = _query.text.trim().toLowerCase();
+    if (q.isNotEmpty) {
+      final terms = {q, if (_alsoKnownAs[q] != null) _alsoKnownAs[q]!};
+      return [
+        for (final e in AnimatedEmojiRegistry.entries)
+          if (terms.any((t) => e.name.toLowerCase().contains(t))) e.emoji,
+      ];
+    }
+    final seen = <String>{};
+    return [
+      for (final e in [
+        ...widget.leading,
+        ...(EmojiPanel._recent.isNotEmpty
+            ? EmojiPanel._recent
+            : _defaultRecent),
+        ...AnimatedEmojiRegistry.entries.map((x) => x.emoji),
+      ])
+        if (seen.add(e)) e,
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, box) {
+      final cell = box.maxWidth / EmojiSheetGrid.columns;
+      final items = _all();
+      return Column(mainAxisSize: MainAxisSize.min, children: [
+        SizedBox(
+          height: 40,
+          child: TextField(
+            controller: _query,
+            onChanged: (_) => setState(() {}),
+            style: const TextStyle(color: Colors.white, fontSize: 15),
+            cursorColor: Colors.white,
+            decoration: const InputDecoration(
+              isDense: true,
+              border: InputBorder.none,
+              prefixIcon: Padding(
+                padding: EdgeInsets.only(right: 8),
+                child: InIcon(InIcons.search, size: 20, color: Colors.white),
+              ),
+              prefixIconConstraints: BoxConstraints(minWidth: 30),
+              hintText: 'Search',
+              hintStyle: TextStyle(color: Color(0xFF8C889E), fontSize: 15),
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        SizedBox(
+          height: cell * EmojiSheetGrid.rows,
+          child: items.isEmpty
+              ? const Center(
+                  child: Text('No emoji found',
+                      style: TextStyle(color: Color(0xFF8C889E))))
+              : GridView.builder(
+                  padding: EdgeInsets.zero,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: EmojiSheetGrid.columns,
+                    mainAxisExtent: cell,
+                  ),
+                  itemCount: items.length,
+                  itemBuilder: (context, i) {
+                    final e = items[i];
+                    final file = AnimatedEmojiRegistry.fileFor(e);
+                    final bundled =
+                        file != null && kBundledEmojiFiles.contains(file);
+                    final size = cell * 0.72;
+                    return InkResponse(
+                      radius: cell * 0.5,
+                      onTap: () {
+                        EmojiPanel.remember(e);
+                        widget.onPick(e);
+                      },
+                      child: Center(
+                        child: bundled
+                            ? SizedBox.square(
+                                dimension: size,
+                                child: Lottie.asset(
+                                    '${AnimatedEmojiRegistry.assetDir}$file',
+                                    repeat: false,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) => Text(e,
+                                        style: TextStyle(
+                                            fontSize: size * 0.8, height: 1))),
+                              )
+                            : Text(e,
+                                style:
+                                    TextStyle(fontSize: size * 0.8, height: 1),
+                                textScaler: TextScaler.noScaling),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ]);
+    });
+  }
+}

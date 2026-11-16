@@ -233,7 +233,12 @@ class RoomSocketController extends ChangeNotifier {
       notifyListeners();
     });
     s.on('chat:message', (data) {
-      messages = [...messages, Map<String, dynamic>.from(data)];
+      final m = Map<String, dynamic>.from(data);
+      // Now Playing, joins and leaves come without an id; this one is the
+      // same on every phone, so reactions to them line up.
+      m['id'] ??= 'sys-${m['ts']}-${m['type'] ?? m['event'] ?? 'note'}-'
+          '${('${m['userId'] ?? m['videoUrl'] ?? ''}').hashCode.toRadixString(36)}';
+      messages = [...messages, m];
       notifyListeners();
     });
     // Emoji reactions on messages: {messageId, reactions: {emoji: [userIds]}},

@@ -6,6 +6,9 @@ import '../../widgets/sub_tiers.dart';
 import 'pick_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
+import '../../core/api_client.dart';
+import '../../widgets/report_user_sheet.dart';
 import '../../core/room_person_scope.dart';
 import '../../core/room_prefs.dart';
 import '../../models/room_models.dart';
@@ -418,7 +421,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
             Padding(
               padding: const EdgeInsets.only(bottom: 2),
               child: Text(
-                  '\u21AA ${quoteMine ? 'You' : quote['name'] ?? 'Someone'}: ${quote['text'] ?? ''}',
+                  '\u21AA ${quoteMine ? 'You' : quote['name'] ?? 'Someone'}${'${quote['text'] ?? ''}'.isEmpty ? '' : ': ${quote['text']}'}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -663,129 +666,225 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
     );
   }
 
-  // Long-press a message: the chat dims, the message lights up where it
-  // is, the emoji panel opens right above it (below when there's no room)
-  // and Reply / Copy sit under it.
+  // Long-press anything in chat (a message, Now Playing, a join or leave):
+  // a black sheet with what you pressed, the actions, search and the emoji
+  // 7 across, 4 rows showing, scrolling down.
+  static const _watchEmoji = ['🎥', '💿', '🍿', '🎭', '🎬', '🎤', '🎶', '🎵'];
+
   void _openMessageSheet(Map<String, dynamic> m,
       {BuildContext? lineContext, Widget? preview}) {
     HapticFeedback.selectionClick();
     final id = m['id'] as String?;
     final canReact = id != null && widget.onReact != null;
-    final box = lineContext?.findRenderObject() as RenderBox?;
-    final rect = box != null && box.hasSize
-        ? box.localToGlobal(Offset.zero) & box.size
-        : null;
-    showGeneralDialog(
+    final np = m['type'] == 'nowPlaying';
+    final event = m['system'] == true && !np;
+    final title = m['title'] as String? ?? 'Untitled';
+    final senderId = m['senderId'] as String?;
+    final person = _person(senderId);
+    final name = np
+        ? 'Now playing'
+        : event
+            ? ''
+            : (m['name'] as String? ?? 'Someone').split(' ').first;
+    final body = np ? title : (m['text'] as String? ?? '');
+    final ts = (m['ts'] as num?)?.toInt();
+    final time = ts == null
+        ? ''
+        : TimeOfDay.fromDateTime(DateTime.fromMillisecondsSinceEpoch(ts))
+            .format(context);
+    final pinner = m['pinnedByName'] as String? ?? _person(m['pinnedBy'] as String?)?.name;
+    void reply() => _startReply(np
+        ? {
+            'id': id,
+            'senderId': 'system',
+            'name': 'Now Playing',
+            'text': title,
+          }
+        : event
+            ? {'id': id, 'senderId': 'system', 'name': body, 'text': ''}
+            : m);
+    final actions = <(InIconData, String, VoidCallback)>[
+      if (np)
+        (
+          InIcons.send,
+          'Share',
+          () => Share.share('$title ${m['videoUrl'] ?? ''}'.trim())
+        ),
+      (
+        InIcons.copy,
+        'Copy',
+        () => Clipboard.setData(ClipboardData(text: np ? title : body))
+      ),
+      (InIcons.reply, 'Reply', reply),
+      if (np && m['pinnedBy'] is String)
+        (
+          InIcons.shield,
+          'Report',
+          () => showReportReasonSheet(context,
+              userName: 'this video',
+              onSubmit: (reason) => ApiClient.post(
+                      '/social/report/${m['pinnedBy']}',
+                      body: {
+                        'reason':
+                            'Video "$title" ${m['videoUrl'] ?? ''}: $reason'
+                      }).catchError((_) => null))
+        ),
+    ];
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: true,
-      barrierLabel: 'Close',
-      barrierColor: Colors.black.withValues(alpha: 0.65),
-      transitionDuration: const Duration(milliseconds: 160),
-      pageBuilder: (dialog, _, __) {
-        void close() => Navigator.of(dialog).pop();
-        final media = MediaQuery.of(dialog);
-        final screen = media.size;
-        final keyboard = media.viewInsets.bottom;
-        final panelW = (screen.width - 16).clamp(0.0, 440.0);
-        final panelH = EmojiPanel.heightFor(panelW);
-        final msg = rect ??
-            Rect.fromLTWH(12, screen.height / 2 - 20, screen.width - 24, 40);
-        final roomAbove = msg.top - panelH - 12 > media.padding.top + 8;
-        final menu = Material(
-          color: const Color(0xFF16151B),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(color: Color(0xFF333333), width: 0.5)),
-          child: IntrinsicWidth(
+      backgroundColor: Colors.black,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+      builder: (sheet) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(sheet).viewInsets.bottom),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 16, 14, 6),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              for (final (icon, label, action) in [
-                (InIcons.reply, 'Reply', () => _startReply(m)),
-                (
-                  InIcons.copy,
-                  'Copy',
-                  () => Clipboard.setData(
-                      ClipboardData(text: m['text'] as String? ?? ''))
-                ),
-              ])
-                InkWell(
-                  onTap: () {
-                    close();
-                    action();
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
-                    child: Row(children: [
-                      InIcon(icon, size: 17, color: Colors.white),
-                      const SizedBox(width: 10),
-                      Text(label,
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 14)),
-                    ]),
+              // What you pressed.
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                if (np)
+                  Container(
+                    width: 48,
+                    height: 32,
+                    margin: const EdgeInsets.only(top: 2),
+                    decoration: BoxDecoration(
+                        color: const Color(0xFF222222),
+                        borderRadius: BorderRadius.circular(6)),
+                    clipBehavior: Clip.antiAlias,
+                    child: m['thumbnail'] is String
+                        ? Image.network(m['thumbnail'] as String,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                const SizedBox.shrink())
+                        : const Center(
+                            child: InIcon(InIcons.play,
+                                size: 16, color: Colors.white)),
+                  )
+                else
+                  SizedBox.square(
+                    dimension: 40,
+                    child: FittedBox(
+                        child: Avatar(
+                            src: person?.avatarUrl ??
+                                m['avatarUrl'] as String?,
+                            name: event ? body : (m['name'] as String?),
+                            size: AvatarSize.md)),
                   ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text.rich(
+                          TextSpan(children: [
+                            if (name.isNotEmpty)
+                              TextSpan(
+                                  text: np ? '$name ' : '$name: ',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700)),
+                            TextSpan(text: body),
+                          ]),
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 15, height: 1.3),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                            [
+                              if (time.isNotEmpty) time,
+                              if (np && pinner != null) 'by $pinner',
+                            ].join(' \u00B7 '),
+                            style: const TextStyle(
+                                color: Color(0xFF8C889E), fontSize: 12)),
+                      ]),
                 ),
+              ]),
+              const SizedBox(height: 16),
+              // Actions.
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  for (final (icon, label, action) in actions)
+                    InkResponse(
+                      radius: 34,
+                      onTap: () {
+                        Navigator.of(sheet).pop();
+                        action();
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: Column(mainAxisSize: MainAxisSize.min, children: [
+                          InIcon(icon, size: 22, color: Colors.white),
+                          const SizedBox(height: 5),
+                          Text(label,
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 13)),
+                        ]),
+                      ),
+                    ),
+                ],
+              ),
+              if (canReact) ...[
+                const SizedBox(height: 10),
+                EmojiSheetGrid(
+                  leading: np ? _watchEmoji : const [],
+                  onPick: (e) {
+                    Navigator.of(sheet).pop();
+                    widget.onReact?.call(id, e);
+                  },
+                ),
+              ],
             ]),
           ),
-        );
-        final panel = Material(
-          color: const Color(0xFF16151B),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(color: Color(0xFF333333), width: 0.5)),
-          clipBehavior: Clip.antiAlias,
-          child: SizedBox(
-            width: panelW,
-            child: EmojiPanel(onPick: (e) {
-              close();
-              widget.onReact?.call(id!, e);
+        ),
+      ),
+    );
+  }
+
+  // Now Playing and join/leave lines work like messages: long-press for
+  // the sheet, swipe to reply, reactions underneath.
+  Widget _systemLine(Map<String, dynamic> m, Widget line,
+      {bool centered = false}) {
+    final hasReactions =
+        m['reactions'] is Map && (m['reactions'] as Map).isNotEmpty;
+    return _SwipeToReply(
+      mine: false,
+      onReply: () => _startReply(m['type'] == 'nowPlaying'
+          ? {
+              'id': m['id'],
+              'senderId': 'system',
+              'name': 'Now Playing',
+              'text': m['title'] ?? 'Untitled',
+            }
+          : {
+              'id': m['id'],
+              'senderId': 'system',
+              'name': m['text'] ?? '',
+              'text': '',
             }),
-          ),
-        );
-        return Material(
-          type: MaterialType.transparency,
-          child: Stack(children: [
-            Positioned.fill(
-                child: GestureDetector(
-                    behavior: HitTestBehavior.opaque, onTap: close)),
-            if (preview != null && keyboard == 0)
-              Positioned(
-                left: msg.left - 6,
-                top: msg.top - 4,
-                width: msg.width + 12,
-                child: IgnorePointer(
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(6, 4, 6, 4),
-                    decoration: BoxDecoration(
-                        color: const Color(0xFF1C1B22),
-                        borderRadius: BorderRadius.circular(10)),
-                    child: preview,
-                  ),
-                ),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onLongPress: () => _openMessageSheet(m),
+        child: Column(
+          crossAxisAlignment:
+              centered ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            line,
+            if (hasReactions)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Transform.translate(
+                    offset: const Offset(0, -4),
+                    child: _reactionChips(m, false,
+                        center: centered)),
               ),
-            if (canReact)
-              Positioned(
-                left: (screen.width - panelW) / 2,
-                // Searching: just above the keyboard.
-                top: keyboard > 0
-                    ? null
-                    : roomAbove
-                        ? msg.top - panelH - 12
-                        : msg.bottom + 10,
-                bottom: keyboard > 0 ? keyboard + 8 : null,
-                child: panel,
-              ),
-            if (keyboard == 0)
-              Positioned(
-                left: msg.left + 25,
-                top: canReact && !roomAbove ? null : msg.bottom + 10,
-                bottom: canReact && !roomAbove
-                    ? screen.height - msg.top + 10
-                    : null,
-                child: menu,
-              ),
-          ]),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 
@@ -824,7 +923,8 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
 
   // The emoji people reacted with, under the message; tap one to add or
   // take back yours.
-  Widget _reactionChips(Map<String, dynamic> m, bool mine) {
+  Widget _reactionChips(Map<String, dynamic> m, bool mine,
+      {bool center = false}) {
     final r = Map<String, dynamic>.from(m['reactions'] as Map);
     final id = m['id'] as String?;
     return Padding(
@@ -832,7 +932,11 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
       child: Wrap(
         spacing: 4,
         runSpacing: 4,
-        alignment: mine ? WrapAlignment.end : WrapAlignment.start,
+        alignment: center
+            ? WrapAlignment.center
+            : mine
+                ? WrapAlignment.end
+                : WrapAlignment.start,
         children: [
           for (final e in r.entries)
             if (e.value is List && (e.value as List).isNotEmpty)
@@ -850,6 +954,23 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    // Just one person: their photo with the emoji.
+                    if ((e.value as List).length == 1 && r.length == 1)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 3),
+                        child: SizedBox.square(
+                          dimension: 16,
+                          child: FittedBox(
+                            child: Avatar(
+                                src: _person((e.value as List).first as String?)
+                                    ?.avatarUrl,
+                                name: _person((e.value as List).first as String?)
+                                        ?.name ??
+                                    '?',
+                                size: AvatarSize.sm),
+                          ),
+                        ),
+                      ),
                     AnimatedEmoji(e.key, size: 15, repeat: false),
                     if ((e.value as List).length > 1) ...[
                       const SizedBox(width: 3),
@@ -1112,7 +1233,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                       final pinnerId = m['pinnedBy'] as String?;
                       final onRoster = _person(pinnerId);
                       final playing = m['ts'] == current;
-                      return _NowPlayingLine(
+                      return _systemLine(m, _NowPlayingLine(
                         message: m,
                         playing: playing,
                         pinnerName:
@@ -1129,9 +1250,11 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                         onVoteSkip: playing ? widget.onVoteSkip : null,
                         skipVoteCount: widget.skipVoteCount,
                         skipVoteRequired: widget.skipVoteRequired,
-                      );
+                      ));
                     }
-                    if (m['system'] == true) return _eventLine(m);
+                    if (m['system'] == true) {
+                      return _systemLine(m, _eventLine(m), centered: true);
+                    }
                     final name = m['name'] as String? ?? 'Someone';
                     final senderId = m['senderId'] as String?;
                     final viewOnceId = m['viewOnceId'] as String?;
