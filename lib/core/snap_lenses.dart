@@ -22,7 +22,11 @@ class SnapLenses {
   static const _channel = MethodChannel('com.fling.app/snap_lenses');
 
   /// Lens groups shown in Snap's lens carousel, e.g. 'a1b2c3d4-…'.
-  static const List<String> groupIds = [];
+  /// For now: Snap's "Camera Kit Mobile Sample Lenses" group. Swap in an
+  /// InSync group of our own lenses once it exists in Lens Scheduler.
+  static const List<String> groupIds = [
+    '171b40cc-2807-445e-816b-900a1945847b',
+  ];
 
   static bool? _configured;
 
