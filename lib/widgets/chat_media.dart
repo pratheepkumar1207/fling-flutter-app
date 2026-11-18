@@ -9,11 +9,14 @@ import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
+import '../core/media_source.dart';
 import '../theme/app_colors.dart';
+import 'app_image.dart';
 import '../theme/insync_icons.dart';
 
-/// Photos and voice notes in chats (direct and group). Both travel as
-/// data: URIs in the message's mediaUrl — the backend caps them at ~6 MB.
+/// Photos and voice notes in chats (direct and group). They're sent as
+/// data: URIs; the backend stores them in cloud storage and hands back a
+/// link (older messages may still hold the data: URI itself).
 
 /// Picks a photo from the gallery or camera, scaled down for chat.
 Future<String?> pickChatPhoto(
@@ -43,11 +46,22 @@ class ChatPhoto extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (isRemoteMedia(dataUri)) {
+      return _photo(context, AppImage(source: dataUri),
+          AppImage(source: dataUri, fit: BoxFit.contain));
+    }
     final bytes = _bytesOf(dataUri);
     if (bytes == null) {
       return const Text('Photo unavailable',
           style: TextStyle(color: AppColors.textFaint, fontSize: 12));
     }
+    return _photo(
+        context,
+        Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true),
+        Image.memory(bytes));
+  }
+
+  Widget _photo(BuildContext context, Widget thumb, Widget full) {
     return Semantics(
       button: true,
       label: 'Photo, tap to open',
@@ -56,15 +70,13 @@ class ChatPhoto extends StatelessWidget {
             builder: (_) => Scaffold(
                   backgroundColor: Colors.black,
                   appBar: AppBar(backgroundColor: Colors.black),
-                  body: Center(
-                      child: InteractiveViewer(child: Image.memory(bytes))),
+                  body: Center(child: InteractiveViewer(child: full)),
                 ))),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(14),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 220, maxHeight: 280),
-            child:
-                Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true),
+            child: thumb,
           ),
         ),
       ),
@@ -91,11 +103,9 @@ class _ChatVoiceNoteState extends State<ChatVoiceNote> {
 
   Future<AudioPlayer?> _ensure() async {
     if (_player != null) return _player;
-    final bytes = _bytesOf(widget.dataUri);
-    if (bytes == null) return null;
-    final dir = await getTemporaryDirectory();
-    final file = File('${dir.path}/voice_${widget.dataUri.hashCode}.m4a');
-    if (!await file.exists()) await file.writeAsBytes(bytes);
+    final file = await mediaToFile(
+        widget.dataUri, 'voice_${widget.dataUri.hashCode}.m4a');
+    if (file == null) return null;
     final p = AudioPlayer();
     _len = await p.setFilePath(file.path);
     _a = p.positionStream

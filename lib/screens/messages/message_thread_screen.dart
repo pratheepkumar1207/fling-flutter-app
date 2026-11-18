@@ -4,11 +4,9 @@ import '../../widgets/animated_emoji.dart';
 import '../../widgets/permission_primer.dart';
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart' show ImageSource;
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../widgets/insync_attach_sheet.dart';
@@ -22,6 +20,7 @@ import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
 import '../../core/chat_stickers.dart';
+import '../../core/media_source.dart';
 import '../../core/profile_nav.dart';
 import '../../core/socket_service.dart';
 import '../../models/blend.dart';
@@ -1521,19 +1520,18 @@ class _FileBubble extends StatelessWidget {
     return comma < 0 ? 0 : ((dataUri.length - comma - 1) * 3 / 4).round();
   }
 
+  // Stored files come back as links, with no size to show.
   String get _size {
+    if (isRemoteMedia(dataUri)) return 'Document';
     final b = _bytes;
     if (b >= 1024 * 1024) return '${(b / 1024 / 1024).toStringAsFixed(1)} MB';
     return '${(b / 1024).ceil()} KB';
   }
 
   Future<void> _open() async {
-    final comma = dataUri.indexOf(',');
-    if (comma < 0) return;
-    final dir = await getTemporaryDirectory();
     final safe = name.replaceAll(RegExp(r'[^\w.\- ]'), '_');
-    final f = File('${dir.path}/$safe');
-    await f.writeAsBytes(base64Decode(dataUri.substring(comma + 1)));
+    final f = await mediaToFile(dataUri, '${dataUri.hashCode}_$safe');
+    if (f == null) return;
     await Share.shareXFiles([XFile(f.path)]);
   }
 

@@ -126,7 +126,6 @@ class MainActivity : AudioServiceActivity() {
         // Prime and Hotstar need — see core/drm_support.dart. Emulators and
         // some phones don't, and no WebView can play those services there.
         VideoEditChannel(this, flutterEngine.dartExecutor.binaryMessenger)
-        FaceFilterChannel(this, flutterEngine.dartExecutor.binaryMessenger)
         snapLenses = SnapLensChannel(this, flutterEngine.dartExecutor.binaryMessenger)
         callRing = CallRingChannel(this, flutterEngine.dartExecutor.binaryMessenger).also { ring ->
             pendingCallFrom(intent)?.let { ring.pendingCall = it }

@@ -1,15 +1,13 @@
-import 'dart:convert';
-import 'dart:io';
 
 import '../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
 import 'package:provider/provider.dart';
 import '../core/api_client.dart';
 import '../core/api_exception.dart';
 import '../core/auth_provider.dart';
 import '../core/format.dart';
+import '../core/media_source.dart';
 import '../screens/create/create_flow.dart';
 import '../theme/app_colors.dart';
 import 'app_image.dart';
@@ -469,12 +467,14 @@ class _StoryVideoState extends State<_StoryVideo> {
 
   Future<void> _load() async {
     try {
-      final comma = widget.data.indexOf(',');
-      final bytes = base64Decode(widget.data.substring(comma + 1));
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/story_${widget.id}.mp4');
-      if (!await file.exists()) await file.writeAsBytes(bytes);
-      final v = VideoPlayerController.file(file);
+      final VideoPlayerController v;
+      if (isRemoteMedia(widget.data)) {
+        v = VideoPlayerController.networkUrl(Uri.parse(widget.data));
+      } else {
+        final file = await mediaToFile(widget.data, 'story_${widget.id}.mp4');
+        if (file == null) return;
+        v = VideoPlayerController.file(file);
+      }
       await v.initialize();
       if (!mounted) {
         await v.dispose();

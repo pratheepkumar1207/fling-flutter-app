@@ -9,8 +9,8 @@ import io.flutter.plugin.common.MethodChannel
 
 /**
  * Snap Camera Kit lenses (real Snapchat lenses) through Snap's own camera
- * screen. Our own face filters (FaceFilterChannel.kt) stay the default; this
- * is the extra "Snap" option in the camera's face tray.
+ * screen. These are the app's face filters: the "Lenses" button in the
+ * camera opens them.
  *
  * The API token comes from android/local.properties (snap.camerakit.apiToken),
  * written into the manifest at build time; the lens group IDs come from Dart.

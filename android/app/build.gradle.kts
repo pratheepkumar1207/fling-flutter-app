@@ -139,8 +139,6 @@ dependencies {
     implementation("androidx.media3:media3-transformer:$media3Version")
     implementation("androidx.media3:media3-effect:$media3Version")
     implementation("androidx.exifinterface:exifinterface:1.3.7")
-    // Finds the face for camera filters, on the phone (FaceFilterChannel.kt).
-    implementation("com.google.mediapipe:tasks-vision:0.10.21")
     // Snap's lens camera screen, for the "Snap" lenses (SnapLensChannel.kt).
     implementation("com.snap.camerakit:support-camera-activity:1.51.0")
 }

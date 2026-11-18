@@ -15,8 +15,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/api_client.dart';
-import '../../core/face_filters.dart';
-import '../../core/face_tracker.dart';
 import '../../core/place_lookup.dart';
 import '../../core/snap_lenses.dart';
 import '../../core/video_edit.dart';
@@ -87,82 +85,15 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
   int? _countdown;
   bool _gridLines = false;
 
-  final _tracker = FaceTracker();
-  FaceFilter? _faceFilter;
-  FacePose? _pose;
-  DateTime _poseSeen = DateTime.now();
-  String _faceGroup = FaceFilter.groups.first;
-  bool _showFaces = false;
-  // Snap lenses show once a Camera Kit token and lens groups are set up.
+  // Face filters are Snap's lenses (Camera Kit); the button shows once a
+  // token and lens groups are set up.
   bool _snapReady = false;
-  bool _stream = false;
   bool _baking = false;
-  DateTime? _recordStart;
-  final List<List<double>> _track = [];
 
   MediaFilter get _look => MediaFilter.colour[_filter];
   bool get _mirrored =>
       _cameras.isNotEmpty &&
       _cameras[_cameraIndex].lensDirection == CameraLensDirection.front;
-
-  void _onFrame(CameraImage image) async {
-    final FacePose? found;
-    try {
-      found = await _tracker.detect(
-          image, _cameras[_cameraIndex].sensorOrientation);
-    } catch (_) {
-      if (!mounted || _faceFilter == null) return;
-      setState(() => _faceFilter = null);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Face filters couldn’t start on this phone.')));
-      return;
-    }
-    if (found == null || !mounted) return;
-    final start = _recordStart;
-    final pose = _pose?.smoothedTo(found) ?? found;
-    if (start != null) {
-      _track.add(pose.toRow(DateTime.now().difference(start).inMilliseconds));
-    }
-    _poseSeen = DateTime.now();
-    setState(() => _pose = pose);
-  }
-
-  /// Frames only flow while a face filter is on, to spare the battery.
-  Future<void> _syncStream() async {
-    final c = _camera;
-    if (c == null || _recording) return;
-    final want = _faceFilter != null;
-    if (want == _stream) return;
-    _stream = want;
-    if (want) {
-      await c.startImageStream(_onFrame);
-    } else {
-      await c.stopImageStream();
-    }
-  }
-
-  // The swipeable bubbles around the shutter: "none", then every filter.
-  final _bubbles = PageController(viewportFraction: 0.2);
-
-  void _pickFace(FaceFilter? f) {
-    if (f?.id == _faceFilter?.id) return;
-    if (_bubbles.hasClients) {
-      final page = f == null ? 0 : FaceFilter.all.indexOf(f) + 1;
-      if (_bubbles.page?.round() != page) _bubbles.jumpToPage(page);
-    }
-    setState(() {
-      _faceFilter = f;
-      if (f == null) _pose = null;
-    });
-    _syncStream();
-  }
-
-  /// Puts the chosen sticker on a finished photo; null if no face is in it.
-  Future<String?> _bakePhoto(String path) async {
-    final f = _faceFilter;
-    if (f == null) return path;
-    return FaceTracker.bakePhoto(input: path, sticker: await f.renderSticker());
-  }
 
   @override
   void initState() {
@@ -180,11 +111,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
     final front = _mirrored;
     final c = _camera;
     if (c != null) {
-      setState(() {
-        _camera = null;
-        _pose = null;
-      });
-      _stream = false;
+      setState(() => _camera = null);
       _flash = false;
       await _closeCamera(c);
     }
@@ -231,11 +158,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
   Future<void> _openCamera() async {
     final previous = _camera;
     if (previous != null) {
-      setState(() {
-        _camera = null;
-        _pose = null;
-      });
-      _stream = false;
+      setState(() => _camera = null);
       _flash = false;
       await _closeCamera(previous);
       if (!mounted) return;
@@ -248,7 +171,6 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
       return;
     }
     setState(() => _camera = next);
-    await _syncStream();
   }
 
   // The camera plugin can throw while closing; it's closed either way.
@@ -313,15 +235,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
 
   /// Stories record while the shutter is held, as well as taking photos.
   Future<void> _record(CameraController c) async {
-    // A running stream must stop first; recording brings its own frames.
-    if (_stream) {
-      await c.stopImageStream();
-      _stream = false;
-    }
-    _track.clear();
-    await c.startVideoRecording(
-        onAvailable: _faceFilter == null ? null : _onFrame);
-    _recordStart = DateTime.now();
+    await c.startVideoRecording();
     setState(() {
       _recording = true;
       _seconds = 0;
@@ -338,60 +252,22 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
     final c = _camera;
     if (c == null || !_recording) return;
     final clip = await c.stopVideoRecording();
-    _recordStart = null;
     if (!mounted) return;
     setState(() => _recording = false);
-    final f = _faceFilter;
-    var path = clip.path;
-    if (f != null) {
-      setState(() => _baking = true);
-      try {
-        path = await FaceTracker.bakeVideo(
-            input: path,
-            sticker: await f.renderSticker(),
-            track: List.of(_track));
-      } catch (_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content:
-                  Text('Couldn’t add the filter, so this is the plain clip.')));
-        }
-      }
-      if (!mounted) return;
-      setState(() => _baking = false);
-    }
-    await _syncStream();
-    if (mounted) _edit(path, isVideo: true);
+    _edit(clip.path, isVideo: true);
   }
 
   Future<void> _takePhoto(CameraController c) async {
-    // Some phones can't take a photo during a frame stream.
-    if (_stream) {
-      await c.stopImageStream();
-      _stream = false;
-    }
-    setState(() => _baking = _faceFilter != null);
     String path;
     try {
-      final shot = await c.takePicture();
-      final baked = await _bakePhoto(shot.path);
-      if (baked == null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('No face found, so this is the plain photo.')));
-      }
-      path = baked ?? shot.path;
+      path = (await c.takePicture()).path;
     } catch (_) {
       if (mounted) {
-        setState(() => _baking = false);
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Couldn’t take that photo. Try again.')));
       }
-      await _syncStream();
       return;
     }
-    if (!mounted) return;
-    setState(() => _baking = false);
-    await _syncStream();
     if (mounted) _edit(path, isVideo: false);
   }
 
@@ -463,7 +339,6 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
   void _goLive() => Navigator.of(context).pushReplacement(MaterialPageRoute(
       builder: (_) => const LobbyCreateScreen(initialRoomType: 'live')));
 
-  /// The shutter sits over the bubbles; the chosen filter lands under it.
   Widget _shutterRow() {
     final shutter = Semantics(
       button: true,
@@ -497,39 +372,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
         ),
       ),
     );
-    if (!FaceTracker.supported) return Center(child: shutter);
-    return SizedBox(
-      height: 84,
-      child: Stack(alignment: Alignment.center, children: [
-        PageView.builder(
-          controller: _bubbles,
-          physics: _recording ? const NeverScrollableScrollPhysics() : null,
-          itemCount: FaceFilter.all.length + 1,
-          onPageChanged: (i) =>
-              _pickFace(i == 0 ? null : FaceFilter.all[i - 1]),
-          itemBuilder: (_, i) => Center(
-            child: GestureDetector(
-              onTap: () => _bubbles.animateToPage(i,
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeOut),
-              child: Container(
-                width: 52,
-                height: 52,
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                    color: Colors.black54,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white54)),
-                child: i == 0
-                    ? const Icon(Icons.block_rounded, color: Colors.white70)
-                    : FaceFilterThumb(FaceFilter.all[i - 1]),
-              ),
-            ),
-          ),
-        ),
-        shutter,
-      ]),
-    );
+    return Center(child: shutter);
   }
 
   @override
@@ -537,92 +380,24 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
     _ticker?.cancel();
     final camera = _camera;
     if (camera != null) _closeCamera(camera);
-    _bubbles.dispose();
-    if (FaceTracker.supported) FaceTracker.release();
     super.dispose();
   }
 
   void _nextFilter(int by) => setState(() =>
       _filter = (_filter + by).clamp(0, MediaFilter.colour.length - 1).toInt());
 
-  /// The picture and its sticker share one box, so the sticker lines up with
-  /// the face. The colour look stays on the picture, as it does when saved.
+  /// The colour look shows on the picture, as it does when saved.
   Widget _cameraView(CameraController c) {
     final look = _look.preview;
-    final f = _faceFilter;
-    final pose = _pose;
-    final visible = pose != null &&
-        DateTime.now().difference(_poseSeen) <
-            const Duration(milliseconds: 500);
     return AspectRatio(
       aspectRatio: 1 / c.value.aspectRatio,
       child: Stack(fit: StackFit.expand, children: [
         look == null
             ? CameraPreview(c)
             : ColorFiltered(colorFilter: look, child: CameraPreview(c)),
-        if (f != null && visible)
-          FaceFilterOverlay(filter: f, pose: pose, mirrored: _mirrored),
         if (_gridLines) const IgnorePointer(child: _ThirdsGrid()),
       ]),
     );
-  }
-
-  Widget _faceTray() {
-    final inGroup = FaceFilter.all.where((f) => f.group == _faceGroup).toList();
-    return Column(mainAxisSize: MainAxisSize.min, children: [
-      SizedBox(
-        height: 34,
-        child: ListView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          children: [
-            for (final g in FaceFilter.groups)
-              _FilterChip(
-                label: g,
-                selected: g == _faceGroup,
-                onTap: () => setState(() => _faceGroup = g),
-              ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 8),
-      SizedBox(
-        height: 72,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          itemCount: inGroup.length + (_snapReady ? 2 : 1),
-          itemBuilder: (_, i) {
-            if (i == 0) {
-              return _FaceTile(
-                label: 'None',
-                selected: _faceFilter == null,
-                onTap: () => _pickFace(null),
-                child: const Icon(Icons.block_rounded, color: Colors.white70),
-              );
-            }
-            if (_snapReady && i == 1) {
-              return _FaceTile(
-                label: 'Snap',
-                selected: false,
-                onTap: _openSnap,
-                child: const ColoredBox(
-                  color: Color(0xFFFFFC00),
-                  child: Icon(Icons.auto_awesome_rounded, color: Colors.black),
-                ),
-              );
-            }
-            final f = inGroup[i - (_snapReady ? 2 : 1)];
-            return _FaceTile(
-              label: f.name,
-              selected: _faceFilter?.id == f.id,
-              onTap: () => _pickFace(f),
-              child: FaceFilterThumb(f),
-            );
-          },
-        ),
-      ),
-    ]);
   }
 
   @override
@@ -717,24 +492,21 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
               ),
             ]),
             const Spacer(),
-            if (_showFaces && !_recording)
-              _faceTray()
-            else
-              SizedBox(
-                height: 40,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  children: [
-                    for (var i = 0; i < MediaFilter.colour.length; i++)
-                      _FilterChip(
-                        label: MediaFilter.colour[i].name,
-                        selected: i == _filter,
-                        onTap: () => setState(() => _filter = i),
-                      ),
-                  ],
-                ),
+            SizedBox(
+              height: 40,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: [
+                  for (var i = 0; i < MediaFilter.colour.length; i++)
+                    _FilterChip(
+                      label: MediaFilter.colour[i].name,
+                      selected: i == _filter,
+                      onTap: () => setState(() => _filter = i),
+                    ),
+                ],
               ),
+            ),
             const SizedBox(height: 12),
             _shutterRow(),
             Row(children: [
@@ -746,18 +518,19 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
                     color: Colors.white),
               ),
               const Spacer(),
-              if (FaceTracker.supported)
-                IconButton(
-                  tooltip: _showFaces ? 'Colour filters' : 'All face filters',
-                  iconSize: 30,
-                  onPressed: _recording
-                      ? null
-                      : () => setState(() => _showFaces = !_showFaces),
-                  icon: Icon(
-                      _showFaces
-                          ? Icons.palette_outlined
-                          : Icons.face_retouching_natural_rounded,
-                      color: Colors.white),
+              if (_snapReady)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _FaceTile(
+                    label: 'Lenses',
+                    selected: false,
+                    onTap: _recording ? () {} : _openSnap,
+                    child: const ColoredBox(
+                      color: Color(0xFFFFFC00),
+                      child:
+                          Icon(Icons.auto_awesome_rounded, color: Colors.black),
+                    ),
+                  ),
                 ),
             ]),
             const SizedBox(height: 10),
@@ -1454,6 +1227,7 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
       return false; // no signed-in user (e.g. previews)
     }
   }
+
   bool _closeFriends = false;
   bool _sharing = false;
   String? _cover;
