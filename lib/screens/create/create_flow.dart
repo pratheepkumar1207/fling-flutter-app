@@ -10,6 +10,7 @@ import 'dart:ui' as ui;
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
@@ -17,6 +18,7 @@ import '../../core/api_client.dart';
 import '../../core/face_filters.dart';
 import '../../core/face_tracker.dart';
 import '../../core/place_lookup.dart';
+import '../../core/snap_lenses.dart';
 import '../../core/video_edit.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
@@ -91,6 +93,8 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
   DateTime _poseSeen = DateTime.now();
   String _faceGroup = FaceFilter.groups.first;
   bool _showFaces = false;
+  // Snap lenses show once a Camera Kit token and lens groups are set up.
+  bool _snapReady = false;
   bool _stream = false;
   bool _baking = false;
   DateTime? _recordStart;
@@ -164,6 +168,47 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
   void initState() {
     super.initState();
     _start();
+    SnapLenses.available().then((ok) {
+      if (ok && mounted) setState(() => _snapReady = true);
+    });
+  }
+
+  /// Snap's lens camera needs the camera to itself: ours closes while it's
+  /// open and comes back after. Its shot then goes through the usual edit.
+  Future<void> _openSnap() async {
+    if (_recording) return;
+    final front = _mirrored;
+    final c = _camera;
+    if (c != null) {
+      setState(() {
+        _camera = null;
+        _pose = null;
+      });
+      _stream = false;
+      _flash = false;
+      await _closeCamera(c);
+    }
+    SnapCapture? shot;
+    try {
+      shot = await SnapLenses.open(frontCamera: front);
+    } on PlatformException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Snap lenses couldn’t open. Try again.')));
+      }
+    }
+    if (!mounted) return;
+    try {
+      await _openCamera();
+    } catch (_) {
+      if (mounted) setState(() => _noCamera = true);
+    }
+    if (shot == null || !mounted) return;
+    // Posts are photos; a Snap clip goes out as a reel instead.
+    if (shot.isVideo && _mode == CreateMode.post) {
+      setState(() => _mode = CreateMode.reel);
+    }
+    _edit(shot.path, isVideo: shot.isVideo);
   }
 
   Future<void> _start() async {
@@ -546,7 +591,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          itemCount: inGroup.length + 1,
+          itemCount: inGroup.length + (_snapReady ? 2 : 1),
           itemBuilder: (_, i) {
             if (i == 0) {
               return _FaceTile(
@@ -556,7 +601,18 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
                 child: const Icon(Icons.block_rounded, color: Colors.white70),
               );
             }
-            final f = inGroup[i - 1];
+            if (_snapReady && i == 1) {
+              return _FaceTile(
+                label: 'Snap',
+                selected: false,
+                onTap: _openSnap,
+                child: const ColoredBox(
+                  color: Color(0xFFFFFC00),
+                  child: Icon(Icons.auto_awesome_rounded, color: Colors.black),
+                ),
+              );
+            }
+            final f = inGroup[i - (_snapReady ? 2 : 1)];
             return _FaceTile(
               label: f.name,
               selected: _faceFilter?.id == f.id,

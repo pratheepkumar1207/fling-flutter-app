@@ -55,3 +55,9 @@
 -dontwarn com.google.mediapipe.**
 -keep class com.google.protobuf.** { *; }
 -dontwarn com.google.protobuf.**
+
+# Snap Camera Kit bundles AutoValue's annotation processor, which refers to
+# compile-time-only javax.lang.model classes. Never used at runtime.
+-dontwarn javax.lang.model.**
+-dontwarn autovalue.shaded.**
+-dontwarn com.google.auto.value.**

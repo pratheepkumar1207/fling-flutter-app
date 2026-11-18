@@ -112,6 +112,19 @@
             </intent-filter>
         </service>
 
+        <!-- Snap Camera Kit lenses (SnapLensChannel.kt). The token comes from
+             snap.camerakit.apiToken in android/local.properties. Snap's camera
+             screen is an AppCompat activity, so it gets an AppCompat theme. -->
+        <meta-data
+            android:name="com.snap.camerakit.api.token"
+            android:value="${snapCameraKitApiToken}" />
+        <activity
+            android:name="com.snap.camerakit.support.app.CameraActivity"
+            android:theme="@style/SnapCameraTheme"
+            android:screenOrientation="portrait"
+            tools:node="merge"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity" />
+
         <!-- Push notifications: white insync symbol, brand pink. -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"

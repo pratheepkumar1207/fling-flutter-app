@@ -54,6 +54,12 @@ class MainActivity : AudioServiceActivity() {
     }
 
     private var callRing: CallRingChannel? = null
+    private var snapLenses: SnapLensChannel? = null
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (snapLenses?.onActivityResult(requestCode, resultCode, data) == true) return
+        super.onActivityResult(requestCode, resultCode, data)
+    }
 
     // Answering a call must work from the lock screen. Only then: the rest of
     // the app stays behind the lock.
@@ -121,6 +127,7 @@ class MainActivity : AudioServiceActivity() {
         // some phones don't, and no WebView can play those services there.
         VideoEditChannel(this, flutterEngine.dartExecutor.binaryMessenger)
         FaceFilterChannel(this, flutterEngine.dartExecutor.binaryMessenger)
+        snapLenses = SnapLensChannel(this, flutterEngine.dartExecutor.binaryMessenger)
         callRing = CallRingChannel(this, flutterEngine.dartExecutor.binaryMessenger).also { ring ->
             pendingCallFrom(intent)?.let { ring.pendingCall = it }
         }

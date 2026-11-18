@@ -15,6 +15,15 @@ val keystoreProperties = Properties().apply {
     if (f.exists()) f.inputStream().use { load(it) }
 }
 
+// Snap Camera Kit API token, from android/local.properties (git-ignored):
+//   snap.camerakit.apiToken=...
+// Empty means the "Snap" lenses option stays hidden in the camera.
+val snapCameraKitApiToken: String = Properties().run {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+    getProperty("snap.camerakit.apiToken", "")
+}
+
 android {
     // Agora ships every optional add-on for all CPU types. The app only uses
     // voice, video calls and live (the core SDK plus its audio/video codec
@@ -62,6 +71,7 @@ android {
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["snapCameraKitApiToken"] = snapCameraKitApiToken
     }
 
     signingConfigs {
@@ -131,4 +141,6 @@ dependencies {
     implementation("androidx.exifinterface:exifinterface:1.3.7")
     // Finds the face for camera filters, on the phone (FaceFilterChannel.kt).
     implementation("com.google.mediapipe:tasks-vision:0.10.21")
+    // Snap's lens camera screen, for the "Snap" lenses (SnapLensChannel.kt).
+    implementation("com.snap.camerakit:support-camera-activity:1.51.0")
 }
