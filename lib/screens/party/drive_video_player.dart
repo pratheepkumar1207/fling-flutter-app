@@ -5,6 +5,8 @@ import 'dart:async';
 import '../../models/room_models.dart';
 import '../../widgets/fit_video_box.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/api_client.dart';
 import '../../core/background_audio_handler.dart';
@@ -165,26 +167,68 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
     _openFile(fileId);
   }
 
-  // The relay address for the current file, reused for background audio.
-  String? _relayUrl;
+  // The address phones play from when it isn't /drive/stream (Google
+  // directly, or the relay), and its headers — reused for background audio.
+  String? _directUrl;
+  Map<String, String> _directHeaders = const {};
 
-  /// Plays through the Cloudflare relay when the server offers one (the
-  /// movie then never passes through our server), else through
-  /// /drive/stream as before.
-  Future<void> _openFile(String fileId) async {
-    String? relayUrl;
+  // Link sharing is off for this file: the host gets steps, viewers wait.
+  bool _notShared = false;
+  String? _openInDrive;
+  bool _checking = false;
+  Timer? _waitForShare;
+
+  // Why the video can't play, instead of a black screen.
+  (String, String)? _problem;
+  bool _remindedHost = false;
+
+  /// Where to play from is the server's call (GET /drive/play):
+  /// - link: straight from Google, the file being shared by link
+  /// - not_shared: link sharing is off, so show steps / wait
+  /// - relay: through the Cloudflare relay
+  /// - anything else: through /drive/stream, as before
+  Future<void> _openFile(String fileId, {bool fresh = false}) async {
+    Map? r;
     try {
-      final r = await ApiClient.get(
-          '/drive/play/$fileId?roomId=${Uri.encodeQueryComponent(widget.roomId)}');
-      if (r is Map && r['relay'] == true) relayUrl = r['url'] as String?;
+      final res = await ApiClient.get(
+          '/drive/play/$fileId?roomId=${Uri.encodeQueryComponent(widget.roomId)}${fresh ? '&fresh=1' : ''}');
+      if (res is Map) r = res;
     } catch (_) {
       // Older server or a hiccup: the direct stream below still works.
     }
     if (!mounted || _currentFileId != fileId) return;
-    _relayUrl = relayUrl;
+    final mode = r?['mode'] ?? (r?['relay'] == true ? 'relay' : 'stream');
+
+    if (mode == 'not_shared') {
+      setState(() {
+        _notShared = true;
+        _problem = null;
+        _openInDrive = r?['openUrl'] as String?;
+      });
+      // Viewers start by themselves once the host shares it.
+      _waitForShare ??= Timer.periodic(const Duration(seconds: 20), (_) {
+        if (_notShared && !widget.isHost) _recheck();
+      });
+      return;
+    }
+    _waitForShare?.cancel();
+    _waitForShare = null;
+
+    final url = r?['url'] as String?;
+    _directUrl = (mode == 'link' || mode == 'relay') ? url : null;
+    _directHeaders = mode == 'link'
+        ? Map<String, String>.from((r?['headers'] as Map?) ?? const {})
+        : const {};
+    setState(() {
+      _notShared = false;
+      _problem = null;
+    });
+
     final VideoPlayerController controller;
-    if (relayUrl != null) {
-      controller = VideoPlayerController.networkUrl(Uri.parse(relayUrl));
+    final direct = _directUrl;
+    if (direct != null) {
+      controller = VideoPlayerController.networkUrl(Uri.parse(direct),
+          httpHeaders: _directHeaders);
     } else {
       final token = ApiClient.tokenGetter?.call();
       controller = VideoPlayerController.networkUrl(
@@ -202,11 +246,62 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
       ..initialize().then((_) {
         if (!mounted) return;
         setState(() {});
+        if (mode == 'link') _remindHost();
         // The controller wasn't initialized yet when initState/didUpdateWidget
         // last tried to apply widget.playback (that call no-ops until
         // isInitialized), so retry now that it actually can seek/play.
         _applyRemotePlaybackIfNeeded();
+      }).catchError((_) {
+        if (mounted && _controller == controller) _explainFailure(fileId);
       });
+  }
+
+  Future<void> _recheck() async {
+    final fileId = _currentFileId;
+    if (fileId == null || _checking) return;
+    setState(() => _checking = true);
+    await _openFile(fileId, fresh: true);
+    if (mounted) setState(() => _checking = false);
+  }
+
+  /// Once per video: the host is told the file is open to anyone with its
+  /// link, so they can switch that off after the movie.
+  void _remindHost() {
+    if (!widget.isHost || _remindedHost || !mounted) return;
+    _remindedHost = true;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      duration: Duration(seconds: 6),
+      content: Text(
+          'Anyone with this file\'s link can watch it. Turn sharing off in Drive after the movie.'),
+    ));
+  }
+
+  /// Asks Google for the first byte to find out why playing failed.
+  Future<void> _explainFailure(String fileId) async {
+    var problem =
+        ('Couldn\'t play this video', 'Check your connection and try again.');
+    final direct = _directUrl;
+    if (direct != null && direct.startsWith('https://www.googleapis.com/')) {
+      try {
+        final res = await http.get(Uri.parse(direct),
+            headers: {..._directHeaders, 'Range': 'bytes=0-0'});
+        final body = res.body;
+        if (body.contains('downloadQuotaExceeded')) {
+          problem = (
+            'Google\'s daily limit reached',
+            'This file has been played too many times today. Try again in a few hours, or the host can pick another copy.'
+          );
+        } else if (res.statusCode == 403 || res.statusCode == 404) {
+          problem = (
+            'This video isn\'t shared',
+            widget.isHost
+                ? 'Turn on "Anyone with the link" for it in Drive.'
+                : 'The host needs to turn on link sharing in Drive.'
+          );
+        }
+      } catch (_) {}
+    }
+    if (mounted && _currentFileId == fileId) setState(() => _problem = problem);
   }
 
   void _onTick() {
@@ -321,6 +416,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _notShared) _recheck();
     switch (state) {
       case AppLifecycleState.paused:
         // Entering Picture-in-Picture reports the same paused/inactive/
@@ -410,16 +506,18 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
     final position = c.value.position;
     if (pauseController) await c.pause();
     final token = ApiClient.tokenGetter?.call();
-    final relay = _relayUrl;
-    final uri = relay ??
+    final direct = _directUrl;
+    final uri = direct ??
         '${ApiClient.baseUrl}/drive/stream/$fileId?roomId=${widget.roomId}';
     try {
       _handedOffToBackground = true;
       await backgroundAudioHandler.loadAndPlay(
         url: uri,
-        headers: relay == null && token != null
-            ? {'Authorization': 'Bearer $token'}
-            : const {},
+        headers: direct != null
+            ? _directHeaders
+            : token != null
+                ? {'Authorization': 'Bearer $token'}
+                : const {},
         initialPosition: position,
         title: widget.title ?? 'Playing in Insync',
         artUri: widget.thumbnail,
@@ -489,9 +587,117 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
     return '$m:$s';
   }
 
+  Widget _notice(IconData icon, String title, String body, {Widget? action}) {
+    return Container(
+      color: AppColors.surface2,
+      constraints: const BoxConstraints(minHeight: 200),
+      padding: const EdgeInsets.all(20),
+      alignment: Alignment.center,
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, color: AppColors.lilac, size: 30),
+        const SizedBox(height: 10),
+        Text(title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+                color: AppColors.text,
+                fontSize: 15,
+                fontWeight: FontWeight.w600)),
+        const SizedBox(height: 6),
+        Text(body,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.textFaint, fontSize: 13)),
+        if (action != null) ...[const SizedBox(height: 8), action],
+      ]),
+    );
+  }
+
+  /// Link sharing is off. The host gets the steps; viewers wait for it.
+  Widget _shareSteps() {
+    if (!widget.isHost) {
+      return _notice(Icons.lock_outline_rounded, 'This video isn\'t shared yet',
+          'Waiting for the host to turn on link sharing in Drive. It starts by itself.');
+    }
+    const steps = [
+      'Tap Open in Drive',
+      'Tap Share, then General access',
+      'Pick Anyone with the link, as Viewer',
+      'Come back here',
+    ];
+    final open = _openInDrive;
+    return Container(
+      color: AppColors.surface2,
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+      // The player can be short (compact room layout); never overflow.
+      child: SingleChildScrollView(
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+            const Text('Share the video\'s link',
+                style: TextStyle(
+                    color: AppColors.text,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            const Text(
+                'Everyone plays it straight from your Drive, so it needs '
+                '"Anyone with the link". Don\'t use private videos.',
+                style: TextStyle(color: AppColors.textFaint, fontSize: 12)),
+            const SizedBox(height: 10),
+            for (var i = 0; i < steps.length; i++)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(children: [
+                  Container(
+                    width: 20,
+                    height: 20,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                        color: AppColors.surface3, shape: BoxShape.circle),
+                    child: Text('${i + 1}',
+                        style: const TextStyle(
+                            color: AppColors.text, fontSize: 11)),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                      child: Text(steps[i],
+                          style: const TextStyle(
+                              color: AppColors.text, fontSize: 13))),
+                ]),
+              ),
+            const SizedBox(height: 6),
+            Row(children: [
+              if (open != null)
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () => launchUrl(Uri.parse(open),
+                        mode: LaunchMode.externalApplication),
+                    child: const Text('Open in Drive'),
+                  ),
+                ),
+              if (open != null) const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _checking ? null : _recheck,
+                  child: Text(_checking ? 'Checking…' : 'I\'ve done it'),
+                ),
+              ),
+            ]),
+          ])),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = _controller;
+    if (_notShared) return _shareSteps();
+    final problem = _problem;
+    if (problem != null) {
+      return _notice(Icons.hourglass_empty_rounded, problem.$1, problem.$2,
+          action: TextButton(
+              onPressed: _checking ? null : _recheck,
+              child: const Text('Try again')));
+    }
     if (controller == null || !controller.value.isInitialized) {
       return AspectRatio(
         aspectRatio: 16 / 9,
@@ -821,6 +1027,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _waitForShare?.cancel();
     PipService.isInPip.removeListener(_onPipChanged);
     RoomPrefs.instance.removeListener(_applyVolume);
     _pendingBackgroundHandoff?.cancel();
