@@ -161,14 +161,39 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
     if (fileId == null || fileId == _currentFileId) return;
     _currentFileId = fileId;
     _controller?.dispose();
-    final token = ApiClient.tokenGetter?.call();
-    final uri = Uri.parse(
-        '${ApiClient.baseUrl}/drive/stream/$fileId?roomId=${widget.roomId}');
-    final controller = VideoPlayerController.networkUrl(
-      uri,
-      httpHeaders:
-          token != null ? {'Authorization': 'Bearer $token'} : const {},
-    );
+    _controller = null;
+    _openFile(fileId);
+  }
+
+  // The relay address for the current file, reused for background audio.
+  String? _relayUrl;
+
+  /// Plays through the Cloudflare relay when the server offers one (the
+  /// movie then never passes through our server), else through
+  /// /drive/stream as before.
+  Future<void> _openFile(String fileId) async {
+    String? relayUrl;
+    try {
+      final r = await ApiClient.get(
+          '/drive/play/$fileId?roomId=${Uri.encodeQueryComponent(widget.roomId)}');
+      if (r is Map && r['relay'] == true) relayUrl = r['url'] as String?;
+    } catch (_) {
+      // Older server or a hiccup: the direct stream below still works.
+    }
+    if (!mounted || _currentFileId != fileId) return;
+    _relayUrl = relayUrl;
+    final VideoPlayerController controller;
+    if (relayUrl != null) {
+      controller = VideoPlayerController.networkUrl(Uri.parse(relayUrl));
+    } else {
+      final token = ApiClient.tokenGetter?.call();
+      controller = VideoPlayerController.networkUrl(
+        Uri.parse(
+            '${ApiClient.baseUrl}/drive/stream/$fileId?roomId=${widget.roomId}'),
+        httpHeaders:
+            token != null ? {'Authorization': 'Bearer $token'} : const {},
+      );
+    }
     _controller = controller;
     _endFired = false;
     controller
@@ -385,13 +410,16 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
     final position = c.value.position;
     if (pauseController) await c.pause();
     final token = ApiClient.tokenGetter?.call();
-    final uri =
+    final relay = _relayUrl;
+    final uri = relay ??
         '${ApiClient.baseUrl}/drive/stream/$fileId?roomId=${widget.roomId}';
     try {
       _handedOffToBackground = true;
       await backgroundAudioHandler.loadAndPlay(
         url: uri,
-        headers: token != null ? {'Authorization': 'Bearer $token'} : const {},
+        headers: relay == null && token != null
+            ? {'Authorization': 'Bearer $token'}
+            : const {},
         initialPosition: position,
         title: widget.title ?? 'Playing in Insync',
         artUri: widget.thumbnail,
@@ -522,8 +550,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
                   minHeight: 3,
                   value: (position / duration).clamp(0.0, 1.0).toDouble(),
                   backgroundColor: Colors.white24,
-                  valueColor:
-                      const AlwaysStoppedAnimation(Color(0xFFFF0033)),
+                  valueColor: const AlwaysStoppedAnimation(Color(0xFFFF0033)),
                 ),
               ),
             // See the matching comments in sync_video_player.dart for both
