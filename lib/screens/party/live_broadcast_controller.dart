@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../../core/agora_lens_bridge.dart';
 import '../../core/api_client.dart';
 import 'voice_chat_controller.dart' show VoiceChatStatus, kAgoraAppId;
 
@@ -71,7 +72,22 @@ class LiveBroadcastController extends ChangeNotifier {
     await _engine?.muteLocalAudioStream(!on);
   }
 
-  Future<void> flipCamera() async => _engine?.switchCamera();
+  Future<void> flipCamera() async {
+    final l = _lensBridge;
+    if (l != null && l.active) return l.flip();
+    await _engine?.switchCamera();
+  }
+
+  // Snap lenses for whoever is on camera (host or stage guest).
+  AgoraLensBridge? _lensBridge;
+  AgoraLensBridge? get lens {
+    final e = _engine;
+    if (_lensBridge == null && e != null) {
+      _lensBridge = AgoraLensBridge(e)..addListener(notifyListeners);
+    }
+    return _lensBridge;
+  }
+
   RtcEngine? get engine => _engine;
   bool get joined => _joined;
   bool get isGuest => _guest;
@@ -237,6 +253,13 @@ class LiveBroadcastController extends ChangeNotifier {
   Future<void> _publish(bool on) async {
     final engine = _engine;
     if (engine == null) return;
+    // Leaving the stage takes the lens off too.
+    final l = _lensBridge;
+    if (!on && l != null && l.active) {
+      try {
+        await l.choose(null);
+      } catch (_) {}
+    }
     try {
       await engine.updateChannelMediaOptions(ChannelMediaOptions(
           clientRoleType: on
@@ -324,6 +347,9 @@ class LiveBroadcastController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _lensBridge?.removeListener(notifyListeners);
+    _lensBridge?.shutdown();
+    _lensBridge?.dispose();
     _engine?.leaveChannel();
     _engine?.release();
     super.dispose();

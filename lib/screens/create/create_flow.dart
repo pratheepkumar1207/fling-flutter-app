@@ -10,13 +10,13 @@ import 'dart:ui' as ui;
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/api_client.dart';
 import '../../core/place_lookup.dart';
-import '../../core/snap_lenses.dart';
+import '../../core/snap_lens_engine.dart';
+import '../../widgets/snap_lens_row.dart';
 import '../../core/video_edit.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
@@ -85,9 +85,14 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
   int? _countdown;
   bool _gridLines = false;
 
-  // Face filters are Snap's lenses (Camera Kit); the button shows once a
-  // token and lens groups are set up.
+  // Face filters are Snap's lenses (Camera Kit), drawn by SnapLensEngine
+  // into a texture under our own buttons. The Lenses chip shows once a token
+  // and lens groups are set up.
   bool _snapReady = false;
+  bool _lensMode = false;
+  int? _lensTexture;
+  bool _lensBusy = false;
+  final _snap = SnapLensEngine.instance;
   bool _baking = false;
 
   MediaFilter get _look => MediaFilter.colour[_filter];
@@ -99,43 +104,74 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
   void initState() {
     super.initState();
     _start();
-    SnapLenses.available().then((ok) {
+    _snap.supported().then((ok) {
       if (ok && mounted) setState(() => _snapReady = true);
     });
   }
 
-  /// Snap's lens camera needs the camera to itself: ours closes while it's
-  /// open and comes back after. Its shot then goes through the usual edit.
-  Future<void> _openSnap() async {
-    if (_recording) return;
-    final front = _mirrored;
+  /// Lenses need the camera to themselves: ours closes while they're on and
+  /// comes back when the person switches to Colours.
+  Future<void> _enterLenses() async {
+    if (_recording || _lensMode || _lensBusy) return;
+    _lensBusy = true;
+    final front = _cameras.isEmpty || _mirrored;
     final c = _camera;
     if (c != null) {
       setState(() => _camera = null);
-      _flash = false;
       await _closeCamera(c);
     }
-    SnapCapture? shot;
+    _flash = false;
     try {
-      shot = await SnapLenses.open(frontCamera: front);
-    } on PlatformException {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Snap lenses couldn’t open. Try again.')));
+      final id = await _snap.start(front: front);
+      if (!mounted) {
+        await _snap.stop();
+        return;
       }
+      setState(() {
+        _lensMode = true;
+        _lensTexture = id;
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Lenses couldn’t start. Try again.')));
+        try {
+          await _openCamera();
+        } catch (_) {
+          if (mounted) setState(() => _noCamera = true);
+        }
+      }
+    } finally {
+      _lensBusy = false;
     }
+  }
+
+  Future<void> _leaveLenses() async {
+    if (!_lensMode || _recording || _lensBusy) return;
+    _lensBusy = true;
+    setState(() {
+      _lensMode = false;
+      _lensTexture = null;
+    });
+    _flash = false;
+    await _snap.stop();
+    _lensBusy = false;
     if (!mounted) return;
     try {
       await _openCamera();
     } catch (_) {
       if (mounted) setState(() => _noCamera = true);
     }
-    if (shot == null || !mounted) return;
-    // Posts are photos; a Snap clip goes out as a reel instead.
-    if (shot.isVideo && _mode == CreateMode.post) {
-      setState(() => _mode = CreateMode.reel);
-    }
-    _edit(shot.path, isVideo: shot.isVideo);
+  }
+
+  Future<void> _pickLens(SnapLens? lens) async {
+    await _snap.apply(lens);
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _openLensPicker() async {
+    final r = await showSnapLensPicker(context, _snap.current.value);
+    if (r.picked) await _pickLens(r.lens);
   }
 
   Future<void> _start() async {
@@ -183,6 +219,10 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
   bool _flipping = false;
 
   Future<void> _flip() async {
+    if (_lensMode) {
+      if (!_recording) await _snap.flip();
+      return;
+    }
     if (_cameras.length < 2 || _recording || _flipping) return;
     _flipping = true;
     _cameraIndex = (_cameraIndex + 1) % _cameras.length;
@@ -198,6 +238,12 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
   }
 
   Future<void> _toggleFlash() async {
+    if (_lensMode) {
+      _flash = !_flash;
+      await _snap.flash(_flash);
+      if (mounted) setState(() {});
+      return;
+    }
     final c = _camera;
     if (c == null) return;
     _flash = !_flash;
@@ -207,7 +253,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
 
   Future<void> _shutter() async {
     final c = _camera;
-    if (c == null) return;
+    if (c == null && !_lensMode) return;
     if (_countdown != null) {
       setState(() => _countdown = null); // A second tap cancels it.
       return;
@@ -234,8 +280,13 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
   }
 
   /// Stories record while the shutter is held, as well as taking photos.
-  Future<void> _record(CameraController c) async {
-    await c.startVideoRecording();
+  Future<void> _record(CameraController? c) async {
+    if (_lensMode) {
+      await _snap.startVideo();
+    } else {
+      if (c == null) return;
+      await c.startVideoRecording();
+    }
     setState(() {
       _recording = true;
       _seconds = 0;
@@ -249,18 +300,36 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
 
   Future<void> _stop() async {
     _ticker?.cancel();
+    if (!_recording) return;
+    if (_lensMode) {
+      setState(() {
+        _recording = false;
+        _baking = true;
+      });
+      final path = await _snap.stopVideo();
+      if (!mounted) return;
+      setState(() => _baking = false);
+      if (path == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Couldn’t save that clip. Try again.')));
+        return;
+      }
+      _edit(path, isVideo: true);
+      return;
+    }
     final c = _camera;
-    if (c == null || !_recording) return;
+    if (c == null) return;
     final clip = await c.stopVideoRecording();
     if (!mounted) return;
     setState(() => _recording = false);
     _edit(clip.path, isVideo: true);
   }
 
-  Future<void> _takePhoto(CameraController c) async {
+  Future<void> _takePhoto(CameraController? c) async {
     String path;
     try {
-      path = (await c.takePicture()).path;
+      path =
+          _lensMode ? await _snap.takePhoto() : (await c!.takePicture()).path;
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -352,7 +421,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
         onLongPressStart: _mode == CreateMode.story && !_recording
             ? (_) {
                 final c = _camera;
-                if (c != null) _record(c);
+                if (c != null || _lensMode) _record(c);
               }
             : null,
         onLongPressEnd: _mode == CreateMode.story ? (_) => _stop() : null,
@@ -372,6 +441,18 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
         ),
       ),
     );
+    if (_lensMode) {
+      return ValueListenableBuilder<SnapLens?>(
+        valueListenable: _snap.current,
+        builder: (_, lens, __) => SnapLensCarousel(
+          lenses: _snap.lenses,
+          selected: lens,
+          locked: _recording,
+          onChanged: _pickLens,
+          shutter: shutter,
+        ),
+      );
+    }
     return Center(child: shutter);
   }
 
@@ -380,6 +461,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
     _ticker?.cancel();
     final camera = _camera;
     if (camera != null) _closeCamera(camera);
+    if (_lensMode) _snap.stop();
     super.dispose();
   }
 
@@ -403,10 +485,21 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
   @override
   Widget build(BuildContext context) {
     final c = _camera;
+    final lensTexture = _lensTexture;
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(fit: StackFit.expand, children: [
-        if (c != null && c.value.isInitialized)
+        if (_lensMode && lensTexture != null)
+          Center(
+            child: AspectRatio(
+              aspectRatio: 9 / 16,
+              child: Stack(fit: StackFit.expand, children: [
+                Texture(textureId: lensTexture),
+                if (_gridLines) const IgnorePointer(child: _ThirdsGrid()),
+              ]),
+            ),
+          )
+        else if (c != null && c.value.isInitialized)
           GestureDetector(
             onHorizontalDragEnd: (d) {
               final v = d.primaryVelocity ?? 0;
@@ -492,21 +585,22 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
               ),
             ]),
             const Spacer(),
-            SizedBox(
-              height: 40,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                children: [
-                  for (var i = 0; i < MediaFilter.colour.length; i++)
-                    _FilterChip(
-                      label: MediaFilter.colour[i].name,
-                      selected: i == _filter,
-                      onTap: () => setState(() => _filter = i),
-                    ),
-                ],
+            if (!_lensMode)
+              SizedBox(
+                height: 40,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  children: [
+                    for (var i = 0; i < MediaFilter.colour.length; i++)
+                      _FilterChip(
+                        label: MediaFilter.colour[i].name,
+                        selected: i == _filter,
+                        onTap: () => setState(() => _filter = i),
+                      ),
+                  ],
+                ),
               ),
-            ),
             const SizedBox(height: 12),
             _shutterRow(),
             Row(children: [
@@ -518,20 +612,29 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
                     color: Colors.white),
               ),
               const Spacer(),
-              if (_snapReady)
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: _FaceTile(
-                    label: 'Lenses',
-                    selected: false,
-                    onTap: _recording ? () {} : _openSnap,
-                    child: const ColoredBox(
-                      color: Color(0xFFFFFC00),
-                      child:
-                          Icon(Icons.auto_awesome_rounded, color: Colors.black),
-                    ),
-                  ),
+              if (_snapReady) ...[
+                _FilterChip(
+                  label: 'Lenses',
+                  selected: _lensMode,
+                  onTap: _recording ? () {} : _enterLenses,
                 ),
+                _FilterChip(
+                  label: 'Colours',
+                  selected: !_lensMode,
+                  onTap: _recording ? () {} : _leaveLenses,
+                ),
+              ],
+              const Spacer(),
+              if (_lensMode)
+                IconButton(
+                  tooltip: 'All lenses',
+                  iconSize: 28,
+                  onPressed: _recording ? null : _openLensPicker,
+                  icon:
+                      const Icon(Icons.grid_view_rounded, color: Colors.white),
+                )
+              else
+                const SizedBox(width: 48),
             ]),
             const SizedBox(height: 10),
             Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -610,52 +713,6 @@ class _ThirdsPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ThirdsPainter old) => false;
-}
-
-class _FaceTile extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final Widget child;
-  const _FaceTile(
-      {required this.label,
-      required this.selected,
-      required this.onTap,
-      required this.child});
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-        button: true,
-        selected: selected,
-        label: label,
-        child: GestureDetector(
-          onTap: onTap,
-          child: Container(
-            width: 64,
-            margin: const EdgeInsets.only(right: 8),
-            child: Column(children: [
-              Container(
-                width: 50,
-                height: 50,
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                      color: selected ? AppColors.lilac : Colors.white24,
-                      width: selected ? 3 : 1),
-                ),
-                child: child,
-              ),
-              const SizedBox(height: 4),
-              Text(label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white, fontSize: 10)),
-            ]),
-          ),
-        ),
-      );
 }
 
 class _FilterChip extends StatelessWidget {

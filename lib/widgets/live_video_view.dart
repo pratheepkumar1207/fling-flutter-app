@@ -34,6 +34,9 @@ class LiveVideoView extends StatelessWidget {
         if (engine != null && controller.joined) {
           if (isHost && !controller.cameraOn) {
             cameraOff = true;
+          } else if (isHost && controller.lens?.textureId != null) {
+            // A Snap lens is on: show the lens camera itself.
+            surface = Texture(textureId: controller.lens!.textureId!);
           } else if (isHost) {
             surface = AgoraVideoView(
                 controller: VideoViewController(

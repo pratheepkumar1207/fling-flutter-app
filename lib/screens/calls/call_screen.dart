@@ -2,13 +2,16 @@ import 'dart:async';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/agora_lens_bridge.dart';
 import '../../core/api_client.dart';
+import '../../core/snap_lens_engine.dart';
 import '../../core/call_ring.dart';
 import '../../core/socket_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/gift_bottom_sheet.dart';
+import '../../widgets/snap_lens_row.dart';
 import 'direct_call_controller.dart';
 
 /// Full-screen 1:1 call UI — audio or video, direct (not room-scoped).
@@ -63,6 +66,61 @@ class _CallScreenState extends State<CallScreen> {
   int? _remoteViewUid;
   Widget? _localView;
 
+  // Snap lenses in video calls: the yellow button opens a lens row; the
+  // other person sees the lens (AgoraLensBridge).
+  bool _lensesOk = false;
+  bool _lensRow = false;
+  AgoraLensBridge? _lens;
+  bool _frontCamera = true;
+
+  AgoraLensBridge? get _bridge {
+    final engine = _controller.engine;
+    if (_lens == null && engine != null) {
+      _lens = AgoraLensBridge(engine)
+        ..addListener(() {
+          if (mounted) setState(() {});
+        });
+    }
+    return _lens;
+  }
+
+  Future<void> _toggleLensRow() async {
+    final b = _bridge;
+    if (b == null) return;
+    setState(() => _lensRow = !_lensRow);
+    if (_lensRow) {
+      _hideControlsTimer?.cancel();
+      try {
+        await b.loadLenses();
+      } catch (_) {}
+    } else {
+      _showControls();
+    }
+  }
+
+  Future<void> _chooseLens(SnapLens? lens) async {
+    final b = _bridge;
+    if (b == null) return;
+    try {
+      await b.choose(lens, front: _frontCamera);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('That lens couldn’t start. Try another.')));
+      }
+    }
+  }
+
+  Future<void> _flipCamera() async {
+    _frontCamera = !_frontCamera;
+    final b = _lens;
+    if (b != null && b.active) {
+      await b.flip();
+    } else {
+      await _controller.switchCamera();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -84,6 +142,11 @@ class _CallScreenState extends State<CallScreen> {
       });
     }
     WidgetsBinding.instance.addPostFrameCallback((_) => _bindSocket());
+    if (widget.video) {
+      SnapLensEngine.instance.supported().then((ok) {
+        if (ok && mounted) setState(() => _lensesOk = true);
+      });
+    }
   }
 
   void _onControllerChanged() {
@@ -298,10 +361,12 @@ class _CallScreenState extends State<CallScreen> {
                       height: 136,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(16),
-                        child: _localView ??= AgoraVideoView(
-                            controller: VideoViewController(
-                                rtcEngine: _controller.engine!,
-                                canvas: const VideoCanvas(uid: 0))),
+                        child: _lens?.textureId != null
+                            ? Texture(textureId: _lens!.textureId!)
+                            : _localView ??= AgoraVideoView(
+                                controller: VideoViewController(
+                                    rtcEngine: _controller.engine!,
+                                    canvas: const VideoCanvas(uid: 0))),
                       ),
                     ),
                   if (widget.video)
@@ -353,7 +418,7 @@ class _CallScreenState extends State<CallScreen> {
                             ),
                           ),
                           GestureDetector(
-                            onTap: _controller.switchCamera,
+                            onTap: _flipCamera,
                             child: Container(
                               width: 34,
                               height: 34,
@@ -372,59 +437,89 @@ class _CallScreenState extends State<CallScreen> {
                     left: 16,
                     right: 16,
                     bottom: 24,
-                    child: _fading(Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xE616141D),
-                        borderRadius: BorderRadius.circular(28),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Wrap(
-                        alignment: WrapAlignment.spaceEvenly,
-                        runSpacing: 14,
-                        children: [
-                          _control(
-                              icon: InIcons.speaker,
-                              label: 'Speaker',
-                              active: _controller.speakerEnabled,
-                              onTap: _controller.toggleSpeaker),
-                          _control(
-                              icon: _controller.micEnabled
-                                  ? InIcons.mic
-                                  : InIcons.micoff,
-                              label: _controller.micEnabled ? 'Mute' : 'Unmute',
-                              active: !_controller.micEnabled,
-                              onTap: _controller.toggleMic),
-                          if (widget.video) ...[
+                    child: _fading(
+                        Column(mainAxisSize: MainAxisSize.min, children: [
+                      if (_lensRow && _lens != null) ...[
+                        SnapLensStrip(
+                          lenses: _lens!.lenses,
+                          selected: _lens!.lens,
+                          onChanged: _chooseLens,
+                          onMore: () async {
+                            final r =
+                                await showSnapLensPicker(context, _lens!.lens);
+                            if (r.picked) await _chooseLens(r.lens);
+                          },
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4, bottom: 10),
+                          child: Text('${widget.peerName} sees your lens',
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 11)),
+                        ),
+                      ],
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xE616141D),
+                          borderRadius: BorderRadius.circular(28),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Wrap(
+                          alignment: WrapAlignment.spaceEvenly,
+                          runSpacing: 14,
+                          children: [
                             _control(
-                                icon: InIcons.video,
-                                label: _controller.cameraEnabled
-                                    ? 'Video'
-                                    : 'Video off',
-                                active: !_controller.cameraEnabled,
-                                onTap: _controller.toggleCamera),
+                                icon: InIcons.speaker,
+                                label: 'Speaker',
+                                active: _controller.speakerEnabled,
+                                onTap: _controller.toggleSpeaker),
                             _control(
-                                icon: InIcons.flip,
-                                label: 'Flip',
-                                onTap: _controller.switchCamera),
+                                icon: _controller.micEnabled
+                                    ? InIcons.mic
+                                    : InIcons.micoff,
+                                label:
+                                    _controller.micEnabled ? 'Mute' : 'Unmute',
+                                active: !_controller.micEnabled,
+                                onTap: _controller.toggleMic),
+                            if (widget.video) ...[
+                              _control(
+                                  icon: InIcons.video,
+                                  label: _controller.cameraEnabled
+                                      ? 'Video'
+                                      : 'Video off',
+                                  active: !_controller.cameraEnabled,
+                                  onTap: _controller.toggleCamera),
+                              _control(
+                                  icon: InIcons.flip,
+                                  label: 'Flip',
+                                  onTap: _flipCamera),
+                              if (_lensesOk)
+                                _control(
+                                    icon: InIcons.spark,
+                                    label: 'Lenses',
+                                    active: _lensRow,
+                                    color: Colors.black,
+                                    tile: const Color(0xFFFFFC00),
+                                    onTap: _toggleLensRow),
+                            ],
+                            _control(
+                                icon: InIcons.gift,
+                                label: 'Gift',
+                                color: AppColors.gold,
+                                tile: const Color(0xFF2A2310),
+                                onTap: () => showGiftBottomSheet(context,
+                                    toUserId: widget.peerId)),
+                            _control(
+                                icon: InIcons.phoneoff,
+                                label: 'End',
+                                color: Colors.white,
+                                tile: AppColors.danger,
+                                onTap: _hangUp),
                           ],
-                          _control(
-                              icon: InIcons.gift,
-                              label: 'Gift',
-                              color: AppColors.gold,
-                              tile: const Color(0xFF2A2310),
-                              onTap: () => showGiftBottomSheet(context,
-                                  toUserId: widget.peerId)),
-                          _control(
-                              icon: InIcons.phoneoff,
-                              label: 'End',
-                              color: Colors.white,
-                              tile: AppColors.danger,
-                              onTap: _hangUp),
-                        ],
+                        ),
                       ),
-                    )),
+                    ])),
                   ),
                 ],
               );
@@ -509,6 +604,8 @@ class _CallScreenState extends State<CallScreen> {
     _noAnswerTimer?.cancel();
     _elapsed.dispose();
     _controller.removeListener(_onControllerChanged);
+    _lens?.shutdown();
+    _lens?.dispose();
     _controller.dispose();
     super.dispose();
   }

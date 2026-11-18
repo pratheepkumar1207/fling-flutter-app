@@ -141,4 +141,8 @@ dependencies {
     implementation("androidx.exifinterface:exifinterface:1.3.7")
     // Snap's lens camera screen, for the "Snap" lenses (SnapLensChannel.kt).
     implementation("com.snap.camerakit:support-camera-activity:1.51.0")
+    // Lenses inside our own screens (SnapLensEngine.kt): the session API and
+    // the CameraX camera source.
+    implementation("com.snap.camerakit:camerakit:1.51.0")
+    implementation("com.snap.camerakit:support-camerax:1.51.0")
 }

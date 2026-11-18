@@ -127,6 +127,7 @@ class MainActivity : AudioServiceActivity() {
         // some phones don't, and no WebView can play those services there.
         VideoEditChannel(this, flutterEngine.dartExecutor.binaryMessenger)
         snapLenses = SnapLensChannel(this, flutterEngine.dartExecutor.binaryMessenger)
+        SnapLensEngine(this, flutterEngine.dartExecutor.binaryMessenger, flutterEngine.renderer)
         callRing = CallRingChannel(this, flutterEngine.dartExecutor.binaryMessenger).also { ring ->
             pendingCallFrom(intent)?.let { ring.pendingCall = it }
         }

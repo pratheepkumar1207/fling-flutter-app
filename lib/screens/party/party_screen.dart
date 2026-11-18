@@ -45,6 +45,8 @@ import '../settings/room_moderation_screen.dart';
 import '../../widgets/room_settings_sheet.dart';
 import '../../widgets/share_bottom_sheet.dart';
 import '../../widgets/spinner.dart';
+import '../../widgets/snap_lens_row.dart';
+import '../../core/snap_lens_engine.dart';
 import '../../widgets/voice_stage_view.dart';
 import '../lobby/invite_screen.dart';
 import '../lobby/youtube_browse_screen.dart';
@@ -352,6 +354,64 @@ class _PartyScreenState extends State<PartyScreen>
 
   // One button in live's right-hand rail: a dark glass circle with the
   // app's line icon, and its name underneath.
+  /// The lens row for whoever is on camera in a live room. Everyone
+  /// watching sees the lens.
+  Future<void> _openLiveLenses() async {
+    final live = _live;
+    final bridge = live?.lens;
+    if (bridge == null) return;
+    if (!await bridge.supported()) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Lenses aren’t available on this phone.')));
+      return;
+    }
+    try {
+      await bridge.loadLenses();
+    } catch (_) {}
+    if (!mounted) return;
+    Future<void> choose(SnapLens? lens) async {
+      try {
+        await bridge.choose(lens);
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('That lens couldn’t start. Try another.')));
+        }
+      }
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xE616141D),
+      barrierColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (sheet) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: ListenableBuilder(
+            listenable: bridge,
+            builder: (_, __) => Column(mainAxisSize: MainAxisSize.min, children: [
+              SnapLensStrip(
+                lenses: bridge.lenses,
+                selected: bridge.lens,
+                onChanged: choose,
+                onMore: () async {
+                  final r = await showSnapLensPicker(sheet, bridge.lens);
+                  if (r.picked) await choose(r.lens);
+                },
+              ),
+              const SizedBox(height: 6),
+              const Text('Everyone watching sees your lens',
+                  style: TextStyle(color: Colors.white70, fontSize: 11)),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _railButton(
           {required InIconData icon,
           required String label,
@@ -2270,6 +2330,11 @@ class _PartyScreenState extends State<PartyScreen>
                                           icon: InIcons.flip,
                                           label: 'Flip',
                                           onTap: _live!.flipCamera),
+                                      _railButton(
+                                          icon: InIcons.spark,
+                                          label: 'Lenses',
+                                          active: _live!.lens?.active ?? false,
+                                          onTap: _openLiveLenses),
                                       _railButton(
                                           icon: InIcons.video,
                                           label: 'Camera',
