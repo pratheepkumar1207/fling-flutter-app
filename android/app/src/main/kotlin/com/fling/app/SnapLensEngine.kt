@@ -11,9 +11,9 @@ import android.os.Looper
 import android.util.Log
 import androidx.lifecycle.LifecycleOwner
 import com.snap.camerakit.ImageProcessor
-import com.snap.camerakit.ImageProcessors
 import com.snap.camerakit.Session
-import com.snap.camerakit.Sessions
+import com.snap.camerakit.invoke
+import com.snap.camerakit.newBuilder
 import com.snap.camerakit.lenses.LensesComponent
 import com.snap.camerakit.support.camerax.CameraXImageProcessorSource
 import io.flutter.plugin.common.BasicMessageChannel
@@ -70,7 +70,7 @@ class SnapLensEngine(
         channel.setMethodCallHandler { call, result ->
             try {
                 when (call.method) {
-                    "supported" -> result.success(apiToken().isNotBlank() && Sessions.supported(activity))
+                    "supported" -> result.success(apiToken().isNotBlank())
                     "start" -> start(
                         call.argument<Boolean>("front") ?: true,
                         call.argument<Int>("width") ?: 720,
@@ -133,7 +133,7 @@ class SnapLensEngine(
         if (session == null) {
             val src = CameraXImageProcessorSource(activity, activity as LifecycleOwner)
             source = src
-            session = Sessions.newBuilder(activity)
+            session = Session.newBuilder(activity)
                 .apiToken(token)
                 .imageProcessorSource(src)
                 .handleErrorsWith { e: Throwable -> Log.w(TAG, "Camera Kit error", e) }
@@ -146,7 +146,7 @@ class SnapLensEngine(
         entry.surfaceTexture().setDefaultBufferSize(width, height)
         texture = entry
         textureOut = s.processor.connectOutput(
-            ImageProcessors.outputFrom(entry.surfaceTexture(), ImageProcessor.Output.Purpose.PREVIEW, 0)
+            ImageProcessor.Output(entry.surfaceTexture(), ImageProcessor.Output.Purpose.PREVIEW, 0)
         )
         source?.startPreview(front)
         result.success(mapOf("textureId" to entry.id(), "width" to width, "height" to height))
@@ -179,7 +179,7 @@ class SnapLensEngine(
             return
         }
         // Without a running camera, a short-lived session just for the list.
-        val temp = if (session == null) Sessions.newBuilder(activity).apiToken(apiToken()).build() else null
+        val temp = if (session == null) Session.newBuilder(activity).apiToken(apiToken()).build() else null
         val s = session ?: temp!!
         s.lenses.repository.get(
             LensesComponent.Repository.QueryCriteria.Available(groupIds.toSet())
@@ -299,7 +299,7 @@ class SnapLensEngine(
             }
         }, Handler(thread.looper))
         readerOut = s.processor.connectOutput(
-            ImageProcessors.outputFrom(r.surface, ImageProcessor.Output.Purpose.RECORDING, 0)
+            ImageProcessor.Output(r.surface, ImageProcessor.Output.Purpose.RECORDING, 0)
         )
     }
 
