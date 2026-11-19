@@ -26,6 +26,8 @@ class SnapLenses {
   /// InSync group of our own lenses once it exists in Lens Scheduler.
   static const List<String> groupIds = [
     '171b40cc-2807-445e-816b-900a1945847b',
+    // Snap's "Camera Kit Web Sample Lenses" (21 more).
+    '31b9796c-901f-4c42-97a4-c9d1ce34fd66',
   ];
 
   static bool? _configured;

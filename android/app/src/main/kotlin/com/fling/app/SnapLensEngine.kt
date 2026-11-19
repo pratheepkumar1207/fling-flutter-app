@@ -185,6 +185,8 @@ class SnapLensEngine(
         // group, so keep listening until lenses arrive (or give up after a while).
         var replied = false
         var watch: Closeable? = null
+        var latest: List<LensesComponent.Lens> = emptyList()
+        lateinit var settle: Runnable
         fun reply(list: List<LensesComponent.Lens>) {
             if (replied) return
             replied = true
@@ -195,16 +197,23 @@ class SnapLensEngine(
             watch?.close()
             temp?.close()
         }
+        settle = Runnable { reply(latest) }
         watch = s.lenses.repository.observe(
             LensesComponent.Repository.QueryCriteria.Available(groupIds.toSet())
         ) { found ->
             val list = (found as? LensesComponent.Repository.Result.Some)?.lenses.orEmpty()
             Log.i(TAG, "lens list: ${found.javaClass.simpleName}, ${list.size} lenses")
-            if (list.isNotEmpty()) main.post { reply(list) }
+            // With several groups the lenses can arrive in parts: wait a
+            // moment after each part and answer with the latest full list.
+            if (list.isNotEmpty()) main.post {
+                latest = (latest + list).distinctBy { it.id }
+                main.removeCallbacks(settle)
+                main.postDelayed(settle, 1500)
+            }
         }
         main.postDelayed({
-            if (!replied) Log.w(TAG, "lens list: none after 15s (groups: $groupIds)")
-            reply(emptyList())
+            if (!replied && latest.isEmpty()) Log.w(TAG, "lens list: none after 15s (groups: $groupIds)")
+            reply(latest)
         }, 15_000)
     }
 
