@@ -181,24 +181,31 @@ class SnapLensEngine(
         // Without a running camera, a short-lived session just for the list.
         val temp = if (session == null) Session.newBuilder(activity).apiToken(apiToken()).build() else null
         val s = session ?: temp!!
-        s.lenses.repository.get(
+        // The first answer can be empty while Snap is still downloading the
+        // group, so keep listening until lenses arrive (or give up after a while).
+        var replied = false
+        var watch: Closeable? = null
+        fun reply(list: List<LensesComponent.Lens>) {
+            if (replied) return
+            replied = true
+            if (list.isNotEmpty()) lenses = list
+            result.success(list.map {
+                mapOf("id" to it.id, "groupId" to it.groupId, "name" to it.name, "icon" to it.iconUri)
+            })
+            watch?.close()
+            temp?.close()
+        }
+        watch = s.lenses.repository.observe(
             LensesComponent.Repository.QueryCriteria.Available(groupIds.toSet())
         ) { found ->
             val list = (found as? LensesComponent.Repository.Result.Some)?.lenses.orEmpty()
-            lenses = list
-            val out = list.map {
-                mapOf(
-                    "id" to it.id,
-                    "groupId" to it.groupId,
-                    "name" to it.name,
-                    "icon" to it.iconUri,
-                )
-            }
-            main.post {
-                result.success(out)
-                temp?.close()
-            }
+            Log.i(TAG, "lens list: ${found.javaClass.simpleName}, ${list.size} lenses")
+            if (list.isNotEmpty()) main.post { reply(list) }
         }
+        main.postDelayed({
+            if (!replied) Log.w(TAG, "lens list: none after 15s (groups: $groupIds)")
+            reply(emptyList())
+        }, 15_000)
     }
 
     private fun apply(id: String?, result: MethodChannel.Result) {

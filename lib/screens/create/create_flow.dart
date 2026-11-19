@@ -121,6 +121,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
       await _closeCamera(c);
     }
     _flash = false;
+    setState(() => _baking = true);
     try {
       final id = await _snap.start(front: front);
       if (!mounted) {
@@ -128,11 +129,18 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
         return;
       }
       setState(() {
+        _baking = false;
         _lensMode = true;
         _lensTexture = id;
       });
+      if (_snap.lenses.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'Couldn’t load lenses. Check your connection and try again.')));
+      }
     } catch (_) {
       if (mounted) {
+        setState(() => _baking = false);
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Lenses couldn’t start. Try again.')));
         try {
