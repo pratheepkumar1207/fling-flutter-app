@@ -7,6 +7,7 @@ import '../../widgets/app_song_lists.dart';
 import 'youtube_browse_screen.dart';
 import 'source_search_area.dart';
 import 'drive_browse_screen.dart';
+import 'n2_test_screen.dart';
 import 'webview_browse_screen.dart';
 import 'watch_room_creator.dart';
 
@@ -431,6 +432,15 @@ class SourcePickerBody extends StatelessWidget {
               platform: 'netflix',
               label: 'Netflix',
               homeUrl: 'https://www.netflix.com/in/')),
+      // Test: syncing the Netflix app's own player (N2TestScreen).
+      'N2': _SourceTile(
+          compact: c,
+          letter: 'N',
+          badgeColor: const Color(0xFF8E0A12),
+          label: 'N2',
+          available: true,
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const N2TestScreen()))),
       'Hotstar': _SourceTile(
           compact: c,
           letter: 'H',
@@ -531,6 +541,7 @@ class SourcePickerBody extends StatelessWidget {
         'YouTube Music',
         'Drive',
         'Netflix',
+        'N2',
         'Prime Video',
         'Hotstar',
         'SonyLIV',
@@ -601,6 +612,7 @@ class SourcePickerBody extends StatelessWidget {
       ]),
       section('YOUR SUBSCRIPTIONS · EACH PERSON SIGNS IN', [
         'Netflix',
+        'N2',
         'Prime Video',
         'Hotstar',
         'SonyLIV',
