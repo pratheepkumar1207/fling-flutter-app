@@ -119,7 +119,7 @@ class WebviewRoomPlayer extends StatefulWidget {
   final void Function(double aspect)? onAspect;
 
   /// A room started from the Browser source: any website. Its video is
-  /// synced like the streaming sites', on a normal phone browser.
+  /// synced like the streaming sites'.
   final bool anySite;
 
   const WebviewRoomPlayer({
@@ -1515,12 +1515,10 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
               initialUrlRequest: URLRequest(url: WebUri(playableOttUrl(url))),
               // The desktop website, the same as where the title was picked
               // (webview_browse_screen.dart), so it opens on the same player.
-              initialSettings: widget.anySite
-                  ? mobileWebViewSettings
-                  : desktopWebViewSettings,
-              initialUserScripts: UnmodifiableListView(widget.anySite
-                  ? [WebPlayerMenu.playerHookScript]
-                  : [desktopSiteScript, WebPlayerMenu.playerHookScript]),
+              // Browser rooms too: the desktop view they were picked in.
+              initialSettings: desktopWebViewSettings,
+              initialUserScripts: UnmodifiableListView(
+                  [desktopSiteScript, WebPlayerMenu.playerHookScript]),
               onWebViewCreated: (controller) {
                 _controller = controller;
                 if (_isOtt) {

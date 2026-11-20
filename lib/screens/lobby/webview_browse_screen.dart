@@ -151,9 +151,14 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
   // Shows the Pin to room button: a title is playing or its watch page is open.
   bool _canPin = false;
 
-  // "Browser": any website, a normal phone browser with an address bar.
-  // Nothing is pinned by itself there; the person taps Pin to room.
+  // "Browser": any website, with an address bar. Always the desktop site,
+  // fitted to the phone's width with pinch-to-zoom. Nothing is pinned by
+  // itself there; the person taps Pin to room.
   bool get _isWeb => widget.platform == 'web';
+  static final _browserSettings = desktopWebViewSettings.copy()
+    ..supportZoom = true
+    ..builtInZoomControls = true
+    ..displayZoomControls = false;
   final _address = TextEditingController();
 
   void _go(String input) {
@@ -606,12 +611,10 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
         children: [
           InAppWebView(
             initialUrlRequest: URLRequest(url: WebUri(widget.homeUrl)),
-            // The Browser is a normal phone browser; the streaming sites
-            // open their desktop site (see mobile_webview_settings.dart).
+            // Desktop site, fitted to the screen (the Browser can also zoom).
             initialSettings:
-                _isWeb ? mobileWebViewSettings : desktopWebViewSettings,
-            initialUserScripts: UnmodifiableListView(
-                _isWeb ? const <UserScript>[] : [desktopSiteScript]),
+                _isWeb ? _browserSettings : desktopWebViewSettings,
+            initialUserScripts: UnmodifiableListView([desktopSiteScript]),
             onWebViewCreated: (controller) => _controller = controller,
             onLoadStart: (controller, url) => setState(() => _loading = true),
             onLoadStop: (controller, url) {
