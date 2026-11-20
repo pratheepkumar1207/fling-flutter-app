@@ -14,7 +14,7 @@ class NavItemData {
   final ValueListenable<int>? badge;
 
   /// A picture in place of the icon (Popcorn's character), bigger and
-  /// rising above the bar; grey when the tab isn't open.
+  /// rising above the bar, always in colour, with no name under it.
   final String? image;
   const NavItemData(this.icon, this.label, {this.tag, this.badge, this.image});
 }
@@ -86,32 +86,24 @@ class _Tab extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Stack(clipBehavior: Clip.none, children: [
+              // A picture tab (Popcorn) has no name under it: the picture
+              // takes the name's space too, so it can be bigger.
               if (item.image != null)
                 SizedBox(
                   width: 23,
-                  height: 23,
+                  height: 40,
                   child: OverflowBox(
-                    maxWidth: 60,
-                    maxHeight: 60,
+                    maxWidth: 84,
+                    maxHeight: 84,
                     alignment: Alignment.bottomCenter,
                     child: AnimatedScale(
                       scale: selected ? 1 : 0.86,
                       duration: const Duration(milliseconds: 260),
                       curve: Curves.easeOutBack,
                       alignment: Alignment.bottomCenter,
-                      child: ColorFiltered(
-                        colorFilter: selected
-                            ? const ColorFilter.mode(
-                                Colors.transparent, BlendMode.dst)
-                            : const ColorFilter.matrix([
-                                0.2126, 0.7152, 0.0722, 0, 0,
-                                0.2126, 0.7152, 0.0722, 0, 0,
-                                0.2126, 0.7152, 0.0722, 0, 0,
-                                0, 0, 0, 0.75, 0,
-                              ]),
-                        child: Image.asset(item.image!,
-                            height: 52, fit: BoxFit.contain),
-                      ),
+                      // Always in full colour; it only grows when picked.
+                      child: Image.asset(item.image!,
+                          height: 70, fit: BoxFit.contain),
                     ),
                   ),
                 )
@@ -161,18 +153,20 @@ class _Tab extends StatelessWidget {
                   ),
                 ),
             ]),
-            const SizedBox(height: 3),
-            // Shrinks with large system text instead of cutting off.
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(item.label,
-                  maxLines: 1,
-                  style: TextStyle(
-                      fontSize: 11,
-                      color: color,
-                      fontWeight:
-                          selected ? FontWeight.w600 : FontWeight.w500)),
-            ),
+            if (item.image == null) ...[
+              const SizedBox(height: 3),
+              // Shrinks with large system text instead of cutting off.
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(item.label,
+                    maxLines: 1,
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: color,
+                        fontWeight:
+                            selected ? FontWeight.w600 : FontWeight.w500)),
+              ),
+            ],
             const SizedBox(height: 3),
             Container(
               width: 4,
