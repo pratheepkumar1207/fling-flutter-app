@@ -1259,6 +1259,7 @@ class _PartyScreenState extends State<PartyScreen>
           canPin: rs.canPin,
           canAddSongs: rs.settings['songPermission'] != 'host' || rs.isHost,
           onAddMany: (items) => rs.queueAddMany(items),
+          onQueueMany: (items) => rs.queueAddMany(items, playNow: false),
           nameFor: (id) => rs.roster
               .where((r) => r.userId == id)
               .map((r) => r.name)

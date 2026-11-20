@@ -41,6 +41,9 @@ class QueueSheetScreen extends StatefulWidget {
   final bool canAddSongs;
   // Whole playlist at once, starting now — see SourcePickerBody.onPlayAll.
   final void Function(List<Map<String, dynamic>> items)? onAddMany;
+  // Several at the end of the queue, without interrupting what's playing
+  // (the Browser's "Add N to queue").
+  final void Function(List<Map<String, dynamic>> items)? onQueueMany;
   // userId → display name, for "added by Ravi".
   final String? Function(String userId)? nameFor;
   // The half sheet's height as a share of the screen: the room sizes it to
@@ -63,6 +66,7 @@ class QueueSheetScreen extends StatefulWidget {
     bool? canPin,
     this.canAddSongs = true,
     this.onAddMany,
+    this.onQueueMany,
     this.nameFor,
     this.halfFraction = 0.62,
   }) : canPin = canPin ?? isHost;
@@ -668,6 +672,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                     roomId: widget.roomId,
                     onAddToQueue: _addToQueue,
                     onSwitchSource: widget.onSwitchSource,
+                    onQueueMany: widget.onQueueMany,
                   )),
                 ),
               )
@@ -679,6 +684,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                 roomId: widget.roomId,
                 onAddToQueue: _addToQueue,
                 onSwitchSource: widget.onSwitchSource,
+                onQueueMany: widget.onQueueMany,
               )),
           if (!widget.audioOnly && !showResults && !sourcesFill)
             const Padding(
@@ -723,6 +729,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                               onSwitchSource: widget.onSwitchSource,
                               audioOnly: true,
                               onPlayAll: widget.onAddMany,
+                              onQueueMany: widget.onQueueMany,
                             ),
                           )
                         : SourcePickerBody(
@@ -731,6 +738,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
                             onAddToQueue: _addToQueue,
                             onSwitchSource: widget.onSwitchSource,
                             onPlayAll: widget.onAddMany,
+                            onQueueMany: widget.onQueueMany,
                           )
                     : NotificationListener<ScrollNotification>(
                         onNotification: (n) {

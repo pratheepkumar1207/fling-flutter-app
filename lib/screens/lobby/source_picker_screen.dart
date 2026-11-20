@@ -90,6 +90,10 @@ class SourcePickerBody extends StatelessWidget {
   /// to adding the songs one by one when not given.
   final void Function(List<Map<String, dynamic>> items)? onPlayAll;
 
+  /// In-room: several videos at the end of the queue (the Browser's
+  /// "Add N to queue"), without interrupting what's playing.
+  final void Function(List<Map<String, dynamic>> items)? onQueueMany;
+
   /// The Up next sheet's "Add from" row: the main sources, one line.
   final bool quickRow;
 
@@ -118,6 +122,7 @@ class SourcePickerBody extends StatelessWidget {
     this.compact = false,
     this.audioOnly = false,
     this.onPlayAll,
+    this.onQueueMany,
     this.quickRow = false,
     this.sourcesOnly = false,
     this.onMore,
@@ -220,6 +225,7 @@ class SourcePickerBody extends StatelessWidget {
         visibility: visibility,
         topic: topic,
         options: options,
+        onQueueMany: _inRoom ? onQueueMany : null,
         // In-room, picking a video queues it (or plays immediately if
         // nothing's queued yet) — same as YouTube/Drive above — instead of
         // hard-replacing what the room's currently on.

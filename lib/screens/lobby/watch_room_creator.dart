@@ -45,6 +45,9 @@ Future<void> createWatchRoomAndEnter(
   WatchRoomOptions? options,
   // 'audio' opens the room on the song card.
   String mediaMode = 'video',
+  // Several picks at once (the Browser): the room starts on the first and
+  // the rest wait in its queue.
+  List<Map<String, dynamic>>? queueItems,
 }) async {
   final title = options?.title?.trim();
   try {
@@ -59,7 +62,9 @@ Future<void> createWatchRoomAndEnter(
       if (title != null && title.isNotEmpty) 'title': title,
       if (videoTitle != null) 'videoTitle': videoTitle,
       if (videoThumbnail != null) 'videoThumbnail': videoThumbnail,
-      if (mediaMode == 'audio' && videoUrl != null)
+      if (queueItems != null && queueItems.length > 1)
+        'queueItems': queueItems
+      else if (mediaMode == 'audio' && videoUrl != null)
         'queueItems': [
           {
             'videoUrl': videoUrl,

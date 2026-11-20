@@ -12,6 +12,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
 import '../../widgets/app_song_lists.dart';
 import '../../widgets/spinner.dart';
+import 'browser_video_tray.dart';
 import 'watch_room_creator.dart';
 
 /// "Browse together" via a real embedded browser (not an <iframe>, which
@@ -62,6 +63,10 @@ class WebviewBrowseScreen extends StatefulWidget {
   /// replace, so no confirmation prompt needed either.
   final SongAddCallback? onAddToQueue;
 
+  /// In-room, the Browser's "Add N to queue": several at the end of the
+  /// queue without interrupting what's playing.
+  final void Function(List<Map<String, dynamic>> items)? onQueueMany;
+
   const WebviewBrowseScreen({
     super.key,
     required this.platform,
@@ -72,6 +77,7 @@ class WebviewBrowseScreen extends StatefulWidget {
     this.options,
     this.onConfirmOverride,
     this.onAddToQueue,
+    this.onQueueMany,
   });
 
   @override
@@ -161,6 +167,162 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
     ..displayZoomControls = false;
   final _address = TextEditingController();
 
+  // Videos found on the current page (Browser only).
+  List<FoundVideo> _videos = const [];
+  String _videosSig = '';
+  bool _cardCollapsed = false;
+  String? _dismissedFor; // page whose single-video card was closed
+  String _pageUrl = '';
+  int _scanTick = 0;
+
+  // Looks for videos on the page: YouTube/Vimeo players and the page's own
+  // <video> elements. Reads only addresses, titles, poster pictures and
+  // lengths; never touches playback.
+  static const _findVideosJs = r'''
+(function () {
+  function abs(u) { try { return new URL(u, location.href).href; } catch (e) { return null; } }
+  var ogEl = document.querySelector('meta[property="og:image"]');
+  var og = ogEl ? abs(ogEl.content) : null;
+  var out = [], seen = {};
+  function add(o) { if (!seen[o.key]) { seen[o.key] = 1; out.push(o); } }
+  var href = location.href;
+  var m = href.match(/[?&]v=([\w-]{11})/) || href.match(/youtu\.be\/([\w-]{11})/) ||
+          href.match(/youtube\.com\/shorts\/([\w-]{11})/);
+  if (m) add({ key: 'yt:' + m[1], kind: 'youtube', id: m[1], title: document.title });
+  var frames = document.querySelectorAll('iframe');
+  for (var i = 0; i < frames.length; i++) {
+    var src = frames[i].src || '';
+    var y = src.match(/youtube(?:-nocookie)?\.com\/embed\/([\w-]{11})/);
+    if (y) add({ key: 'yt:' + y[1], kind: 'youtube', id: y[1], title: frames[i].title || '' });
+    var v = src.match(/player\.vimeo\.com\/video\/(\d+)/);
+    if (v) add({ key: 'vm:' + v[1], kind: 'vimeo', id: v[1], title: frames[i].title || '',
+                 url: 'https://player.vimeo.com/video/' + v[1], thumb: og });
+  }
+  if (!/(^|\.)youtube\.com$/.test(location.hostname)) {
+    var vids = document.querySelectorAll('video');
+    for (var j = 0; j < vids.length; j++) {
+      var el = vids[j], r = el.getBoundingClientRect();
+      if (r.width < 120 || r.height < 70) continue;
+      var s = el.currentSrc || el.src || '';
+      var direct = /^https?:/.test(s) ? s : null;
+      add({ key: 'v:' + (direct || (href + '#' + j)), kind: 'video',
+            url: direct || href,
+            title: el.getAttribute('title') || el.getAttribute('aria-label') || document.title,
+            thumb: el.poster ? abs(el.poster) : og,
+            duration: isFinite(el.duration) ? Math.round(el.duration) : null,
+            locked: !!el.mediaKeys });
+    }
+  }
+  return JSON.stringify({ title: document.title, items: out });
+})();
+''';
+
+  Future<void> _scanVideos() async {
+    // Every other tick (about 1.4 s) is plenty.
+    if (++_scanTick % 2 != 0) return;
+    final raw = await _controller?.evaluateJavascript(source: _findVideosJs);
+    if (!mounted || raw is! String) return;
+    if (raw == _videosSig) return;
+    _videosSig = raw;
+    Map<String, dynamic> data;
+    try {
+      data = jsonDecode(raw) as Map<String, dynamic>;
+    } catch (_) {
+      return;
+    }
+    final pageTitle = (data['title'] as String?)?.trim() ?? '';
+    final host = Uri.tryParse(_pageUrl)?.host.replaceFirst('www.', '') ?? '';
+    String nameOr(String? t) =>
+        (t != null && t.trim().isNotEmpty) ? t.trim() : pageTitle;
+    final found = <FoundVideo>[];
+    for (final it in (data['items'] as List? ?? const [])) {
+      if (it is! Map) continue;
+      switch (it['kind']) {
+        case 'youtube':
+          final id = it['id'] as String;
+          found.add(FoundVideo(
+            key: it['key'] as String,
+            title: nameOr((it['title'] as String?)
+                ?.replaceAll(RegExp(r'\s*-\s*YouTube$'), '')),
+            thumbnail: 'https://img.youtube.com/vi/$id/hqdefault.jpg',
+            videoUrl: youtubeWatchUrl(id),
+            sourceType: 'youtube',
+            site: 'YouTube',
+          ));
+        case 'vimeo':
+          found.add(FoundVideo(
+            key: it['key'] as String,
+            title: nameOr(it['title'] as String?),
+            thumbnail: it['thumb'] as String?,
+            videoUrl: it['url'] as String,
+            sourceType: 'web',
+            site: 'Vimeo',
+          ));
+        default:
+          found.add(FoundVideo(
+            key: it['key'] as String,
+            title: nameOr(it['title'] as String?),
+            thumbnail: it['thumb'] as String?,
+            durationSec: (it['duration'] as num?)?.toInt(),
+            videoUrl: it['url'] as String,
+            sourceType: 'web',
+            site: host,
+            locked: it['locked'] == true,
+          ));
+      }
+    }
+    setState(() => _videos = found);
+  }
+
+  /// Watch these: in a room they go to its queue; otherwise a new room
+  /// starts on the first, with the rest queued.
+  Future<void> _pickVideos(List<FoundVideo> picks) async {
+    final ok = picks.where((v) => !v.locked).toList();
+    if (ok.isEmpty || _creatingRoom) return;
+    final first = ok.first;
+    final many = widget.onQueueMany;
+    if (widget.onAddToQueue != null) {
+      if (ok.length > 1 && many != null) {
+        setState(() => _creatingRoom = true);
+        final messenger = ScaffoldMessenger.of(context);
+        many([for (final v in ok) v.toQueueItem()]);
+        Navigator.of(context).pop();
+        messenger.showSnackBar(SnackBar(
+            content: Text('Added ${ok.length} videos to the queue')));
+        return;
+      }
+      await _addOrCreate(
+          sourceType: first.sourceType,
+          videoUrl: first.videoUrl,
+          videoTitle: first.title,
+          videoThumbnail: first.thumbnail);
+      return;
+    }
+    if (widget.onConfirmOverride != null) {
+      await _addOrCreate(
+          sourceType: first.sourceType,
+          videoUrl: first.videoUrl,
+          videoTitle: first.title,
+          videoThumbnail: first.thumbnail);
+      return;
+    }
+    setState(() => _creatingRoom = true);
+    createWatchRoomAndEnter(
+      context,
+      sourceType: first.sourceType,
+      videoUrl: first.videoUrl,
+      visibility: widget.visibility,
+      topic: widget.topic,
+      options: widget.options,
+      videoTitle: first.title,
+      videoThumbnail: first.thumbnail,
+      queueItems:
+          ok.length > 1 ? [for (final v in ok) v.toQueueItem()] : null,
+    ).whenComplete(() {
+      if (mounted) setState(() => _creatingRoom = false);
+    });
+  }
+
   void _go(String input) {
     final text = input.trim();
     if (text.isEmpty) return;
@@ -185,6 +347,10 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
     super.initState();
     _urlPoll = Timer.periodic(const Duration(milliseconds: 700), (_) async {
       if (_autoStarted || _creatingRoom || !mounted) return;
+      if (_isWeb) {
+        await _scanVideos();
+        return;
+      }
       final url = await _controller?.getUrl();
       if (!mounted || url == null) return;
       final urlStr = url.toString();
@@ -616,7 +782,21 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
                 _isWeb ? _browserSettings : desktopWebViewSettings,
             initialUserScripts: UnmodifiableListView([desktopSiteScript]),
             onWebViewCreated: (controller) => _controller = controller,
-            onLoadStart: (controller, url) => setState(() => _loading = true),
+            onLoadStart: (controller, url) => setState(() {
+              _loading = true;
+              if (_isWeb) {
+                _pageUrl = url?.toString() ?? '';
+                _videos = const [];
+                _videosSig = '';
+                _cardCollapsed = false;
+              }
+            }),
+            // The single-video card shrinks to a pill while you scroll.
+            onScrollChanged: (controller, x, y) {
+              if (_isWeb && _videos.length == 1 && !_cardCollapsed) {
+                setState(() => _cardCollapsed = true);
+              }
+            },
             onLoadStop: (controller, url) {
               setState(() => _loading = false);
               if (_isWeb && url != null) _address.text = url.toString();
@@ -681,9 +861,37 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
                 ),
               ),
             ),
+          // Browser: one video floats as a card; two or more sit in a tray.
+          if (_isWeb && !_creatingRoom && _videos.length == 1 &&
+              !_videos.first.locked && _dismissedFor != _pageUrl)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 22,
+              child: Center(
+                child: BrowserVideoCard(
+                  video: _videos.first,
+                  collapsed: _cardCollapsed,
+                  onWatch: () => _pickVideos(_videos),
+                  onExpand: () => setState(() => _cardCollapsed = false),
+                  onClose: () => setState(() => _dismissedFor = _pageUrl),
+                ),
+              ),
+            ),
+          if (_isWeb && !_creatingRoom && _videos.length > 1)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: BrowserVideoTray(
+                videos: _videos,
+                inRoom: widget.onAddToQueue != null,
+                onPick: _pickVideos,
+              ),
+            ),
           // Playing a title pins it to the room after 3 seconds (see
           // _urlPoll); the button does it straight away.
-          if (!_creatingRoom)
+          if (!_creatingRoom && !_isWeb)
             Positioned(
               left: 16,
               right: 16,
