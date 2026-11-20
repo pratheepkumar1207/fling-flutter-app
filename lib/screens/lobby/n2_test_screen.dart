@@ -22,6 +22,7 @@ class _N2TestScreenState extends State<N2TestScreen>
   static const _netflix = 'com.netflix.mediaclient';
 
   bool? _access;
+  bool _asked = false;
   List<Map> _sessions = const [];
   String? _error;
   Timer? _tick;
@@ -55,16 +56,49 @@ class _N2TestScreenState extends State<N2TestScreen>
           ? (await _ch.invokeListMethod<Map>('sessions') ?? const <Map>[])
           : const <Map>[];
       if (!mounted) return;
+      final justAllowed = _access == false && access;
       setState(() {
         _access = access;
         _sessions = list;
         _error = null;
       });
+      if (justAllowed) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Allowed. Now play something in Netflix.')));
+      }
+      if (!access && !_asked) {
+        _asked = true;
+        _askForAccess();
+      }
     } on PlatformException catch (e) {
       if (mounted && !quiet) setState(() => _error = e.message);
     } on MissingPluginException {
       if (mounted) setState(() => _error = 'Only works on Android.');
     }
+  }
+
+  /// Android only lets the person switch this on in Settings, so this
+  /// explains it, then opens InSync's own switch.
+  Future<void> _askForAccess() async {
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: const Text('Allow InSync watch sync?'),
+        content: const Text(
+            'This lets InSync play, pause and jump Netflix with your room. '
+            'InSync never reads your notifications or what you watch outside a room. '
+            'Next, turn on the switch for InSync, then press back.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dialog, false),
+              child: const Text('Not now')),
+          FilledButton(
+              onPressed: () => Navigator.pop(dialog, true),
+              child: const Text('Allow')),
+        ],
+      ),
+    );
+    if (go == true) await _ch.invokeMethod('openAccessSettings');
   }
 
   Future<void> _control(String pkg, String action, [int? ms]) async {
@@ -126,8 +160,7 @@ class _N2TestScreenState extends State<N2TestScreen>
           action: _access == true
               ? null
               : FilledButton(
-                  onPressed: () => _ch.invokeMethod('openAccessSettings'),
-                  child: const Text('Open settings')),
+                  onPressed: _askForAccess, child: const Text('Allow')),
         ),
         _step(
           '2',

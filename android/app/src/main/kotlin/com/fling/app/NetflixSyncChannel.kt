@@ -8,6 +8,7 @@ import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
+import android.os.Build
 import android.os.SystemClock
 import android.provider.Settings
 import io.flutter.plugin.common.BinaryMessenger
@@ -32,7 +33,16 @@ class NetflixSyncChannel(private val activity: Activity, messenger: BinaryMessen
                 when (call.method) {
                     "hasAccess" -> result.success(hasAccess())
                     "openAccessSettings" -> {
-                        activity.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                        // Android 11+: straight to InSync's own switch; older: the list.
+                        val direct = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                            Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS)
+                                .putExtra(Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME, listener.flattenToString())
+                        } else null
+                        try {
+                            activity.startActivity(direct ?: Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                        } catch (_: Exception) {
+                            activity.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                        }
                         result.success(null)
                     }
                     "openNetflix" -> {
