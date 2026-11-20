@@ -15,5 +15,8 @@ const webviewSourceTypes = {
   'aha',
   'sunnxt',
   'sonyliv',
-  'airtel_xstream'
+  'airtel_xstream',
+  // "Browser": any website, picked in a normal phone browser; the room
+  // syncs the page's own video (WebviewRoomPlayer.anySite).
+  'web'
 };

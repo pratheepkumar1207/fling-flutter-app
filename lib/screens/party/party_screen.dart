@@ -1438,6 +1438,7 @@ class _PartyScreenState extends State<PartyScreen>
       );
       if (webviewSourceTypes.contains(playerSourceType)) {
         return WebviewRoomPlayer(
+          anySite: playerSourceType == 'web',
           key: playerKey,
           videoUrl: playerVideoUrl,
           knownAspect: rs.videoAspects[playerVideoUrl],

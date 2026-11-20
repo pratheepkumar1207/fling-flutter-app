@@ -416,6 +416,17 @@ class SourcePickerBody extends StatelessWidget {
               platform: 'youtube_surf',
               label: 'YouTube Surf',
               homeUrl: 'https://www.youtube.com')),
+      // Any website: search or type an address, play a video, pin it.
+      'Browser': _SourceTile(
+          compact: c,
+          icon: FontAwesomeIcons.chrome,
+          iconColor: const Color(0xFF4285F4),
+          label: 'Browser',
+          available: true,
+          onTap: () => _openWebviewSource(context,
+              platform: 'web',
+              label: 'Browser',
+              homeUrl: 'https://www.google.com')),
       'Drive': _SourceTile(
           compact: c,
           icon: FontAwesomeIcons.googleDrive,
@@ -540,6 +551,7 @@ class SourcePickerBody extends StatelessWidget {
         'YouTube Surf',
         'YouTube Music',
         'Drive',
+        'Browser',
         'Netflix',
         'N2',
         'Prime Video',
@@ -608,6 +620,7 @@ class SourcePickerBody extends StatelessWidget {
         'YouTube Surf',
         'YouTube Music',
         'Drive',
+        'Browser',
         'X',
       ]),
       section('YOUR SUBSCRIPTIONS · EACH PERSON SIGNS IN', [

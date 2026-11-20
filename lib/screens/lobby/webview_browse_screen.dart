@@ -36,7 +36,7 @@ import 'watch_room_creator.dart';
 /// extracts the video id and creates a normal, fully-synced 'youtube' room
 /// instead of a no-sync one — see _startHere below.
 class WebviewBrowseScreen extends StatefulWidget {
-  final String platform; // 'netflix' | 'amazon' | 'youtube_surf'
+  final String platform; // 'netflix' | 'amazon' | 'youtube_surf' | 'web'
   final String label;
   final String homeUrl;
   final String visibility;
@@ -151,6 +151,25 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
   // Shows the Pin to room button: a title is playing or its watch page is open.
   bool _canPin = false;
 
+  // "Browser": any website, a normal phone browser with an address bar.
+  // Nothing is pinned by itself there; the person taps Pin to room.
+  bool get _isWeb => widget.platform == 'web';
+  final _address = TextEditingController();
+
+  void _go(String input) {
+    final text = input.trim();
+    if (text.isEmpty) return;
+    final looksLikeUrl = !text.contains(' ') &&
+        (text.startsWith('http://') ||
+            text.startsWith('https://') ||
+            RegExp(r'^[\w-]+(\.[\w-]+)+(/.*)?$').hasMatch(text));
+    final url = looksLikeUrl
+        ? (text.startsWith('http') ? text : 'https://$text')
+        : 'https://www.google.com/search?q=${Uri.encodeQueryComponent(text)}';
+    _controller?.loadUrl(urlRequest: URLRequest(url: WebUri(url)));
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
   void _updateCanPin() {
     final can = _playingSince != null || _watchPageSince != null;
     if (can != _canPin && mounted) setState(() => _canPin = can);
@@ -179,7 +198,7 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
           return;
         }
       }
-      if (_looksReadyToStart(urlStr)) {
+      if (!_isWeb && _looksReadyToStart(urlStr)) {
         // A watch page: go now.
         _triggerAutoStart(urlStr);
         return;
@@ -223,6 +242,7 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
       final now = DateTime.now();
       _playingSince = playing == true ? (_playingSince ?? now) : null;
       _updateCanPin();
+      if (_isWeb) return;
       if (playing == true) {
         _playingSince ??= now;
         if (now.difference(_playingSince!) >= _playFor) {
@@ -267,6 +287,7 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
   @override
   void dispose() {
     _urlPoll?.cancel();
+    _address.dispose();
     super.dispose();
   }
 
@@ -283,6 +304,7 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
   // ?autoplay=1 onto it client-side rather than doing a real navigation;
   // onLoadStop alone would never see that).
   void _maybeAutoStart(String? url) {
+    if (_isWeb) return;
     if (_autoStarted || _creatingRoom || url == null) return;
     if (_looksReadyToStart(url)) _triggerAutoStart(url);
   }
@@ -336,7 +358,7 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
     var videoUrl = _pickedUrl ?? url.toString();
     String? videoTitle;
     String? videoThumbnail;
-    if (widget.platform == 'youtube_surf') {
+    if (widget.platform == 'youtube_surf' || _isWeb) {
       final videoId = extractYouTubeId(videoUrl);
       if (videoId != null) {
         // Landed on a real video page — upgrade to a normal fully-synced
@@ -362,6 +384,10 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
         }
         videoThumbnail = 'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
       }
+    }
+    if (_isWeb && sourceType == 'web') {
+      final page = (await controller.getTitle())?.trim();
+      if (page != null && page.isNotEmpty) videoTitle = page;
     }
     if (widget.platform == 'netflix') {
       // "Watch Baththa | Netflix"
@@ -517,6 +543,7 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
   }
 
   String get _hint {
+    if (_isWeb) return 'Play a video, then tap Pin to room';
     if (widget.onAddToQueue != null) {
       return 'Press play. After 3 seconds it goes to your room’s queue';
     }
@@ -540,17 +567,56 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: Text(widget.label)),
+      appBar: _isWeb
+          ? AppBar(
+              titleSpacing: 0,
+              title: TextField(
+                controller: _address,
+                keyboardType: TextInputType.url,
+                textInputAction: TextInputAction.go,
+                onSubmitted: _go,
+                style: const TextStyle(fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'Search or type a web address',
+                  isDense: true,
+                  filled: true,
+                  fillColor: AppColors.surface,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(22),
+                      borderSide: BorderSide.none),
+                ),
+              ),
+              actions: [
+                IconButton(
+                  tooltip: 'Back',
+                  onPressed: () => _controller?.goBack(),
+                  icon: const Icon(Icons.arrow_back_rounded),
+                ),
+                IconButton(
+                  tooltip: 'Reload',
+                  onPressed: () => _controller?.reload(),
+                  icon: const Icon(Icons.refresh_rounded),
+                ),
+              ],
+            )
+          : AppBar(title: Text(widget.label)),
       body: Stack(
         children: [
           InAppWebView(
             initialUrlRequest: URLRequest(url: WebUri(widget.homeUrl)),
-            initialSettings: desktopWebViewSettings,
-            initialUserScripts: UnmodifiableListView([desktopSiteScript]),
+            // The Browser is a normal phone browser; the streaming sites
+            // open their desktop site (see mobile_webview_settings.dart).
+            initialSettings:
+                _isWeb ? mobileWebViewSettings : desktopWebViewSettings,
+            initialUserScripts: UnmodifiableListView(
+                _isWeb ? const <UserScript>[] : [desktopSiteScript]),
             onWebViewCreated: (controller) => _controller = controller,
             onLoadStart: (controller, url) => setState(() => _loading = true),
             onLoadStop: (controller, url) {
               setState(() => _loading = false);
+              if (_isWeb && url != null) _address.text = url.toString();
               // Landed on what looks like a real watch/play page — jump
               // straight into the room with it pinned.
               _maybeAutoStart(url?.toString());
