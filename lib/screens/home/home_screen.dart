@@ -21,7 +21,9 @@ import 'popcorn_cards.dart';
 import '../../core/live_now.dart';
 import '../feed/friends_in_rooms_strip.dart';
 import '../live/live_feed_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../live/live_swipe_screen.dart';
+import '../shell/create_room_sheet.dart';
+import 'popcorn_live_row.dart';
 import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
 import '../../core/location_service.dart';
@@ -285,27 +287,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void _openRoom(String id) => Navigator.of(context)
       .push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: id)));
 
-  // Popcorn tab: All · Watch · Talk · Game · Live, list or grid.
+  // Popcorn tab: All · Watch · Talk · Game · Live, as a list of lobby cards.
   String _filter = 'all';
-  bool _grid = false;
-  bool _gridLoaded = false;
-
-  Future<void> _loadGridPref() async {
-    if (_gridLoaded) return;
-    _gridLoaded = true;
-    try {
-      final p = await SharedPreferences.getInstance();
-      final v = p.getBool('popcorn.grid') ?? false;
-      if (mounted && v != _grid) setState(() => _grid = v);
-    } catch (_) {}
-  }
-
-  void _setGrid(bool v) {
-    setState(() => _grid = v);
-    SharedPreferences.getInstance()
-        .then((p) => p.setBool('popcorn.grid', v))
-        .catchError((_) => false);
-  }
 
   bool _matches(Map<String, dynamic> r) {
     final t = r['roomType'] as String? ?? 'watch';
@@ -390,10 +373,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    _loadGridPref();
     final active = _rooms.where((r) => asNum(r['memberCount']) > 0).toList();
-    final shown = active.where(_matches).toList();
-    final boosted = active.where((r) => r['isBoosted'] == true).toList();
+    final matching = active.where(_matches).toList();
+    final shown = [
+      ...matching.where((r) => r['isBoosted'] == true),
+      ...matching.where((r) => r['isBoosted'] != true),
+    ];
+    final liveRooms = active.where((r) => r['roomType'] == 'live').toList();
     final lives = active.where((r) => r['roomType'] == 'live').length;
     if (liveNowCount.value != lives) {
       WidgetsBinding.instance
@@ -428,24 +414,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 onTap: () => _openRoom(r.id)),
             const SizedBox(height: 10),
           ],
-          if (boosted.isNotEmpty && _filter == 'all') ...[
-            const Row(children: [
-              InIcon(InIcons.bolt, size: 16, color: Color(0xFFFFD60A)),
-              SizedBox(width: 5),
-              Text('Boosted',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-            ]),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 190,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: boosted.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
-                itemBuilder: (_, i) => PopcornBoostedCard(
-                    room: boosted[i],
-                    onTap: () => _openRoom(boosted[i]['id'] as String)),
-              ),
+          // Go live, then everyone live; View more opens the Live page.
+          if (_filter == 'all') ...[
+            PopcornLiveRow(
+              lives: liveRooms,
+              onOpen: (room) => openLiveSwipe(context, liveRooms, room),
+              onChanged: _load,
             ),
             const SizedBox(height: 18),
           ],
@@ -473,8 +447,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             _viewToggle(InIcons.ticket, 'Join with a code', false,
                 _showJoinSheet),
-            _viewToggle(InIcons.menu, 'List view', !_grid, () => _setGrid(false)),
-            _viewToggle(InIcons.feed, 'Grid view', _grid, () => _setGrid(true)),
           ]),
           const SizedBox(height: 10),
           if (_filter == 'game' || (!_loading && active.isEmpty))
@@ -500,25 +472,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Text('No rooms like this right now',
                       style: TextStyle(color: AppColors.textDim))),
             )
-          else if (_grid)
-            LayoutBuilder(
-              builder: (context, box) => Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  for (final r in shown)
-                    SizedBox(
-                      width: (box.maxWidth - 10) / 2,
-                      child: PopcornRoomTile(
-                          room: r,
-                          onTap: () => _openRoom(r['id'] as String),
-                          onLongPress: () => showRoomPeoplePopup(context,
-                              room: r, line: '')),
-                    ),
-                ],
-              ),
-            )
-          else
+          else ...[
+            _CreateRoomCard(onTap: () => showCreateRoomSheet(context)),
+            const SizedBox(height: 14),
             for (final r in shown) ...[
               PopcornPostCard(
                   room: r,
@@ -527,6 +483,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       showRoomPeoplePopup(context, room: r, line: '')),
               const SizedBox(height: 14),
             ],
+          ],
           for (final b in _liveBlends) ...[
             const SizedBox(height: 6),
             HomeBlendCard(
@@ -704,6 +661,63 @@ class _EmptyRooms extends StatelessWidget {
         const SizedBox(height: 12),
         FilledButton(onPressed: onCreate, child: const Text('Start a room')),
       ]),
+    );
+  }
+}
+
+
+/// First card in Popcorn's room list: start a room of your own.
+class _CreateRoomCard extends StatelessWidget {
+  final VoidCallback onTap;
+  const _CreateRoomCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Create room',
+      excludeSemantics: true,
+      child: Material(
+        color: const Color(0xFF1D1B24),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: AppColors.lilac, width: 1.5)),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                    gradient: AppGradients.brandDiagonal,
+                    borderRadius: BorderRadius.circular(16)),
+                child: const Center(
+                    child: InIcon(InIcons.plus, size: 26, color: Colors.white)),
+              ),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Create room',
+                          style: TextStyle(
+                              color: AppColors.text,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700)),
+                      SizedBox(height: 3),
+                      Text('Watch, talk or play together',
+                          style: TextStyle(
+                              color: AppColors.textFaint, fontSize: 12.5)),
+                    ]),
+              ),
+              const InIcon(InIcons.right, size: 20, color: AppColors.textFaint),
+            ]),
+          ),
+        ),
+      ),
     );
   }
 }

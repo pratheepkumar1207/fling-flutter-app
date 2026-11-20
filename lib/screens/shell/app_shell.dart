@@ -1,3 +1,4 @@
+import 'create_room_sheet.dart';
 import '../messages/message_thread_screen.dart';
 import '../../core/app_messenger.dart';
 import 'dart:async';
@@ -59,12 +60,17 @@ class _AppShellState extends State<AppShell> {
     const NavItemData(InIcons.home, 'Home'),
     const NavItemData(InIcons.reels, 'Reels'),
     const NavItemData(InIcons.popcorn, 'Popcorn',
-        image: 'assets/icon/popcorn-tab.png'),
+        image: 'assets/icon/popcorn-tab.png', plusWhenSelected: true),
     const NavItemData(InIcons.flame, 'Discover'),
     NavItemData(InIcons.chat, 'Chat', badge: UnreadMessages.count),
   ];
 
   void _onNavTap(int i) {
+    // On Popcorn the centre is a +: tapping it again creates a room.
+    if (i == 2 && _index == 2) {
+      showCreateRoomSheet(context);
+      return;
+    }
     final wasChat = _index == _chatTab;
     setState(() => _index = i);
     if (wasChat || i == _chatTab) UnreadMessages.refresh();
@@ -312,7 +318,7 @@ class _AppShellState extends State<AppShell> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       // Reels play full screen, without the top bar.
-      appBar: _index == _reelsTab ? null : InsyncTopBar(showLive: _index == 2),
+      appBar: _index == _reelsTab ? null : InsyncTopBar(popcorn: _index == 2),
       // Lets Home's own scroll content show (blurred) through the glass
       // bottom nav instead of the bar sitting over a dead solid-color gap —
       // see LiquidGlassBottomNav.
@@ -325,7 +331,9 @@ class _AppShellState extends State<AppShell> {
           TickerMode(
               enabled: i == _index,
               child: i == _reelsTab
-                  ? (_index == _reelsTab ? const ReelsTab() : const SizedBox.shrink())
+                  ? (_index == _reelsTab
+                      ? const ReelsTab()
+                      : const SizedBox.shrink())
                   : _screens[i]),
       ]),
       bottomNavigationBar: Column(

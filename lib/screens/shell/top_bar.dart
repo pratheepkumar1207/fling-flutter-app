@@ -14,13 +14,18 @@ import '../leaderboards/leaderboards_screen.dart';
 import '../notifications/notification_bell.dart';
 import '../profile/profile_screen.dart';
 import '../wallet/wallet_screen.dart';
+import '../tournaments/tournaments_list_screen.dart';
 
 /// App bar from the approved design: profile photo, logo and wordmark on the
 /// left; coins, rankings, notifications and Messages on the right.
 class InsyncTopBar extends StatelessWidget implements PreferredSizeWidget {
   // Popcorn tab: the red live button (opens the live feed).
   final bool showLive;
-  const InsyncTopBar({super.key, this.showLive = false});
+  // Popcorn tab, newer layout: no separate logo symbol (the name is the
+  // logo), Tournament where Live was, and no + (the bottom bar's centre +
+  // creates rooms there; Go live is the first card in the live row).
+  final bool popcorn;
+  const InsyncTopBar({super.key, this.showLive = false, this.popcorn = false});
   @override
   Size get preferredSize => const Size.fromHeight(60);
 
@@ -52,9 +57,11 @@ class InsyncTopBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              Image.asset('assets/icon/insync-symbol.png',
-                  height: 24, semanticLabel: 'Insync'),
-              const SizedBox(width: 6),
+              if (!popcorn) ...[
+                Image.asset('assets/icon/insync-symbol.png',
+                    height: 24, semanticLabel: 'Insync'),
+                const SizedBox(width: 6),
+              ],
               const Expanded(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
@@ -130,7 +137,29 @@ class InsyncTopBar extends StatelessWidget implements PreferredSizeWidget {
                     ),
                   ),
                 ),
+              if (popcorn)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: Semantics(
+                    button: true,
+                    label: 'Tournaments',
+                    excludeSemantics: true,
+                    child: GestureDetector(
+                      onTap: () => push(const TournamentsListScreen()),
+                      child: Container(
+                        width: 34,
+                        height: 34,
+                        decoration: const BoxDecoration(
+                            color: Color(0xFF2A2140), shape: BoxShape.circle),
+                        child: const Center(
+                            child: InIcon(InIcons.swords,
+                                size: 18, color: Color(0xFFC9A6FF))),
+                      ),
+                    ),
+                  ),
+                ),
               // Create: post, reel, story, room or go live.
+              if (!popcorn)
               Padding(
                 padding: const EdgeInsets.only(right: 6),
                 child: Semantics(

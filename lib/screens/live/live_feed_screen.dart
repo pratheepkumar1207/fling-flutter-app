@@ -9,8 +9,8 @@ import '../../widgets/in_icon_button.dart';
 import '../../widgets/spinner.dart';
 import 'live_rankings_screen.dart';
 import '../lobby/lobby_create_screen.dart';
-import '../party/party_screen.dart';
 import '../search/search_screen.dart';
+import 'live_swipe_screen.dart';
 
 /// Live tab (bottom bar): everyone who is live right now, Tango-style —
 /// a row of hosts, then a two-column grid of live covers.
@@ -27,6 +27,25 @@ class _LiveFeedScreenState extends State<LiveFeedScreen> {
   bool _loading = true;
   _LiveSort _sort = _LiveSort.forYou;
   List<Map<String, dynamic>> _rooms = [];
+  // Nearby: how far to look, in km; null is anywhere. Distances come from
+  // the server rounded to whole km, only when both people share location.
+  static const _ranges = <int?>[1, 5, 25, 100, 500, null];
+  int? _rangeKm = 25;
+
+  static String _rangeLabel(int? km) => km == null ? 'Anywhere' : '$km km';
+
+  /// The next bigger range that has someone live in it, if any.
+  int? get _widerRangeWithLives {
+    final i = _ranges.indexOf(_rangeKm);
+    for (final km in _ranges.skip(i + 1)) {
+      final any = _rooms.any((r) {
+        final d = r['hostDistanceKm'] as num?;
+        return d != null && (km == null || d <= km);
+      });
+      if (any) return km ?? -1;
+    }
+    return null;
+  }
 
   @override
   void initState() {
@@ -55,9 +74,10 @@ class _LiveFeedScreenState extends State<LiveFeedScreen> {
     final list = switch (_sort) {
       _LiveSort.following =>
         _rooms.where((r) => r['hostFollowed'] == true).toList(),
-      _LiveSort.nearby => _rooms
-          .where((r) => r['hostDistanceKm'] != null)
-          .toList()
+      _LiveSort.nearby => _rooms.where((r) {
+          final d = r['hostDistanceKm'] as num?;
+          return d != null && (_rangeKm == null || d <= _rangeKm!);
+        }).toList()
         ..sort((a, b) =>
             (a['hostDistanceKm'] as num).compareTo(b['hostDistanceKm'] as num)),
       _LiveSort.pk => _rooms.where((r) => r['inPk'] == true).toList(),
@@ -74,11 +94,9 @@ class _LiveFeedScreenState extends State<LiveFeedScreen> {
     return list;
   }
 
+  // Full screen; swipe up/down through the same list you tapped in.
   void _open(Map<String, dynamic> room) {
-    Navigator.of(context)
-        .push(MaterialPageRoute(
-            builder: (_) => PartyScreen(roomId: room['id'] as String)))
-        .then((_) => _load());
+    openLiveSwipe(context, _sorted, room).then((_) => _load());
   }
 
   Future<void> _goLive() async {
@@ -146,7 +164,32 @@ class _LiveFeedScreenState extends State<LiveFeedScreen> {
             ]),
           ),
         ),
-        if (rooms.isNotEmpty)
+        if (_sort == _LiveSort.nearby)
+          SliverToBoxAdapter(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 6),
+                    child: Row(children: [
+                      for (final km in _ranges)
+                        _SortChip(_rangeLabel(km), _rangeKm == km,
+                            () => setState(() => _rangeKm = km)),
+                    ]),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
+                    child: Text(
+                        _rangeKm == null
+                            ? 'Anyone sharing their location · nearest first'
+                            : 'Within ${_rangeLabel(_rangeKm)} of you · nearest first',
+                        style: const TextStyle(
+                            color: AppColors.textFaint, fontSize: 12)),
+                  ),
+                ]),
+          ),
+        if (rooms.isNotEmpty && _sort != _LiveSort.nearby)
           SliverToBoxAdapter(
             child: SizedBox(
               height: 92,
@@ -174,8 +217,9 @@ class _LiveFeedScreenState extends State<LiveFeedScreen> {
                           switch (_sort) {
                             _LiveSort.following =>
                               'Nobody you follow is live right now.',
-                            _LiveSort.nearby =>
-                              'No one nearby is live. Turn on location to see lives near you.',
+                            _LiveSort.nearby => _widerRangeWithLives != null
+                                ? 'No one within ${_rangeLabel(_rangeKm)} is live. Try a bigger range above.'
+                                : 'No one nearby is live. Turn on location to see lives near you.',
                             _LiveSort.pk => 'No battles right now.',
                             _ => 'Nothing here right now.',
                           },
@@ -401,6 +445,16 @@ class LiveCover extends StatelessWidget {
                   ]),
                 ],
                 const Spacer(),
+                if (room['hostDistanceKm'] != null) ...[
+                  _GlassPill(children: [
+                    Text('${room['hostDistanceKm']} km',
+                        style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white)),
+                  ]),
+                  const SizedBox(width: 4),
+                ],
                 _GlassPill(children: [
                   const InIcon(InIcons.user, size: 11, color: Colors.white),
                   const SizedBox(width: 4),

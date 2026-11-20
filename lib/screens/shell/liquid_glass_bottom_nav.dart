@@ -16,7 +16,12 @@ class NavItemData {
   /// A picture in place of the icon (Popcorn's character), bigger and
   /// rising above the bar, always in colour, with no name under it.
   final String? image;
-  const NavItemData(this.icon, this.label, {this.tag, this.badge, this.image});
+
+  /// While this tab is open its picture becomes a big + (Popcorn: tap it
+  /// again to create a room).
+  final bool plusWhenSelected;
+  const NavItemData(this.icon, this.label,
+      {this.tag, this.badge, this.image, this.plusWhenSelected = false});
 }
 
 /// Bottom bar from the approved design: four labelled tabs with the
@@ -78,7 +83,7 @@ class _Tab extends StatelessWidget {
     return Semantics(
       selected: selected,
       button: true,
-      label: item.label,
+      label: selected && item.plusWhenSelected ? 'Create a room' : item.label,
       child: InkResponse(
         onTap: onTap,
         radius: 36,
@@ -102,8 +107,28 @@ class _Tab extends StatelessWidget {
                       curve: Curves.easeOutBack,
                       alignment: Alignment.bottomCenter,
                       // Always in full colour; it only grows when picked.
-                      child: Image.asset(item.image!,
-                          height: 70, fit: BoxFit.contain),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 220),
+                        child: selected && item.plusWhenSelected
+                            ? Container(
+                                key: const ValueKey('plus'),
+                                width: 56,
+                                height: 56,
+                                margin: const EdgeInsets.only(bottom: 6),
+                                decoration: BoxDecoration(
+                                    gradient: AppGradients.brandDiagonal,
+                                    borderRadius: BorderRadius.circular(18),
+                                    border: Border.all(
+                                        color: AppColors.bg, width: 3)),
+                                child: const Center(
+                                    child: InIcon(InIcons.plus,
+                                        size: 28, color: Colors.white)),
+                              )
+                            : Image.asset(item.image!,
+                                key: const ValueKey('picture'),
+                                height: 70,
+                                fit: BoxFit.contain),
+                      ),
                     ),
                   ),
                 )
