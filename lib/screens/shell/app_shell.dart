@@ -1,4 +1,4 @@
-import 'create_room_sheet.dart';
+import 'create_room_screen.dart';
 import '../messages/message_thread_screen.dart';
 import '../../core/app_messenger.dart';
 import 'dart:async';
@@ -66,9 +66,9 @@ class _AppShellState extends State<AppShell> {
   ];
 
   void _onNavTap(int i) {
-    // On Popcorn the centre is a +: tapping it again creates a room.
+    // On Popcorn the centre is a +: tapping it again opens Create a room.
     if (i == 2 && _index == 2) {
-      showCreateRoomSheet(context);
+      openCreateRoom(context);
       return;
     }
     final wasChat = _index == _chatTab;

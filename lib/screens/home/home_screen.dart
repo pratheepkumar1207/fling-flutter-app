@@ -22,7 +22,7 @@ import '../../core/live_now.dart';
 import '../feed/friends_in_rooms_strip.dart';
 import '../live/live_feed_screen.dart';
 import '../live/live_swipe_screen.dart';
-import '../shell/create_room_sheet.dart';
+import '../shell/create_room_screen.dart';
 import 'popcorn_live_row.dart';
 import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
@@ -473,7 +473,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: TextStyle(color: AppColors.textDim))),
             )
           else ...[
-            _CreateRoomCard(onTap: () => showCreateRoomSheet(context)),
+            _CreateRoomCard(onTap: () => openCreateRoom(context)),
             const SizedBox(height: 14),
             for (final r in shown) ...[
               PopcornPostCard(
