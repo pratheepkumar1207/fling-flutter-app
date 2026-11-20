@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../core/live_now.dart';
 import '../live/live_feed_screen.dart';
 import '../../widgets/insync_brand.dart';
-import 'create_sheet.dart';
 import 'package:provider/provider.dart';
 import '../../core/auth_provider.dart';
 import '../../core/format.dart';
@@ -158,29 +157,9 @@ class InsyncTopBar extends StatelessWidget implements PreferredSizeWidget {
                     ),
                   ),
                 ),
-              // Create: post, reel, story, room or go live.
-              if (!popcorn)
-              Padding(
-                padding: const EdgeInsets.only(right: 6),
-                child: Semantics(
-                  button: true,
-                  label: 'Create',
-                  excludeSemantics: true,
-                  child: GestureDetector(
-                    onTap: () => showCreateSheet(context),
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                          color: const Color(0xFF7C5CFF),
-                          borderRadius: BorderRadius.circular(10)),
-                      child: const Center(
-                          child: InIcon(InIcons.plus,
-                              size: 20, color: Colors.white)),
-                    ),
-                  ),
-                ),
-              ),
+              // No + here: on Home, swipe left to right for the camera
+              // (post, story, reel, live); on Popcorn the bottom bar's
+              // centre + creates a room.
               _CoinPill(
                   coins: user?.coinBalance,
                   onTap: () => push(const WalletScreen())),

@@ -1,3 +1,4 @@
+import '../create/create_flow.dart';
 import 'create_room_screen.dart';
 import '../messages/message_thread_screen.dart';
 import '../../core/app_messenger.dart';
@@ -74,6 +75,20 @@ class _AppShellState extends State<AppShell> {
     final wasChat = _index == _chatTab;
     setState(() => _index = i);
     if (wasChat || i == _chatTab) UnreadMessages.refresh();
+  }
+
+  void _onSwipe(DragEndDetails d) {
+    final v = d.primaryVelocity ?? 0;
+    if (v.abs() < 500) return;
+    if (v > 0) {
+      if (_index == 0) {
+        openCreateFlow(context, mode: CreateMode.story);
+      } else {
+        _onNavTap(_index - 1);
+      }
+    } else if (_index < _items.length - 1) {
+      _onNavTap(_index + 1);
+    }
   }
 
   bool _unreadBound = false;
@@ -326,16 +341,24 @@ class _AppShellState extends State<AppShell> {
       // IndexedStack keeps hidden tabs' tickers running (maintainAnimation),
       // so wrap each tab in TickerMode — hidden tabs stop animating, and
       // screens like Home use TickerMode to pause their background polling.
-      body: IndexedStack(index: _index, children: [
-        for (var i = 0; i < _screens.length; i++)
-          TickerMode(
-              enabled: i == _index,
-              child: i == _reelsTab
-                  ? (_index == _reelsTab
-                      ? const ReelsTab()
-                      : const SizedBox.shrink())
-                  : _screens[i]),
-      ]),
+      body: GestureDetector(
+          // Swipes between tabs: right to left for the next tab, left to
+          // right for the one before; on Home, left to right opens the
+          // camera (post, story, reel, live). Sideways lists inside a tab
+          // (stories, the live row) still scroll as before: they win the
+          // drag when they can move.
+          behavior: HitTestBehavior.translucent,
+          onHorizontalDragEnd: _onSwipe,
+          child: IndexedStack(index: _index, children: [
+            for (var i = 0; i < _screens.length; i++)
+              TickerMode(
+                  enabled: i == _index,
+                  child: i == _reelsTab
+                      ? (_index == _reelsTab
+                          ? const ReelsTab()
+                          : const SizedBox.shrink())
+                      : _screens[i]),
+          ])),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

@@ -4,7 +4,7 @@ import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
-import '../lobby/lobby_create_screen.dart';
+import '../lobby/choose_game_screen.dart';
 import '../lobby/source_picker_screen.dart';
 import '../party/party_screen.dart';
 import '../tournaments/tournament_create_screen.dart';
@@ -78,8 +78,7 @@ class _CreateRoomTypeScreenState extends State<CreateRoomTypeScreen> {
           if (mounted) setState(() => _busy = false);
         }
       case 'game':
-        nav.push(MaterialPageRoute(
-            builder: (_) => const LobbyCreateScreen(initialRoomType: 'game')));
+        nav.push(MaterialPageRoute(builder: (_) => const ChooseGameScreen()));
       case 'tournament':
         nav.push(MaterialPageRoute(
             builder: (_) => const TournamentCreateScreen()));
