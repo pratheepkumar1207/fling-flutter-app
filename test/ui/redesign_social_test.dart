@@ -98,7 +98,9 @@ void main() {
   testWidgets('Messages renders search, filters and empty state', (t) async {
     final key = await _render(t, const MessagesScreen());
     expect(t.takeException(), isNull);
-    expect(find.text('Search people and messages'), findsOneWidget);
+    expect(find.text('People, groups, communities'), findsOneWidget);
+    expect(find.text('Communities'), findsOneWidget);
+    expect(find.text('Blends'), findsOneWidget);
     await _snap(t, key, 'messages');
   });
 

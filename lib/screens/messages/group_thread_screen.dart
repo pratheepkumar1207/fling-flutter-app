@@ -12,6 +12,8 @@ import '../../widgets/chat_media.dart';
 import '../../widgets/in_icon_button.dart';
 import '../../widgets/people_picker_sheet.dart';
 import '../../widgets/spinner.dart';
+import '../../widgets/group_poll.dart';
+import '../communities/community_home_screen.dart';
 
 /// Create a group: name it, pick people. Returns the new group's id.
 Future<String?> createGroupChat(BuildContext context) async {
@@ -72,6 +74,12 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
   List<Map<String, dynamic>> _messages = [];
   late String _name = widget.name;
   int _members = 0;
+  // In a community: its name (tap to open it), and whether this is its
+  // Announcements group, where only admins post and others react.
+  String? _communityId;
+  String? _communityName;
+  bool _isAnnouncements = false;
+  bool _canPost = true;
   bool _loading = true;
   bool _sending = false;
   bool _bound = false;
@@ -91,6 +99,84 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
     if (socket == null) return;
     _bound = true;
     socket.on('group:message', _onIncoming);
+    socket.on('group:poll', _onPoll);
+    socket.on('group:reaction', _onReaction);
+  }
+
+  void _patch(String id, Map<String, dynamic> Function(Map<String, dynamic>) f) {
+    setState(() => _messages = [
+          for (final m in _messages) m['id'] == id ? f(Map.of(m)) : m
+        ]);
+  }
+
+  void _onPoll(dynamic data) {
+    if (!mounted || data is! Map || data['groupId'] != widget.groupId) return;
+    _patch('${data['messageId']}', (m) => m..['pollCounts'] = data['pollCounts']);
+  }
+
+  void _onReaction(dynamic data) {
+    if (!mounted || data is! Map || data['groupId'] != widget.groupId) return;
+    _patch('${data['messageId']}', (m) => m..['reactions'] = data['reactions']);
+  }
+
+  Future<void> _vote(Map<String, dynamic> m, int? option) async {
+    final id = m['id'] as String;
+    try {
+      final r = await ApiClient.post('/groups/messages/$id/vote',
+          body: {'option': option}) as Map<String, dynamic>;
+      if (!mounted) return;
+      _patch(id, (x) => x
+        ..['pollCounts'] = r['pollCounts']
+        ..['myVote'] = r['myVote']);
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    }
+  }
+
+  Future<void> _react(Map<String, dynamic> m, String emoji) async {
+    final id = m['id'] as String;
+    try {
+      final r = await ApiClient.post('/groups/messages/$id/react',
+          body: {'emoji': emoji}) as Map<String, dynamic>;
+      if (!mounted) return;
+      _patch(id, (x) => x
+        ..['reactions'] = r['reactions']
+        ..['myReaction'] = r['myReaction']);
+    } catch (_) {}
+  }
+
+  Future<void> _pickReaction(Map<String, dynamic> m) async {
+    final emoji = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: const Color(0xFF15121D),
+      builder: (sheet) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                for (final e in groupReactions)
+                  Semantics(
+                    button: true,
+                    label: 'React $e',
+                    child: InkResponse(
+                      onTap: () => Navigator.of(sheet).pop(e),
+                      child: Text(e, style: const TextStyle(fontSize: 30)),
+                    ),
+                  ),
+              ]),
+        ),
+      ),
+    );
+    if (emoji != null) _react(m, emoji);
+  }
+
+  Future<void> _newPoll() async {
+    final poll = await showCreatePollSheet(context);
+    if (poll != null) _send({'messageType': 'poll', 'poll': poll});
   }
 
   void _onIncoming(dynamic data) {
@@ -101,7 +187,10 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
 
   @override
   void dispose() {
-    context.read<SocketService>().socket?.off('group:message', _onIncoming);
+    final socket = context.read<SocketService>().socket;
+    socket?.off('group:message', _onIncoming);
+    socket?.off('group:poll', _onPoll);
+    socket?.off('group:reaction', _onReaction);
     _text.dispose();
     _scroll.dispose();
     super.dispose();
@@ -129,6 +218,10 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
       setState(() {
         _name = g['name'] as String? ?? _name;
         _members = (g['members'] as List?)?.length ?? 0;
+        _communityId = g['communityId'] as String?;
+        _communityName = g['communityName'] as String?;
+        _isAnnouncements = g['isAnnouncements'] == true;
+        _canPost = g['canPost'] != false;
       });
     } catch (_) {}
   }
@@ -213,6 +306,10 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
   Widget _content(Map<String, dynamic> m, bool mine) {
     final type = m['messageType'] as String? ?? 'text';
     final media = m['mediaUrl'] as String?;
+    if (type == 'poll') {
+      return GroupPollBubble(
+          message: m, mine: mine, onVote: (o) => _vote(m, o));
+    }
     if (type == 'image' && media != null) return ChatPhoto(media);
     if (type == 'voice' && media != null) {
       return ChatVoiceNote(media, mine: mine);
@@ -258,18 +355,44 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                               fontSize: 15, fontWeight: FontWeight.w600)),
-                      if (_members > 0)
+                      if (_communityName != null)
+                        Semantics(
+                          button: true,
+                          label: 'Open community $_communityName',
+                          excludeSemantics: true,
+                          child: GestureDetector(
+                            onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                    builder: (_) => CommunityHomeScreen(
+                                        communityId: _communityId!))),
+                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                              const InIcon(InIcons.community,
+                                  size: 12, color: AppColors.lilac),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(_communityName!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                        color: AppColors.lilac, fontSize: 12)),
+                              ),
+                            ]),
+                          ),
+                        )
+                      else if (_members > 0)
                         Text('$_members people',
                             style: const TextStyle(
                                 color: AppColors.textDim, fontSize: 12)),
                     ]),
               ),
-              InIconButton(InIcons.useradd,
-                  tooltip: 'Add people', onPressed: _addPeople),
-              InIconButton(InIcons.logout,
-                  tooltip: 'Leave group',
-                  color: const Color(0xFFFF8AA0),
-                  onPressed: _leave),
+              if (!_isAnnouncements) ...[
+                InIconButton(InIcons.useradd,
+                    tooltip: 'Add people', onPressed: _addPeople),
+                InIconButton(InIcons.logout,
+                    tooltip: 'Leave group',
+                    color: const Color(0xFFFF8AA0),
+                    onPressed: _leave),
+              ],
             ]),
           ),
           const Divider(height: 1, color: Color(0xFF1E1B27)),
@@ -286,6 +409,25 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
                         itemCount: _messages.length,
                         itemBuilder: (context, i) {
                           final m = _messages[i];
+                          if (m['messageType'] == 'system') {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Center(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                      color: const Color(0xFF1F1C29),
+                                      borderRadius: BorderRadius.circular(10)),
+                                  child: Text(m['text'] as String? ?? '',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                          color: AppColors.textDim,
+                                          fontSize: 12)),
+                                ),
+                              ),
+                            );
+                          }
                           final mine = m['senderId'] == myId;
                           final showName = !mine &&
                               (i == 0 ||
@@ -311,10 +453,25 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
                             ),
                             child: _content(m, mine),
                           );
+                          // Long-press any message to react.
+                          final reactable = GestureDetector(
+                            onLongPress: () => _pickReaction(m),
+                            child: Column(
+                                crossAxisAlignment: mine
+                                    ? CrossAxisAlignment.end
+                                    : CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  bubble,
+                                  GroupReactionChips(
+                                      message: m,
+                                      onTap: (e) => _react(m, e)),
+                                ]),
+                          );
                           if (mine) {
                             return Align(
                                 alignment: Alignment.centerRight,
-                                child: bubble);
+                                child: reactable);
                           }
                           return Row(
                             crossAxisAlignment: CrossAxisAlignment.end,
@@ -352,7 +509,7 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
                                                   fontSize: 12,
                                                   fontWeight: FontWeight.w600)),
                                         ),
-                                      bubble,
+                                      reactable,
                                     ]),
                               ),
                             ],
@@ -360,11 +517,28 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
                         },
                       ),
           ),
+          if (!_canPost)
+            Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                  border: Border(top: BorderSide(color: Color(0xFF1E1B27)))),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              child: const Text(
+                  'Only admins post here · long-press a message to react',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.textFaint, fontSize: 13)),
+            )
+          else
           Container(
             decoration: const BoxDecoration(
                 border: Border(top: BorderSide(color: Color(0xFF1E1B27)))),
             padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
             child: Row(children: [
+              InIconButton(InIcons.poll,
+                  tooltip: 'Create a poll',
+                  size: 38,
+                  iconSize: 21,
+                  onPressed: _sending ? null : _newPoll),
               InIconButton(InIcons.image,
                   tooltip: 'Send a photo',
                   size: 38,

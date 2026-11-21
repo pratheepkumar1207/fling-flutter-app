@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../communities/communities_screen.dart';
 import '../events/events_screen.dart';
 import '../experience/experience_hub.dart' show VibeMatchScreen;
 import '../../widgets/insync_brand.dart';
@@ -240,7 +239,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 ],
               ),
             ),
-            // Vibe Match, Communities and Events (they used to sit in the
+            // Vibe Match and Events (they used to sit in the
             // "More ways to connect" hub).
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
@@ -249,9 +248,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   (InIcons.spark, 'Vibe Match', 'Find your mood',
                       const Color(0xFF3A1430), const Color(0xFFFF4FA3),
                       const VibeMatchScreen() as Widget),
-                  (InIcons.community, 'Communities', 'Groups',
-                      const Color(0xFF0F2A22), const Color(0xFF5DCAA5),
-                      const CommunitiesScreen()),
                   (InIcons.calendar, 'Events', 'Plan ahead',
                       const Color(0xFF14203D), const Color(0xFF85B7EB),
                       const EventsScreen()),

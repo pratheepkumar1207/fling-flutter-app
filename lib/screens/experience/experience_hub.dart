@@ -11,7 +11,6 @@ import '../../widgets/live_extras.dart' show compactCount;
 import '../../widgets/spinner.dart';
 import '../../widgets/studio_stats.dart';
 import '../achievements/achievements_screen.dart';
-import '../communities/communities_screen.dart';
 import '../events/events_screen.dart';
 import '../leaderboards/leaderboards_screen.dart';
 import '../lobby/lobby_create_screen.dart';
@@ -167,8 +166,6 @@ class _InsyncFeatureHubScreenState extends State<InsyncFeatureHubScreen> {
                   'Ludo, UNO, Chess',
                   () => _push(context,
                       const LobbyCreateScreen(initialRoomType: 'game'))),
-              tile(InIcons.community, 'Communities', 'Groups and interests',
-                  () => _push(context, const CommunitiesScreen())),
               tile(InIcons.calendar, 'Events', 'Plan ahead',
                   () => _push(context, const EventsScreen())),
             ]),

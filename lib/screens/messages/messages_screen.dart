@@ -19,6 +19,10 @@ import '../../widgets/avatar.dart';
 import '../../widgets/in_icon_button.dart';
 import '../../widgets/read_ticks.dart';
 import '../blend/blend_entry.dart';
+import '../blend/blends_tab.dart';
+import '../communities/community_home_screen.dart';
+import '../communities/find_communities_screen.dart';
+import '../communities/new_community_screen.dart';
 import '../discover/discover_matches_screen.dart';
 import '../friends/friends_screen.dart';
 import '../party/party_screen.dart';
@@ -63,6 +67,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
   // 'all' | 'unread' | 'groups'
   String _filter = 'all';
   List<Map<String, dynamic>> _groups = [];
+  List<Map<String, dynamic>> _communities = [];
   int _likes = 0;
 
   // userId → when their "typing…" stops showing.
@@ -88,6 +93,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     _load();
     _loadMatches();
     _loadGroups();
+    _loadCommunities();
     _loadLikes();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // No live connection (e.g. not signed in yet): just skip typing.
@@ -140,8 +146,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
   static bool _isYourTurn(ConversationSummary c) =>
       !c.isRequest && !c.lastMessageIsMine && c.unreadCount > 0;
 
-  static int _groupUnread(Map<String, dynamic> g) =>
-      (g['unreadCount'] as num?)?.toInt() ?? 0;
+  static int _groupUnread(Map<String, dynamic> g,
+          [String key = 'unreadCount']) =>
+      (g[key] as num?)?.toInt() ?? 0;
 
   static DateTime _groupAt(Map<String, dynamic> g) =>
       DateTime.tryParse('${g['lastMessageAt'] ?? g['createdAt'] ?? ''}') ??
@@ -149,7 +156,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
   int get _unreadChats =>
       _conversations.where((c) => !c.isRequest && c.isUnread).length +
-      _groups.where((g) => _groupUnread(g) > 0).length;
+      _groups.where((g) => _groupUnread(g) > 0).length +
+      _communities.where((c) => _groupUnread(c, 'unread') > 0).length;
 
   int get _requestCount => _conversations.where((c) => c.isRequest).length;
 
@@ -168,6 +176,12 @@ class _MessagesScreenState extends State<MessagesScreen> {
         if ((_filter != 'unread' || _groupUnread(g) > 0) &&
             match(g['name'] as String? ?? ''))
           _InboxEntry.group(g, _groupAt(g)),
+      if (_filter == 'all' || _filter == 'unread')
+        for (final c in _communities)
+          if ((_filter != 'unread' || _groupUnread(c, 'unread') > 0) &&
+              match(c['name'] as String? ?? ''))
+            _InboxEntry.community(c,
+                DateTime.tryParse('${c['lastAt'] ?? ''}') ?? DateTime(2000)),
     ];
     out.sort((a, b) {
       if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
@@ -198,6 +212,83 @@ class _MessagesScreenState extends State<MessagesScreen> {
       setState(() => _groups = (data as List).cast<Map<String, dynamic>>());
     } catch (_) {
       // Groups are optional.
+    }
+  }
+
+  Future<void> _loadCommunities() async {
+    try {
+      final data = await ApiClient.get('/communities/chat');
+      if (!mounted) return;
+      setState(() =>
+          _communities = (data as List).cast<Map<String, dynamic>>());
+    } catch (_) {
+      // Communities are optional.
+    }
+  }
+
+  void _openCommunity(Map<String, dynamic> c) {
+    Navigator.of(context)
+        .push(MaterialPageRoute(
+            builder: (_) =>
+                CommunityHomeScreen(communityId: c['id'] as String)))
+        .then((_) {
+      _loadCommunities();
+      _loadGroups();
+    });
+  }
+
+  void _findCommunities() => Navigator.of(context)
+      .push(MaterialPageRoute(builder: (_) => const FindCommunitiesScreen()))
+      .then((_) => _loadCommunities());
+
+  void _newCommunity() => Navigator.of(context)
+      .push(MaterialPageRoute(builder: (_) => const NewCommunityScreen()))
+      .then((_) => _loadCommunities());
+
+  /// Pencil -> New chat, group, community or blend.
+  Future<void> _openNewMenu() async {
+    Widget item(InIconData icon, String title, String sub, String value) =>
+        Builder(
+          builder: (sheet) => ListTile(
+            leading: CircleAvatar(
+                backgroundColor: AppColors.surface,
+                child: InIcon(icon, size: 20, color: AppColors.lilac)),
+            title: Text(title,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+            subtitle: Text(sub,
+                style: const TextStyle(
+                    color: AppColors.textFaint, fontSize: 12.5)),
+            onTap: () => Navigator.of(sheet).pop(value),
+          ),
+        );
+    final pick = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.bg,
+      builder: (_) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const SizedBox(height: 8),
+          item(InIcons.edit, 'New chat', 'Message a friend', 'chat'),
+          item(InIcons.community, 'New group', 'Chat with a few friends',
+              'group'),
+          item(InIcons.community, 'New community',
+              'Bring groups together under one roof', 'community'),
+          item(InIcons.plus, 'New blend',
+              'A reels feed you and friends all liked', 'blend'),
+          const SizedBox(height: 8),
+        ]),
+      ),
+    );
+    if (!mounted || pick == null) return;
+    switch (pick) {
+      case 'chat':
+        Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const FriendsScreen()));
+      case 'group':
+        _newGroup();
+      case 'community':
+        _newCommunity();
+      case 'blend':
+        startNewBlend(context);
     }
   }
 
@@ -418,14 +509,23 @@ class _MessagesScreenState extends State<MessagesScreen> {
             onLongPress: () => _openChatOptions(e.chat!),
             onJoin: _joinRoom,
           )
-        : _GroupRow(g: e.group!, onTap: () => _openGroup(e.group!));
+        : e.community != null
+            ? _CommunityRow(
+                c: e.community!, onTap: () => _openCommunity(e.community!))
+            : _GroupRow(g: e.group!, onTap: () => _openGroup(e.group!));
+    final q = _query.trim().toLowerCase();
+    final communities = [
+      for (final c in _communities)
+        if ((c['name'] as String? ?? '').toLowerCase().contains(q)) c
+    ];
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () => Future.wait(
-              [_load(), _loadMatches(), _loadGroups(), _loadLikes()]),
+              [_load(), _loadMatches(), _loadGroups(), _loadCommunities(),
+                _loadLikes()]),
           child: CustomScrollView(slivers: [
             SliverToBoxAdapter(
               child: Padding(
@@ -443,16 +543,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
                             letterSpacing: -0.5)),
                   ),
                   _CircleButton(
-                      icon: InIcons.community,
-                      tooltip: 'New group',
-                      onTap: _newGroup),
-                  const SizedBox(width: 8),
-                  _CircleButton(
                       icon: InIcons.edit,
-                      tooltip: 'New message',
+                      tooltip: 'New chat, group, community or blend',
                       filled: true,
-                      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                          builder: (_) => const FriendsScreen()))),
+                      onTap: _openNewMenu),
                 ]),
               ),
             ),
@@ -463,7 +557,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                   onChanged: (v) => setState(() => _query = v),
                   style: const TextStyle(fontSize: 14),
                   decoration: InputDecoration(
-                    hintText: 'Search people and messages',
+                    hintText: 'People, groups, communities',
                     isDense: true,
                     filled: true,
                     fillColor: AppColors.surface,
@@ -517,10 +611,6 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 );
               }),
             ),
-            // Reels Blends: New Blend, then yours.
-            const SliverToBoxAdapter(
-                child: _SectionHeader(title: 'Blends', top: 10)),
-            const SliverToBoxAdapter(child: BlendsRow()),
             SliverToBoxAdapter(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -540,6 +630,14 @@ class _MessagesScreenState extends State<MessagesScreen> {
                       selected: _filter == 'groups',
                       onTap: () => _setFilter('groups')),
                   _FilterPill(
+                      label: 'Communities',
+                      selected: _filter == 'communities',
+                      onTap: () => _setFilter('communities')),
+                  _FilterPill(
+                      label: 'Blends',
+                      selected: _filter == 'blends',
+                      onTap: () => _setFilter('blends')),
+                  _FilterPill(
                       label: 'Requests',
                       count: _requestCount,
                       alert: true,
@@ -553,7 +651,55 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 child:
                     _RequestsBanner(count: _requestCount, onTap: _openRequests),
               ),
-            if (_loading)
+            if (_filter == 'blends')
+              const SliverToBoxAdapter(child: BlendsTabList())
+            else if (_filter == 'communities') ...[
+              SliverToBoxAdapter(
+                child: ListTile(
+                  onTap: _findCommunities,
+                  leading: const CircleAvatar(
+                      backgroundColor: Color(0xFF2A2140),
+                      child: InIcon(InIcons.search,
+                          size: 18, color: AppColors.lilac)),
+                  title: const Text('Find communities',
+                      style: TextStyle(
+                          color: AppColors.lilac, fontWeight: FontWeight.w700)),
+                  subtitle: const Text('Search, browse topics or use a code'),
+                ),
+              ),
+              if (_communities.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 32),
+                        child: Text(
+                            'A community keeps related groups together, with '
+                            'one Announcements group for everyone.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: AppColors.textFaint)),
+                      ),
+                      const SizedBox(height: 12),
+                      FilledButton.icon(
+                        onPressed: _newCommunity,
+                        icon: const InIcon(InIcons.plus,
+                            size: 18, color: Colors.white),
+                        label: const Text('New community'),
+                      ),
+                    ]),
+                  ),
+                )
+              else
+                SliverList.builder(
+                  itemCount: communities.length,
+                  itemBuilder: (context, i) => _CommunityRow(
+                      c: communities[i],
+                      showLines: true,
+                      onTap: () => _openCommunity(communities[i])),
+                ),
+            ]
+            else if (_loading)
               const SliverToBoxAdapter(child: SkeletonRows())
             else if (_filter == 'groups' && entries.isEmpty)
               SliverFillRemaining(
@@ -572,7 +718,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
                   ]),
                 ),
               )
-            else if (_conversations.isEmpty && _groups.isEmpty)
+            else if (_conversations.isEmpty &&
+                _groups.isEmpty &&
+                _communities.isEmpty)
               const SliverFillRemaining(
                   hasScrollBody: false, child: _EmptyChats())
             else if (entries.isEmpty)
@@ -629,19 +777,115 @@ class _MessagesScreenState extends State<MessagesScreen> {
 class _InboxEntry {
   final ConversationSummary? chat;
   final Map<String, dynamic>? group;
+  final Map<String, dynamic>? community;
   final DateTime at;
   final bool pinned;
 
   _InboxEntry.chat(ConversationSummary c)
       : chat = c,
         group = null,
+        community = null,
         at = c.lastMessageAt,
         pinned = c.pinned;
 
   _InboxEntry.group(Map<String, dynamic> g, this.at)
       : chat = null,
         group = g,
+        community = null,
         pinned = false;
+
+  _InboxEntry.community(Map<String, dynamic> c, this.at)
+      : chat = null,
+        group = null,
+        community = c,
+        pinned = false;
+}
+
+/// A community in the inbox: its picture, name and the latest group line.
+/// On the Communities tab it shows the two latest group lines.
+class _CommunityRow extends StatelessWidget {
+  final Map<String, dynamic> c;
+  final bool showLines;
+  final VoidCallback onTap;
+  const _CommunityRow(
+      {required this.c, required this.onTap, this.showLines = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final unread = (c['unread'] as num?)?.toInt() ?? 0;
+    final at = DateTime.tryParse('${c['lastAt'] ?? ''}');
+    final lines = ((c['lines'] as List?) ?? const [])
+        .cast<Map>()
+        .take(showLines ? 2 : 1)
+        .toList();
+    String line(Map l) => '${l['groupName'] ?? ''}: ${l['text'] ?? ''}';
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Semantics(
+            label: 'Community',
+            child: CommunityAvatar(
+                name: c['name'] as String? ?? '',
+                url: c['avatarUrl'] as String?,
+                size: 48),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(c['name'] as String? ?? 'Community',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontWeight:
+                          unread > 0 ? FontWeight.w800 : FontWeight.w600,
+                      fontSize: 15)),
+              const SizedBox(height: 2),
+              if (lines.isEmpty)
+                Text(
+                    '${c['groupCount'] ?? 0} groups · '
+                    '${c['memberCount'] ?? 0} members',
+                    style: const TextStyle(
+                        color: AppColors.textDim, fontSize: 13))
+              else
+                for (final l in lines)
+                  Text(line(l),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color:
+                              unread > 0 ? AppColors.text : AppColors.textDim,
+                          fontSize: 13)),
+            ]),
+          ),
+          const SizedBox(width: 8),
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            if (at != null)
+              Text(formatRelativeTime(at),
+                  style: TextStyle(
+                      color: unread > 0 ? AppColors.lilac : AppColors.textDim,
+                      fontSize: 12)),
+            if (unread > 0)
+              Container(
+                margin: const EdgeInsets.only(top: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                    color: AppColors.lilac,
+                    borderRadius: BorderRadius.circular(999)),
+                child: Text('$unread',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700)),
+              ),
+          ]),
+        ]),
+      ),
+    );
+  }
 }
 
 /// Same shape as a notes tile (bubble space on top) so the strip lines up.
