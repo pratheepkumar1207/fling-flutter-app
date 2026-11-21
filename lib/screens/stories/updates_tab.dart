@@ -70,17 +70,22 @@ class UpdatesTab extends StatelessWidget {
     final me = context.watch<AuthProvider>().user;
     final mine = stories.where((s) => s.userId == me?.id).toList();
     final others = stories.where((s) => s.userId != me?.id).toList()
+      ..removeWhere((s) => s.items.isEmpty)
       ..sort((a, b) => b.items.last.createdAt.compareTo(a.items.last.createdAt));
     final recent = others.where((s) => !storyGroupSeen(s, seen)).toList();
     final old = others.where((s) => storyGroupSeen(s, seen)).toList();
 
     Future<void> open(StoryEntry s) async {
       final list = [...mine, ...recent, ...old];
-      await _markSeen(s.items.map((i) => i.id));
-      if (!context.mounted) return;
+      // Only the stories that were really on screen count as seen,
+      // including friends swiped into.
+      final viewed = <String>{};
       await Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => StoryViewerScreen(
-              groups: list, startGroupIndex: list.indexOf(s))));
+              groups: list,
+              startGroupIndex: list.indexOf(s),
+              onItemShown: (i) => viewed.add(i.id))));
+      await _markSeen(viewed);
       onChanged();
     }
 

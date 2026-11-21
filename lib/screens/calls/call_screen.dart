@@ -62,6 +62,7 @@ class _CallScreenState extends State<CallScreen> {
   bool _controlsVisible = true;
   Timer? _hideControlsTimer;
   Timer? _noAnswerTimer;
+  Timer? _peerGoneTimer;
   Widget? _remoteView;
   int? _remoteViewUid;
   Widget? _localView;
@@ -161,6 +162,20 @@ class _CallScreenState extends State<CallScreen> {
       _noAnswerTimer?.cancel();
       _showControls();
     }
+    // The other phone dropped out (crash, no signal). Give it a moment to
+    // come back, then end the call so it's logged with its real length.
+    if (_wasConnected && !connected) {
+      _peerGoneTimer ??= Timer(const Duration(seconds: 20), () {
+        if (!mounted || _controller.remoteUid != null) return;
+        setState(() => _endReason = 'Call ended');
+        Future.delayed(const Duration(milliseconds: 900), () {
+          if (mounted) _hangUp();
+        });
+      });
+    } else if (connected) {
+      _peerGoneTimer?.cancel();
+      _peerGoneTimer = null;
+    }
   }
 
   /// In a video call the buttons step aside so the video can be seen; a tap
@@ -229,7 +244,9 @@ class _CallScreenState extends State<CallScreen> {
     // may still be looking at their incoming-call dialog (see
     // app_shell.dart's _showIncomingCall) and needs the distinct
     // call:cancelled event to dismiss it, not call:ended.
-    final neverConnected = widget.isCaller && _controller.remoteUid == null;
+    // _wasConnected, not remoteUid: after the other side drops out mid-call
+    // remoteUid is null again, but that's an end, not a cancel.
+    final neverConnected = widget.isCaller && !_wasConnected;
     final endpoint =
         neverConnected ? '/calls/direct-cancel' : '/calls/direct-end';
     ApiClient.post(endpoint, body: {'channelName': widget.channelName})
@@ -602,6 +619,7 @@ class _CallScreenState extends State<CallScreen> {
     _durationTimer?.cancel();
     _hideControlsTimer?.cancel();
     _noAnswerTimer?.cancel();
+    _peerGoneTimer?.cancel();
     _elapsed.dispose();
     _controller.removeListener(_onControllerChanged);
     _lens?.shutdown();

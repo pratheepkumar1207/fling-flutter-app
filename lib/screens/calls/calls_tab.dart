@@ -45,6 +45,46 @@ class _CallsTabListState extends State<CallsTabList> {
     _load();
   }
 
+  /// A tap on a favourite asks how, so nobody gets called by accident.
+  Future<void> _chooseCall(Map<String, dynamic> f) async {
+    final pick = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.bg,
+      builder: (sheet) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: Avatar(
+                src: f['avatarUrl'] as String?,
+                name: f['name'] as String?,
+                size: AvatarSize.sm),
+            title: Text(f['name'] as String? ?? '',
+                style: const TextStyle(fontWeight: FontWeight.w700)),
+          ),
+          ListTile(
+              leading: const Icon(Icons.call_outlined, color: AppColors.lilac),
+              title: const Text('Voice call'),
+              onTap: () => Navigator.of(sheet).pop('voice')),
+          ListTile(
+              leading:
+                  const Icon(Icons.videocam_outlined, color: AppColors.lilac),
+              title: const Text('Video call'),
+              onTap: () => Navigator.of(sheet).pop('video')),
+          ListTile(
+              leading: const Icon(Icons.chat_bubble_outline,
+                  color: AppColors.lilac),
+              title: const Text('Message'),
+              onTap: () => Navigator.of(sheet).pop('chat')),
+        ]),
+      ),
+    );
+    if (!mounted || pick == null) return;
+    if (pick == 'chat') {
+      _openChat(f);
+    } else {
+      await _call(f, pick == 'video');
+    }
+  }
+
   void _openChat(Map<String, dynamic> c) =>
       Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => MessageThreadScreen(
@@ -120,7 +160,7 @@ class _CallsTabListState extends State<CallsTabList> {
                 label: 'Call ${f['name']}',
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
-                  onTap: () => _call(f, f['mode'] == 'video'),
+                  onTap: () => _chooseCall(f),
                   child: SizedBox(
                     width: 68,
                     child: Column(children: [
@@ -176,7 +216,7 @@ class _CallsTabListState extends State<CallsTabList> {
                       ? Icons.call_made_rounded
                       : Icons.call_received_rounded,
                   size: 14,
-                  color: missed || declined
+                  color: c['status'] != 'answered'
                       ? AppColors.danger
                       : const Color(0xFF5DCAA5)),
               const SizedBox(width: 4),

@@ -24,8 +24,14 @@ class StoryViewerScreen extends StatefulWidget {
   final List<StoryEntry> groups;
   final int startGroupIndex;
 
+  /// Called with each story as it comes on screen.
+  final ValueChanged<StoryItem>? onItemShown;
+
   const StoryViewerScreen(
-      {super.key, required this.groups, required this.startGroupIndex});
+      {super.key,
+      required this.groups,
+      required this.startGroupIndex,
+      this.onItemShown});
 
   @override
   State<StoryViewerScreen> createState() => _StoryViewerScreenState();
@@ -62,6 +68,7 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
   }
 
   void _startTimer() {
+    widget.onItemShown?.call(_item);
     final duration = (_item.mediaType == 'voice' || _item.mediaType == 'reel')
         ? _mediaDuration
         : _defaultDuration;

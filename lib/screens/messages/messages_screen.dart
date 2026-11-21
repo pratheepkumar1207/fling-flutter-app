@@ -78,6 +78,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
   List<StoryEntry> _stories = const [];
   Set<String> _seenStories = const {};
   int _missedCalls = 0;
+
+  /// Bumped to rebuild the Calls and Blends lists (they load their own data).
+  int _listsTick = 0;
+  Timer? _missedRecheck;
   int _likes = 0;
 
   // userId → when their "typing…" stops showing.
@@ -116,6 +120,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
       }
       _socket?.on('dm:typing', _onTyping);
       _socket?.on('dm:message', _onMessage);
+      _socket?.on('call:incoming', _onCallEvent);
+      _socket?.on('call:cancelled', _onCallEvent);
     });
   }
 
@@ -123,6 +129,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
   void dispose() {
     _socket?.off('dm:typing', _onTyping);
     _socket?.off('dm:message', _onMessage);
+    _socket?.off('call:incoming', _onCallEvent);
+    _socket?.off('call:cancelled', _onCallEvent);
+    _missedRecheck?.cancel();
     _typingTick?.cancel();
     super.dispose();
   }
@@ -258,6 +267,27 @@ class _MessagesScreenState extends State<MessagesScreen> {
     } catch (_) {}
   }
 
+  /// A call came in or the caller gave up: refresh the missed badge. An
+  /// unanswered ring only counts as missed after a minute, so look again.
+  void _onCallEvent(dynamic data) {
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) _refreshCallsState();
+    });
+    _missedRecheck?.cancel();
+    _missedRecheck = Timer(const Duration(seconds: 65), () {
+      if (mounted) _refreshCallsState();
+    });
+  }
+
+  Future<void> _refreshCallsState() async {
+    if (_tab == 'calls') {
+      setState(() => _listsTick++);
+      await _setTab('calls');
+    } else {
+      await _loadMissedCalls();
+    }
+  }
+
   Future<void> _setTab(String t) async {
     setState(() {
       _tab = t;
@@ -331,12 +361,16 @@ class _MessagesScreenState extends State<MessagesScreen> {
       case 'communities':
         _newCommunity();
       case 'blends':
-        startNewBlend(context);
+        startNewBlend(context, onCreated: _bumpLists);
       case 'calls':
-        pickFriendAndCall(context).then((_) => setState(() {}));
+        pickFriendAndCall(context).then((_) => _bumpLists());
       default:
         _openNewMenu();
     }
+  }
+
+  void _bumpLists() {
+    if (mounted) setState(() => _listsTick++);
   }
 
   /// Pencil -> New chat, group, community or blend.
@@ -617,9 +651,13 @@ class _MessagesScreenState extends State<MessagesScreen> {
       backgroundColor: AppColors.bg,
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: () => Future.wait(
-              [_load(), _loadMatches(), _loadGroups(), _loadCommunities(),
-                _loadLikes(), _loadStories(), _loadMissedCalls()]),
+          onRefresh: () {
+            _bumpLists();
+            return Future.wait([
+              _load(), _loadMatches(), _loadGroups(), _loadCommunities(),
+              _loadLikes(), _loadStories(), _loadMissedCalls()
+            ]);
+          },
           child: CustomScrollView(slivers: [
             SliverAppBar(
               floating: true,
@@ -777,9 +815,11 @@ class _MessagesScreenState extends State<MessagesScreen> {
                     _RequestsBanner(count: _requestCount, onTap: _openRequests),
               ),
             if (_tab == 'blends')
-              const SliverToBoxAdapter(child: BlendsTabList())
+              SliverToBoxAdapter(
+                  child: BlendsTabList(key: ValueKey('blends$_listsTick')))
             else if (_tab == 'calls')
-              const SliverToBoxAdapter(child: CallsTabList())
+              SliverToBoxAdapter(
+                  child: CallsTabList(key: ValueKey('calls$_listsTick')))
             else if (_tab == 'updates')
               SliverToBoxAdapter(
                   child: UpdatesTab(
@@ -823,6 +863,13 @@ class _MessagesScreenState extends State<MessagesScreen> {
                     ]),
                   ),
                 )
+              else if (communities.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                      child: Text('No communities match “${_query.trim()}”.',
+                          style: const TextStyle(color: AppColors.textFaint))),
+                )
               else
                 SliverList.builder(
                   itemCount: communities.length,
@@ -851,9 +898,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                   ]),
                 ),
               )
-            else if (_conversations.isEmpty &&
-                _groups.isEmpty &&
-                _communities.isEmpty)
+            else if (_conversations.isEmpty && _groups.isEmpty)
               const SliverFillRemaining(
                   hasScrollBody: false, child: _EmptyChats())
             else if (entries.isEmpty)
