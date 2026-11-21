@@ -1,7 +1,6 @@
 import '../../widgets/view_once.dart';
 import '../../widgets/insync_brand.dart';
 import '../../widgets/animated_emoji.dart';
-import '../../widgets/permission_primer.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
@@ -34,7 +33,7 @@ import '../../widgets/read_ticks.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/spinner.dart';
 import '../blend/blend_entry.dart';
-import '../calls/call_screen.dart';
+import '../calls/start_call.dart';
 import '../lobby/lobby_create_screen.dart';
 
 /// The reactions offered on long-press, same list the backend accepts.
@@ -668,35 +667,11 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     await _sendBody({'messageType': 'gif', 'mediaUrl': url});
   }
 
-  Future<void> _startCall(bool video) async {
-    if (!await checkPermissionsOrExplain(context, camera: video) || !mounted) {
-      return;
-    }
-    try {
-      final data = await ApiClient.post('/calls/direct-invite', body: {
-        'toUserId': widget.userId,
-        'mode': video ? 'video' : 'audio'
-      }) as Map<String, dynamic>;
-      if (!mounted) return;
-      await Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => CallScreen(
-          channelName: data['channelName'] as String,
-          token: data['token'] as String,
-          uid: data['uid'] as int,
-          video: video,
-          isCaller: true,
-          peerId: widget.userId,
-          peerName: widget.name,
-          peerAvatarUrl: widget.avatarUrl,
-        ),
-      ));
-    } on ApiException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
-      }
-    }
-  }
+  Future<void> _startCall(bool video) => startDirectCall(context,
+      userId: widget.userId,
+      name: widget.name,
+      avatarUrl: widget.avatarUrl,
+      video: video);
 
   Future<void> _sendBody(Map<String, dynamic> body,
       {bool clearText = false}) async {

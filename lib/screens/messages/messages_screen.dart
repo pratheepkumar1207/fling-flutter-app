@@ -8,7 +8,6 @@ import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
 import '../../core/socket_service.dart';
-import '../../widgets/notes.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
 import '../../core/profile_nav.dart';
@@ -20,6 +19,11 @@ import '../../widgets/in_icon_button.dart';
 import '../../widgets/read_ticks.dart';
 import '../blend/blend_entry.dart';
 import '../blend/blends_tab.dart';
+import '../calls/calls_tab.dart';
+import '../stories/updates_tab.dart';
+import '../create/create_flow.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../widgets/story_bar.dart';
 import '../communities/community_home_screen.dart';
 import '../communities/find_communities_screen.dart';
 import '../communities/new_community_screen.dart';
@@ -68,6 +72,12 @@ class _MessagesScreenState extends State<MessagesScreen> {
   String _filter = 'all';
   List<Map<String, dynamic>> _groups = [];
   List<Map<String, dynamic>> _communities = [];
+  // Top tabs: chats | updates | communities | blends | calls.
+  String _tab = 'chats';
+  bool _searchOpen = false;
+  List<StoryEntry> _stories = const [];
+  Set<String> _seenStories = const {};
+  int _missedCalls = 0;
   int _likes = 0;
 
   // userId → when their "typing…" stops showing.
@@ -95,6 +105,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
     _loadGroups();
     _loadCommunities();
     _loadLikes();
+    _loadStories();
+    _loadMissedCalls();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // No live connection (e.g. not signed in yet): just skip typing.
       try {
@@ -215,6 +227,57 @@ class _MessagesScreenState extends State<MessagesScreen> {
     }
   }
 
+  Future<void> _loadStories() async {
+    final results = await Future.wait(
+        [loadStoryEntries(), loadSeenStoryIds()]);
+    if (!mounted) return;
+    setState(() {
+      _stories = results[0] as List<StoryEntry>;
+      _seenStories = results[1] as Set<String>;
+    });
+  }
+
+  static const _callsSeenKey = 'chat_calls_seen_at';
+
+  /// Missed calls since Calls was last opened, for the tab badge.
+  Future<void> _loadMissedCalls() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      final since = DateTime.fromMillisecondsSinceEpoch(
+          p.getInt(_callsSeenKey) ?? 0);
+      final rows = (await ApiClient.get('/calls/history') as List)
+          .cast<Map<String, dynamic>>();
+      if (!mounted) return;
+      setState(() => _missedCalls = rows
+          .where((c) =>
+              c['direction'] == 'incoming' &&
+              c['status'] == 'missed' &&
+              (DateTime.tryParse('${c['at']}') ?? DateTime(2000))
+                  .isAfter(since))
+          .length);
+    } catch (_) {}
+  }
+
+  Future<void> _setTab(String t) async {
+    setState(() {
+      _tab = t;
+      if (t != 'chats' && t != 'communities') _searchOpen = false;
+      if (t == 'calls') _missedCalls = 0;
+    });
+    if (t == 'calls') {
+      try {
+        final p = await SharedPreferences.getInstance();
+        await p.setInt(_callsSeenKey, DateTime.now().millisecondsSinceEpoch);
+      } catch (_) {}
+    }
+  }
+
+  bool get _hasNewStories {
+    final me = context.read<AuthProvider>().user?.id;
+    return _stories
+        .any((s) => s.userId != me && !storyGroupSeen(s, _seenStories));
+  }
+
   Future<void> _loadCommunities() async {
     try {
       final data = await ApiClient.get('/communities/chat');
@@ -244,6 +307,37 @@ class _MessagesScreenState extends State<MessagesScreen> {
   void _newCommunity() => Navigator.of(context)
       .push(MaterialPageRoute(builder: (_) => const NewCommunityScreen()))
       .then((_) => _loadCommunities());
+
+  String get _tabTitle => switch (_tab) {
+        'updates' => 'Updates',
+        'communities' => 'Communities',
+        'blends' => 'Blends',
+        'calls' => 'Calls',
+        _ => 'Chats',
+      };
+
+  String get _actionTooltip => switch (_tab) {
+        'updates' => 'Add to your story',
+        'communities' => 'New community',
+        'blends' => 'New blend',
+        'calls' => 'New call',
+        _ => 'New chat, group, community or blend',
+      };
+
+  void _headerAction() {
+    switch (_tab) {
+      case 'updates':
+        openCreateFlow(context, mode: CreateMode.story, onPosted: _loadStories);
+      case 'communities':
+        _newCommunity();
+      case 'blends':
+        startNewBlend(context);
+      case 'calls':
+        pickFriendAndCall(context).then((_) => setState(() {}));
+      default:
+        _openNewMenu();
+    }
+  }
 
   /// Pencil -> New chat, group, community or blend.
   Future<void> _openNewMenu() async {
@@ -525,135 +619,174 @@ class _MessagesScreenState extends State<MessagesScreen> {
         child: RefreshIndicator(
           onRefresh: () => Future.wait(
               [_load(), _loadMatches(), _loadGroups(), _loadCommunities(),
-                _loadLikes()]),
+                _loadLikes(), _loadStories(), _loadMissedCalls()]),
           child: CustomScrollView(slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 6, 12, 4),
+            SliverAppBar(
+              floating: true,
+              snap: true,
+              automaticallyImplyLeading: false,
+              backgroundColor: AppColors.bg,
+              surfaceTintColor: Colors.transparent,
+              toolbarHeight: 58,
+              titleSpacing: 0,
+              title: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 0, 12, 0),
                 child: Row(children: [
-                  InIconButton(InIcons.back,
-                      tooltip: 'Back',
-                      onPressed: () => Navigator.of(context).maybePop()),
-                  const SizedBox(width: 2),
-                  const Expanded(
-                    child: Text('Messages',
-                        style: TextStyle(
+                  if (Navigator.of(context).canPop())
+                    InIconButton(InIcons.back,
+                        tooltip: 'Back',
+                        onPressed: () => Navigator.of(context).maybePop())
+                  else
+                    const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(_tabTitle,
+                        style: const TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.5)),
                   ),
+                  if (_tab == 'chats' || _tab == 'communities') ...[
+                    _CircleButton(
+                        icon: InIcons.search,
+                        tooltip: _searchOpen ? 'Close search' : 'Search',
+                        onTap: () => setState(() {
+                              _searchOpen = !_searchOpen;
+                              if (!_searchOpen) _query = '';
+                            })),
+                    const SizedBox(width: 8),
+                  ],
                   _CircleButton(
-                      icon: InIcons.edit,
-                      tooltip: 'New chat, group, community or blend',
+                      icon: _tab == 'chats'
+                          ? InIcons.edit
+                          : _tab == 'updates'
+                              ? InIcons.camera
+                              : _tab == 'calls'
+                                  ? InIcons.phone
+                                  : InIcons.plus,
+                      tooltip: _actionTooltip,
                       filled: true,
-                      onTap: _openNewMenu),
+                      onTap: _headerAction),
                 ]),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                child: TextField(
-                  onChanged: (v) => setState(() => _query = v),
-                  style: const TextStyle(fontSize: 14),
-                  decoration: InputDecoration(
-                    hintText: 'People, groups, communities',
-                    isDense: true,
-                    filled: true,
-                    fillColor: AppColors.surface,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(999),
-                        borderSide: const BorderSide(color: AppColors.border)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(999),
-                        borderSide: const BorderSide(color: AppColors.border)),
-                    prefixIcon: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 14),
-                        child: InIcon(InIcons.search,
-                            size: 18, color: AppColors.textDim)),
-                    prefixIconConstraints:
-                        const BoxConstraints(minWidth: 0, minHeight: 0),
-                  ),
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(48),
+                child: _ChatTabs(
+                  tab: _tab,
+                  unread: _unreadChats,
+                  newStories: _hasNewStories,
+                  missedCalls: _missedCalls,
+                  onTap: _setTab,
                 ),
               ),
             ),
-            // One strip: your note, Likes, new matches, then friends' notes.
-            SliverToBoxAdapter(
-              child: _SectionHeader(
-                title: 'New matches',
-                top: 12,
-                action: _matches.isEmpty ? null : 'See all',
-                onAction: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => const DiscoverMatchesScreen())),
+            if (_searchOpen)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+                  child: TextField(
+                    autofocus: true,
+                    onChanged: (v) => setState(() => _query = v),
+                    style: const TextStyle(fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: 'People, groups, communities',
+                      isDense: true,
+                      filled: true,
+                      fillColor: AppColors.surface,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(999),
+                          borderSide: const BorderSide(color: AppColors.border)),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(999),
+                          borderSide: const BorderSide(color: AppColors.border)),
+                      prefixIcon: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 14),
+                          child: InIcon(InIcons.search,
+                              size: 18, color: AppColors.textDim)),
+                      prefixIconConstraints:
+                          const BoxConstraints(minWidth: 0, minHeight: 0),
+                    ),
+                  ),
+                ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: Builder(builder: (context) {
-                final me = context.watch<AuthProvider>().user;
-                return NotesRow(
-                  myUserId: me?.id,
-                  myName: me?.name,
-                  myAvatar: me?.avatarUrl,
-                  after: [
-                    if (_likes > 0)
-                      _LikesTile(count: _likes, onTap: _openLikes),
-                    for (final m in _matches)
-                      _MatchTile(
-                        m: m,
-                        fresh: !talkedTo.contains(m['userId']),
-                        onTap: () => _openChat(
-                            m['userId'] as String,
-                            m['name'] as String? ?? '',
-                            m['avatarUrl'] as String?),
-                      ),
-                  ],
-                );
-              }),
-            ),
-            SliverToBoxAdapter(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
-                child: Row(children: [
-                  _FilterPill(
-                      label: 'All',
-                      selected: _filter == 'all',
-                      onTap: () => _setFilter('all')),
-                  _FilterPill(
-                      label: 'Unread',
-                      count: _unreadChats,
-                      selected: _filter == 'unread',
-                      onTap: () => _setFilter('unread')),
-                  _FilterPill(
-                      label: 'Groups',
-                      selected: _filter == 'groups',
-                      onTap: () => _setFilter('groups')),
-                  _FilterPill(
-                      label: 'Communities',
-                      selected: _filter == 'communities',
-                      onTap: () => _setFilter('communities')),
-                  _FilterPill(
-                      label: 'Blends',
-                      selected: _filter == 'blends',
-                      onTap: () => _setFilter('blends')),
-                  _FilterPill(
-                      label: 'Requests',
-                      count: _requestCount,
-                      alert: true,
-                      selected: false,
-                      onTap: _openRequests),
-                ]),
+            // Chats: likes and new matches, then the filters.
+            if (_tab == 'chats' && (_likes > 0 || _matches.isNotEmpty)) ...[
+              SliverToBoxAdapter(
+                child: _SectionHeader(
+                  title: 'New matches',
+                  top: 12,
+                  action: _matches.isEmpty ? null : 'See all',
+                  onAction: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const DiscoverMatchesScreen())),
+                ),
               ),
-            ),
-            if (_filter == 'all' && _requestCount > 0)
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 94 + MediaQuery.textScalerOf(context).scale(12) * 1.6,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    children: [
+                      if (_likes > 0)
+                        _LikesTile(count: _likes, onTap: _openLikes),
+                      for (final m in _matches)
+                        _MatchTile(
+                          m: m,
+                          fresh: !talkedTo.contains(m['userId']),
+                          onTap: () => _openChat(
+                              m['userId'] as String,
+                              m['name'] as String? ?? '',
+                              m['avatarUrl'] as String?),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            if (_tab == 'chats')
+              SliverToBoxAdapter(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+                  child: Row(children: [
+                    _FilterPill(
+                        label: 'All',
+                        selected: _filter == 'all',
+                        onTap: () => _setFilter('all')),
+                    _FilterPill(
+                        label: 'Unread',
+                        count: _unreadChats,
+                        selected: _filter == 'unread',
+                        onTap: () => _setFilter('unread')),
+                    _FilterPill(
+                        label: 'Groups',
+                        selected: _filter == 'groups',
+                        onTap: () => _setFilter('groups')),
+                    _FilterPill(
+                        label: 'Requests',
+                        count: _requestCount,
+                        alert: true,
+                        selected: false,
+                        onTap: _openRequests),
+                  ]),
+                ),
+              ),
+            if (_tab == 'chats' && _filter == 'all' && _requestCount > 0)
               SliverToBoxAdapter(
                 child:
                     _RequestsBanner(count: _requestCount, onTap: _openRequests),
               ),
-            if (_filter == 'blends')
+            if (_tab == 'blends')
               const SliverToBoxAdapter(child: BlendsTabList())
-            else if (_filter == 'communities') ...[
+            else if (_tab == 'calls')
+              const SliverToBoxAdapter(child: CallsTabList())
+            else if (_tab == 'updates')
+              SliverToBoxAdapter(
+                  child: UpdatesTab(
+                      stories: _stories,
+                      seen: _seenStories,
+                      onChanged: _loadStories))
+            else if (_tab == 'communities') ...[
               SliverToBoxAdapter(
                 child: ListTile(
                   onTap: _findCommunities,
@@ -799,6 +932,101 @@ class _InboxEntry {
         group = null,
         community = c,
         pinned = false;
+}
+
+/// Facebook-style icon tabs under the Chat title. The app's own bottom bar
+/// stays as it is; these switch what Chat shows.
+class _ChatTabs extends StatelessWidget {
+  final String tab;
+  final int unread;
+  final bool newStories;
+  final int missedCalls;
+  final ValueChanged<String> onTap;
+  const _ChatTabs(
+      {required this.tab,
+      required this.unread,
+      required this.newStories,
+      required this.missedCalls,
+      required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    Widget item(String id, IconData icon, String label,
+        {int count = 0, bool dot = false}) {
+      final on = tab == id;
+      return Expanded(
+        child: Semantics(
+          button: true,
+          selected: on,
+          label: count > 0 ? '$label, $count new' : label,
+          child: InkWell(
+            onTap: () => onTap(id),
+            child: Container(
+              height: 48,
+              decoration: BoxDecoration(
+                border: Border(
+                    bottom: BorderSide(
+                        color: on ? AppColors.lilac : Colors.transparent,
+                        width: 3)),
+              ),
+              alignment: Alignment.center,
+              child: Stack(clipBehavior: Clip.none, children: [
+                Icon(icon,
+                    size: 25,
+                    color: on ? AppColors.lilac : AppColors.textFaint),
+                if (count > 0)
+                  Positioned(
+                    left: 16,
+                    top: -5,
+                    child: Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      constraints: const BoxConstraints(minWidth: 18),
+                      decoration: BoxDecoration(
+                          color: AppColors.danger,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: AppColors.bg, width: 1.5)),
+                      child: Text(count > 99 ? '99+' : '$count',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700)),
+                    ),
+                  )
+                else if (dot)
+                  Positioned(
+                    right: -3,
+                    top: -1,
+                    child: Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                          color: const Color(0xFFFF4FA3),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.bg, width: 1.5)),
+                    ),
+                  ),
+              ]),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: AppColors.border, width: 0.5))),
+      child: Row(children: [
+        item('chats', Icons.chat_bubble_outline_rounded, 'Chats', count: unread),
+        item('updates', Icons.motion_photos_on_outlined, 'Updates',
+            dot: newStories),
+        item('communities', Icons.groups_outlined, 'Communities'),
+        item('blends', Icons.shuffle_rounded, 'Blends'),
+        item('calls', Icons.call_outlined, 'Calls', count: missedCalls),
+      ]),
+    );
+  }
 }
 
 /// A community in the inbox: its picture, name and the latest group line.

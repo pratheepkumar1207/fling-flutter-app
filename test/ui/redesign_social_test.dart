@@ -98,9 +98,21 @@ void main() {
   testWidgets('Messages renders search, filters and empty state', (t) async {
     final key = await _render(t, const MessagesScreen());
     expect(t.takeException(), isNull);
+    expect(find.text('Chats'), findsOneWidget);
+    for (final tab in ['Updates', 'Communities', 'Blends', 'Calls']) {
+      expect(find.bySemanticsLabel(tab), findsOneWidget);
+    }
+    // Search opens from the header button.
+    await t.tap(find.byTooltip('Search'));
+    await t.pump();
     expect(find.text('People, groups, communities'), findsOneWidget);
-    expect(find.text('Communities'), findsOneWidget);
-    expect(find.text('Blends'), findsOneWidget);
+    // Each top tab switches the title.
+    for (final tab in ['Updates', 'Communities', 'Blends', 'Calls']) {
+      await t.tap(find.bySemanticsLabel(tab));
+      await t.pump();
+      expect(find.text(tab), findsWidgets);
+      expect(t.takeException(), isNull);
+    }
     await _snap(t, key, 'messages');
   });
 

@@ -179,7 +179,8 @@ void main() {
     testWidgets('strip, groups, pinned first, long-press menu $tag', (t) async {
       await _render(t, size, scale);
       expect(t.takeException(), isNull);
-      expect(find.text('Your note'), findsOneWidget);
+      // Notes moved to the Updates tab; Chats keeps likes and matches.
+      expect(find.text('Your note'), findsNothing);
       expect(find.bySemanticsLabel('12 people like you'), findsOneWidget);
       expect(find.bySemanticsLabel('New match Riya'), findsOneWidget);
       // Naina already has a chat, so no NEW badge.
