@@ -69,21 +69,30 @@ class _HomeScreenState extends State<HomeScreen> {
     // every 1s, firing 3 requests per tick (~180/min per device, even on
     // other tabs), which exhausted the backend's 300-per-15-min rate limit
     // in under two minutes and made every other request in the app fail.
-    // Now 30s, and _load skips silent refreshes while Home isn't visible.
+    // Now 15s (head counts on the cards come from this; the server only
+    // pings for rooms opening and closing), and _load skips silent
+    // refreshes while Home isn't visible.
     _refreshTimer =
-        Timer.periodic(const Duration(seconds: 30), (_) => _load(silent: true));
+        Timer.periodic(const Duration(seconds: 15), (_) => _load(silent: true));
     context
         .read<SocketService>()
         .socket
         ?.on('rooms:activity', _onRoomsActivity);
   }
 
-  // Debounced — a burst of joins/leaves (e.g. a room emptying out member by
-  // member) would otherwise fire several near-simultaneous refetches.
+  // A room opened or closed somewhere. The first one reloads at once; after
+  // that at most one reload every 10 s, however many rooms change, so a
+  // busy app can't keep every phone on Home reloading.
+  DateTime _lastActivityLoad = DateTime.fromMillisecondsSinceEpoch(0);
   void _onRoomsActivity(dynamic _) {
-    _activityDebounce?.cancel();
-    _activityDebounce =
-        Timer(const Duration(milliseconds: 400), () => _load(silent: true));
+    if (_activityDebounce?.isActive ?? false) return;
+    final since = DateTime.now().difference(_lastActivityLoad);
+    const gap = Duration(seconds: 10);
+    final delay = since >= gap ? const Duration(milliseconds: 400) : gap - since;
+    _activityDebounce = Timer(delay, () {
+      _lastActivityLoad = DateTime.now();
+      _load(silent: true);
+    });
   }
 
   @override
