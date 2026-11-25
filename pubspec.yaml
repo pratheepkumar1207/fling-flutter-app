@@ -108,6 +108,7 @@ dependencies:
   geocoding: ^5.0.1
   qr_flutter: ^4.1.0
   lottie: ^3.7.0
+  flutter_secure_storage: 9.2.4
 
 dev_dependencies:
   flutter_test:

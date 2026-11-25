@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
@@ -13,6 +14,10 @@ import '../splash_screen.dart';
 import 'google_sign_in_view.dart';
 import 'otp_screen.dart';
 import 'safety_guidelines_screen.dart';
+
+/// Debug runs, or a test build made with --dart-define=DEV_LOGIN=true.
+const bool _devLoginBuild =
+    kDebugMode || bool.fromEnvironment('DEV_LOGIN');
 
 class LoginScreen extends StatefulWidget {
   // Carried over from OnboardingScreen's own phone field (the mockup shows
@@ -34,7 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   String _error = '';
   bool _loading = false;
-  bool _devMode = !firebaseConfigured;
+  bool _devMode = _devLoginBuild && !firebaseConfigured;
   bool _fieldFocused = false;
   bool _fakeLoginMode = false;
   // What the admin panel has switched on. Starts as Google alone, which is
@@ -63,7 +68,10 @@ class _LoginScreenState extends State<LoginScreen> {
         _googleOn = options['google'] == true;
         _phoneOn = options['phone'] == true;
         _passwordOn = options['password'] == true;
-        _devOn = options['dev'] == true;
+        // Dev login (no OTP) only exists in debug or test builds, whatever
+        // the admin panel says: store builds must not carry a way in
+        // without verification.
+        _devOn = _devLoginBuild && options['dev'] == true;
         if (!_passwordOn) _fakeLoginMode = false;
         if (!_devOn) _devMode = false;
       });

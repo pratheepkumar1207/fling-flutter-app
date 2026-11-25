@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 import 'api_client.dart';
@@ -35,9 +36,47 @@ class AuthProvider extends ChangeNotifier {
     ApiClient.onUnauthorized = () => clearSession(tokenRejected: true);
   }
 
-  Future<void> bootstrap() async {
+  // The login token lives in the Android Keystore / iOS Keychain, not in
+  // plain app storage. Where there's no secure store (tests, desktop) it
+  // falls back to SharedPreferences.
+  static const _secure = FlutterSecureStorage(
+      aOptions: AndroidOptions(encryptedSharedPreferences: true));
+
+  Future<String?> _readToken() async {
     final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString(_tokenKey);
+    final legacy = prefs.getString(_tokenKey);
+    try {
+      final secure = await _secure.read(key: _tokenKey);
+      if (secure != null && secure.isNotEmpty) return secure;
+      if (legacy != null && legacy.isNotEmpty) {
+        // Signed in on an older version: move the token over.
+        await _secure.write(key: _tokenKey, value: legacy);
+        await prefs.remove(_tokenKey);
+      }
+    } catch (_) {}
+    return legacy;
+  }
+
+  Future<void> _writeToken(String? token) async {
+    final prefs = await SharedPreferences.getInstance();
+    try {
+      if (token == null) {
+        await _secure.delete(key: _tokenKey);
+      } else {
+        await _secure.write(key: _tokenKey, value: token);
+      }
+      await prefs.remove(_tokenKey);
+      return;
+    } catch (_) {}
+    if (token == null) {
+      await prefs.remove(_tokenKey);
+    } else {
+      await prefs.setString(_tokenKey, token);
+    }
+  }
+
+  Future<void> bootstrap() async {
+    _token = await _readToken();
     if (_token == null || _token!.isEmpty) {
       _status = AuthStatus.anon;
       notifyListeners();
@@ -46,6 +85,7 @@ class AuthProvider extends ChangeNotifier {
     // Only a 401 means the saved login is really over. Anything else (the
     // server waking up, no signal, a rate limit) keeps you signed in.
     if (await _tryMe()) return;
+    final prefs = await SharedPreferences.getInstance();
     final cached = prefs.getString(_profileKey);
     if (cached != null) {
       try {
@@ -98,17 +138,14 @@ class AuthProvider extends ChangeNotifier {
     final renewed = data['token'];
     if (renewed is String && renewed.isNotEmpty) {
       _token = renewed;
-      await prefs.setString(_tokenKey, renewed);
+      await _writeToken(renewed);
     }
     final profile = Map<String, dynamic>.from(data)..remove('token');
     _user = User.fromJson(profile);
     await prefs.setString(_profileKey, jsonEncode(profile));
   }
 
-  Future<void> _persistToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, token);
-  }
+  Future<void> _persistToken(String token) => _writeToken(token);
 
   /// TEST-ONLY dev-login path (mirrors POST /auth/dev-login on the backend —
   /// only works for whitelisted phone numbers, disabled in production).
@@ -174,8 +211,8 @@ class AuthProvider extends ChangeNotifier {
     if (_token != null) {
       await unregisterPush(tellServer: !tokenRejected);
     }
+    await _writeToken(null);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
     await prefs.remove(_profileKey);
     _retry?.cancel();
     // Also leave Google/Firebase, so the next sign-in can pick another

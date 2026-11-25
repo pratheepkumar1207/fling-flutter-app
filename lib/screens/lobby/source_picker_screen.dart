@@ -505,18 +505,6 @@ class SourcePickerBody extends StatelessWidget {
               platform: 'airtel_xstream',
               label: 'Airtel Xstream',
               homeUrl: 'https://www.airtelxstream.in')),
-      'Crunchyroll': _SourceTile(
-          compact: c,
-          letter: 'C',
-          badgeColor: const Color(0xFFF47521),
-          label: 'Crunchyroll',
-          available: false),
-      'X': _SourceTile(
-          compact: c,
-          icon: BrandIcons.xTwitter,
-          iconColor: AppColors.text,
-          label: 'X',
-          available: false),
     };
     if (quickRow) {
       // Six equal tiles that fill the width; the last opens every source.
@@ -555,8 +543,6 @@ class SourcePickerBody extends StatelessWidget {
         'SunNXT',
         'Aha',
         'Airtel Xstream',
-        'Crunchyroll',
-        'X',
         'Playlists',
         'Liked',
         'History',
@@ -616,7 +602,6 @@ class SourcePickerBody extends StatelessWidget {
         'YouTube Music',
         'Drive',
         'Browser',
-        'X',
       ]),
       section('YOUR SUBSCRIPTIONS · EACH PERSON SIGNS IN', [
         'Netflix',
@@ -626,7 +611,6 @@ class SourcePickerBody extends StatelessWidget {
         'SunNXT',
         'Aha',
         'Airtel Xstream',
-        'Crunchyroll',
       ]),
       section('FROM YOUR LIBRARY', ['Playlists', 'Liked', 'History']),
       Container(

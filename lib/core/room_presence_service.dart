@@ -73,14 +73,9 @@ class RoomPresenceService {
     if (result is ServiceRequestFailure) {
       debugPrint('RoomPresenceService.startService failed: ${result.error}');
     }
-    // A running foreground service alone isn't enough on OEM Android skins
-    // (Vivo/Xiaomi/Oppo) that layer their own background-network throttling
-    // on top of stock Doze — without this exemption those skins can still
-    // freeze the socket's network access a short time after the screen
-    // turns off, even though the service (and process) stay alive.
-    if (!(await FlutterForegroundTask.isIgnoringBatteryOptimizations)) {
-      await FlutterForegroundTask.requestIgnoreBatteryOptimization();
-    }
+    // No battery-optimisation exemption: Google Play restricts that
+    // permission to a few app types. The media-playback foreground
+    // service keeps the room going.
   }
 
   static Future<void> stop() async {

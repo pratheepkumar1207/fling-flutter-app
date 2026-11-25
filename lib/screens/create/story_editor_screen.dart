@@ -844,7 +844,7 @@ class _StickerFormState extends State<_StickerForm> {
         'mention' => 'username',
         'hashtag' => 'weekend',
         'location' => 'Chennai',
-        _ => 'https://example.com',
+        _ => 'Paste a link',
       };
 
   bool _finding = false;
