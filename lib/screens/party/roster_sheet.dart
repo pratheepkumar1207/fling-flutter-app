@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
@@ -30,6 +32,11 @@ const _kAvatarGradients = [
 /// filters by name; Invite sits at the bottom.
 class RosterSheet extends StatefulWidget {
   final List<RosterEntry> roster;
+
+  /// For big rooms: [roster] is only the top 50, the rest come from the
+  /// server a page at a time (and search asks the server).
+  final String? roomId;
+  final int? totalCount;
   final String? hostId;
   final bool isHost;
   final String? myUserId;
@@ -48,6 +55,8 @@ class RosterSheet extends StatefulWidget {
   const RosterSheet({
     super.key,
     required this.roster,
+    this.roomId,
+    this.totalCount,
     required this.hostId,
     required this.isHost,
     required this.myUserId,
@@ -68,10 +77,86 @@ class _RosterSheetState extends State<RosterSheet> {
   Set<String> _following = {};
   String _query = '';
 
+  // Big rooms only: people past the top 50, and server search results.
+  final List<RosterEntry> _more = [];
+  bool _loadingMore = false;
+  List<RosterEntry>? _found;
+  int? _foundTotal;
+  Timer? _searchDebounce;
+
+  int get _total => widget.totalCount ?? widget.roster.length;
+  bool get _big => widget.roomId != null && _total > widget.roster.length;
+
   @override
   void initState() {
     super.initState();
     _loadFollowing();
+  }
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    super.dispose();
+  }
+
+  Future<(List<RosterEntry>, int)> _page(
+      {String q = '', int offset = 0}) async {
+    final query = Uri(queryParameters: {
+      'limit': '50',
+      'offset': '$offset',
+      if (q.isNotEmpty) 'q': q,
+    }).query;
+    final data = await ApiClient.get('/rooms/${widget.roomId}/people?$query')
+        as Map<String, dynamic>;
+    final people = [
+      for (final e in data['people'] as List)
+        RosterEntry.fromJson(Map<String, dynamic>.from(e as Map))
+    ];
+    return (people, (data['total'] as num?)?.toInt() ?? people.length);
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore) return;
+    setState(() => _loadingMore = true);
+    try {
+      final have = {
+        for (final r in widget.roster) r.userId,
+        for (final r in _more) r.userId
+      };
+      final (people, _) =
+          await _page(offset: widget.roster.length + _more.length);
+      if (!mounted) return;
+      setState(
+          () => _more.addAll(people.where((p) => !have.contains(p.userId))));
+    } catch (_) {
+      // Leave the button; the next tap tries again.
+    } finally {
+      if (mounted) setState(() => _loadingMore = false);
+    }
+  }
+
+  void _onSearch(String v) {
+    setState(() => _query = v);
+    if (!_big) return;
+    _searchDebounce?.cancel();
+    final q = v.trim();
+    if (q.isEmpty) {
+      setState(() {
+        _found = null;
+        _foundTotal = null;
+      });
+      return;
+    }
+    _searchDebounce = Timer(const Duration(milliseconds: 250), () async {
+      try {
+        final (people, total) = await _page(q: q);
+        if (!mounted || _query.trim() != q) return;
+        setState(() {
+          _found = people;
+          _foundTotal = total;
+        });
+      } catch (_) {}
+    });
   }
 
   Future<void> _loadFollowing() async {
@@ -97,132 +182,149 @@ class _RosterSheetState extends State<RosterSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final host = widget.roster.where((r) => r.userId == widget.hostId);
+    // Big room search: what the server found. Otherwise the top 50 plus
+    // any pages loaded with "Show more".
+    final everyone = _found ?? [...widget.roster, ..._more];
+    final host = everyone.where((r) => r.userId == widget.hostId);
     // You first among everyone else, then roster order.
-    final others = widget.roster
-        .where((r) => r.userId != widget.hostId)
-        .toList()
+    final others = everyone.where((r) => r.userId != widget.hostId).toList()
       ..sort((a, b) => (a.userId == widget.myUserId ? 0 : 1)
           .compareTo(b.userId == widget.myUserId ? 0 : 1));
-    final shownHost = host.where(_matches).toList();
-    final shownOnMic = others.where((r) => _onMic(r) && _matches(r)).toList();
-    final shownOthers =
-        others.where((r) => !_onMic(r) && _matches(r)).toList();
+    bool keep(RosterEntry r) => _found != null || _matches(r);
+    final shownHost = host.where(keep).toList();
+    final shownOnMic = others.where((r) => _onMic(r) && keep(r)).toList();
+    final shownOthers = others.where((r) => !_onMic(r) && keep(r)).toList();
+    final hidden = _total - widget.roster.length - _more.length;
     final othersLabel = widget.roomType == 'voice' ? 'Listening' : 'Watching';
     var rowIndex = 0;
     Widget row(RosterEntry r) => _Reveal(
         index: rowIndex++, animation: widget.reveal, child: _row(context, r));
-    void close() =>
-        widget.onClose != null ? widget.onClose!() : Navigator.of(context).pop();
+    void close() => widget.onClose != null
+        ? widget.onClose!()
+        : Navigator.of(context).pop();
     final body = SafeArea(
-          left: !widget.inline,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 2, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      left: !widget.inline,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 2, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('In the room',
-                              style: TextStyle(
-                                  color: AppColors.text,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 15)),
-                          Text('${widget.roster.length} people',
-                              style: const TextStyle(
-                                  color: AppColors.textFaint, fontSize: 11.5)),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                        tooltip: 'Close',
-                        visualDensity: VisualDensity.compact,
-                        onPressed: close,
-                        icon: const InIcon(InIcons.close,
-                            color: AppColors.textFaint, size: 20)),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.only(right: 10),
-                  child: TextField(
-                    onChanged: (v) => setState(() => _query = v),
-                    style: const TextStyle(color: AppColors.text, fontSize: 13),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      hintText: 'Search',
-                      hintStyle: const TextStyle(
-                          color: AppColors.textFaint, fontSize: 13),
-                      prefixIcon: const InIcon(InIcons.search,
-                          color: AppColors.textFaint, size: 18),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                      filled: true,
-                      fillColor: AppColors.surface2.withValues(alpha: 0.6),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
                 Expanded(
-                  child: ListView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (shownHost.isNotEmpty) ...[
-                        _sectionLabel('Host'),
-                        for (final r in shownHost) row(r),
-                      ],
-                      if (shownOnMic.isNotEmpty) ...[
-                        _sectionLabel('On mic · ${shownOnMic.length}'),
-                        for (final r in shownOnMic) row(r),
-                      ],
-                      if (shownOthers.isNotEmpty) ...[
-                        _sectionLabel('$othersLabel · ${shownOthers.length}'),
-                        for (final r in shownOthers) row(r),
-                      ],
-                      if (shownHost.isEmpty &&
-                          shownOnMic.isEmpty &&
-                          shownOthers.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 24),
-                          child: Center(
-                            child: Text('Nobody here by that name.',
-                                style: TextStyle(
-                                    color: AppColors.textFaint, fontSize: 13)),
-                          ),
-                        ),
+                      const Text('In the room',
+                          style: TextStyle(
+                              color: AppColors.text,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15)),
+                      Text('${formatNumber(_total)} people',
+                          style: const TextStyle(
+                              color: AppColors.textFaint, fontSize: 11.5)),
                     ],
                   ),
                 ),
-                if (widget.onInvite != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8, right: 10),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          close();
-                          widget.onInvite!();
-                        },
-                        icon: const InIcon(InIcons.useradd, size: 18),
-                        label: const Text('Invite'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.accent,
-                          side: const BorderSide(color: AppColors.border),
-                          shape: const StadiumBorder(),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                      ),
-                    ),
-                  ),
+                IconButton(
+                    tooltip: 'Close',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: close,
+                    icon: const InIcon(InIcons.close,
+                        color: AppColors.textFaint, size: 20)),
               ],
             ),
-          ),
-        );
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: TextField(
+                onChanged: _onSearch,
+                style: const TextStyle(color: AppColors.text, fontSize: 13),
+                decoration: InputDecoration(
+                  isDense: true,
+                  hintText: 'Search',
+                  hintStyle:
+                      const TextStyle(color: AppColors.textFaint, fontSize: 13),
+                  prefixIcon: const InIcon(InIcons.search,
+                      color: AppColors.textFaint, size: 18),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  filled: true,
+                  fillColor: AppColors.surface2.withValues(alpha: 0.6),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: ListView(
+                children: [
+                  if (shownHost.isNotEmpty) ...[
+                    _sectionLabel('Host'),
+                    for (final r in shownHost) row(r),
+                  ],
+                  if (shownOnMic.isNotEmpty) ...[
+                    _sectionLabel('On mic · ${shownOnMic.length}'),
+                    for (final r in shownOnMic) row(r),
+                  ],
+                  if (shownOthers.isNotEmpty) ...[
+                    _sectionLabel(
+                        '$othersLabel · ${formatNumber(_found != null ? (_foundTotal ?? shownOthers.length) : (_big ? _total - shownHost.length - shownOnMic.length : shownOthers.length))}'),
+                    for (final r in shownOthers) row(r),
+                  ],
+                  if (_big &&
+                      _found == null &&
+                      _query.trim().isEmpty &&
+                      hidden > 0)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(0, 8, 10, 8),
+                      child: TextButton(
+                        onPressed: _loadingMore ? null : _loadMore,
+                        child: Text(_loadingMore
+                            ? 'Loading…'
+                            : 'Show more · ${formatNumber(hidden)} more'),
+                      ),
+                    ),
+                  if (shownHost.isEmpty &&
+                      shownOnMic.isEmpty &&
+                      shownOthers.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 24),
+                      child: Center(
+                        child: Text('Nobody here by that name.',
+                            style: TextStyle(
+                                color: AppColors.textFaint, fontSize: 13)),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if (widget.onInvite != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8, right: 10),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      close();
+                      widget.onInvite!();
+                    },
+                    icon: const InIcon(InIcons.useradd, size: 18),
+                    label: const Text('Invite'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.accent,
+                      side: const BorderSide(color: AppColors.border),
+                      shape: const StadiumBorder(),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
     if (widget.inline) {
       return Material(color: Colors.black, child: body);
     }

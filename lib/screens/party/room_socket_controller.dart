@@ -10,7 +10,15 @@ class RoomSocketController extends ChangeNotifier {
   final String roomId;
   final String? myUserId;
 
+  /// The room's most relevant people (host, stage, subscribers, then the
+  /// earliest arrivals), at most 50. Big rooms don't send everyone.
   List<RosterEntry> roster = [];
+
+  int _memberCount = 0;
+
+  /// Everyone in the room, which can be far more than [roster].
+  int get memberCount =>
+      _memberCount > roster.length ? _memberCount : roster.length;
   List<Map<String, dynamic>> messages = [];
   Map<String, dynamic> queue = {'items': [], 'currentIndex': 0};
   Map<String, dynamic> poll = {
@@ -230,6 +238,11 @@ class RoomSocketController extends ChangeNotifier {
       // post-drop rejoin actually completed, so this is where the
       // "reconnecting" indicator clears rather than a fixed timer.
       reconnecting = false;
+      notifyListeners();
+    });
+    s.on('presence:count', (data) {
+      if (data is! Map || data['roomId'] != roomId) return;
+      _memberCount = (data['count'] as num?)?.toInt() ?? 0;
       notifyListeners();
     });
     s.on('chat:message', (data) {
@@ -526,6 +539,7 @@ class RoomSocketController extends ChangeNotifier {
     socket?.off('connect', _onSocketConnect);
     socket?.off('disconnect', _onSocketDisconnect);
     socket?.off('presence:roster');
+    socket?.off('presence:count');
     socket?.off('chat:message');
     socket?.off('chat:replied');
     socket?.off('chat:viewOnceSeen');

@@ -13,6 +13,7 @@ import 'package:image_picker/image_picker.dart' show ImageSource;
 import 'package:provider/provider.dart';
 import '../../core/active_room_holder.dart';
 import '../../core/api_client.dart';
+import '../../core/format.dart';
 import '../../core/auth_provider.dart';
 import '../../core/pip_service.dart';
 import '../../core/room_prefs.dart';
@@ -494,7 +495,7 @@ class _PartyScreenState extends State<PartyScreen>
     for (final r in rs.roster) {
       if (r.userId != rs.hostId) _liveSeen.add(r.userId);
     }
-    final watching = rs.roster.where((r) => r.userId != rs.hostId).length;
+    final watching = rs.memberCount - 1;
     if (watching > _livePeak) _livePeak = watching;
 
     if (rs.kicked) {
@@ -1248,7 +1249,7 @@ class _PartyScreenState extends State<PartyScreen>
           roomId: widget.roomId,
           queue: rs.queue,
           isHost: rs.isHost,
-          participantCount: rs.roster.length,
+          participantCount: rs.memberCount,
           onAdd: rs.queueAdd,
           onJump: rs.queueJump,
           onRemove: rs.queueRemove,
@@ -1622,9 +1623,12 @@ class _PartyScreenState extends State<PartyScreen>
       final talking =
           seats.where(rs.speaking.contains).map((id) => byId[id]!).firstOrNull;
       return VoiceTypingRow(
-        onStage: seats.map((id) => byId[id]!).toList(),
+        onStage: [
+          for (final id in seats)
+            if (byId[id] != null) byId[id]!
+        ],
         talkingName: talking?.name.split(' ').first,
-        listening: rs.roster.length - seats.length,
+        listening: rs.memberCount - seats.length,
       );
     }
 
@@ -2064,6 +2068,8 @@ class _PartyScreenState extends State<PartyScreen>
             final privacyCard = _privacyCard(rs.isHost, room, rs.settings);
             final rosterSheet = RosterSheet(
               roster: rs.roster,
+              roomId: widget.roomId,
+              totalCount: rs.memberCount,
               hostId: rs.hostId,
               isHost: rs.isHost,
               myUserId: myId,
@@ -2223,7 +2229,9 @@ class _PartyScreenState extends State<PartyScreen>
                                   ),
                                   const Spacer(),
                                   _LiveViewers(
-                                      viewers: viewers, onTap: _openRoster),
+                                      viewers: viewers,
+                                      count: rs.memberCount - 1,
+                                      onTap: _openRoster),
                                   const SizedBox(width: 4),
                                   if (rs.isHost)
                                     FilledButton(
@@ -2604,7 +2612,7 @@ class _PartyScreenState extends State<PartyScreen>
                           child: InIconButton(InIcons.users,
                               tooltip: 'People in the room',
                               color: Colors.white,
-                              badge: rs.roster.length,
+                              badge: rs.memberCount,
                               onPressed: _togglePeople),
                         ),
                       ],
@@ -3824,14 +3832,17 @@ class _LiveHostChip extends StatelessWidget {
 class _LiveViewers extends StatelessWidget {
   final List<RosterEntry> viewers;
   final VoidCallback onTap;
-  const _LiveViewers({required this.viewers, required this.onTap});
+  /// Everyone watching; [viewers] is only who's on the list.
+  final int count;
+  const _LiveViewers(
+      {required this.viewers, required this.count, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final shown = viewers.take(3).toList();
     return Semantics(
       button: true,
-      label: '${viewers.length} watching',
+      label: '${formatNumber(count)} watching',
       child: GestureDetector(
         onTap: onTap,
         child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -3850,7 +3861,7 @@ class _LiveViewers extends StatelessWidget {
               decoration: BoxDecoration(
                   color: Colors.black38,
                   borderRadius: BorderRadius.circular(999)),
-              child: Text('${viewers.length}',
+              child: Text(formatNumber(count),
                   style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,

@@ -99,12 +99,15 @@ class VoiceChatController extends ChangeNotifier {
   Future<void> _init() async {
     _setStatus(VoiceChatStatus.connecting);
     // Listening needs no permission; only sending does (setMicEnabled).
-    final micStatus = await Permission.microphone.status;
     try {
       final engine = createAgoraRtcEngine();
       await engine.initialize(RtcEngineContext(appId: kAgoraAppId));
-      await engine
-          .setChannelProfile(ChannelProfileType.channelProfileCommunication);
+      // Live broadcasting, not "communication": listeners join as audience
+      // and only people with their mic on are speakers, so a room can hold
+      // a huge crowd. Ultra-low latency keeps listeners within a fraction
+      // of a second of the speakers.
+      await engine.setChannelProfile(
+          ChannelProfileType.channelProfileLiveBroadcasting);
       await engine.disableVideo();
       await engine.enableAudio();
       // Communication audio otherwise plays from the earpiece, which sounds
@@ -159,10 +162,12 @@ class VoiceChatController extends ChangeNotifier {
         token: data['token'] as String,
         channelId: data['channelName'] as String,
         uid: uid,
-        options: ChannelMediaOptions(
-          clientRoleType: ClientRoleType.clientRoleBroadcaster,
-          channelProfile: ChannelProfileType.channelProfileCommunication,
-          publishMicrophoneTrack: micStatus.isGranted,
+        options: const ChannelMediaOptions(
+          clientRoleType: ClientRoleType.clientRoleAudience,
+          audienceLatencyLevel:
+              AudienceLatencyLevelType.audienceLatencyLevelUltraLowLatency,
+          channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
+          publishMicrophoneTrack: false,
           autoSubscribeAudio: true,
         ),
       );
@@ -205,8 +210,10 @@ class VoiceChatController extends ChangeNotifier {
         _setStatus(VoiceChatStatus.permissionDenied);
         return;
       }
-      await _engine?.updateChannelMediaOptions(
-          const ChannelMediaOptions(publishMicrophoneTrack: true));
+      // Mic on: become a speaker.
+      await _engine?.updateChannelMediaOptions(const ChannelMediaOptions(
+          clientRoleType: ClientRoleType.clientRoleBroadcaster,
+          publishMicrophoneTrack: true));
     }
     _micEnabled = enabled;
     if (!enabled) {
@@ -215,6 +222,14 @@ class VoiceChatController extends ChangeNotifier {
       _setLocalSpeaking(false);
     }
     await _engine?.muteLocalAudioStream(!enabled);
+    // Mic off: back to the audience.
+    if (!enabled) {
+      await _engine?.updateChannelMediaOptions(const ChannelMediaOptions(
+          clientRoleType: ClientRoleType.clientRoleAudience,
+          audienceLatencyLevel:
+              AudienceLatencyLevelType.audienceLatencyLevelUltraLowLatency,
+          publishMicrophoneTrack: false));
+    }
   }
 
   @override
