@@ -43,12 +43,13 @@ android {
                 "**/libagora_screen_capture_extension.so",
                 "**/libagora_audio_beauty_extension.so",
                 "**/libagora_video_quality_analyzer_extension.so",
+                // AV1 video codec and AI echo cancelling: never turned on.
+                // (AI noise suppression stays: voice_chat_controller uses it.)
+                "**/libagora_video_av1_encoder_extension.so",
+                "**/libagora_video_av1_decoder_extension.so",
+                "**/libagora_ai_echo_cancellation_extension.so",
             )
         }
-    }
-    // MediaPipe maps the face model straight from the APK.
-    androidResources {
-        noCompress += "task"
     }
     namespace = "com.fling.app"
     // Flutter's own default (flutter.compileSdkVersion, 31 in this SDK) is

@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../core/youtube_util.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../../theme/brand_icons.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
 import '../../widgets/app_song_lists.dart';
 import 'youtube_browse_screen.dart';
 import 'source_search_area.dart';
 import 'drive_browse_screen.dart';
-import 'n2_test_screen.dart';
 import 'webview_browse_screen.dart';
 import 'watch_room_creator.dart';
 
@@ -425,7 +424,7 @@ class SourcePickerBody extends StatelessWidget {
       // Any website: search or type an address, play a video, pin it.
       'Browser': _SourceTile(
           compact: c,
-          icon: FontAwesomeIcons.chrome,
+          icon: BrandIcons.chrome,
           iconColor: const Color(0xFF4285F4),
           label: 'Browser',
           available: true,
@@ -435,7 +434,7 @@ class SourcePickerBody extends StatelessWidget {
               homeUrl: 'https://www.google.com')),
       'Drive': _SourceTile(
           compact: c,
-          icon: FontAwesomeIcons.googleDrive,
+          icon: BrandIcons.googleDrive,
           iconColor: const Color(0xFF0F9D58),
           label: 'Drive',
           available: true,
@@ -449,15 +448,6 @@ class SourcePickerBody extends StatelessWidget {
               platform: 'netflix',
               label: 'Netflix',
               homeUrl: 'https://www.netflix.com/in/')),
-      // Test: syncing the Netflix app's own player (N2TestScreen).
-      'N2': _SourceTile(
-          compact: c,
-          letter: 'N',
-          badgeColor: const Color(0xFF8E0A12),
-          label: 'N2',
-          available: true,
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const N2TestScreen()))),
       'Hotstar': _SourceTile(
           compact: c,
           letter: 'H',
@@ -523,7 +513,7 @@ class SourcePickerBody extends StatelessWidget {
           available: false),
       'X': _SourceTile(
           compact: c,
-          icon: FontAwesomeIcons.xTwitter,
+          icon: BrandIcons.xTwitter,
           iconColor: AppColors.text,
           label: 'X',
           available: false),
@@ -559,7 +549,6 @@ class SourcePickerBody extends StatelessWidget {
         'Drive',
         'Browser',
         'Netflix',
-        'N2',
         'Prime Video',
         'Hotstar',
         'SonyLIV',
@@ -631,7 +620,6 @@ class SourcePickerBody extends StatelessWidget {
       ]),
       section('YOUR SUBSCRIPTIONS · EACH PERSON SIGNS IN', [
         'Netflix',
-        'N2',
         'Prime Video',
         'Hotstar',
         'SonyLIV',
@@ -705,7 +693,7 @@ class SourcePickerBody extends StatelessWidget {
 ///    aren't a third-party brand at all.
 class _SourceTile extends StatelessWidget {
   final InIconData? inIcon;
-  final FaIconData? icon;
+  final IconData? icon;
   final Color? iconColor;
   final String? letter;
   final Color? badgeColor;
@@ -735,7 +723,7 @@ class _SourceTile extends StatelessWidget {
     if (iconAsset != null) {
       return Image.asset(iconAsset!, width: iconSize, height: iconSize);
     }
-    if (icon != null) return FaIcon(icon, color: iconColor, size: faSize);
+    if (icon != null) return Icon(icon, color: iconColor, size: faSize);
     if (inIcon != null) {
       return InIcon(inIcon!, size: faSize, color: AppColors.lilac);
     }

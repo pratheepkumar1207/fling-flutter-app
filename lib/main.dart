@@ -2,7 +2,9 @@ import 'dart:async';
 import 'widgets/animated_emoji.dart';
 
 import 'package:audio_service/audio_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:provider/provider.dart';
 import 'core/app_messenger.dart';
@@ -17,8 +19,10 @@ import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Which emoji have animations (chat shows them animated).
-  await AnimatedEmojiRegistry.load();
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(['Brand icons (Font Awesome Free)'],
+        await rootBundle.loadString('assets/fonts/BRAND_ICONS_LICENSE.txt'));
+  });
   // Release builds don't print Flutter's own errors, so a screen that
   // freezes left nothing in the phone's log. Write them out, short.
   FlutterError.onError = (details) {
@@ -33,9 +37,10 @@ void main() async {
   if (const bool.fromEnvironment('WEBVIEW_DEBUG')) {
     await InAppWebViewController.setWebContentsDebuggingEnabled(true);
   }
-  await initFirebase();
-  // Ready before any room needs it — see background_audio_handler.dart.
-  backgroundAudioHandler = await AudioService.init(
+  // Independent setup jobs run side by side, so the first screen shows
+  // sooner: which emoji animate, Firebase, and the background audio
+  // session rooms need (see background_audio_handler.dart).
+  final audio = AudioService.init(
     builder: () => BackgroundAudioHandler(),
     config: const AudioServiceConfig(
       androidNotificationChannelId: 'com.fling.app.channel.audio',
@@ -44,6 +49,8 @@ void main() async {
       androidStopForegroundOnPause: true,
     ),
   );
+  await Future.wait([AnimatedEmojiRegistry.load(), initFirebase()]);
+  backgroundAudioHandler = await audio;
   // Not awaited — restoring a notification-tapped PartySession shouldn't
   // delay the app's own startup; both listeners it registers stay valid
   // however long the actual setup takes to complete.

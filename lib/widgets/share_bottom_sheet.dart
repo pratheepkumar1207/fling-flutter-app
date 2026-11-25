@@ -2,7 +2,7 @@ import '../theme/insync_icons.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../theme/brand_icons.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_colors.dart';
@@ -81,7 +81,7 @@ class _ShareBottomSheet extends StatelessWidget {
               child: Row(
                 children: [
                   _AppTile(
-                    icon: FaIcon(FontAwesomeIcons.whatsapp,
+                    icon: Icon(BrandIcons.whatsapp,
                         color: const Color(0xFF25D366), size: 24),
                     bgColor: const Color(0xFF25D366),
                     label: 'WhatsApp',
@@ -91,7 +91,7 @@ class _ShareBottomSheet extends StatelessWidget {
                             'https://wa.me/?text=$encodedText%20$encodedUrl')),
                   ),
                   _AppTile(
-                    icon: FaIcon(FontAwesomeIcons.telegram,
+                    icon: Icon(BrandIcons.telegram,
                         color: const Color(0xFF29A9EA), size: 24),
                     bgColor: const Color(0xFF29A9EA),
                     label: 'Telegram',

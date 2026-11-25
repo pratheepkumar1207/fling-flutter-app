@@ -6,7 +6,6 @@ import 'package:insync/models/user.dart';
 import 'package:insync/theme/app_theme.dart';
 import 'package:insync/screens/achievements/achievements_screen.dart';
 import 'package:insync/screens/challenges/challenges_screen.dart';
-import 'package:insync/screens/communities/communities_screen.dart';
 import 'package:insync/screens/discover/discover_matches_screen.dart';
 import 'package:insync/screens/discover/random_match_screen.dart';
 import 'package:insync/screens/events/events_screen.dart';
@@ -100,7 +99,6 @@ void main() {
     ('NotificationsScreen', const NotificationsScreen()),
     ('SearchScreen', const SearchScreen()),
     ('FriendsScreen', const FriendsScreen()),
-    ('CommunitiesScreen', const CommunitiesScreen()),
     ('EventsScreen', const EventsScreen()),
     ('LeaderboardsScreen', const LeaderboardsScreen()),
     ('AchievementsScreen', const AchievementsScreen()),

@@ -92,7 +92,6 @@ dependencies:
   # Amazon, X) — only covers globally-recognized brands; the India-specific
   # streaming services (Hotstar/Aha/SunNXT/SonyLIV/Airtel Xstream) have no
   # icon here and use a colored letter-badge instead (see source_picker_screen.dart).
-  font_awesome_flutter: ^11.0.0
   flutter_svg: ^2.0.10+1
   record: ^6.1.1
   path_provider: ^2.1.4
@@ -142,6 +141,11 @@ flutter:
     - assets/sounds/
     # Animated emoji (Google Noto, CC BY 4.0): the most used, built in.
     - assets/emoji/
+    - assets/fonts/BRAND_ICONS_LICENSE.txt
+  fonts:
+    - family: BrandIcons
+      fonts:
+        - asset: assets/fonts/brand-icons.otf
 
 flutter_launcher_icons:
   android: true

@@ -3,7 +3,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../../theme/brand_icons.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -283,20 +283,20 @@ class _InviteScreenState extends State<InviteScreen>
             const SizedBox(height: 10),
             Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
               app(
-                  const FaIcon(FontAwesomeIcons.whatsapp,
+                  const Icon(BrandIcons.whatsapp,
                       color: Color(0xFF25D366), size: 20),
                   const Color(0xFF25D366),
                   'WhatsApp',
                   () =>
                       _openApp(Uri.parse('https://wa.me/?text=$text%20$url'))),
               app(
-                  const FaIcon(FontAwesomeIcons.instagram,
+                  const Icon(BrandIcons.instagram,
                       color: Color(0xFFE1306C), size: 20),
                   const Color(0xFFE1306C),
                   'Instagram',
                   _instagram),
               app(
-                  const FaIcon(FontAwesomeIcons.telegram,
+                  const Icon(BrandIcons.telegram,
                       color: Color(0xFF29A9EA), size: 20),
                   const Color(0xFF29A9EA),
                   'Telegram',
