@@ -685,6 +685,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       final data = await ApiClient.post('/messages/${widget.userId}',
           body: {...body, if (replyTo != null) 'replyToId': replyTo.id});
       final msg = DirectMessage.fromJson(data as Map<String, dynamic>);
+      if (!mounted) return;
       setState(() {
         _messages = [..._messages, msg];
         _replyTo = null;

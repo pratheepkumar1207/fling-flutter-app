@@ -128,11 +128,14 @@ class _AppShellState extends State<AppShell> {
   void initState() {
     super.initState();
     AppShell.tabRequest.addListener(_onTabRequest);
+    // Connected before the first frame, so the bell, the unread badge and
+    // Chat find a socket to listen on when they build.
+    final auth0 = context.read<AuthProvider>();
+    final socket0 = context.read<SocketService>();
+    if (auth0.token != null) socket0.connect(auth0.token!);
+    _bindIncomingCalls(socket0);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = context.read<AuthProvider>();
-      final socket = context.read<SocketService>();
-      if (auth.token != null) socket.connect(auth.token!);
-      _bindIncomingCalls(socket);
       _checkDeletionPending();
       CallRing.listen(_openPendingCall);
       _openPendingCall();
@@ -171,7 +174,7 @@ class _AppShellState extends State<AppShell> {
     }
     await ApiClient.post('/account/restore');
     await auth.refreshUser();
-    if (auth.token != null) socket.connect(auth.token!);
+    if (auth.token != null) socket.connect(auth.token!, force: true);
     // Everything that loaded behind the question was refused; start fresh.
     navigator
         .pushReplacement(MaterialPageRoute(builder: (_) => const AppShell()));

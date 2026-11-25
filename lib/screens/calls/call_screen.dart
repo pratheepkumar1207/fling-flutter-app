@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../../core/agora_lens_bridge.dart';
 import '../../core/api_client.dart';
 import '../../core/snap_lens_engine.dart';
@@ -209,9 +210,14 @@ class _CallScreenState extends State<CallScreen> {
     return d.inHours > 0 ? '${d.inHours}:$m:$s' : '$m:$s';
   }
 
+  io.Socket? _socket;
+  final _socketHandlers = <String, dynamic Function(dynamic)>{};
+
   void _bindSocket() {
     final socket = context.read<SocketService>().socket;
+    _socket = socket;
     void onDone(String reason) {
+      if (!mounted) return;
       CallRing.stop();
       if (!mounted) return;
       setState(() => _endReason = reason);
@@ -220,21 +226,20 @@ class _CallScreenState extends State<CallScreen> {
       });
     }
 
-    socket?.on('call:declined', (data) {
-      if (data is Map && data['channelName'] == widget.channelName) {
-        onDone('${widget.peerName} declined');
+    void on(String event, String reason) {
+      void handler(dynamic data) {
+        if (data is Map && data['channelName'] == widget.channelName) {
+          onDone(reason);
+        }
       }
-    });
-    socket?.on('call:cancelled', (data) {
-      if (data is Map && data['channelName'] == widget.channelName) {
-        onDone('Call cancelled');
-      }
-    });
-    socket?.on('call:ended', (data) {
-      if (data is Map && data['channelName'] == widget.channelName) {
-        onDone('Call ended');
-      }
-    });
+
+      _socketHandlers[event] = handler;
+      socket?.on(event, handler);
+    }
+
+    on('call:declined', '${widget.peerName} declined');
+    on('call:cancelled', 'Call cancelled');
+    on('call:ended', 'Call ended');
   }
 
   Future<void> _hangUp() async {
@@ -620,6 +625,7 @@ class _CallScreenState extends State<CallScreen> {
     _hideControlsTimer?.cancel();
     _noAnswerTimer?.cancel();
     _peerGoneTimer?.cancel();
+    _socketHandlers.forEach((event, handler) => _socket?.off(event, handler));
     _elapsed.dispose();
     _controller.removeListener(_onControllerChanged);
     _lens?.shutdown();

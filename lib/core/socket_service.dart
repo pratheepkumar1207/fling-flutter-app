@@ -11,8 +11,14 @@ class SocketService extends ChangeNotifier {
   io.Socket? get socket => _socket;
   bool get isConnected => _socket?.connected ?? false;
 
-  void connect(String token) {
+  String? _token;
+
+  /// Same login and already connected: keep the socket (and everything
+  /// listening on it). [force] makes a fresh one.
+  void connect(String token, {bool force = false}) {
+    if (!force && _socket != null && _token == token) return;
     disconnect();
+    _token = token;
     _socket = io.io(
       ApiClient.baseUrl,
       io.OptionBuilder()
@@ -29,6 +35,7 @@ class SocketService extends ChangeNotifier {
   void disconnect() {
     _socket?.dispose();
     _socket = null;
+    _token = null;
   }
 
   @override

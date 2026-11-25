@@ -59,7 +59,7 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
         context: context, firstDate: now, lastDate: now.add(const Duration(days: 30)), initialDate: now);
     if (day == null || !mounted) return;
     final time = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 20, minute: 0));
-    if (time == null) return;
+    if (time == null || !mounted) return;
     setState(() {
       _custom = DateTime(day.year, day.month, day.day, time.hour, time.minute);
       _when = 'custom';

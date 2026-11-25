@@ -276,6 +276,13 @@ class _VoiceRecordButtonState extends State<VoiceRecordButton> {
         path: path);
     _started = DateTime.now();
     _cancel = false;
+    if (!mounted) {
+      // Left the chat while the mic was starting: don't keep recording.
+      try {
+        await _rec.stop();
+      } catch (_) {}
+      return;
+    }
     setState(() => _recording = true);
     _showHint();
     _tick = Timer.periodic(const Duration(milliseconds: 500), (_) {
@@ -294,6 +301,7 @@ class _VoiceRecordButtonState extends State<VoiceRecordButton> {
     _hint = null;
     final path = await _rec.stop();
     final long = DateTime.now().difference(_started ?? DateTime.now());
+    if (!mounted) return;
     setState(() => _recording = false);
     if (_cancel || path == null || long < const Duration(milliseconds: 700)) {
       return;

@@ -427,7 +427,7 @@ class _YtSongListState extends State<YtSongList> {
                         ],
                       ),
                     );
-                    if (ok == true) {
+                    if (ok == true && mounted) {
                       setState(() => _rows = []);
                       await widget.onClear!();
                     }

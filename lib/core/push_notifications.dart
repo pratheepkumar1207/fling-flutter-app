@@ -35,6 +35,22 @@ Future<void> setupNotificationTapHandling() async {
 /// with the backend (POST /auth/fcm-token) — mirrors src/lib/firebase.js's
 /// requestWebPushToken on the web app. Called when the user flips on
 /// Settings' "Notifications" toggle.
+/// Signing out: the server forgets this phone and the phone drops its
+/// push token, so the next person to sign in gets a fresh one.
+Future<void> unregisterPush({required bool tellServer}) async {
+  if (tellServer) {
+    try {
+      await ApiClient.post('/auth/fcm-token', body: {'fcmToken': null})
+          .timeout(const Duration(seconds: 6));
+    } catch (_) {}
+  }
+  try {
+    await FirebaseMessaging.instance
+        .deleteToken()
+        .timeout(const Duration(seconds: 6));
+  } catch (_) {}
+}
+
 Future<PushRequestResult> requestPushPermissionAndRegister() async {
   try {
     // Checks only — the startup permissions sheet is the one place that

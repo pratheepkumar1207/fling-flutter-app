@@ -1,5 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform;
+import 'dart:io' show Platform, SocketException;
 import 'package:http/http.dart' as http;
 import 'api_exception.dart';
 
@@ -30,6 +31,9 @@ class ApiClient {
 
   static String? Function()? tokenGetter;
   static void Function()? onUnauthorized;
+
+  static Duration getTimeout = const Duration(seconds: 30);
+  static Duration sendTimeout = const Duration(seconds: 120);
 
   static Future<dynamic> get(String path, {bool skipAuth = false}) =>
       _request(path, method: 'GET', skipAuth: skipAuth);
@@ -71,22 +75,25 @@ class ApiClient {
     late final http.Response res;
     final encodedBody = body != null ? jsonEncode(body) : null;
 
-    switch (method) {
-      case 'POST':
-        res = await http.post(uri, headers: headers, body: encodedBody);
-        break;
-      case 'PATCH':
-        res = await http.patch(uri, headers: headers, body: encodedBody);
-        break;
-      case 'PUT':
-        res = await http.put(uri, headers: headers, body: encodedBody);
-        break;
-      case 'DELETE':
-        res = await http.delete(uri, headers: headers, body: encodedBody);
-        break;
-      case 'GET':
-      default:
-        res = await http.get(uri, headers: headers);
+    // Uploads carry photos and voice notes, so they get longer.
+    final limit = method == 'GET' ? getTimeout : sendTimeout;
+    try {
+      final Future<http.Response> sent = switch (method) {
+        'POST' => http.post(uri, headers: headers, body: encodedBody),
+        'PATCH' => http.patch(uri, headers: headers, body: encodedBody),
+        'PUT' => http.put(uri, headers: headers, body: encodedBody),
+        'DELETE' => http.delete(uri, headers: headers, body: encodedBody),
+        _ => http.get(uri, headers: headers),
+      };
+      res = await sent.timeout(limit);
+    } on TimeoutException {
+      throw ApiException(
+          'This is taking too long. Check your connection and try again.',
+          status: 0);
+    } on SocketException {
+      throw ApiException('No internet connection.', status: 0);
+    } on http.ClientException {
+      throw ApiException('No internet connection.', status: 0);
     }
 
     dynamic data;

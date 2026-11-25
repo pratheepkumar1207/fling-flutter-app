@@ -122,7 +122,7 @@ class _NewCommunityScreenState extends State<NewCommunityScreen> {
           child: GestureDetector(
             onTap: () async {
               final uri = await pickChatPhoto();
-              if (uri != null) setState(() => _photo = uri);
+              if (uri != null && mounted) setState(() => _photo = uri);
             },
             child: Container(
               width: 76,

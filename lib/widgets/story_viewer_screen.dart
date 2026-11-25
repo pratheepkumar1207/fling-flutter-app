@@ -488,6 +488,10 @@ class _StoryVideoState extends State<_StoryVideo> {
         return;
       }
       await v.play();
+      if (!mounted) {
+        await v.dispose();
+        return;
+      }
       setState(() => _video = v);
       widget.onReady(v.value.duration);
     } catch (_) {

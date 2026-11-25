@@ -100,6 +100,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
       _controller.clear();
       final parent = _replyTo?['parentId'] ?? _replyTo?['id'];
       if (parent is String) _expanded.add(parent);
+      if (!mounted) return;
       setState(() => _replyTo = null);
       await _load();
       widget.onCommented();

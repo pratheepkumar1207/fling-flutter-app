@@ -7,6 +7,7 @@ import '../models/user.dart';
 import 'api_client.dart';
 import 'api_exception.dart';
 import 'google_auth_service.dart';
+import 'push_notifications.dart';
 
 enum AuthStatus { loading, authed, anon }
 
@@ -30,7 +31,8 @@ class AuthProvider extends ChangeNotifier {
 
   AuthProvider() {
     ApiClient.tokenGetter = () => _token;
-    ApiClient.onUnauthorized = clearSession;
+    // The server already turned this login down; nothing to tell it.
+    ApiClient.onUnauthorized = () => clearSession(tokenRejected: true);
   }
 
   Future<void> bootstrap() async {
@@ -74,7 +76,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } on ApiException catch (e) {
-      if (e.status == 401) await clearSession();
+      if (e.status == 401) await clearSession(tokenRejected: true);
       return false;
     } catch (_) {
       return false;
@@ -156,7 +158,22 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> clearSession() async {
+  bool _clearing = false;
+
+  Future<void> clearSession({bool tokenRejected = false}) async {
+    if (_clearing) return;
+    _clearing = true;
+    try {
+      await _clearSession(tokenRejected);
+    } finally {
+      _clearing = false;
+    }
+  }
+
+  Future<void> _clearSession(bool tokenRejected) async {
+    if (_token != null) {
+      await unregisterPush(tellServer: !tokenRejected);
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_profileKey);

@@ -121,6 +121,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
       await _closeCamera(c);
     }
     _flash = false;
+    if (!mounted) return;
     setState(() => _baking = true);
     try {
       final id = await _snap.start(front: front);
@@ -295,6 +296,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
       if (c == null) return;
       await c.startVideoRecording();
     }
+    if (!mounted) return;
     setState(() {
       _recording = true;
       _seconds = 0;

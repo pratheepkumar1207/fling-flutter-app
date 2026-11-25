@@ -59,7 +59,16 @@ class InsyncApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => SocketService()),
+        ChangeNotifierProvider(create: (context) {
+          final socket = SocketService();
+          // Signed out: stop showing as online and getting that account's
+          // live events.
+          final auth = context.read<AuthProvider>();
+          auth.addListener(() {
+            if (auth.token == null) socket.disconnect();
+          });
+          return socket;
+        }),
       ],
       // Single fixed dark theme — no light-mode toggle. Most of the app
       // (room screens, Home, the glass chrome) hardcodes the dark

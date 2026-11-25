@@ -74,8 +74,8 @@ class _EventsScreenState extends State<EventsScreen> {
           await ApiClient.post('/rooms/$roomId/remind') as Map<String, dynamic>;
       if (!mounted) return;
       setState(() {
-        final ev = _events.firstWhere((e) => e['id'] == roomId);
-        ev['remindMe'] = res['remindMe'];
+        final i = _events.indexWhere((e) => e['id'] == roomId);
+        if (i >= 0) _events[i]['remindMe'] = res['remindMe'];
       });
     } catch (_) {
       if (mounted) {

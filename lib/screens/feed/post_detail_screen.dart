@@ -155,7 +155,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       _controller.clear();
       await _loadComments();
       final post = _post;
-      if (post != null) {
+      if (post != null && mounted) {
         setState(() {
           _post = Post(
             id: post.id,

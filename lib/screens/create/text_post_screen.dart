@@ -78,6 +78,7 @@ class _TextPostScreenState extends State<TextPostScreen> {
         _snack('That voice note is too long. Keep it to a few minutes.');
         return;
       }
+      if (!mounted) return;
       setState(() => _voice = 'data:audio/mp4;base64,${base64Encode(bytes)}');
       return;
     }
