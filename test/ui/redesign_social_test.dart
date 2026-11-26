@@ -118,7 +118,7 @@ void main() {
   testWidgets('Chat tabs change with a swipe', (t) async {
     await _render(t, const MessagesScreen());
     bool selected(String tab) =>
-        t.getSemantics(find.bySemanticsLabel(tab)).getSemanticsData().hasFlag(ui.SemanticsFlag.isSelected);
+        t.getSemantics(find.bySemanticsLabel(tab)).flagsCollection.isSelected == ui.Tristate.isTrue;
     expect(selected('Chats'), isTrue);
     // Right to left: the next tab.
     await t.fling(find.byType(PageView), const Offset(-300, 0), 1000);
