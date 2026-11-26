@@ -76,7 +76,6 @@ dependencies:
   # `key` field, sourced server-side — no client-side key configuration
   # needed here) — same "needs your own account" category as Firebase phone
   # auth and Agora elsewhere in this app.
-  razorpay_flutter: ^1.4.5
 
   # Utilities
   intl: ^0.19.0
@@ -104,11 +103,11 @@ dependencies:
   # joins a room, stopped when they explicitly leave/close it (see
   # party_screen.dart) — never runs outside an active room.
   flutter_foreground_task: ^10.0.0
-  photo_manager: ^3.12.0
   geocoding: ^5.0.1
   qr_flutter: ^4.1.0
   lottie: ^3.7.0
   flutter_secure_storage: 9.2.4
+  in_app_purchase: 3.2.0
 
 dev_dependencies:
   flutter_test:

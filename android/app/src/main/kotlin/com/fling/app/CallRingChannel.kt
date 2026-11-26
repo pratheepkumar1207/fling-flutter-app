@@ -47,6 +47,27 @@ class CallRingChannel(private val context: Context, messenger: BinaryMessenger) 
                         }
                     }
                 }
+                // Android 14+: full-screen incoming calls need the user's OK.
+                // Without it the call still rings as a heads-up notification.
+                "canFullScreen" -> {
+                    val allowed = if (Build.VERSION.SDK_INT >= 34) {
+                        context.getSystemService(android.app.NotificationManager::class.java)
+                            ?.canUseFullScreenIntent() ?: true
+                    } else true
+                    result.success(allowed)
+                    return@setMethodCallHandler
+                }
+                "openFullScreenSettings" -> {
+                    if (Build.VERSION.SDK_INT >= 34) {
+                        try {
+                            context.startActivity(
+                                android.content.Intent(android.provider.Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT)
+                                    .setData(android.net.Uri.parse("package:" + context.packageName))
+                                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+                            )
+                        } catch (_: Exception) {}
+                    }
+                }
                 "incoming" -> startIncoming()
                 "ringback" -> startRingback()
                 "stop" -> stop()

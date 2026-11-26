@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/call_ring.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -204,4 +205,36 @@ class _PrimerSheet extends StatelessWidget {
       ),
     );
   }
+}
+
+const _kFullScreenAskedKey = 'asked_full_screen_calls';
+
+/// Android 14+ only, once: calls can ring on the full screen (like a phone
+/// call) only if the user allows it. Saying no is fine: they still ring as
+/// a notification at the top.
+Future<void> askFullScreenCallsOnce(BuildContext context) async {
+  if (await CallRing.canFullScreen() || !context.mounted) return;
+  final prefs = await SharedPreferences.getInstance();
+  if (prefs.getBool(_kFullScreenAskedKey) == true || !context.mounted) return;
+  await prefs.setBool(_kFullScreenAskedKey, true);
+  if (!context.mounted) return;
+  final go = await showDialog<bool>(
+    context: context,
+    builder: (d) => AlertDialog(
+      title: const Text('Show calls on the full screen?'),
+      content: const Text(
+          'When a friend calls you, Insync can show the call on your whole '
+          'screen, even when the phone is locked, like a normal phone call. '
+          'Without this, calls still ring as a notification at the top.'),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.of(d).pop(false),
+            child: const Text('Not now')),
+        FilledButton(
+            onPressed: () => Navigator.of(d).pop(true),
+            child: const Text('Allow')),
+      ],
+    ),
+  );
+  if (go == true) await CallRing.openFullScreenSettings();
 }

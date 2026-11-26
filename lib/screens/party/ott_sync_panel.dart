@@ -150,6 +150,38 @@ class OttSyncPanelState extends State<OttSyncPanel>
   }
 
   // The same title, in the app itself where it's installed.
+  /// Google Play's "prominent disclosure": say plainly what notification
+  /// access is used for before sending anyone to that settings page.
+  Future<void> _explainAccess() async {
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: Text('Let Insync control ${widget.label}?'),
+        content: SingleChildScrollView(
+          child: Text(
+              'To keep everyone in the room together, Insync needs Android’s '
+              '“Notification access”.\n\n'
+              'What it uses: only the media player of the ${widget.label} '
+              'app — what is playing and where it is — so Insync can play, '
+              'pause and jump it in time with the room. Your position is '
+              'shared with the people in this room.\n\n'
+              'What it never does: it doesn’t read, keep or send your '
+              'notifications or messages, and it doesn’t touch other apps.\n\n'
+              'You can turn it off any time in Settings → Notification access.'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(d).pop(false),
+              child: const Text('Not now')),
+          FilledButton(
+              onPressed: () => Navigator.of(d).pop(true),
+              child: const Text('Continue')),
+        ],
+      ),
+    );
+    if (go == true) await OttRemote.openAccessSettings();
+  }
+
   Future<void> _openTitle() async {
     // Asks the app by name: phones can send these links to Chrome instead.
     var ok = await OttRemote.openTitle(_package, widget.titleUrl);
@@ -218,7 +250,7 @@ class OttSyncPanelState extends State<OttSyncPanel>
           'Let this app play/pause ${widget.label}',
           'One-time Android permission: turn this app on under Notification access.',
           'Allow',
-          OttRemote.openAccessSettings
+          _explainAccess
         ),
       _Step.open => (
           InIcons.play,

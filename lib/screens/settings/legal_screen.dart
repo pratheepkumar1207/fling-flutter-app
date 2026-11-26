@@ -112,3 +112,16 @@ const kPrivacyPolicySections = [
   LegalSection(
       '6. Contact', 'Reach out with any privacy questions or requests.'),
 ];
+
+/// Same standards as the public page the server serves at /child-safety
+/// (linked in Google Play Console).
+const kChildSafetySections = [
+  LegalSection('Adults only',
+      'Insync is for people aged 18 and over. Age is asked at sign-up and accounts under 18 cannot be created. Accounts we believe belong to a minor are removed.'),
+  LegalSection('Zero tolerance',
+      'Child sexual abuse and exploitation, and any sexual content involving minors (real, drawn or AI-made), is never allowed anywhere in Insync: profiles, posts, stories, chats, rooms, live streams and calls. Grooming or trying to meet a minor is never allowed.'),
+  LegalSection('Report it',
+      'Tap Report on any profile, message, post, room or live stream. Reports about children are reviewed first. You can block anyone from their profile or chat.'),
+  LegalSection('What we do',
+      'People review reports. Accounts breaking these rules are removed and banned. We report apparent child sexual abuse material to the National Center for Missing & Exploited Children (NCMEC) and to Indian authorities, including cybercrime.gov.in, and cooperate with law enforcement as the law requires.'),
+];

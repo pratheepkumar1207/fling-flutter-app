@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../core/apple_auth_service.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_provider.dart';
@@ -128,6 +129,24 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _handleAppleSignIn() async {
+    setState(() {
+      _error = '';
+      _loading = true;
+    });
+    try {
+      final idToken = await AppleAuthService.signInAndGetFirebaseIdToken();
+      if (idToken == null || !mounted) return;
+      await context.read<AuthProvider>().loginWithFirebaseIdToken(idToken);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   Future<void> _handleGoogleSignIn() async {
     setState(() {
       _error = '';
@@ -208,6 +227,7 @@ class _LoginScreenState extends State<LoginScreen> {
           error: _error,
           onGoogle: _handleGoogleSignIn,
           googleMark: const _GoogleMark(),
+          onApple: AppleAuthService.available ? _handleAppleSignIn : null,
         ),
       );
     }
@@ -339,6 +359,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         Expanded(
                             child: Divider(color: AppColors.border, height: 1)),
                       ]),
+                    ],
+                    if (!_fakeLoginMode && AppleAuthService.available) ...[
+                      const SizedBox(height: 18),
+                      AppleSignInButton(
+                          onPressed: _loading ? null : _handleAppleSignIn),
                     ],
                     if (!_fakeLoginMode && _googleOn) ...[
                       const SizedBox(height: 18),

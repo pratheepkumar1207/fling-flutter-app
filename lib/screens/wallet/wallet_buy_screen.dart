@@ -1,10 +1,12 @@
-import '../../theme/insync_icons.dart';
+import 'dart:async';
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import '../../widgets/insync_clay.dart';
 import 'package:provider/provider.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import '../../core/api_client.dart';
-import '../../core/api_exception.dart';
+import '../../core/store_purchases.dart';
 import '../../core/auth_provider.dart';
 import '../../core/format.dart';
 import '../../models/coin_package.dart';
@@ -35,46 +37,44 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
   bool _paying = false;
 
   List<CoinPackage>? _packages;
+  // The store's own product (with its local price) for each pack.
+  Map<String, ProductDetails> _products = const {};
   String? _selectedPackageId;
-  bool _customMode = false;
-  int? _customRupees;
-  final _customController = TextEditingController();
+  StreamSubscription<PurchaseOutcome>? _outcomeSub;
 
-  late final Razorpay _razorpay;
-  // Set right before Razorpay.open() so the success/error callbacks (which
-  // only get paymentId/signature back from the SDK, not the coin amount)
-  // know which pending order they're completing.
-  String? _pendingOrderId;
-
-  int? get _rupees => _customMode ? _customRupees : null;
+  final _store = StorePurchases.instance;
 
   @override
   void initState() {
     super.initState();
+    _store.start();
+    _outcomeSub = _store.outcomes.listen(_onOutcome);
     _loadPackages();
-    _razorpay = Razorpay();
-    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _onPaymentSuccess);
-    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _onPaymentError);
-    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _onExternalWallet);
   }
 
   @override
   void dispose() {
-    _razorpay.clear();
-    _customController.dispose();
+    _outcomeSub?.cancel();
     super.dispose();
   }
 
   Future<void> _loadPackages() async {
     try {
       final data = await ApiClient.get('/wallet/packages');
-      if (!mounted) return;
       final packages = (data as List)
           .map((e) => CoinPackage.fromJson(e as Map<String, dynamic>))
+          .where((p) => p.storeProductId != null)
           .toList();
+      final products = await _store
+          .products({for (final p in packages) p.storeProductId!});
+      if (!mounted) return;
+      // Only packs the store actually sells.
+      final sold =
+          packages.where((p) => products.containsKey(p.storeProductId)).toList();
       setState(() {
-        _packages = packages;
-        if (packages.isNotEmpty) _selectedPackageId = packages.first.id;
+        _packages = sold;
+        _products = products;
+        if (sold.isNotEmpty) _selectedPackageId = sold.first.id;
       });
     } catch (_) {
       if (mounted) setState(() => _packages = []);
@@ -82,108 +82,61 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
   }
 
   void _selectPackage(CoinPackage pkg) {
-    setState(() {
-      _selectedPackageId = pkg.id;
-      _customMode = false;
-    });
+    setState(() => _selectedPackageId = pkg.id);
   }
 
-  void _selectCustom() {
-    setState(() {
-      _selectedPackageId = null;
-      _customMode = true;
-    });
+  CoinPackage? get _selected {
+    for (final p in _packages ?? const <CoinPackage>[]) {
+      if (p.id == _selectedPackageId) return p;
+    }
+    return null;
   }
 
-  bool get _canPay => _customMode
-      ? (_customRupees != null && _customRupees! > 0)
-      : _selectedPackageId != null;
+  bool get _canPay => _selected != null;
+
+  String _priceOf(CoinPackage pkg) =>
+      _products[pkg.storeProductId]?.price ??
+      '₹${pkg.priceRupees.toStringAsFixed(0)}';
 
   Future<void> _buy() async {
-    if (!_canPay || _paying) return;
+    final pkg = _selected;
+    final product = pkg == null ? null : _products[pkg.storeProductId];
+    if (product == null || _paying) return;
     setState(() => _paying = true);
     try {
-      final body = _selectedPackageId != null
-          ? {'packageId': _selectedPackageId}
-          : {'rupees': _rupees};
-      final order = await ApiClient.post('/wallet/buy/order', body: body)
-          as Map<String, dynamic>;
-      if (!mounted) return;
-      final user = context.read<AuthProvider>().user;
-      _pendingOrderId = order['orderId'] as String;
-      _razorpay.open({
-        'key': order['key'],
-        'order_id': order['orderId'],
-        'amount': order['amount'],
-        'currency': order['currency'],
-        'name': 'Insync',
-        'description': 'Coin top-up',
-        'prefill': {
-          if (user?.name != null) 'name': user!.name,
-          if (user?.phone != null) 'contact': user!.phone,
-        },
-        // Matches AppColors.primary (dark theme) — Razorpay's checkout
-        // theme only takes a static hex string, not a live Color value.
-        'theme': {'color': '#2455F5'},
-      });
-    } on ApiException catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
-      setState(() => _paying = false);
+      final started = await _store.buy(product);
+      if (!started && mounted) setState(() => _paying = false);
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Could not open checkout: $e')));
+      if (!mounted) return;
       setState(() => _paying = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Couldn’t open the payment. Try again.')));
     }
   }
 
-  Future<void> _onPaymentSuccess(PaymentSuccessResponse response) async {
-    final orderId = _pendingOrderId;
-    if (orderId == null) return;
-    try {
-      final result = await ApiClient.post('/wallet/buy/verify', body: {
-        'orderId': orderId,
-        'paymentId': response.paymentId,
-        'signature': response.signature,
-      }) as Map<String, dynamic>;
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content:
-                Text('🪙 Coins added! New balance: ${result['coinBalance']}'),
-            backgroundColor: AppColors.success),
-      );
-      Navigator.of(context).pop(true);
-    } on ApiException catch (e) {
+  Future<void> _onOutcome(PurchaseOutcome o) async {
+    if (!mounted) return;
+    if (o.pending) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'Payment pending. Your coins arrive when it goes through.')));
+      setState(() => _paying = false);
+      return;
+    }
+    setState(() => _paying = false);
+    if (o.ok) {
+      await context.read<AuthProvider>().refreshUser();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content:
-              Text('Payment succeeded but verification failed: ${e.message}'),
-          backgroundColor: AppColors.danger));
-    } finally {
-      _pendingOrderId = null;
-      if (mounted) setState(() => _paying = false);
+          content: Text(o.coinBalance != null
+              ? '🪙 Coins added! New balance: ${formatNumber(o.coinBalance)}'
+              : '🪙 Coins added!'),
+          backgroundColor: AppColors.success));
+      Navigator.of(context).pop(true);
+    } else if (o.message != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(o.message!), backgroundColor: AppColors.danger));
     }
-  }
-
-  void _onPaymentError(PaymentFailureResponse response) {
-    _pendingOrderId = null;
-    if (!mounted) return;
-    setState(() => _paying = false);
-    if (response.code == Razorpay.PAYMENT_CANCELLED) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text(response.message ?? 'Payment failed'),
-          backgroundColor: AppColors.danger),
-    );
-  }
-
-  void _onExternalWallet(ExternalWalletResponse response) {
-    _pendingOrderId = null;
-    if (!mounted) return;
-    setState(() => _paying = false);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('Opened ${response.walletName}')));
   }
 
   // Package.name is admin-set free text — badges are derived from it
@@ -198,16 +151,9 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    CoinPackage? selectedPackage;
-    for (final p in _packages ?? const <CoinPackage>[]) {
-      if (p.id == _selectedPackageId) {
-        selectedPackage = p;
-        break;
-      }
-    }
-    final payLabel = selectedPackage != null
-        ? 'Pay ₹${selectedPackage.priceRupees.toStringAsFixed(0)}'
-        : (_customRupees != null ? 'Pay ₹$_customRupees' : 'Pay');
+    final selectedPackage = _selected;
+    final payLabel =
+        selectedPackage != null ? 'Pay ${_priceOf(selectedPackage)}' : 'Pay';
     final coinBalance = context.watch<AuthProvider>().user?.coinBalance ?? 0;
 
     return Scaffold(
@@ -282,7 +228,7 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
                                           fontWeight: FontWeight.w800,
                                           fontSize: 15)),
                                   const SizedBox(height: 2),
-                                  Text('₹${pkg.priceRupees.toStringAsFixed(0)}',
+                                  Text(_priceOf(pkg),
                                       style: TextStyle(
                                           color: selected
                                               ? tint
@@ -322,61 +268,8 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
                         ),
                       );
                     }),
-                    GestureDetector(
-                      onTap: _selectCustom,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                              color: _customMode
-                                  ? AppColors.accent
-                                  : AppColors.border,
-                              width: 1.5,
-                              style: BorderStyle.solid),
-                        ),
-                        alignment: Alignment.center,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            InIcon(InIcons.plus,
-                                color: _customMode
-                                    ? AppColors.accent
-                                    : AppColors.textFaint,
-                                size: 18),
-                            const SizedBox(height: 4),
-                            Text('Custom',
-                                style: TextStyle(
-                                    color: _customMode
-                                        ? AppColors.accent
-                                        : AppColors.textFaint,
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w600)),
-                          ],
-                        ),
-                      ),
-                    ),
                   ],
                 ),
-                if (_customMode) ...[
-                  const SizedBox(height: 14),
-                  Container(
-                    decoration: insyncClay(radius: 22),
-                    child: TextField(
-                      controller: _customController,
-                      keyboardType: TextInputType.number,
-                      autofocus: true,
-                      style: const TextStyle(color: AppColors.text),
-                      decoration: const InputDecoration(
-                          prefixText: '₹ ',
-                          labelText: 'Amount',
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 14)),
-                      onChanged: (v) =>
-                          setState(() => _customRupees = int.tryParse(v)),
-                    ),
-                  ),
-                ],
                 const SizedBox(height: 28),
                 GestureDetector(
                   onTap: (_canPay && !_paying) ? _buy : null,
@@ -403,10 +296,20 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text('Payments are processed securely by Razorpay.',
+                if (_packages!.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 10),
+                    child: Text('Coin packs aren’t available on this phone right now.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppColors.textFaint)),
+                  ),
+                Text(
+                    Platform.isIOS
+                        ? 'Paid through the App Store.'
+                        : 'Paid through Google Play.',
                     textAlign: TextAlign.center,
-                    style:
-                        TextStyle(color: AppColors.textFaint, fontSize: 10.5)),
+                    style: const TextStyle(
+                        color: AppColors.textFaint, fontSize: 10.5)),
               ],
             ),
     );

@@ -9,6 +9,7 @@ import '../../core/active_room_holder.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_provider.dart';
 import '../../core/socket_service.dart';
+import '../../core/store_purchases.dart';
 import '../../theme/app_colors.dart';
 import '../calls/call_screen.dart';
 import '../calls/incoming_call_view.dart';
@@ -134,6 +135,8 @@ class _AppShellState extends State<AppShell> {
     final socket0 = context.read<SocketService>();
     if (auth0.token != null) socket0.connect(auth0.token!);
     _bindIncomingCalls(socket0);
+    // Coin purchases finished while the shop was closed get credited too.
+    StorePurchases.instance.start();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = context.read<AuthProvider>();
       _checkDeletionPending();
@@ -145,7 +148,10 @@ class _AppShellState extends State<AppShell> {
       }
       // Camera, mic, location and notifications in one go, first open only.
       ensureStartupPermissions(context,
-          registerPush: auth.user?.pushNotificationsEnabled != false);
+              registerPush: auth.user?.pushNotificationsEnabled != false)
+          .then((_) {
+        if (mounted) askFullScreenCallsOnce(context);
+      });
     });
   }
 

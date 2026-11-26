@@ -15,12 +15,16 @@ class GoogleSignInView extends StatelessWidget {
   final VoidCallback onGoogle;
   final Widget googleMark;
 
+  /// iPhone: Sign in with Apple, shown first (Apple's rule).
+  final VoidCallback? onApple;
+
   const GoogleSignInView({
     super.key,
     required this.loading,
     required this.error,
     required this.onGoogle,
     required this.googleMark,
+    this.onApple,
   });
 
   void _openLegal(BuildContext context, String kind) =>
@@ -63,6 +67,10 @@ class GoogleSignInView extends StatelessWidget {
                     style:
                         const TextStyle(color: AppColors.danger, fontSize: 13)),
                 const SizedBox(height: 12),
+              ],
+              if (onApple != null) ...[
+                AppleSignInButton(onPressed: loading ? null : onApple),
+                const SizedBox(height: 10),
               ],
               FilledButton.icon(
                 onPressed: loading ? null : onGoogle,
@@ -350,3 +358,23 @@ final _icons = <_FloatingIcon>[
           '<path d="M52 6c6 20 30 30 30 56a32 32 0 0 1-64 0c0-14 7-23 14-30 2 9 6 13 11 13 2-15-2-27 9-39z" fill="url(#fire)"/>'
           '<path d="M51 50c3 9 14 13 14 25a15 15 0 0 1-30 0c0-10 11-14 16-25z" fill="#FFE9A8"/>')),
 ];
+
+/// Apple's standard black "Sign in with Apple" button.
+class AppleSignInButton extends StatelessWidget {
+  final VoidCallback? onPressed;
+  const AppleSignInButton({super.key, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) => FilledButton.icon(
+        onPressed: onPressed,
+        style: FilledButton.styleFrom(
+            minimumSize: const Size.fromHeight(52),
+            shape: const StadiumBorder(),
+            backgroundColor: Colors.black,
+            disabledBackgroundColor: Colors.black54,
+            foregroundColor: Colors.white,
+            side: const BorderSide(color: Colors.white24)),
+        icon: const Icon(Icons.apple, size: 22),
+        label: const Text('Sign in with Apple'),
+      );
+}

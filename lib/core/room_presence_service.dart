@@ -66,7 +66,11 @@ class RoomPresenceService {
         NotificationPermission.granted) {
       await FlutterForegroundTask.requestNotificationPermission();
     }
+    // Media playback: a room keeps its video, music or voices playing
+    // while the app is in the background (Play's foreground service type
+    // for exactly that).
     final result = await FlutterForegroundTask.startService(
+      serviceTypes: const [ForegroundServiceTypes.mediaPlayback],
       notificationTitle: 'In room',
       notificationText: roomTitle,
     );

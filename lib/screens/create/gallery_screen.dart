@@ -1,9 +1,5 @@
-import 'dart:typed_data';
-import '../../widgets/insync_brand.dart';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:photo_manager/photo_manager.dart';
 import '../../core/video_edit.dart';
 import '../../theme/app_colors.dart';
 import '../lobby/lobby_create_screen.dart';
@@ -12,8 +8,13 @@ import 'text_post_screen.dart';
 
 const _maxPhotos = 5;
 
-/// A new post starts here: a large preview over your photos. Several can be
-/// picked for a carousel; the camera and text posts are a tap away.
+const _videoExtensions = {'mp4', 'mov', 'm4v', '3gp', 'webm', 'mkv', 'avi'};
+
+/// A new post starts here. Photos and videos come from the phone's own
+/// photo picker (Android's system picker, iOS's PHPicker), so the app never
+/// needs access to the whole gallery: you see everything, the app only gets
+/// what you pick. Up to five photos make a carousel; one photo or a video
+/// goes to the editor. Camera and text posts are a tap away.
 class CreateGalleryScreen extends StatefulWidget {
   final VoidCallback? onPosted;
   const CreateGalleryScreen({super.key, this.onPosted});
@@ -23,88 +24,40 @@ class CreateGalleryScreen extends StatefulWidget {
 }
 
 class _CreateGalleryScreenState extends State<CreateGalleryScreen> {
-  List<AssetPathEntity> _albums = const [];
-  AssetPathEntity? _album;
-  List<AssetEntity> _assets = const [];
-  AssetEntity? _preview;
-  final List<AssetEntity> _picked = [];
-  bool _many = false;
-  bool _loading = true;
-  bool _denied = false;
   bool _working = false;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    // Straight into the picker, like opening the gallery used to.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _pick());
   }
 
-  Future<void> _load() async {
-    final state = await PhotoManager.requestPermissionExtend();
-    if (!state.hasAccess) {
-      if (mounted) {
-        setState(() {
-          _denied = true;
-          _loading = false;
-        });
-      }
-      return;
-    }
-    final albums =
-        await PhotoManager.getAssetPathList(type: RequestType.common);
-    if (!mounted) return;
-    _albums = albums;
-    await _open(albums.isEmpty ? null : albums.first);
+  static bool _isVideo(XFile f) {
+    final mime = f.mimeType;
+    if (mime != null) return mime.startsWith('video/');
+    final name = f.name.toLowerCase();
+    final dot = name.lastIndexOf('.');
+    return dot >= 0 && _videoExtensions.contains(name.substring(dot + 1));
   }
 
-  Future<void> _open(AssetPathEntity? album) async {
-    final assets = album == null
-        ? const <AssetEntity>[]
-        : await album.getAssetListPaged(page: 0, size: 200);
-    if (!mounted) return;
-    setState(() {
-      _album = album;
-      _assets = assets;
-      _preview = assets.isEmpty ? null : assets.first;
-      _picked.clear();
-      _loading = false;
-    });
-  }
-
-  void _tap(AssetEntity a) {
-    setState(() {
-      _preview = a;
-      if (!_many) return;
-      if (_picked.contains(a)) {
-        _picked.remove(a);
-      } else if (a.type == AssetType.image && _picked.length < _maxPhotos) {
-        _picked.add(a);
-      }
-    });
-  }
-
-  void _toggleMany() {
-    setState(() {
-      _many = !_many;
-      _picked.clear();
-      final p = _preview;
-      if (_many && p != null && p.type == AssetType.image) _picked.add(p);
-    });
-  }
-
-  Future<void> _next() async {
+  Future<void> _pick() async {
+    if (_working) return;
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _working = true);
     try {
-      if (_many && _picked.length > 1) {
+      final picked = await ImagePicker().pickMultipleMedia(limit: _maxPhotos);
+      if (!mounted || picked.isEmpty) return;
+      final photos = picked.where((f) => !_isVideo(f)).toList();
+      if (photos.length > 1) {
+        // Several photos: a carousel (videos in the same pick are left out).
         final paths = <String>[];
-        for (final a in _picked) {
-          final f = await a.file;
-          if (f == null) throw StateError('missing');
+        for (final f in photos.take(_maxPhotos)) {
           paths.add(await VideoEdit.processPhoto(
               input: f.path, filter: MediaFilter.none));
         }
+        if (!mounted) return;
         await navigator.push(MaterialPageRoute(
             builder: (_) => CreateCaptionScreen(
                   path: paths.first,
@@ -114,10 +67,8 @@ class _CreateGalleryScreenState extends State<CreateGalleryScreen> {
                   onPosted: widget.onPosted,
                 )));
       } else {
-        final a = _many && _picked.isNotEmpty ? _picked.first : _preview;
-        final f = await a?.file;
-        if (a == null || f == null) throw StateError('missing');
-        final video = a.type == AssetType.video;
+        final f = photos.isNotEmpty ? photos.first : picked.first;
+        final video = _isVideo(f);
         await navigator.push(MaterialPageRoute(
             builder: (_) => CreateEditScreen(
                   path: f.path,
@@ -129,8 +80,9 @@ class _CreateGalleryScreenState extends State<CreateGalleryScreen> {
     } catch (_) {
       messenger.showSnackBar(
           const SnackBar(content: Text('Couldn’t open that. Try another.')));
+    } finally {
+      if (mounted) setState(() => _working = false);
     }
-    if (mounted) setState(() => _working = false);
   }
 
   void _toCamera(CreateMode mode) {
@@ -140,37 +92,43 @@ class _CreateGalleryScreenState extends State<CreateGalleryScreen> {
             CreateCameraScreen(mode: mode, onPosted: widget.onPosted)));
   }
 
-  // Without gallery access, Android's own picker still works.
-  Future<void> _systemPicker() async {
-    final navigator = Navigator.of(context);
-    final file = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (file == null || !mounted) return;
-    navigator.push(MaterialPageRoute(
-        builder: (_) => CreateEditScreen(
-              path: file.path,
-              isVideo: false,
-              mode: CreateMode.post,
-              onPosted: widget.onPosted,
-            )));
-  }
-
-  Widget _round(Widget child, String label, VoidCallback onTap,
-          {bool on = false}) =>
+  Widget _choice(IconData icon, String title, String sub, VoidCallback onTap) =>
       Padding(
-        padding: const EdgeInsets.only(left: 8),
-        child: Semantics(
-          button: true,
-          label: label,
-          child: GestureDetector(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+        child: Material(
+          color: const Color(0xFF17141F),
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
             onTap: onTap,
-            child: Container(
-              width: 34,
-              height: 34,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: on ? AppColors.lilac : const Color(0xFF2B2638)),
-              child: child,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                      shape: BoxShape.circle, color: Color(0xFF2B2638)),
+                  child: Icon(icon, color: AppColors.lilac),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15)),
+                        const SizedBox(height: 2),
+                        Text(sub,
+                            style: const TextStyle(
+                                color: Colors.white60, fontSize: 12.5)),
+                      ]),
+                ),
+              ]),
             ),
           ),
         ),
@@ -178,132 +136,29 @@ class _CreateGalleryScreenState extends State<CreateGalleryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final height = MediaQuery.sizeOf(context).width * .9;
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         title: const Text('New post'),
-        actions: [
-          TextButton(
-            onPressed: _preview == null || _working ? null : _next,
-            child: Text(_working ? 'Wait…' : 'Next'),
-          ),
-        ],
       ),
       body: Stack(children: [
-        if (_loading)
-          const Center(child: InsyncSpinner(size: 32))
-        else if (_denied)
-          Center(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('Allow photos to see your gallery here.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white70)),
-              ),
-              FilledButton(
-                  onPressed: PhotoManager.openSetting,
-                  child: const Text('Open settings')),
-              TextButton(
-                  onPressed: _systemPicker,
-                  child: const Text('Pick one photo instead')),
-            ]),
-          )
-        else
-          Column(children: [
-            SizedBox(
-              height: height,
-              width: double.infinity,
-              child: _preview == null
-                  ? const Center(
-                      child: Text('No photos yet',
-                          style: TextStyle(color: Colors.white70)))
-                  : _AssetImage(_preview!, large: true),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
-              child: Row(children: [
-                Expanded(
-                  child: DropdownButton<AssetPathEntity>(
-                    value: _album,
-                    isExpanded: true,
-                    underline: const SizedBox.shrink(),
-                    dropdownColor: const Color(0xFF17141F),
-                    style: const TextStyle(color: Colors.white),
-                    items: [
-                      for (final a in _albums)
-                        DropdownMenuItem(
-                            value: a,
-                            child: Text(a.isAll ? 'Recents' : a.name,
-                                maxLines: 1)),
-                    ],
-                    onChanged: _open,
-                  ),
-                ),
-                _round(
-                    const Text('Aa',
-                        style: TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.w700)),
-                    'Text post',
-                    () => Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => TextPostScreen(
-                            mode: CreateMode.post,
-                            onPosted: widget.onPosted)))),
-                _round(
-                    Icon(Icons.collections_outlined,
-                        size: 18,
-                        color: _many ? const Color(0xFF241338) : Colors.white),
-                    'Select several',
-                    _toggleMany,
-                    on: _many),
-                _round(
-                    const Icon(Icons.photo_camera_outlined,
-                        size: 18, color: Colors.white),
-                    'Camera',
-                    () => _toCamera(CreateMode.post)),
-              ]),
-            ),
-            Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.only(bottom: 60),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4, mainAxisSpacing: 2, crossAxisSpacing: 2),
-                itemCount: _assets.length,
-                itemBuilder: (_, i) {
-                  final a = _assets[i];
-                  final order = _picked.indexOf(a);
-                  return GestureDetector(
-                    onTap: () => _tap(a),
-                    child: Stack(fit: StackFit.expand, children: [
-                      _AssetImage(a),
-                      if (a.type == AssetType.video)
-                        Positioned(
-                          left: 4,
-                          bottom: 3,
-                          child: Text(_duration(a.videoDuration),
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 11)),
-                        ),
-                      if (_many && order >= 0)
-                        Positioned(
-                          right: 4,
-                          top: 4,
-                          child: CircleAvatar(
-                            radius: 10,
-                            backgroundColor: AppColors.lilac,
-                            child: Text('${order + 1}',
-                                style: const TextStyle(
-                                    color: Color(0xFF241338), fontSize: 11)),
-                          ),
-                        ),
-                    ]),
-                  );
-                },
-              ),
-            ),
-          ]),
+        ListView(padding: const EdgeInsets.only(top: 8, bottom: 80), children: [
+          _choice(
+              Icons.photo_library_outlined,
+              _working ? 'Opening…' : 'Choose from your gallery',
+              'A photo, a video, or up to $_maxPhotos photos for a carousel',
+              _pick),
+          _choice(Icons.photo_camera_outlined, 'Camera', 'Take a photo now',
+              () => _toCamera(CreateMode.post)),
+          _choice(
+              Icons.text_fields_rounded,
+              'Text post',
+              'Words on a colour, with music or a voice note',
+              () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => TextPostScreen(
+                      mode: CreateMode.post, onPosted: widget.onPosted)))),
+        ]),
         Positioned(
           left: 0,
           right: 0,
@@ -339,29 +194,6 @@ class _CreateGalleryScreenState extends State<CreateGalleryScreen> {
           ),
         ),
       ]),
-    );
-  }
-
-  String _duration(Duration d) =>
-      '${d.inMinutes}:${d.inSeconds.remainder(60).toString().padLeft(2, '0')}';
-}
-
-class _AssetImage extends StatelessWidget {
-  final AssetEntity asset;
-  final bool large;
-  const _AssetImage(this.asset, {this.large = false});
-
-  @override
-  Widget build(BuildContext context) {
-    final size = large ? 1000 : 240;
-    return FutureBuilder<Uint8List?>(
-      key: ValueKey('${asset.id}-$size'),
-      future: asset.thumbnailDataWithSize(ThumbnailSize(size, size)),
-      builder: (_, snap) {
-        final data = snap.data;
-        if (data == null) return const ColoredBox(color: Color(0xFF2B2638));
-        return Image.memory(data, fit: BoxFit.cover, gaplessPlayback: true);
-      },
     );
   }
 }

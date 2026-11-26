@@ -305,6 +305,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 lastUpdated: 'January 2026',
                                 sections: kTermsOfServiceSections)
                           ),
+                          (
+                            'Child safety standards',
+                            const LegalScreen(
+                                title: 'Child safety standards',
+                                lastUpdated: 'November 2026',
+                                sections: kChildSafetySections)
+                          ),
                         ])
                           ListTile(
                             title: Text(label),

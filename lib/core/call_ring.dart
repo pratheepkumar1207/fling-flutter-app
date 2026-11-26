@@ -20,6 +20,21 @@ class CallRing {
 
   static Future<void> stop() => _send('stop');
 
+  /// Android 14+: may incoming calls fill the screen? True elsewhere.
+  static Future<bool> canFullScreen() async {
+    try {
+      return await _channel.invokeMethod<bool>('canFullScreen') ?? true;
+    } on PlatformException catch (_) {
+      return true;
+    } on MissingPluginException catch (_) {
+      return true;
+    }
+  }
+
+  /// The system page where the user allows full-screen calls.
+  static Future<void> openFullScreenSettings() =>
+      _send('openFullScreenSettings');
+
   /// Answered or gone: stops any notification and lets the lock screen back.
   static Future<void> callFinished() => _send('callFinished');
 

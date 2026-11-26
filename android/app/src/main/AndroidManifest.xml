@@ -11,7 +11,7 @@
          dataSync fits "keep a network connection alive" without pulling in
          the extra runtime permission prompts mediaPlayback/camera/etc. need. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" tools:node="remove" />
     <!-- audio_service's own foreground service — real background/lock-screen
          playback for Drive-hosted rooms, distinct from the dataSync one
          above which only keeps the room socket alive. -->
@@ -22,10 +22,12 @@
     <!-- The in-app camera for reels, stories and posts. -->
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- The in-app gallery on the new post screen. -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <!-- Photos and videos come from the system photo picker, which needs
+         no permission; these are kept out even if a plugin asks for them. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -76,7 +78,7 @@
              while backgrounded (see room_socket_controller.dart). -->
         <service
             android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
-            android:foregroundServiceType="dataSync"
+            android:foregroundServiceType="mediaPlayback"
             android:exported="false" />
 
         <!-- audio_service's own foreground media session — real lock-screen
