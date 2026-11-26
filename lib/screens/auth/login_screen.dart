@@ -137,7 +137,9 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final idToken = await AppleAuthService.signInAndGetFirebaseIdToken();
       if (idToken == null || !mounted) return;
-      await context.read<AuthProvider>().loginWithFirebaseIdToken(idToken);
+      await context
+          .read<AuthProvider>()
+          .loginWithFirebaseIdToken(idToken, name: AppleAuthService.lastName);
     } catch (e) {
       if (mounted) {
         setState(() => _error = e.toString().replaceFirst('Exception: ', ''));

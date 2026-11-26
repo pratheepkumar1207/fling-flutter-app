@@ -173,9 +173,12 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loginWithFirebaseIdToken(String idToken) async {
+  /// [name]: what the sign-in provider shared (Sign in with Apple sends
+  /// it only once), used for a brand-new account.
+  Future<void> loginWithFirebaseIdToken(String idToken, {String? name}) async {
     final data = await ApiClient.post('/auth/firebase',
-        body: {'idToken': idToken}, skipAuth: true);
+        body: {'idToken': idToken, if (name != null) 'name': name},
+        skipAuth: true);
     final map = data as Map<String, dynamic>;
     _token = map['token'] as String;
     await _persistToken(_token!);

@@ -59,7 +59,9 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     _ageConfirmed18 = user?.ageConfirmed18 ?? false;
     _avatar = user?.avatarUrl;
     final name = user?.name ?? '';
-    _nameController.text = name == 'Test User' ? '' : name;
+    // The server's placeholder for a brand-new account isn't a real name.
+    _nameController.text =
+        name == 'Test User' || name == 'New User' ? '' : name;
     final handle = user?.username ?? '';
     _usernameController.text = _generated.hasMatch(handle) ? '' : handle;
     InterestOptionsCache.load().then((options) {

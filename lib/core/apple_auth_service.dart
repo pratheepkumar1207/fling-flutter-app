@@ -11,6 +11,10 @@ class AppleAuthService {
 
   static bool get available => !kIsWeb && Platform.isIOS;
 
+  /// The name Apple shared on the last sign-in (Apple sends it only the
+  /// first time), so the profile screen doesn't ask for it again.
+  static String? lastName;
+
   /// The Firebase ID token, or null if the person cancelled.
   static Future<String?> signInAndGetFirebaseIdToken() async {
     final provider = AppleAuthProvider()
@@ -18,6 +22,14 @@ class AppleAuthService {
       ..addScope('name');
     try {
       final result = await FirebaseAuth.instance.signInWithProvider(provider);
+      final profile = result.additionalUserInfo?.profile;
+      final fromProfile = [profile?['firstName'], profile?['lastName']]
+          .whereType<String>()
+          .join(' ')
+          .trim();
+      lastName = (result.user?.displayName?.trim().isNotEmpty ?? false)
+          ? result.user!.displayName!.trim()
+          : (fromProfile.isNotEmpty ? fromProfile : null);
       return await result.user?.getIdToken();
     } on FirebaseAuthException catch (e) {
       if (e.code == 'canceled' || e.code == 'web-context-canceled') {

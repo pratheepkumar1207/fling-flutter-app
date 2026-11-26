@@ -793,7 +793,7 @@ packages:
     source: hosted
     version: "3.2.0"
   in_app_purchase_android:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: in_app_purchase_android
       sha256: b7cc194f183a97d71e6da1edb4a4095466ca0c22533615ecad021bdf95a5ecdc
