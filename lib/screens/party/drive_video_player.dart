@@ -186,6 +186,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
   /// - link: straight from Google, the file being shared by link
   /// - not_shared: link sharing is off, so show steps / wait
   /// - relay: through the Cloudflare relay
+  /// - unavailable: the server has no way set up, say so
   /// - anything else: through /drive/stream, as before
   Future<void> _openFile(String fileId, {bool fresh = false}) async {
     Map? r;
@@ -213,6 +214,17 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
     }
     _waitForShare?.cancel();
     _waitForShare = null;
+
+    if (mode == 'unavailable') {
+      setState(() {
+        _notShared = false;
+        _problem = (
+          'Drive videos aren\'t ready',
+          (r?['message'] as String?) ?? 'Try again later.'
+        );
+      });
+      return;
+    }
 
     final url = r?['url'] as String?;
     _directUrl = (mode == 'link' || mode == 'relay') ? url : null;
