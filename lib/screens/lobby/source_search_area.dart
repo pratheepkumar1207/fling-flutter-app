@@ -240,7 +240,7 @@ class _SourceSearchAreaState extends State<SourceSearchArea> {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF3A2A55)),
+          border: Border.all(color: const Color(0xFF404040)),
         ),
         child:
             Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -332,7 +332,7 @@ class _SourceSearchAreaState extends State<SourceSearchArea> {
                 style: FilledButton.styleFrom(
                     visualDensity: VisualDensity.compact,
                     backgroundColor: widget.inRoom
-                        ? const Color(0xFF2B1640)
+                        ? const Color(0xFF2B2B2B)
                         : AppColors.primary),
                 child: Text(widget.inRoom ? 'Add' : 'Watch'),
               ),

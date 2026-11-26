@@ -104,7 +104,7 @@ class UpdatesTab extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-                color: fresh ? const Color(0xFFFF4FA3) : AppColors.border,
+                color: fresh ? const Color(0xFFFF4F64) : AppColors.border,
                 width: 2),
           ),
           child: Avatar(src: s.avatarUrl, name: s.name, size: AvatarSize.md),

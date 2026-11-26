@@ -434,7 +434,7 @@ class _CommunityInfoScreenState extends State<CommunityInfoScreen> {
     final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF15121D),
+      backgroundColor: const Color(0xFF181818),
       builder: (sheet) => StatefulBuilder(
         builder: (sheet, setSheet) => Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(sheet).bottom),
@@ -626,7 +626,7 @@ class _CommunityMembersScreenState extends State<CommunityMembersScreen> {
     final isAdmin = p['role'] == 'moderator';
     final choice = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: const Color(0xFF15121D),
+      backgroundColor: const Color(0xFF181818),
       builder: (s) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           if (owner)

@@ -11,14 +11,14 @@ const _kRules = [
   (
     icon: InIcons.verified,
     color: AppColors.blue,
-    tile: Color(0xFF122046),
+    tile: Color(0xFF2C2C2C),
     title: 'Be who you say you are',
     body: 'Use real photos and your real age. Fake profiles get suspended.',
   ),
   (
     icon: InIcons.heart,
     color: AppColors.pink,
-    tile: Color(0xFF2A1028),
+    tile: Color(0xFF2A1013),
     title: 'Keep it respectful',
     body: 'No hate, harassment or unwanted explicit content.',
   ),

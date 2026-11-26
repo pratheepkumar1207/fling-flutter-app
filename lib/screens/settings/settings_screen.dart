@@ -328,12 +328,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: _logout,
             style: OutlinedButton.styleFrom(
               minimumSize: const Size.fromHeight(50),
-              foregroundColor: const Color(0xFFFF8AA0),
+              foregroundColor: const Color(0xFFFF5266),
               backgroundColor: Colors.transparent,
-              side: const BorderSide(color: Color(0xFF4A2230)),
+              side: const BorderSide(color: Color(0xFF4A2227)),
             ),
             icon: const InIcon(InIcons.logout,
-                size: 18, color: Color(0xFFFF8AA0)),
+                size: 18, color: Color(0xFFFF5266)),
             label: const Text('Log out'),
           ),
           const SizedBox(height: 10),
@@ -370,7 +370,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             borderRadius: BorderRadius.circular(18)),
         child: Column(children: [
           for (var i = 0; i < rows.length; i++) ...[
-            if (i > 0) const Divider(height: 1, color: Color(0xFF221F2C)),
+            if (i > 0) const Divider(height: 1, color: Color(0xFF262626)),
             rows[i],
           ],
         ]),
@@ -380,7 +380,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         width: 34,
         height: 34,
         decoration: BoxDecoration(
-            color: const Color(0xFF1F1A2C),
+            color: const Color(0xFF232323),
             borderRadius: BorderRadius.circular(11)),
         alignment: Alignment.center,
         child: InIcon(icon, size: 18, color: color),

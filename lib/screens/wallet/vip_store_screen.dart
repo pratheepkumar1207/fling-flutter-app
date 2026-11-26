@@ -305,10 +305,10 @@ class _VipStoreScreenState extends State<VipStoreScreen> {
   // matching VipStoreDark.dc.html's varied gold/violet/mint/blue rings.
   static const _ringGradients = [
     [Color(0xFFE8C56B), Color(0xFFC28A38)],
-    [Color(0xFFF4595E), Color(0xFFB051C5)],
+    [Color(0xFFF4596B), Color(0xFFE82E44)],
     [Color(0xFF9DE8B8), Color(0xFF3F9E6E)],
-    [Color(0xFF9DC5E8), Color(0xFF5A8FC1)],
-    [Color(0xFFE89DC5), Color(0xFFC13750)],
+    [Color(0xFFFFFFFF), Color(0xFFFFFFFF)],
+    [Color(0xFFEE6373), Color(0xFFDF1930)],
   ];
   List<Color> _frameRingColors(AvatarFrame frame) =>
       _ringGradients[frame.id.hashCode.abs() % _ringGradients.length];

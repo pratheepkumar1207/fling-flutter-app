@@ -98,13 +98,13 @@ class Blend {
 /// avatars use the same one for the same person.
 const blendMemberColors = [
   Color(0xFF1D9E75),
-  Color(0xFFD4537E),
-  Color(0xFF7F77DD),
+  Color(0xFFE93E52),
+  Color(0xFFFFFFFF),
   Color(0xFFEF9F27),
-  Color(0xFF378ADD),
+  Color(0xFFFFFFFF),
   Color(0xFFD85A30),
   Color(0xFF97C459),
-  Color(0xFFED93B1),
+  Color(0xFFEE6373),
 ];
 
 Color blendColorFor(Blend blend, String? userId) {

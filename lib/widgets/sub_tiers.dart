@@ -17,13 +17,13 @@ String subTierName(String t) => switch (t) {
           const Color(0xFF3A2300)
         ),
       'platinum' => (
-          const Color(0xFFD6CCFF),
-          const Color(0xFF17142A),
-          const Color(0xFF26215C)
+          const Color(0xFFFFCCD2),
+          const Color(0xFF1F1F1F),
+          const Color(0xFF8B8B8B)
         ),
       _ => (
-          const Color(0xFFC9D1DE),
-          const Color(0xFF16181C),
+          const Color(0xFFD3D3D3),
+          const Color(0xFF191919),
           const Color(0xFF2C2C2A)
         ),
     };

@@ -176,16 +176,16 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
 
   static const _placeholderGradients = [
     [Color(0xFFE0C79A), Color(0xFFC17F42)],
-    [Color(0xFFE6D0F0), Color(0xFFC896DC)],
+    [Color(0xFFFAC6CC), Color(0xFFEE6373)],
     [Color(0xFFE1EEDC), Color(0xFFC2E0B8)],
-    [Color(0xFFD9C2E8), Color(0xFFA85CD6)],
+    [Color(0xFFF9B1BA), Color(0xFFEB475A)],
   ];
 
   Widget _card(String title, int count, bool selected, VoidCallback onTap) =>
       Padding(
         padding: const EdgeInsets.only(right: 10),
         child: Material(
-          color: selected ? const Color(0xFF2B1640) : AppColors.surface,
+          color: selected ? const Color(0xFF2B2B2B) : AppColors.surface,
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
               side: BorderSide(

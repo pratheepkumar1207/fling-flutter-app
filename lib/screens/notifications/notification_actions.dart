@@ -9,6 +9,7 @@ import '../friends/friends_screen.dart';
 import '../messages/message_thread_screen.dart';
 import '../party/party_screen.dart';
 import '../profile/creator_profile_screen.dart';
+import '../discover/peek_card.dart';
 
 /// Where tapping a notification goes, shared by the bell dropdown and the
 /// full Notifications screen. Types come from the backend's
@@ -37,6 +38,13 @@ void openNotificationTarget(BuildContext context, NotificationItem n) {
     case 'blend_invite' || 'blend_watch':
       final blendId = data['blendId'] as String?;
       if (blendId != null) target = BlendScreen(blendId: blendId);
+    // Someone asked to join the lobby you host: their card, to decide.
+    case 'room_join_ask':
+      final userId = data['userId'] as String?;
+      if (userId != null) {
+        showPeekCard(context, userId);
+        return;
+      }
     case 'match':
       final userId = data['userId'] as String?;
       if (userId != null) {
@@ -51,6 +59,7 @@ void openNotificationTarget(BuildContext context, NotificationItem n) {
 
 InIconData notificationIcon(String type) => switch (type) {
       'room_invite' => InIcons.tv,
+      'room_join_ask' => InIcons.useradd,
       'mention' => InIcons.mail,
       'like' => InIcons.heart,
       'comment' => InIcons.chat,
@@ -63,9 +72,9 @@ InIconData notificationIcon(String type) => switch (type) {
     };
 
 List<Color> notificationColors(String type) => switch (type) {
-      'room_invite' => const [AppColors.accent2, AppColors.primary],
+      'room_invite' || 'room_join_ask' => const [AppColors.accent2, AppColors.primary],
       'mention' => const [AppColors.gold, Color(0xFFC98F3A)],
-      'like' || 'match' => const [AppColors.danger, Color(0xFFE0567A)],
+      'like' || 'match' => const [AppColors.danger, Color(0xFFEB4B5E)],
       'friend_request' || 'friend_accept' || 'follow' => const [
           AppColors.success,
           AppColors.primary

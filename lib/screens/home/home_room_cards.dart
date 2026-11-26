@@ -28,8 +28,8 @@ class HomeInviteCard extends StatelessWidget {
         child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1028),
-            border: Border.all(color: const Color(0xFF3A2A55)),
+            color: const Color(0xFF1C1C1C),
+            border: Border.all(color: const Color(0xFF404040)),
             borderRadius: BorderRadius.circular(18),
           ),
           child: Row(children: [
@@ -118,8 +118,8 @@ class _HomeEventCardState extends State<HomeEventCard> {
         child: Ink(
           padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1028),
-            border: Border.all(color: const Color(0xFF3A2A55)),
+            color: const Color(0xFF1C1C1C),
+            border: Border.all(color: const Color(0xFF404040)),
             borderRadius: BorderRadius.circular(18),
           ),
           child: Row(children: [
@@ -190,7 +190,7 @@ class HomeInRoomBanner extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-                colors: [Color(0xFF3A1F5C), Color(0xFF26163E)]),
+                colors: [Color(0xFFB81427), Color(0xFF2A2A2A)]),
             border: Border.all(color: AppColors.primary.withValues(alpha: 0.6)),
             borderRadius: BorderRadius.circular(18),
           ),
@@ -253,8 +253,8 @@ class HomeBlendCard extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-                colors: [Color(0xFF2B1640), Color(0xFF1A1028)]),
-            border: Border.all(color: const Color(0xFF3A2A55)),
+                colors: [Color(0xFF2B2B2B), Color(0xFF1C1C1C)]),
+            border: Border.all(color: const Color(0xFF404040)),
             borderRadius: BorderRadius.circular(18),
           ),
           child: Row(children: [
@@ -264,7 +264,7 @@ class HomeBlendCard extends StatelessWidget {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const _Kind(InIcons.play, 'REELS BLEND', Color(0xFFFF7A9A)),
+                    const _Kind(InIcons.play, 'REELS BLEND', Color(0xFFFF5266)),
                     const SizedBox(height: 2),
                     Text(title,
                         maxLines: 1,

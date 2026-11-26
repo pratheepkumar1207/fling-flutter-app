@@ -232,7 +232,7 @@ class _RoomModerationScreenState extends State<RoomModerationScreen> {
           SimpleDialogOption(
             onPressed: () => Navigator.of(d).pop('remove'),
             child: const Text('Remove as co-host',
-                style: TextStyle(color: Color(0xFFFF6B75))),
+                style: TextStyle(color: Color(0xFFFF5266))),
           ),
         ],
       ),
@@ -313,7 +313,7 @@ class _RoomModerationScreenState extends State<RoomModerationScreen> {
                       border: Border.all(color: Colors.black)),
                   child: Text(tag,
                       style: const TextStyle(
-                          color: Color(0xFFC9BCFF), fontSize: 9.5)),
+                          color: Color(0xFFFFBCC4), fontSize: 9.5)),
                 ),
               ),
           ]),
@@ -321,7 +321,7 @@ class _RoomModerationScreenState extends State<RoomModerationScreen> {
           Text(name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Color(0xFFD8D8DE), fontSize: 11)),
+              style: const TextStyle(color: Color(0xFFDBDBDB), fontSize: 11)),
         ]),
       ),
     );
@@ -445,7 +445,7 @@ class _RoomModerationScreenState extends State<RoomModerationScreen> {
                         child: Row(children: [
                           const SizedBox(width: 12),
                           const InIcon(InIcons.block,
-                              size: 18, color: Color(0xFFFF6B75)),
+                              size: 18, color: Color(0xFFFF5266)),
                           const SizedBox(width: 10),
                           const Expanded(child: Text('Banned people')),
                           Text('${(d['banned'] as List).length}',

@@ -768,7 +768,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
                   minHeight: 3,
                   value: (position / duration).clamp(0.0, 1.0).toDouble(),
                   backgroundColor: Colors.white24,
-                  valueColor: const AlwaysStoppedAnimation(Color(0xFFFF0033)),
+                  valueColor: const AlwaysStoppedAnimation(Color(0xFFFF001E)),
                 ),
               ),
             // See the matching comments in sync_video_player.dart for both
@@ -928,7 +928,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
                                         ? position.clamp(0, duration)
                                         : 0,
                                     max: duration > 0 ? duration : 1,
-                                    activeColor: const Color(0xFFFF0033),
+                                    activeColor: const Color(0xFFFF001E),
                                     inactiveColor: Colors.white24,
                                     onChanged: widget.isHost
                                         ? _handleSeekChanged

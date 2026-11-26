@@ -28,10 +28,10 @@ class CommunityDetailScreen extends StatefulWidget {
 // Same deterministic per-name gradient as the Communities list, so a
 // community's banner color is consistent between the card and this screen.
 const _bannerGradients = [
-  [Color(0xFFB251C5), Color(0xFF8E3AAF)],
+  [Color(0xFFE82E44), Color(0xFFD2172D)],
   [Color(0xFF4FB98A), Color(0xFF2E8C64)],
   [Color(0xFFE8A23F), Color(0xFFC66B2E)],
-  [Color(0xFF4272D9), Color(0xFF2E4FA3)],
+  [Color(0xFFFFFFFF), Color(0xFFB5B5B5)],
 ];
 
 class _CommunityDetailScreenState extends State<CommunityDetailScreen> {

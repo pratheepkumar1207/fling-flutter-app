@@ -24,7 +24,7 @@ Future<bool> canGoLive(BuildContext context) async {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const InIcon(InIcons.live, size: 34, color: Color(0xFFFF375F)),
+              const InIcon(InIcons.live, size: 34, color: Color(0xFFFF374E)),
               const SizedBox(height: 12),
               Text(
                   creator

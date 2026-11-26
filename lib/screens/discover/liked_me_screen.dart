@@ -1,16 +1,17 @@
-import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
 
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
-import '../../widgets/avatar.dart';
+import '../../widgets/app_image.dart';
 import '../../widgets/in_icon_button.dart';
 import '../../widgets/spinner.dart';
 import '../messages/message_thread_screen.dart';
 import '../wallet/vip_store_screen.dart';
+import 'discover_sheets.dart';
+import 'discover_ui.dart';
+import 'peek_card.dart';
 
 /// People who liked you (GET /swipe/likes). VIPs see everyone and can like
 /// back to match; others see the first two and a blurred rest.
@@ -56,7 +57,10 @@ class _LikedMeScreenState extends State<LikedMeScreen> {
       }
       _load();
     } on ApiException catch (e) {
-      if (mounted) {
+      if (!mounted) return;
+      if (e.status == 429 && e.data is Map) {
+        await showOutOfLikesSheet(context, e.data as Map);
+      } else {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(e.message)));
       }
@@ -69,13 +73,20 @@ class _LikedMeScreenState extends State<LikedMeScreen> {
     final people = ((d?['people'] as List?) ?? const []).cast<Map>();
     final vip = d?['vip'] == true;
     final count = (d?['count'] as num?)?.toInt() ?? 0;
+    final locked = people.where((p) => p['hidden'] == true).length;
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         backgroundColor: AppColors.bg,
         leading: InIconButton(InIcons.back,
             tooltip: 'Back', onPressed: () => Navigator.of(context).maybePop()),
-        title: const Text('Likes you'),
+        title: Row(children: [
+          const Text('Liked you'),
+          if (count > 0) ...[
+            const SizedBox(width: 8),
+            DChip('$count', tone: DTone.red, fontSize: 12)
+          ],
+        ]),
       ),
       body: d == null
           ? const Center(child: Spinner())
@@ -84,54 +95,60 @@ class _LikedMeScreenState extends State<LikedMeScreen> {
                   child: Padding(
                     padding: EdgeInsets.all(32),
                     child: Text(
-                        'No likes yet. Keep swiping in Discover — people who like you show up here.',
+                        'No likes yet. Keep swiping in Discover. People who like you show up here.',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: AppColors.textDim)),
                   ),
                 )
-              : ListView(padding: const EdgeInsets.all(16), children: [
-                  Text(
-                      count == 1
-                          ? '1 person likes you'
-                          : '$count people like you',
-                      style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.w800)),
-                  if (!vip) ...[
-                    const SizedBox(height: 4),
-                    const Text('Go VIP to see everyone and match instantly',
-                        style: TextStyle(color: AppColors.textDim)),
-                    const SizedBox(height: 12),
-                    FilledButton.icon(
-                      onPressed: () => Navigator.of(context)
-                          .push(MaterialPageRoute(
-                              builder: (_) => const VipStoreScreen()))
-                          .then((_) => _load()),
-                      style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.gold,
-                          foregroundColor: AppColors.bg,
-                          minimumSize: const Size.fromHeight(48)),
-                      icon: const InIcon(InIcons.crown,
-                          size: 18, color: AppColors.bg),
-                      label: const Text('Go VIP',
-                          style: TextStyle(fontWeight: FontWeight.w800)),
+              : Column(children: [
+                  Expanded(
+                    child: GridView.count(
+                      padding: const EdgeInsets.all(14),
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                      childAspectRatio: 0.78,
+                      children: [
+                        for (final raw in people)
+                          _LikeCard(
+                              p: Map<String, dynamic>.from(raw),
+                              onLikeBack: _likeBack),
+                      ],
                     ),
-                  ],
-                  const SizedBox(height: 16),
-                  GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    childAspectRatio: 0.78,
-                    children: [
-                      for (final raw in people)
-                        _LikeCard(
-                          p: Map<String, dynamic>.from(raw),
-                          onLikeBack: _likeBack,
-                        ),
-                    ],
                   ),
+                  if (!vip && locked > 0)
+                    SafeArea(
+                      top: false,
+                      child: Container(
+                        margin: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: DColors.card,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: DColors.line),
+                        ),
+                        child: Column(children: [
+                          Text('See all $count who liked you',
+                              style: const TextStyle(
+                                  fontSize: 15, fontWeight: FontWeight.w700)),
+                          const SizedBox(height: 4),
+                          const Text(
+                              'Free: the first 2. VIP: everyone, and like back in one tap.',
+                              textAlign: TextAlign.center,
+                              style:
+                                  TextStyle(color: DColors.dim, fontSize: 12)),
+                          const SizedBox(height: 10),
+                          DButton('Get VIP',
+                              icon: InIcons.crown,
+                              kind: DButtonKind.white, onPressed: () {
+                            Navigator.of(context)
+                                .push(MaterialPageRoute(
+                                    builder: (_) => const VipStoreScreen()))
+                                .then((_) => _load());
+                          }),
+                        ]),
+                      ),
+                    ),
                 ]),
     );
   }
@@ -146,48 +163,89 @@ class _LikeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final hidden = p['hidden'] == true;
     final age = p['age'];
-    final label = hidden
-        ? '••••${age == null ? '' : ', $age'}'
-        : '${(p['name'] as String? ?? '').split(' ').first}${age == null ? '' : ', $age'}';
-    Widget face = Avatar(
-        src: hidden ? null : p['avatarUrl'] as String?,
-        name: hidden ? '?' : p['name'] as String?,
-        size: AvatarSize.lg);
+    final superLike = p['superlike'] == true;
     if (hidden) {
-      face = ImageFiltered(
-          imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8), child: face);
+      return Semantics(
+        label: 'Hidden like. Get VIP to see who.',
+        child: Container(
+          decoration: BoxDecoration(
+              color: const Color(0xFF141414),
+              borderRadius: BorderRadius.circular(16)),
+          child: Stack(children: [
+            const Center(
+                child:
+                    InIcon(InIcons.lock, size: 30, color: Color(0xFF3A3A3A))),
+            if (age != null)
+              Positioned(
+                  left: 8, bottom: 8, child: DChip('••••, $age', fontSize: 11)),
+            if (superLike)
+              const Positioned(
+                  right: 8,
+                  top: 8,
+                  child: DChip('Super like',
+                      icon: InIcons.star, tone: DTone.red, fontSize: 11)),
+          ]),
+        ),
+      );
     }
+    final name = (p['name'] as String? ?? '').split(' ').first;
     return Semantics(
-      label: hidden ? 'Hidden like. Go VIP to see who.' : 'Liked by $label',
-      child: Container(
-        decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-                color: p['superlike'] == true
-                    ? AppColors.blue
-                    : AppColors.border)),
-        padding: const EdgeInsets.all(12),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          face,
-          const SizedBox(height: 10),
-          Text(label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w700)),
-          if (p['superlike'] == true)
-            const Text('Super like',
-                style: TextStyle(color: AppColors.blue, fontSize: 12)),
-          const SizedBox(height: 8),
-          if (!hidden)
-            FilledButton(
-              onPressed: () => onLikeBack(p),
-              style: FilledButton.styleFrom(
-                  minimumSize: const Size(0, 36),
-                  backgroundColor: AppColors.pink),
-              child: const Text('Like back'),
+      label: 'Liked by $name',
+      child: GestureDetector(
+        onTap: () => showPeekCard(context, p['id'] as String),
+        onLongPress: () => showPeekCard(context, p['id'] as String),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(fit: StackFit.expand, children: [
+            p['avatarUrl'] != null
+                ? AppImage(source: p['avatarUrl'] as String, fit: BoxFit.cover)
+                : Container(color: DColors.photo),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.center,
+                    colors: [Color(0xE6000000), Color(0x00000000)]),
+              ),
             ),
-        ]),
+            if (superLike)
+              const Positioned(
+                  right: 8,
+                  top: 8,
+                  child: DChip('Super like',
+                      icon: InIcons.star, tone: DTone.red, fontSize: 11)),
+            Positioned(
+              left: 8,
+              right: 8,
+              bottom: 8,
+              child: Row(children: [
+                Expanded(
+                  child: Text(age == null ? name : '$name, $age',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 14)),
+                ),
+                Semantics(
+                  button: true,
+                  label: 'Like back',
+                  child: GestureDetector(
+                    onTap: () => onLikeBack(p),
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: const BoxDecoration(
+                          color: DColors.red, shape: BoxShape.circle),
+                      alignment: Alignment.center,
+                      child: const InIcon(InIcons.heart,
+                          size: 17, color: Colors.white, filled: true),
+                    ),
+                  ),
+                ),
+              ]),
+            ),
+          ]),
+        ),
       ),
     );
   }

@@ -29,13 +29,13 @@ const kSourceNames = {
 };
 
 const _sourceColors = {
-  'youtube': Color(0xFFFF0033),
-  'youtube_surf': Color(0xFFFF0033),
-  'youtube_music': Color(0xFFFF0033),
+  'youtube': Color(0xFFFF001E),
+  'youtube_surf': Color(0xFFFF001E),
+  'youtube_music': Color(0xFFFF001E),
   'drive': Color(0xFF1E8E3E),
-  'netflix': Color(0xFFE50914),
-  'amazon': Color(0xFF1A98FF),
-  'hotstar': Color(0xFF0F1E5C),
+  'netflix': Color(0xFFE50923),
+  'amazon': Color(0xFFFFFFFF),
+  'hotstar': Color(0xFF363636),
 };
 
 String _sourceOf(Map<String, dynamic> m) {
@@ -48,7 +48,7 @@ Widget _sourceBadge(String source) => Container(
       height: 10,
       margin: const EdgeInsets.only(right: 5),
       decoration: BoxDecoration(
-          color: _sourceColors[source] ?? const Color(0xFF4A4560),
+          color: _sourceColors[source] ?? const Color(0xFF525252),
           borderRadius: BorderRadius.circular(2)),
     );
 
@@ -106,7 +106,7 @@ class YtThumb extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                 decoration: BoxDecoration(
                     color: rank != null
-                        ? const Color(0xFFFF0033)
+                        ? const Color(0xFFFF001E)
                         : const Color(0xCC000000),
                     borderRadius: BorderRadius.circular(3)),
                 child: Text(corner!,
@@ -653,7 +653,7 @@ class _YtPlaylistScreenState extends State<YtPlaylistScreen> {
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
-          backgroundColor: const Color(0xFF26215C),
+          backgroundColor: const Color(0xFF8B8B8B),
           foregroundColor: Colors.white,
           elevation: 0),
       body: ListView(padding: const EdgeInsets.only(bottom: 24), children: [
@@ -662,7 +662,7 @@ class _YtPlaylistScreenState extends State<YtPlaylistScreen> {
             gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0xFF26215C), _bg]),
+                colors: [Color(0xFF8B8B8B), _bg]),
           ),
           padding: const EdgeInsets.fromLTRB(14, 4, 14, 12),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

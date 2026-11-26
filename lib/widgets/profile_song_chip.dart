@@ -29,9 +29,9 @@ class ProfileSongChip extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-                color: const Color(0xFF1A1326),
+                color: const Color(0xFF1C1C1C),
                 borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: const Color(0xFF3B2A55))),
+                border: Border.all(color: const Color(0xFF404040))),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               const InIcon(InIcons.music, size: 14, color: AppColors.lilac),
               const SizedBox(width: 6),
@@ -42,7 +42,7 @@ class ProfileSongChip extends StatelessWidget {
                     style: const TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFFE2CCFF))),
+                        color: Color(0xFFFFCCD2))),
               ),
               const Text(' · Profile song',
                   style: TextStyle(fontSize: 12, color: AppColors.textDim)),

@@ -177,7 +177,7 @@ class ViewOnceCard extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: mine
                     ? Colors.white.withValues(alpha: 0.18)
-                    : const Color(0xFF2B1640),
+                    : const Color(0xFF2B2B2B),
               ),
               child: Center(
                   child: InIcon(mine ? InIcons.send : InIcons.eye,
@@ -197,7 +197,7 @@ class ViewOnceCard extends StatelessWidget {
                     Text(mine ? 'Sent · not seen yet' : 'Tap to open · 10 sec',
                         style: TextStyle(
                             color: mine
-                                ? const Color(0xFFE7DDF5)
+                                ? const Color(0xFFFCD6DB)
                                 : AppColors.textDim,
                             fontSize: 12)),
                   ]),
@@ -473,7 +473,7 @@ class _SeenBySheetState extends State<_SeenBySheet> {
                 for (final v in viewers)
                   ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: const Color(0xFF2B1640),
+                      backgroundColor: const Color(0xFF2B2B2B),
                       backgroundImage: (v['avatarUrl'] as String?) != null &&
                               (v['avatarUrl'] as String).startsWith('http')
                           ? NetworkImage(v['avatarUrl'] as String)

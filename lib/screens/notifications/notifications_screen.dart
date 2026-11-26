@@ -91,6 +91,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   static String _group(String type) => switch (type) {
         'room_invite' ||
+        'room_join_ask' ||
         'event_reminder' ||
         'blend_invite' ||
         'blend_watch' ||
@@ -117,6 +118,30 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  // Host side of "Ask to join": letting someone in sends them an invite.
+  final Set<String> _letIn = {};
+  Future<void> _letThemIn(NotificationItem n) async {
+    final roomId = n.data?['roomId'] as String?;
+    final userId = n.data?['userId'] as String?;
+    if (roomId == null || userId == null) return;
+    setState(() => _letIn.add(n.id));
+    try {
+      await ApiClient.post('/rooms/$roomId/invite', body: {
+        'userIds': [userId]
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Invite sent to ${n.data?['name'] ?? 'them'}')));
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _letIn.remove(n.id));
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Couldn\u2019t send the invite. The lobby may have ended.')));
+      }
+    }
+  }
+
   /// The one-tap action on a row, when the type has one.
   Widget? _action(NotificationItem n) {
     Widget pill(String label, VoidCallback onTap, {bool filled = true}) =>
@@ -138,6 +163,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     switch (n.type) {
       case 'room_invite' || 'blend_invite' || 'blend_watch':
         return pill('Join', () => _open(n));
+      case 'room_join_ask':
+        return _letIn.contains(n.id)
+            ? pill('Invited', () {}, filled: false)
+            : pill('Let in', () => _letThemIn(n));
       case 'match':
         return pill('Say hi', () => _open(n));
       case 'follow':

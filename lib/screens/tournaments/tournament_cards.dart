@@ -82,10 +82,10 @@ class TournamentCard extends StatelessWidget {
     final joined = t['joined'] == true;
     void open() => openTournament(context, t['id'] as String).then((_) => onReturn?.call());
     return Material(
-      color: running ? const Color(0xFF1A1A20) : const Color(0xFF1C1A2E),
+      color: running ? const Color(0xFF1D1D1D) : const Color(0xFF242424),
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
-          side: BorderSide(color: running ? AppColors.border : const Color(0xFF7F77DD))),
+          side: BorderSide(color: running ? AppColors.border : const Color(0xFFFFFFFF))),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: open,
@@ -96,13 +96,13 @@ class TournamentCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: running ? const Color(0xFF501313) : const Color(0xFF412402),
+                  color: running ? const Color(0xFF4F141B) : const Color(0xFF412402),
                   borderRadius: BorderRadius.circular(99),
-                  border: Border.all(color: running ? const Color(0xFFA32D2D) : const Color(0xFFBA7517)),
+                  border: Border.all(color: running ? const Color(0xFFBB1528) : const Color(0xFFBA7517)),
                 ),
                 child: Text(running ? '● Live · Round ${round?['n'] ?? 1}' : '🏆 Free entry',
                     style: TextStyle(
-                        fontSize: 11, color: running ? const Color(0xFFF7C1C1) : const Color(0xFFFAC775))),
+                        fontSize: 11, color: running ? const Color(0xFFFABEC5) : const Color(0xFFFAC775))),
               ),
               const SizedBox(width: 6),
               Expanded(
@@ -151,7 +151,7 @@ class TournamentCard extends StatelessWidget {
               width: double.infinity,
               child: FilledButton(
                 style: FilledButton.styleFrom(
-                    backgroundColor: running ? const Color(0xFF2A2A33) : const Color(0xFF534AB7),
+                    backgroundColor: running ? const Color(0xFF2F2F2F) : const Color(0xFF808080),
                     foregroundColor: Colors.white,
                     visualDensity: VisualDensity.compact),
                 onPressed: open,

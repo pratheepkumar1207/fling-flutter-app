@@ -19,10 +19,10 @@ const _scopeLabels = {
 // ChallengesDark.dc.html's colorful icon squares — cycles by index since
 // challenges don't carry a "type" field to key off of.
 const _kChallengeStyles = [
-  (icon: InIcons.star, colors: [Color(0xFFE0836B), Color(0xFFB8422C)]),
+  (icon: InIcons.star, colors: [Color(0xFFE0836B), Color(0xFFCD172C)]),
   (icon: InIcons.gift, colors: [Color(0xFF6ED9A0), Color(0xFF2E9B5F)]),
   (icon: InIcons.bolt, colors: [Color(0xFFDBB155), Color(0xFFB98A3D)]),
-  (icon: InIcons.trophy, colors: [Color(0xFF7FA8D9), Color(0xFF4272D9)]),
+  (icon: InIcons.trophy, colors: [Color(0xFFFFFFFF), Color(0xFFFFFFFF)]),
 ];
 
 class ChallengesScreen extends StatefulWidget {

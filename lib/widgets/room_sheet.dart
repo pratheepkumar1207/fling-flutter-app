@@ -8,8 +8,8 @@ import '../theme/insync_icons.dart';
 
 const kSheetTile = Color(0xFF141414);
 const kSheetBorder = Color(0xFF262626);
-const kSheetOn = Color(0xFF2A1D4A);
-const kSheetOnBorder = Color(0xFF8B6CFF);
+const kSheetOn = Color(0xFF343434);
+const kSheetOnBorder = Color(0xFFFF5266);
 const kSheetDim = Color(0xB3FFFFFF);
 const _kOnDot = Color(0xFF3AD17A);
 
@@ -231,7 +231,7 @@ class RoomQuickTile extends StatelessWidget {
                     height: 1.2,
                     color: on == false
                         ? const Color(0xFF888888)
-                        : const Color(0xFFD8D8DE))),
+                        : const Color(0xFFDBDBDB))),
           ]),
         ),
       ),
@@ -320,13 +320,13 @@ class RoomSheetButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = danger ? const Color(0xFFFF6B75) : Colors.white;
+    final color = danger ? const Color(0xFFFF5266) : Colors.white;
     return Material(
       color: danger ? const Color(0xFF1A0A0C) : const Color(0xFF111111),
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(
-              color: danger ? const Color(0xFF5A1F24) : kSheetBorder)),
+              color: danger ? const Color(0xFFB81427) : kSheetBorder)),
       child: InkWell(
         customBorder:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

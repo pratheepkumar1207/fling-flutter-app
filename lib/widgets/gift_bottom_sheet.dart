@@ -172,7 +172,7 @@ class _GiftSheetState extends State<_GiftSheet> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                      color: selected ? Colors.white : const Color(0xFFC9C4D6),
+                      color: selected ? Colors.white : const Color(0xFFCDCDCD),
                       fontSize: 11,
                       fontWeight:
                           selected ? FontWeight.w700 : FontWeight.w400)),
@@ -287,7 +287,7 @@ class _GiftSheetState extends State<_GiftSheet> {
                               style: TextStyle(
                                   color: _tab == id
                                       ? Colors.white
-                                      : const Color(0xFFA9A3B8),
+                                      : const Color(0xFFAEAEAE),
                                   fontSize: 13,
                                   fontWeight: _tab == id
                                       ? FontWeight.w700
@@ -365,7 +365,7 @@ class _GiftSheetState extends State<_GiftSheet> {
                         : _send,
                     style: FilledButton.styleFrom(
                         backgroundColor: AppColors.lilac,
-                        foregroundColor: const Color(0xFF241338),
+                        foregroundColor: const Color(0xFF262626),
                         minimumSize: const Size(0, 38),
                         padding: const EdgeInsets.symmetric(horizontal: 14)),
                     child: Text(_combo >= 2

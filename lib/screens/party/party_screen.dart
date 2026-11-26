@@ -384,7 +384,7 @@ class _PartyScreenState extends State<PartyScreen>
 
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xE616141D),
+      backgroundColor: const Color(0xE6181818),
       barrierColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
@@ -908,9 +908,9 @@ class _PartyScreenState extends State<PartyScreen>
       height: 32,
       margin: const EdgeInsets.only(left: 2),
       decoration: BoxDecoration(
-        color: const Color(0xFF2A1D4A),
+        color: const Color(0xFF343434),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF8B6CFF)),
+        border: Border.all(color: const Color(0xFFFF5266)),
       ),
       child: Center(child: InIcon(icon, size: 17, color: Colors.white)),
     );
@@ -1889,7 +1889,7 @@ class _PartyScreenState extends State<PartyScreen>
       }
       final ok = await showModalBottomSheet<bool>(
         context: context,
-        backgroundColor: const Color(0xFF16151B),
+        backgroundColor: const Color(0xFF181818),
         builder: (sheet) => SafeArea(
           child: ListTile(
             leading: const BotAvatar(size: 26),
@@ -2521,11 +2521,11 @@ class _PartyScreenState extends State<PartyScreen>
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 11, vertical: 6),
                                   decoration: BoxDecoration(
-                                      color: const Color(0x33FF8AA0),
+                                      color: const Color(0x33FF5266),
                                       borderRadius: BorderRadius.circular(14)),
                                   child: const Text('Leave',
                                       style: TextStyle(
-                                          color: Color(0xFFFF8AA0),
+                                          color: Color(0xFFFF5266),
                                           fontSize: 12.5,
                                           fontWeight: FontWeight.w700)),
                                 ),
@@ -3374,7 +3374,7 @@ class _PartyScreenState extends State<PartyScreen>
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                  color: const Color(0xFF2B1640),
+                  color: const Color(0xFF2B2B2B),
                   borderRadius: BorderRadius.circular(20)),
               child: const Center(
                   child: InIcon(InIcons.mic, size: 28, color: AppColors.lilac)),
@@ -3696,7 +3696,7 @@ class _PartyScreenState extends State<PartyScreen>
       context: context,
       builder: (dialog) => StatefulBuilder(
         builder: (dialog, setDialog) => Dialog(
-          backgroundColor: const Color(0xFF121019),
+          backgroundColor: const Color(0xFF141414),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(28),
               side: const BorderSide(color: AppColors.border)),
@@ -3707,11 +3707,11 @@ class _PartyScreenState extends State<PartyScreen>
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                    color: const Color(0xFF2A1018),
+                    color: const Color(0xFF2A1013),
                     borderRadius: BorderRadius.circular(20)),
                 child: const Center(
                     child: InIcon(InIcons.logout,
-                        size: 28, color: Color(0xFFFF8AA0))),
+                        size: 28, color: Color(0xFFFF5266))),
               ),
               const SizedBox(height: 14),
               const Text('Leave this room?',
@@ -3730,8 +3730,8 @@ class _PartyScreenState extends State<PartyScreen>
                   onPressed: () => Navigator.of(dialog).pop('end'),
                   style: OutlinedButton.styleFrom(
                       minimumSize: const Size.fromHeight(50),
-                      foregroundColor: const Color(0xFFFF8AA0),
-                      side: const BorderSide(color: Color(0xFF5A2030))),
+                      foregroundColor: const Color(0xFFFF5266),
+                      side: const BorderSide(color: Color(0xFFB81427))),
                   child: const Text('End room for everyone'),
                 ),
               ],
@@ -3744,7 +3744,7 @@ class _PartyScreenState extends State<PartyScreen>
                         others.isEmpty ? AppColors.danger : AppColors.surface2,
                     foregroundColor: others.isEmpty
                         ? Colors.white
-                        : const Color(0xFFFF8AA0)),
+                        : const Color(0xFFFF5266)),
                 child: const Text('Leave room'),
               ),
               const SizedBox(height: 8),

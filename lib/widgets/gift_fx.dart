@@ -526,7 +526,7 @@ class _GiftAnimationState extends State<_GiftAnimation>
                   opacity: plusT < .25 ? plusT * 4 : 1 - (plusT - .25) / .75,
                   child: Text('+${g.diamonds.round()} 💎',
                       style: const TextStyle(
-                          color: Color(0xFF7FD0FF),
+                          color: Color(0xFFFFFFFF),
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                           decoration: TextDecoration.none)),
@@ -544,7 +544,7 @@ class _GiftAnimationState extends State<_GiftAnimation>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
                     decoration: BoxDecoration(
-                        color: const Color(0xCC0B0912),
+                        color: const Color(0xCC0E0E0E),
                         borderRadius: BorderRadius.circular(16)),
                     child: Text(
                         '${g.fromName} sent ${g.emoji} ${g.name}$count$who',

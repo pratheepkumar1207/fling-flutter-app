@@ -83,10 +83,10 @@ class _FriendsInRoomsStripState extends State<FriendsInRoomsStrip> {
   Widget _card(Map<String, dynamic> r) {
     final type = r['roomType'] as String? ?? 'watch';
     final (icon, fg, bg) = switch (type) {
-      'voice' => (InIcons.mic, const Color(0xFFB97CF8), const Color(0xFF1C1638)),
-      'game' => (InIcons.game, const Color(0xFF6E95FD), const Color(0xFF122046)),
-      'live' => (InIcons.live, const Color(0xFFFF5C6C), const Color(0xFF2A0F14)),
-      _ => (InIcons.film, const Color(0xFFFF8AB4), const Color(0xFF2A1028)),
+      'voice' => (InIcons.mic, const Color(0xFFF65A6D), const Color(0xFF272727)),
+      'game' => (InIcons.game, const Color(0xFFFFFFFF), const Color(0xFF2C2C2C)),
+      'live' => (InIcons.live, const Color(0xFFFF5266), const Color(0xFF2A0F12)),
+      _ => (InIcons.film, const Color(0xFFFF5266), const Color(0xFF2A1013)),
     };
     final friend = ((r['members'] as List?) ?? const [])
         .whereType<Map>()

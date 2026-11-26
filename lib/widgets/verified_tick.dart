@@ -7,7 +7,7 @@ class VerifiedTick extends StatelessWidget {
   final double size;
   const VerifiedTick({super.key, this.size = 14});
 
-  static const color = Color(0xFF3897F0);
+  static const color = Color(0xFFFFFFFF);
 
   @override
   Widget build(BuildContext context) => Semantics(

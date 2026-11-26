@@ -12,9 +12,9 @@ import '../../widgets/spinner.dart';
 // fallback, which is used all over the app and not part of this mockup.
 const _kAvatarGradients = [
   [Color(0xFFC9825A), Color(0xFF5C2E17)],
-  [Color(0xFF5A82B8), Color(0xFF1E3A5C)],
+  [Color(0xFF898989), Color(0xFF8A8A8A)],
   [Color(0xFFB8A25A), Color(0xFF4C4017)],
-  [Color(0xFFA5709A), Color(0xFF4C2447)],
+  [Color(0xFFE82D43), Color(0xFF4C2429)],
   [Color(0xFF6BAF8A), Color(0xFF1E4C34)],
 ];
 

@@ -572,7 +572,7 @@ class _FeedScreenState extends State<FeedScreen> {
                       gradient: SweepGradient(colors: [
                         AppColors.accent,
                         AppColors.primary,
-                        Color(0xFFFF5C8A),
+                        Color(0xFFFF5266),
                         AppColors.accent,
                       ]),
                     ),
@@ -948,7 +948,7 @@ class _FeedScreenState extends State<FeedScreen> {
                         widthFactor: pct / 100,
                         child: Container(
                             decoration: BoxDecoration(
-                                color: const Color(0xFF3A1F5C),
+                                color: const Color(0xFFB81427),
                                 borderRadius: BorderRadius.circular(10))),
                       ),
                     ),
@@ -1099,7 +1099,7 @@ class _EmptyFeed extends StatelessWidget {
           width: 64,
           height: 64,
           decoration: BoxDecoration(
-              color: const Color(0xFF2A1028),
+              color: const Color(0xFF2A1013),
               borderRadius: BorderRadius.circular(21)),
           child: const Center(
               child: InIcon(InIcons.image, size: 30, color: AppColors.pink)),

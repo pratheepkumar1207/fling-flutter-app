@@ -413,7 +413,7 @@ class LiveCover extends StatelessWidget {
                   gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [Color(0xFF3A1430), Color(0xFF0E0C14)]),
+                      colors: [Color(0xFF3A1418), Color(0xFF101010)]),
                 ),
                 child: Align(
                   alignment: const Alignment(0, -0.25),
@@ -543,7 +543,7 @@ class _EmptyLive extends StatelessWidget {
           width: 72,
           height: 72,
           decoration: BoxDecoration(
-              color: const Color(0xFF2A1028),
+              color: const Color(0xFF2A1013),
               borderRadius: BorderRadius.circular(24)),
           child: const Center(
               child: InIcon(InIcons.live, size: 34, color: AppColors.pink)),

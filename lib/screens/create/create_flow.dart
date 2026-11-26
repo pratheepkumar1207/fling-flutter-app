@@ -445,7 +445,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
           child: _recording
               ? DecoratedBox(
                   decoration: BoxDecoration(
-                      color: const Color(0xFFE0364F),
+                      color: const Color(0xFFE82E44),
                       borderRadius: BorderRadius.circular(8)))
               : null,
         ),
@@ -552,7 +552,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                      color: const Color(0xFFE0364F),
+                      color: const Color(0xFFE82E44),
                       borderRadius: BorderRadius.circular(12)),
                   child: Text('0:${_seconds.toString().padLeft(2, '0')}',
                       style: const TextStyle(color: Colors.white)),
@@ -745,7 +745,7 @@ class _FilterChip extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20)),
             child: Text(label,
                 style: TextStyle(
-                    color: selected ? const Color(0xFF241338) : Colors.white,
+                    color: selected ? const Color(0xFF262626) : Colors.white,
                     fontSize: 13,
                     fontWeight: selected ? FontWeight.w700 : FontWeight.w400)),
           ),
@@ -1497,7 +1497,7 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
                           onTap: _chooseCover,
                           child: Stack(fit: StackFit.expand, children: [
                             _cover == null
-                                ? const ColoredBox(color: Color(0xFF2A1F4D))
+                                ? const ColoredBox(color: Color(0xFF363636))
                                 : Image.file(File(_cover!), fit: BoxFit.cover),
                             const Positioned(
                               left: 0,

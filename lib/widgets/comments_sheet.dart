@@ -187,7 +187,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
                         TextSpan(
                             text: part,
                             style: part.startsWith('@')
-                                ? const TextStyle(color: Color(0xFF6F9BFF))
+                                ? const TextStyle(color: Color(0xFFFFFFFF))
                                 : null),
                     ], 13.5)),
                     style: const TextStyle(
@@ -218,7 +218,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
                       InIcon(liked ? InIcons.heart : InIcons.heart,
                           size: 16,
                           color: liked
-                              ? const Color(0xFFFF5C8A)
+                              ? const Color(0xFFFF5266)
                               : AppColors.textFaint),
                       if (likes > 0)
                         Text('$likes',

@@ -26,8 +26,8 @@ class PrivacyPickCard extends StatefulWidget {
 }
 
 class _PrivacyPickCardState extends State<PrivacyPickCard> {
-  static const _accent = Color(0xFF7F77DD);
-  static const _accentText = Color(0xFFAFA9EC);
+  static const _accent = Color(0xFFFFFFFF);
+  static const _accentText = Color(0xFFCBCBCB);
   Timer? _timer;
   String? _busy;
 
@@ -108,11 +108,11 @@ class _PrivacyPickCardState extends State<PrivacyPickCard> {
           const Padding(
             padding: EdgeInsets.only(bottom: 6),
             child: Row(children: [
-              InIcon(InIcons.lock, size: 13, color: Color(0xFFB0ADC2)),
+              InIcon(InIcons.lock, size: 13, color: Color(0xFFB8B8B8)),
               SizedBox(width: 5),
               Flexible(
                 child: Text('Room created. Hidden until you choose.',
-                    style: TextStyle(color: Color(0xFFB0ADC2), fontSize: 12)),
+                    style: TextStyle(color: Color(0xFFB8B8B8), fontSize: 12)),
               ),
             ]),
           ),

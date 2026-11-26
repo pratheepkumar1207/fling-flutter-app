@@ -404,7 +404,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                   decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       color: m.reactions[myId] == e
-                                          ? const Color(0xFF3B2A55)
+                                          ? const Color(0xFF404040)
                                           : Colors.transparent),
                                   child: Text(e,
                                       style: const TextStyle(fontSize: 24)),
@@ -422,7 +422,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: mine ? AppColors.primary : const Color(0xFF1F1C29),
+                      color: mine ? AppColors.primary : const Color(0xFF232323),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(m.summary,
@@ -457,7 +457,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                         if (mine)
                           action(InIcons.close, 'Delete for both',
                               () => _deleteMessage(m),
-                              color: const Color(0xFFFF8A9F)),
+                              color: const Color(0xFFFF5266)),
                       ]),
                     ),
                   ),
@@ -772,7 +772,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
           children: [
             if (widget.backToRoomTitle != null) _backToRoomBar(),
             if (widget.inRoomSheet) _sheetHeader() else _header(),
-            const Divider(height: 1, color: Color(0xFF1E1B27)),
+            const Divider(height: 1, color: Color(0xFF212121)),
             Expanded(
               child: _loading
                   ? const Center(child: Spinner())
@@ -959,7 +959,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       top: false,
       child: Container(
         decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: Color(0xFF1E1B27)))),
+            border: Border(top: BorderSide(color: Color(0xFF212121)))),
         padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -1294,7 +1294,7 @@ class _Bubble extends StatelessWidget {
       constraints:
           BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.76),
       decoration: BoxDecoration(
-        color: mine ? AppColors.primary : const Color(0xFF1F1C29),
+        color: mine ? AppColors.primary : const Color(0xFF232323),
         borderRadius: radius,
       ),
       child: quoteText == null
@@ -1320,7 +1320,7 @@ class _Bubble extends StatelessWidget {
                             Text(quoteName!,
                                 style: TextStyle(
                                     color: mine
-                                        ? const Color(0xFFE2CCFF)
+                                        ? const Color(0xFFFFCCD2)
                                         : AppColors.lilac,
                                     fontSize: 11.5,
                                     fontWeight: FontWeight.w700)),
@@ -1361,7 +1361,7 @@ class _Bubble extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                     decoration: BoxDecoration(
-                        color: const Color(0xFF1F1C29),
+                        color: const Color(0xFF232323),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppColors.bg, width: 2)),
                     child: Text(reactions.toSet().join(),
@@ -1428,7 +1428,7 @@ class _TypingBubble extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: const BoxDecoration(
-                    color: Color(0xFF1F1C29),
+                    color: Color(0xFF232323),
                     borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(20),
                         topRight: Radius.circular(20),
@@ -1453,15 +1453,15 @@ class _QuickAction extends StatelessWidget {
       {required this.icon,
       required this.label,
       required this.onTap,
-      this.iconColor = const Color(0xFFE2CCFF)});
+      this.iconColor = const Color(0xFFFFCCD2)});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: Material(
-        color: const Color(0xFF1A1326),
-        shape: const StadiumBorder(side: BorderSide(color: Color(0xFF3B2A55))),
+        color: const Color(0xFF1C1C1C),
+        shape: const StadiumBorder(side: BorderSide(color: Color(0xFF404040))),
         child: InkWell(
           customBorder: const StadiumBorder(),
           onTap: onTap,
@@ -1472,7 +1472,7 @@ class _QuickAction extends StatelessWidget {
               const SizedBox(width: 7),
               Text(label,
                   style: const TextStyle(
-                      color: Color(0xFFE2CCFF),
+                      color: Color(0xFFFFCCD2),
                       fontSize: 13,
                       fontWeight: FontWeight.w600)),
             ]),
@@ -1528,7 +1528,7 @@ class _FileBubble extends StatelessWidget {
             decoration: BoxDecoration(
                 color: mine
                     ? Colors.white.withValues(alpha: 0.18)
-                    : const Color(0xFF1A2A40),
+                    : const Color(0xFF2D2D2D),
                 borderRadius: BorderRadius.circular(10)),
             child: Center(
                 child: InIcon(InIcons.doc,
@@ -1550,7 +1550,7 @@ class _FileBubble extends StatelessWidget {
                   Text('$_size · Tap to open',
                       style: TextStyle(
                           color: mine
-                              ? const Color(0xFFE7DDF5)
+                              ? const Color(0xFFFCD6DB)
                               : AppColors.textDim,
                           fontSize: 12)),
                 ]),
@@ -1609,7 +1609,7 @@ class _LocationBubble extends StatelessWidget {
                   Text('Open in Maps',
                       style: TextStyle(
                           color: mine
-                              ? const Color(0xFFE7DDF5)
+                              ? const Color(0xFFFCD6DB)
                               : AppColors.textDim,
                           fontSize: 12)),
                 ]),

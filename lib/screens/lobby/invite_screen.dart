@@ -291,14 +291,14 @@ class _InviteScreenState extends State<InviteScreen>
                       _openApp(Uri.parse('https://wa.me/?text=$text%20$url'))),
               app(
                   const Icon(BrandIcons.instagram,
-                      color: Color(0xFFE1306C), size: 20),
-                  const Color(0xFFE1306C),
+                      color: Color(0xFFE72A40), size: 20),
+                  const Color(0xFFE72A40),
                   'Instagram',
                   _instagram),
               app(
                   const Icon(BrandIcons.telegram,
-                      color: Color(0xFF29A9EA), size: 20),
-                  const Color(0xFF29A9EA),
+                      color: Color(0xFFFFFFFF), size: 20),
+                  const Color(0xFFFFFFFF),
                   'Telegram',
                   () => _openApp(
                       Uri.parse('https://t.me/share/url?url=$url&text=$text'))),

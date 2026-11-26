@@ -24,10 +24,10 @@ import '../../widgets/glass.dart';
 // is a distinct color instead of a uniform bubble color.
 const _nameColors = [
   Color(0xFFDBB155), // gold
-  Color(0xFFCC9DE8), // lilac
+  Color(0xFFEE6373), // lilac
   Color(0xFF9DE8B8), // mint
-  Color(0xFFE89D9D), // rose
-  Color(0xFF9DC5E8), // sky
+  Color(0xFFEE6373), // rose
+  Color(0xFFFFFFFF), // sky
 ];
 
 /// Floating, translucent chat — meant to sit inside a Stack over a room's
@@ -393,8 +393,8 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
             style: m['subTier'] == 'platinum'
                 ? const TextStyle(
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFFD6CCFF),
-                    shadows: [Shadow(color: Color(0xFFB9A7FF), blurRadius: 8)])
+                    color: Color(0xFFFFCCD2),
+                    shadows: [Shadow(color: Color(0xFFFFA7B1), blurRadius: 8)])
                 : TextStyle(fontWeight: FontWeight.w700, color: nameColor)),
       ],
     ];
@@ -510,7 +510,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
 
   /// Joins, leaves, removals and other room notes: small and centred.
   Widget _queuedLine(Map<String, dynamic> m) {
-    const dim = Color(0xFFB0ADC2);
+    const dim = Color(0xFFB8B8B8);
     final by = m['addedBy'] as String?;
     final name = by != null && by == widget.myUserId
         ? 'You'
@@ -534,7 +534,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                 const TextSpan(text: 'Queued · '),
                 TextSpan(
                     text: m['title'] as String? ?? 'A song',
-                    style: const TextStyle(color: Color(0xFFE4E1EC))),
+                    style: const TextStyle(color: Color(0xFFE6E6E6))),
                 if (name != null) TextSpan(text: ' · $name'),
               ],
             ),
@@ -558,14 +558,14 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
           padding: const EdgeInsets.fromLTRB(4, 4, 24, 4),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-                colors: [Color(0xFF6B55D9), Color(0x006B55D9)]),
+                colors: [Color(0xFFEA4457), Color(0x00EA4457)]),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             Container(
               decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: Color(0xFFD6CCFF), spreadRadius: 2)]),
+                  boxShadow: [BoxShadow(color: Color(0xFFFFCCD2), spreadRadius: 2)]),
               child: SizedBox.square(
                 dimension: 26,
                 child: FittedBox(
@@ -591,7 +591,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
     }
     final text = m['text'] as String? ?? '';
     final removed = event == 'removed';
-    final color = removed ? const Color(0xFFE08A8A) : const Color(0xFFB0ADC2);
+    final color = removed ? const Color(0xFFEE6373) : const Color(0xFFB8B8B8);
     final person = _person(m['userId'] as String?);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -798,7 +798,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                               if (np && pinner != null) 'by $pinner',
                             ].join(' \u00B7 '),
                             style: const TextStyle(
-                                color: Color(0xFF8C889E), fontSize: 12)),
+                                color: Color(0xFF939393), fontSize: 12)),
                       ]),
                 ),
               ]),
@@ -949,7 +949,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                       const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: (e.value as List).contains(widget.myUserId)
-                        ? const Color(0x667C5CFF)
+                        ? const Color(0x66FF5266)
                         : const Color(0x33FFFFFF),
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -990,7 +990,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
 
   void _openEmoji() => showModalBottomSheet(
         context: context,
-        backgroundColor: const Color(0xFF16151B),
+        backgroundColor: const Color(0xFF181818),
         isScrollControlled: true,
         builder: (sheet) => Padding(
           padding:
@@ -1063,7 +1063,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
               padding: const EdgeInsets.fromLTRB(8, 7, 10, 7),
               decoration: BoxDecoration(
                 color: mine
-                    ? const Color(0xFF5A2196)
+                    ? const Color(0xFFB81427)
                     : AppColors.primary.withValues(alpha: 0.32),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.lilac, width: 1.2),
@@ -1076,7 +1076,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                       shape: BoxShape.circle,
                       color: mine
                           ? Colors.white.withValues(alpha: 0.18)
-                          : const Color(0xFF2B1640)),
+                          : const Color(0xFF2B2B2B)),
                   child: Center(child: icon),
                 ),
                 const SizedBox(width: 9),
@@ -1089,7 +1089,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
             ),
           ),
         );
-    const sub = TextStyle(color: Color(0xFFE7DDF5), fontSize: 11.5);
+    const sub = TextStyle(color: Color(0xFFFCD6DB), fontSize: 11.5);
     final Widget line;
     if (mine) {
       line = card(
@@ -1595,20 +1595,20 @@ class _NowPlayingLine extends StatelessWidget {
   static Widget _source(String? sourceType) {
     final (Color bg, Widget glyph) = switch (sourceType) {
       'youtube' || 'youtube_surf' => (
-          const Color(0xFFFF0033),
+          const Color(0xFFFF001E),
           const InIcon(InIcons.play, size: 9, color: Colors.white, filled: true)
         ),
       'netflix' => (
           Colors.black,
           const Text('N',
               style: TextStyle(
-                  color: Color(0xFFE50914),
+                  color: Color(0xFFE50923),
                   fontSize: 10,
                   fontWeight: FontWeight.w900,
                   height: 1))
         ),
       'amazon' => (
-          const Color(0xFF1A98FF),
+          const Color(0xFFFFFFFF),
           const Text('prime',
               style: TextStyle(
                   color: Colors.white,
@@ -1617,7 +1617,7 @@ class _NowPlayingLine extends StatelessWidget {
                   height: 1))
         ),
       'hotstar' => (
-          const Color(0xFF0F1E5C),
+          const Color(0xFF363636),
           const Text('JH',
               style: TextStyle(
                   color: Colors.white,
@@ -1630,7 +1630,7 @@ class _NowPlayingLine extends StatelessWidget {
           const InIcon(InIcons.cloud, size: 9, color: Colors.white)
         ),
       _ => (
-          const Color(0xFF4A4560),
+          const Color(0xFF525252),
           const InIcon(InIcons.tv, size: 9, color: Colors.white)
         ),
     };
@@ -1646,7 +1646,7 @@ class _NowPlayingLine extends StatelessWidget {
   }
 
   InlineSpan _spans(String title, {required bool cut}) {
-    const dim = Color(0xFF8C889E);
+    const dim = Color(0xFF939393);
     return TextSpan(
       style:
           const TextStyle(color: Colors.white, fontSize: 13, shadows: _shadow),
@@ -1683,7 +1683,7 @@ class _NowPlayingLine extends StatelessWidget {
               text: pinnerName!.length > 16
                   ? '${pinnerName!.substring(0, 15)}…'
                   : pinnerName,
-              style: const TextStyle(color: Color(0xFFB8B4CC))),
+              style: const TextStyle(color: Color(0xFFC0C0C0))),
         ],
       ],
     );
@@ -1781,7 +1781,7 @@ class _NowPlayingLine extends StatelessWidget {
                         const SizedBox(width: 2),
                         Text('$skipVoteCount/$skipVoteRequired',
                             style: const TextStyle(
-                                color: Color(0xFFB8B4CC), fontSize: 10.5)),
+                                color: Color(0xFFC0C0C0), fontSize: 10.5)),
                       ],
                     ]),
                   ),
@@ -1834,9 +1834,9 @@ class _GiftChatCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.fromLTRB(4, 4, 12, 4),
             decoration: BoxDecoration(
-              color: const Color(0xE62B2140),
+              color: const Color(0xE6303030),
               borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: const Color(0x66C4A8FF)),
+              border: Border.all(color: const Color(0x66FFA8B2)),
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               _photo(message['fromUserId'] as String?, from),
@@ -1868,7 +1868,7 @@ class _GiftChatCard extends StatelessWidget {
                                 TextSpan(
                                     text: '@$to',
                                     style: const TextStyle(
-                                        color: Color(0xFFC4A8FF))),
+                                        color: Color(0xFFFFA8B2))),
                             ]),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -1876,7 +1876,7 @@ class _GiftChatCard extends StatelessWidget {
                       if (diamonds > 0)
                         Text('+$diamonds 💎',
                             style: const TextStyle(
-                                color: Color(0xFF7FD0FF), fontSize: 11)),
+                                color: Color(0xFFFFFFFF), fontSize: 11)),
                     ]),
               ),
             ]),

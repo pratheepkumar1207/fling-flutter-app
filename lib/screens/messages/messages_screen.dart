@@ -831,7 +831,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 child: ListTile(
                   onTap: _findCommunities,
                   leading: const CircleAvatar(
-                      backgroundColor: Color(0xFF2A2140),
+                      backgroundColor: Color(0xFF303030),
                       child: InIcon(InIcons.search,
                           size: 18, color: AppColors.lilac)),
                   title: const Text('Find communities',
@@ -1047,7 +1047,7 @@ class _ChatTabs extends StatelessWidget {
                       width: 9,
                       height: 9,
                       decoration: BoxDecoration(
-                          color: const Color(0xFFFF4FA3),
+                          color: const Color(0xFFFF4F64),
                           shape: BoxShape.circle,
                           border: Border.all(color: AppColors.bg, width: 1.5)),
                     ),
@@ -1334,7 +1334,7 @@ class _ChatOptionsSheet extends StatelessWidget {
                 shape: StadiumBorder(
                     side: selected
                         ? BorderSide.none
-                        : const BorderSide(color: Color(0xFF3B3550))),
+                        : const BorderSide(color: Color(0xFF424242))),
                 child: InkWell(
                   customBorder: const StadiumBorder(),
                   onTap: () => onMute(value),
@@ -1351,7 +1351,7 @@ class _ChatOptionsSheet extends StatelessWidget {
                                     : FontWeight.w600,
                                 color: selected
                                     ? Colors.white
-                                    : const Color(0xFFD9D6E2))),
+                                    : const Color(0xFFDCDCDC))),
                       ),
                     ),
                   ),
@@ -1436,7 +1436,7 @@ class _ChatOptionsSheet extends StatelessWidget {
             const Divider(height: 1, color: AppColors.border),
             item(InIcons.close, 'Delete chat',
                 sub: 'Removes it from your inbox only',
-                color: const Color(0xFFFF8A9F),
+                color: const Color(0xFFFF5266),
                 onTap: onDelete),
             const SizedBox(height: 8),
           ],
@@ -1588,7 +1588,7 @@ class _FilterPill extends StatelessWidget {
                         fontWeight:
                             selected ? FontWeight.w700 : FontWeight.w600,
                         color:
-                            selected ? AppColors.bg : const Color(0xFFD9D6E2))),
+                            selected ? AppColors.bg : const Color(0xFFDCDCDC))),
                 if (count > 0) ...[
                   const SizedBox(width: 6),
                   Container(
@@ -1642,7 +1642,7 @@ class _RequestsBanner extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: const BoxDecoration(
-                    color: Color(0xFF2B1640), shape: BoxShape.circle),
+                    color: Color(0xFF2B2B2B), shape: BoxShape.circle),
                 child: const Center(
                     child:
                         InIcon(InIcons.chat, size: 20, color: AppColors.lilac)),
@@ -1784,7 +1784,7 @@ class _ActivityChip extends StatelessWidget {
         ),
       'live' => (
           InIcons.live,
-          const Color(0xFFFF8A9F),
+          const Color(0xFFFF5266),
           'Live now · ${a.title}'
         ),
       _ => (InIcons.mic, AppColors.lilac, 'In ${a.title}'),
@@ -1793,9 +1793,9 @@ class _ActivityChip extends StatelessWidget {
     final chip = Container(
       padding: const EdgeInsets.fromLTRB(8, 5, 10, 5),
       decoration: BoxDecoration(
-          color: const Color(0xFF1A1326),
+          color: const Color(0xFF1C1C1C),
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: const Color(0xFF3B2A55))),
+          border: Border.all(color: const Color(0xFF404040))),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         InIcon(icon, size: 13, color: color),
         const SizedBox(width: 6),
@@ -1806,7 +1806,7 @@ class _ActivityChip extends StatelessWidget {
               style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFFE2CCFF))),
+                  color: Color(0xFFFFCCD2))),
         ),
         // Join stays visible however long the room name is.
         if (a.canJoin)
@@ -2020,7 +2020,7 @@ class _UnreadBadge extends StatelessWidget {
           width: 12,
           height: 12,
           decoration: BoxDecoration(
-              color: muted ? const Color(0xFF4A4658) : AppColors.primary,
+              color: muted ? const Color(0xFF4F4F4F) : AppColors.primary,
               shape: BoxShape.circle),
         ),
       );
@@ -2034,7 +2034,7 @@ class _UnreadBadge extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 6),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-            color: muted ? const Color(0xFF4A4658) : AppColors.primary,
+            color: muted ? const Color(0xFF4F4F4F) : AppColors.primary,
             borderRadius: BorderRadius.circular(999)),
         child: Text(count > 99 ? '99+' : '$count',
             style: const TextStyle(
@@ -2059,7 +2059,7 @@ class _EmptyChats extends StatelessWidget {
           width: 64,
           height: 64,
           decoration: BoxDecoration(
-              color: const Color(0xFF1C1638),
+              color: const Color(0xFF272727),
               borderRadius: BorderRadius.circular(21)),
           child: const Center(
               child: InIcon(InIcons.chat, size: 30, color: AppColors.lilac)),

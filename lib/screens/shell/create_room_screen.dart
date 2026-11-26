@@ -26,13 +26,13 @@ class _RoomType {
 
 const _types = [
   _RoomType('watch', InIcons.tv, 'Watch', 'Videos together',
-      [Color(0xFF4A5BD6), Color(0xFF2F3A8A)]),
+      [Color(0xFFFFFFFF), Color(0xFFA9A9A9)]),
   _RoomType('voice', InIcons.mic, 'Talk', 'Voice room',
       [Color(0xFF2FA37A), Color(0xFF1D6650)]),
   _RoomType('game', InIcons.game, 'Game', 'Ludo, UNO, Chess',
       [Color(0xFFE07A3A), Color(0xFF9A4A1D)]),
   _RoomType('tournament', InIcons.trophy, 'Tournament', 'Host a cup',
-      [Color(0xFF9B6BFF), Color(0xFF5A33B8)]),
+      [Color(0xFFFF5266), Color(0xFFD4182D)]),
 ];
 
 class CreateRoomTypeScreen extends StatefulWidget {
@@ -125,7 +125,7 @@ class _CreateRoomTypeScreenState extends State<CreateRoomTypeScreen> {
                           ? null
                           : AppGradients.brandDiagonal,
                       color: picked == null || _busy
-                          ? const Color(0xFF26232F)
+                          ? const Color(0xFF292929)
                           : null,
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -216,7 +216,7 @@ class _CreateRoomTypeScreenState extends State<CreateRoomTypeScreen> {
                     radius: 12,
                     backgroundColor: Colors.white,
                     child: Icon(Icons.check_rounded,
-                        size: 16, color: Color(0xFF2F3A8A)),
+                        size: 16, color: Color(0xFFA9A9A9)),
                   ),
                 ),
             ]),

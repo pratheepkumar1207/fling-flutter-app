@@ -1058,7 +1058,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
     String? picked = mine ?? (offered.contains('gold') ? 'gold' : offered.firstOrNull);
     final action = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: const Color(0xFF121116),
+      backgroundColor: const Color(0xFF141414),
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) => SafeArea(
@@ -1142,7 +1142,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                                     padding: const EdgeInsets.only(top: 2),
                                     child: Text('\u2713 $perk',
                                         style: const TextStyle(
-                                            color: Color(0xFFCFCBE0),
+                                            color: Color(0xFFF9B2BA),
                                             fontSize: 12.5)),
                                   ),
                               ]),
@@ -1231,7 +1231,8 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
   // CreatorProfileWatchPartyDark, and CreatorProfileGameRoomDark exactly —
   // this used to always show a mic icon and "IN A ROOM" regardless of type.
   Widget _activeRoomBadge(Map activeRoom) {
-    final roomId = activeRoom['roomId'] as String;
+    // Null for a private lobby: its id is its join link.
+    final roomId = activeRoom['roomId'] as String?;
     final title = activeRoom['title'] as String? ?? 'a room';
     final roomType = activeRoom['roomType'] as String?;
     final memberCount = activeRoom['memberCount'] as int?;
@@ -1239,9 +1240,9 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
     final (icon, color, label, gradientColors, verb) = switch (roomType) {
       'watch' => (
           InIcons.play,
-          const Color(0xFF4272D9),
+          const Color(0xFFFFFFFF),
           'IN A WATCH PARTY',
-          const [Color(0xFF9EC5F0), Color(0xFF4272D9)],
+          const [Color(0xFFC7C7C7), Color(0xFFFFFFFF)],
           'watching'
         ),
       'game' => (
@@ -1375,7 +1376,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                     ],
                   ),
                 ),
-                if (canJoin) ...[
+                if (canJoin && roomId != null) ...[
                   const SizedBox(width: 8),
                   GestureDetector(
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(

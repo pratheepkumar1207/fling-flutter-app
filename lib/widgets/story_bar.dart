@@ -115,7 +115,7 @@ class StoryBar extends StatelessWidget {
                     : const SweepGradient(colors: [
                         AppColors.accent,
                         AppColors.primary,
-                        Color(0xFFFF5C8A),
+                        Color(0xFFFF5266),
                         AppColors.accent
                       ]),
               ),

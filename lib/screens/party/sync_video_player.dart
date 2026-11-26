@@ -1047,7 +1047,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                           : 0,
                       backgroundColor: Colors.white24,
                       valueColor:
-                          const AlwaysStoppedAnimation(Color(0xFFFF0033)),
+                          const AlwaysStoppedAnimation(Color(0xFFFF001E)),
                     ),
                   ),
                 ),
@@ -1245,7 +1245,7 @@ class _SyncVideoPlayerState extends State<SyncVideoPlayer>
                                             ? position.clamp(0, duration)
                                             : 0,
                                         max: duration > 0 ? duration : 1,
-                                        activeColor: const Color(0xFFFF0033),
+                                        activeColor: const Color(0xFFFF001E),
                                         inactiveColor: Colors.white24,
                                         onChanged: widget.isHost
                                             ? _handleSeekChanged

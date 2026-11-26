@@ -135,7 +135,7 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
   Widget build(BuildContext context) {
     final canSpin = _canSpin && !_spinning;
     return Scaffold(
-      backgroundColor: const Color(0xFF241D33),
+      backgroundColor: const Color(0xFF282828),
       appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,

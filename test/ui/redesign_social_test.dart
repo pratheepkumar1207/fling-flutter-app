@@ -90,7 +90,7 @@ void main() {
     expect(t.takeException(), isNull);
     await t.tap(find.byTooltip('Filters'));
     await t.pumpAndSettle();
-    expect(find.text('SHOW ME'), findsOneWidget);
+    expect(find.text('Show me'), findsOneWidget);
     expect(t.takeException(), isNull);
     await _snap(t, key, 'discover-filters');
   });

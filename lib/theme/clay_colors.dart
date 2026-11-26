@@ -67,7 +67,7 @@ class ClayColors extends ThemeExtension<ClayColors> {
     success: AppColors.success,
     danger: AppColors.danger,
     warning: AppColors.warning,
-    shadowLight: Color(0xFF7295FF),
+    shadowLight: Color(0xFFFFFFFF),
     shadowDark: Color(0xFF000000),
     gradient: AppGradients.brand,
   );
@@ -90,7 +90,7 @@ class ClayColors extends ThemeExtension<ClayColors> {
     danger: AppColorsLight.danger,
     warning: AppColorsLight.warning,
     shadowLight: Color(0xFFFFFFFF),
-    shadowDark: Color(0xFF9DAFD9),
+    shadowDark: Color(0xFFBBBBBB),
     gradient: AppGradients.brand,
   );
 

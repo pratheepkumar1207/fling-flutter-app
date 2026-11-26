@@ -218,7 +218,7 @@ class GameOpenSeat extends StatelessWidget {
 void _hostSeatSheet(BuildContext context, GameSeatScope scope) {
   showModalBottomSheet<void>(
     context: context,
-    backgroundColor: const Color(0xFF16151B),
+    backgroundColor: const Color(0xFF181818),
     builder: (sheet) => SafeArea(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         ListTile(
@@ -289,8 +289,8 @@ class GameJoinButton extends StatelessWidget {
         icon: const Text('🤖', style: TextStyle(fontSize: 14)),
         label: const Text('Add computer'),
         style: OutlinedButton.styleFrom(
-          foregroundColor: const Color(0xFFCECBF6),
-          side: const BorderSide(color: Color(0xFF534AB7)),
+          foregroundColor: const Color(0xFFE0E0E0),
+          side: const BorderSide(color: Color(0xFF808080)),
           visualDensity: VisualDensity.compact,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           textStyle:

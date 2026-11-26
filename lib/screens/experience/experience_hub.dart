@@ -84,7 +84,7 @@ class _InsyncFeatureHubScreenState extends State<InsyncFeatureHubScreen> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-                color: const Color(0xFF1F1A2C),
+                color: const Color(0xFF232323),
                 borderRadius: BorderRadius.circular(12)),
             child:
                 Center(child: InIcon(icon, size: 20, color: AppColors.lilac)),
@@ -122,9 +122,9 @@ class _InsyncFeatureHubScreenState extends State<InsyncFeatureHubScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                  color: const Color(0xFF1A1326),
+                  color: const Color(0xFF1C1C1C),
                   borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: const Color(0xFF3B2A55))),
+                  border: Border.all(color: const Color(0xFF404040))),
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -532,9 +532,9 @@ class _CreatorStudioScreenState extends State<CreatorStudioScreen> {
   Widget _earningsCard() => Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-            color: const Color(0xFF1A1326),
+            color: const Color(0xFF1C1C1C),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFF3B2A55))),
+            border: Border.all(color: const Color(0xFF404040))),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('Available earnings',
               style: TextStyle(color: AppColors.textDim, fontSize: 13)),

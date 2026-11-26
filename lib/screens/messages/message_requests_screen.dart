@@ -198,7 +198,7 @@ class _MessageRequestsScreenState extends State<MessageRequestsScreen> {
                   TextButton(
                     onPressed: _busy.isEmpty ? _deleteAll : null,
                     style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFFFF8A9F),
+                        foregroundColor: const Color(0xFFFF5266),
                         minimumSize: const Size(44, 44)),
                     child: const Text('Delete all',
                         style: TextStyle(fontWeight: FontWeight.w600)),
@@ -274,7 +274,7 @@ class _SafetyNote extends StatelessWidget {
               'These people haven’t matched with you. They won’t know you’ve '
               'read their message until you accept.',
               style: TextStyle(
-                  color: Color(0xFFD9D6E2), fontSize: 13, height: 1.45)),
+                  color: Color(0xFFDCDCDC), fontSize: 13, height: 1.45)),
         ),
       ]),
     );
@@ -364,7 +364,7 @@ class _RequestCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 10),
                     decoration: const BoxDecoration(
-                      color: Color(0xFF1F1C29),
+                      color: Color(0xFF232323),
                       borderRadius: BorderRadius.only(
                           topLeft: Radius.circular(6),
                           topRight: Radius.circular(16),

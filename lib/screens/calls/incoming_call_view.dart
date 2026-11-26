@@ -57,7 +57,7 @@ class IncomingCallView extends StatelessWidget {
             gradient: RadialGradient(
                 center: Alignment(0, -0.4),
                 radius: 1,
-                colors: [Color(0xFF3A1A5A), AppColors.bg]),
+                colors: [Color(0xFFB81427), AppColors.bg]),
           ),
           child: SafeArea(
             child: Column(children: [

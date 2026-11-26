@@ -1,34 +1,16 @@
-import '../../theme/insync_icons.dart';
 import 'package:flutter/material.dart';
-import '../../widgets/insync_clay.dart';
-import 'package:intl/intl.dart';
+
 import '../../core/api_client.dart';
-import '../../core/format.dart';
 import '../../theme/app_colors.dart';
-import '../../widgets/app_image.dart';
+import '../../theme/insync_icons.dart';
 import '../../widgets/spinner.dart';
-import '../profile/creator_profile_screen.dart';
+import '../messages/message_thread_screen.dart';
+import '../party/party_screen.dart';
+import 'discover_ui.dart';
+import 'peek_card.dart';
 
-// Deterministic per-card gradient for matches with no avatar photo,
-// matching DiscoverMatchesDark.dc.html's colorful full-bleed cards —
-// local to this screen, same pattern as blocked_accounts_screen.dart.
-const _kCardGradients = [
-  [Color(0xFFC9825A), Color(0xFF5C2E17)],
-  [Color(0xFF5A82B8), Color(0xFF1E3A5C)],
-  [Color(0xFFB8A25A), Color(0xFF4C4017)],
-  [Color(0xFF6BAF8A), Color(0xFF1E4C34)],
-  [Color(0xFFA5709A), Color(0xFF4C2447)],
-  [Color(0xFFC96B6B), Color(0xFF5C1E1E)],
-];
-
-/// Matches DiscoverMatchesDark.dc.html: full-bleed 2-column photo cards
-/// (name/age overlaid bottom-left over a dark scrim, a pulsing green dot
-/// for whoever's online right now) instead of the old bordered avatar
-/// tiles. The mockup's "Active 2h ago" / "X km away" subtitles aren't
-/// backed by real data — this app only tracks online-right-now (no
-/// granular last-seen timestamp) and doesn't compute distance outside the
-/// separate opt-in Explore Map flow — so offline cards fall back to the
-/// real "Matched {date}" instead of a fabricated recency/distance string.
+/// Your matches (GET /swipe/matches): the newest along the top, then
+/// everyone, with Join when they're in a lobby you can see.
 class DiscoverMatchesScreen extends StatefulWidget {
   const DiscoverMatchesScreen({super.key});
 
@@ -39,6 +21,8 @@ class DiscoverMatchesScreen extends StatefulWidget {
 class _DiscoverMatchesScreenState extends State<DiscoverMatchesScreen> {
   bool _loading = true;
   List<Map<String, dynamic>> _matches = [];
+  bool _searching = false;
+  String _q = '';
 
   @override
   void initState() {
@@ -51,7 +35,9 @@ class _DiscoverMatchesScreenState extends State<DiscoverMatchesScreen> {
       final data = await ApiClient.get('/swipe/matches');
       if (!mounted) return;
       setState(() {
-        _matches = (data as List).cast<Map<String, dynamic>>();
+        _matches = (data as List)
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
         _loading = false;
       });
     } catch (_) {
@@ -59,154 +45,193 @@ class _DiscoverMatchesScreenState extends State<DiscoverMatchesScreen> {
     }
   }
 
+  void _chat(Map m) => Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => MessageThreadScreen(
+          userId: m['userId'] as String,
+          name: '${m['name']}',
+          avatarUrl: m['avatarUrl'] as String?)));
+
+  String _when(DateTime? at) {
+    if (at == null) return '';
+    final d = DateTime.now().difference(at);
+    if (d.inMinutes < 60) return 'Matched just now';
+    if (d.inHours < 24) return 'Matched today';
+    if (d.inDays == 1) return 'Matched yesterday';
+    if (d.inDays < 30) return 'Matched ${d.inDays} days ago';
+    return 'Matched a while ago';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final list = _q.isEmpty
+        ? _matches
+        : _matches
+            .where(
+                (m) => '${m['name']}'.toLowerCase().contains(_q.toLowerCase()))
+            .toList();
+    final fresh = _matches
+        .where((m) =>
+            DateTime.tryParse('${m['matchedAt']}')
+                ?.isAfter(DateTime.now().subtract(const Duration(days: 7))) ??
+            false)
+        .toList();
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(6, 4, 20, 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Flexible(
-                    child: Row(
-                      children: [
-                        IconButton(
-                            tooltip: 'Back',
-                            onPressed: () => Navigator.of(context).maybePop(),
-                            icon: const InIcon(InIcons.back,
-                                color: AppColors.text)),
-                        const Flexible(child: InsyncPageTitle('Your Matches')),
-                      ],
-                    ),
-                  ),
-                  if (!_loading)
-                    Text(
-                        '${_matches.length} ${_matches.length == 1 ? 'match' : 'matches'}',
-                        style: const TextStyle(
-                            color: AppColors.textFaint,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600)),
-                ],
-              ),
-            ),
-            Expanded(
-              child: _loading
-                  ? const Center(child: Spinner())
-                  : _matches.isEmpty
-                      ? const Center(
-                          child: Text(
-                              'No matches yet.\nKeep swiping in Discover.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: AppColors.textFaint)))
-                      : GridView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  mainAxisSpacing: 12,
-                                  crossAxisSpacing: 12,
-                                  childAspectRatio: 0.78),
-                          itemCount: _matches.length,
-                          itemBuilder: (context, i) => _card(_matches[i], i),
-                        ),
-            ),
-          ],
-        ),
+      appBar: AppBar(
+        backgroundColor: AppColors.bg,
+        leading: IconButton(
+            tooltip: 'Back',
+            onPressed: () => Navigator.of(context).maybePop(),
+            icon: const InIcon(InIcons.back, color: Colors.white)),
+        title: _searching
+            ? TextField(
+                autofocus: true,
+                onChanged: (v) => setState(() => _q = v.trim()),
+                decoration: const InputDecoration(
+                    hintText: 'Search matches', border: InputBorder.none),
+              )
+            : const Text('Matches'),
+        actions: [
+          IconButton(
+            onPressed: () => setState(() {
+              _searching = !_searching;
+              if (!_searching) _q = '';
+            }),
+            icon: InIcon(_searching ? InIcons.close : InIcons.search,
+                color: Colors.white),
+          ),
+        ],
       ),
+      body: _loading
+          ? const Center(child: Spinner())
+          : _matches.isEmpty
+              ? const Center(
+                  child: Text('No matches yet.\nKeep swiping in Discover.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppColors.textFaint)))
+              : RefreshIndicator(
+                  color: DColors.red,
+                  onRefresh: _load,
+                  child: ListView(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      children: [
+                        if (fresh.isNotEmpty && _q.isEmpty) ...[
+                          const Padding(
+                            padding: EdgeInsets.fromLTRB(16, 6, 16, 8),
+                            child: Text('New',
+                                style: TextStyle(
+                                    color: DColors.dim,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600)),
+                          ),
+                          SizedBox(
+                            height: 86,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              itemCount: fresh.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(width: 12),
+                              itemBuilder: (_, i) {
+                                final m = fresh[i];
+                                return GestureDetector(
+                                  onTap: () => _chat(m),
+                                  onLongPress: () => showPeekCard(
+                                      context, m['userId'] as String),
+                                  child: Column(children: [
+                                    PersonFace(
+                                        avatarUrl: m['avatarUrl'] as String?,
+                                        name: '${m['name']}',
+                                        size: 56,
+                                        ring: RingKind.lobby,
+                                        online: m['online'] == true),
+                                    const SizedBox(height: 4),
+                                    SizedBox(
+                                      width: 64,
+                                      child: Text(
+                                          '${m['name']}'.split(' ').first,
+                                          textAlign: TextAlign.center,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(fontSize: 12)),
+                                    ),
+                                  ]),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                        const Padding(
+                          padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
+                          child: Text('All matches',
+                              style: TextStyle(
+                                  color: DColors.dim,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600)),
+                        ),
+                        for (final m in list) _row(m),
+                      ]),
+                ),
     );
   }
 
-  Widget _card(Map<String, dynamic> m, int index) {
-    final avatarUrl = m['avatarUrl'] as String?;
-    final age = m['age'] as int?;
-    final online = m['online'] == true;
-    final matchedAt = DateTime.tryParse(m['matchedAt']?.toString() ?? '');
-    final gradient = _kCardGradients[index % _kCardGradients.length];
-
-    return GestureDetector(
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => CreatorProfileScreen(userId: m['userId'] as String))),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (avatarUrl != null)
-              AppImage(source: avatarUrl, fit: BoxFit.cover)
-            else
-              Container(
-                decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: gradient)),
-                alignment: Alignment.center,
-                child: Text(initials(m['name'] as String?),
-                    style: const TextStyle(
-                        color: Colors.white24,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 44)),
+  Widget _row(Map<String, dynamic> m) {
+    final room = m['activeRoom'] as Map?;
+    final age = m['age'];
+    return InkWell(
+      onTap: () => _chat(m),
+      onLongPress: () => showPeekCard(context, m['userId'] as String),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+        decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: Color(0xFF1C1C1C)))),
+        child: Row(children: [
+          PersonFace(
+            avatarUrl: m['avatarUrl'] as String?,
+            name: '${m['name']}',
+            size: 44,
+            ring: room != null ? RingKind.lobby : RingKind.close,
+            online: m['online'] == true,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text.rich(
+                TextSpan(children: [
+                  TextSpan(
+                      text:
+                          age != null ? '${m['name']}, $age' : '${m['name']}'),
+                  if (room != null)
+                    const TextSpan(
+                        text: '  in a lobby',
+                        style: TextStyle(color: DColors.redSoft, fontSize: 12)),
+                ]),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style:
+                    const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
               ),
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [Color(0xBF000000), Colors.transparent],
-                    stops: [0, 0.55]),
-              ),
-            ),
-            if (online)
-              Positioned(
-                top: 10,
-                right: 10,
-                child: Container(
-                  width: 9,
-                  height: 9,
-                  decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.success,
-                      boxShadow: [
-                        BoxShadow(
-                            color: AppColors.success.withValues(alpha: 0.25),
-                            blurRadius: 0,
-                            spreadRadius: 3)
-                      ]),
-                ),
-              ),
-            Positioned(
-              left: 12,
-              bottom: 10,
-              right: 12,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${m['name'] as String? ?? ''}${age != null ? ', $age' : ''}',
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    online
-                        ? 'Active now'
-                        : (matchedAt != null
-                            ? 'Matched ${DateFormat.MMMd().format(matchedAt)}'
-                            : ''),
-                    style: const TextStyle(color: Colors.white70, fontSize: 11),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+              const SizedBox(height: 2),
+              Text(
+                  room != null && room['title'] != null
+                      ? '${room['title']}'
+                      : m['online'] == true
+                          ? 'Active now'
+                          : _when(DateTime.tryParse('${m['matchedAt']}')),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: DColors.dim, fontSize: 12)),
+            ]),
+          ),
+          if (room?['roomId'] != null)
+            DChip('Join',
+                tone: DTone.outline,
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) =>
+                        PartyScreen(roomId: room!['roomId'] as String)))),
+        ]),
       ),
     );
   }

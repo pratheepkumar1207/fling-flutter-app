@@ -276,13 +276,13 @@ class _RoomFullScreenControlsState extends State<RoomFullScreenControls> {
                         disabledThumbRadius: 0),
                     overlayShape: SliderComponentShape.noOverlay,
                     trackShape: const RectangularSliderTrackShape(),
-                    disabledActiveTrackColor: const Color(0xFFFF0033),
+                    disabledActiveTrackColor: const Color(0xFFFF001E),
                     disabledInactiveTrackColor: Colors.white24,
                   ),
                   child: Slider(
                     value: elapsed.clamp(0, max),
                     max: max,
-                    activeColor: const Color(0xFFFF0033),
+                    activeColor: const Color(0xFFFF001E),
                     inactiveColor: Colors.white24,
                     onChanged: w.isHost && w.onSeekTo != null
                         ? (v) {

@@ -15,11 +15,11 @@ import '../../widgets/glass.dart';
 // pattern as blocked_accounts_screen.dart.
 const _kAvatarGradients = [
   [Color(0xFFC9825A), Color(0xFF5C2E17)],
-  [Color(0xFF5A82B8), Color(0xFF1E3A5C)],
+  [Color(0xFF898989), Color(0xFF8A8A8A)],
   [Color(0xFFB8A25A), Color(0xFF4C4017)],
   [Color(0xFF6BAF8A), Color(0xFF1E4C34)],
-  [Color(0xFFA5709A), Color(0xFF4C2447)],
-  [Color(0xFFC96B6B), Color(0xFF5C1E1E)],
+  [Color(0xFFE82D43), Color(0xFF4C2429)],
+  [Color(0xFFEB495C), Color(0xFFB81427)],
 ];
 
 /// The room's participant list — opened as a right-side Drawer (see

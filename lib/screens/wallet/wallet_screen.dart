@@ -138,13 +138,13 @@ class _WalletScreenState extends State<WalletScreen> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(22),
               gradient: AppGradients.hero,
-              border: Border.all(color: const Color(0xFF3A2A55)),
+              border: Border.all(color: const Color(0xFF404040)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Coin balance',
-                    style: TextStyle(color: Color(0xFFCFC6E6), fontSize: 13)),
+                    style: TextStyle(color: Color(0xFFD6D6D6), fontSize: 13)),
                 const SizedBox(height: 6),
                 Row(children: [
                   const CoinDot(size: 28),
@@ -220,7 +220,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 InIcons.live,
                 'Live earnings',
                 AppColors.pink,
-                const Color(0xFF2A1028),
+                const Color(0xFF2A1013),
                 () => const LivestreamDashboardScreen()),
           ]),
           const SizedBox(height: 14),

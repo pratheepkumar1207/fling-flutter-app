@@ -259,10 +259,10 @@ class _GameRoomBodyState extends State<GameRoomBody> {
                   button: true,
                   label: 'Switch game',
                   child: Material(
-                    color: const Color(0xFF2A1D4A),
+                    color: const Color(0xFF343434),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
-                        side: const BorderSide(color: Color(0xFF8B6CFF))),
+                        side: const BorderSide(color: Color(0xFFFF5266))),
                     child: InkWell(
                       customBorder: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),

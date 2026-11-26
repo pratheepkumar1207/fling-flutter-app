@@ -63,7 +63,7 @@ class _Thumb extends StatelessWidget {
       height: height,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: const Color(0xFF2A2436),
+        color: const Color(0xFF2D2D2D),
         borderRadius: BorderRadius.circular(10),
         border: ticked == true
             ? Border.all(color: AppColors.lilac, width: 3)
@@ -101,7 +101,7 @@ class _Thumb extends StatelessWidget {
                     color: ticked! ? AppColors.lilac : Colors.white, width: 2),
               ),
               child: ticked!
-                  ? const Icon(Icons.check, size: 14, color: Color(0xFF26215C))
+                  ? const Icon(Icons.check, size: 14, color: Color(0xFF8B8B8B))
                   : null,
             ),
           ),
@@ -154,7 +154,7 @@ class BrowserVideoCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.fromLTRB(5, 5, 14, 5),
                   decoration: BoxDecoration(
-                      color: const Color(0xFF17131F),
+                      color: const Color(0xFF191919),
                       borderRadius: BorderRadius.circular(30),
                       border: border),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -177,7 +177,7 @@ class BrowserVideoCard extends StatelessWidget {
               width: 240,
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
-                  color: const Color(0xFF17131F),
+                  color: const Color(0xFF191919),
                   borderRadius: BorderRadius.circular(16),
                   border: border),
               child: Material(
@@ -238,7 +238,7 @@ class BrowserVideoCard extends StatelessWidget {
                                     borderRadius: BorderRadius.circular(10)),
                                 child: const Text('Watch together',
                                     style: TextStyle(
-                                        color: Color(0xFF26215C),
+                                        color: Color(0xFF8B8B8B),
                                         fontSize: 11,
                                         fontWeight: FontWeight.w700)),
                               ),
@@ -307,7 +307,7 @@ class _BrowserVideoTrayState extends State<BrowserVideoTray> {
     final result = await showModalBottomSheet<List<FoundVideo>>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF15121D),
+      backgroundColor: const Color(0xFF181818),
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => _SeeAllSheet(
@@ -329,7 +329,7 @@ class _BrowserVideoTrayState extends State<BrowserVideoTray> {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       decoration: const BoxDecoration(
-        color: Color(0xFF17131F),
+        color: Color(0xFF191919),
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
       child: SafeArea(
@@ -410,7 +410,7 @@ class _BrowserVideoTrayState extends State<BrowserVideoTray> {
                 onPressed: _submit,
                 style: FilledButton.styleFrom(
                     backgroundColor: AppColors.lilac,
-                    foregroundColor: const Color(0xFF26215C),
+                    foregroundColor: const Color(0xFF8B8B8B),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12))),
                 child: Text(_action(n)),
@@ -582,7 +582,7 @@ class _SeeAllSheetState extends State<_SeeAllSheet> {
                               .toList()),
                   style: FilledButton.styleFrom(
                       backgroundColor: AppColors.lilac,
-                      foregroundColor: const Color(0xFF26215C)),
+                      foregroundColor: const Color(0xFF8B8B8B)),
                   child: Text(n == 0 ? 'Pick videos' : widget.action(n)),
                 ),
               ),

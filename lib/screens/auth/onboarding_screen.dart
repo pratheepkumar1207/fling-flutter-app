@@ -51,7 +51,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           gradient: RadialGradient(
             center: Alignment(0.6, -0.9),
             radius: 0.9,
-            colors: [Color(0xFF3A1430), Colors.transparent],
+            colors: [Color(0xFF3A1418), Colors.transparent],
           ),
         ),
         child: DecoratedBox(
@@ -59,7 +59,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             gradient: RadialGradient(
               center: Alignment(-0.8, 0),
               radius: 0.9,
-              colors: [Color(0xFF14204A), Colors.transparent],
+              colors: [Color(0xFF2F2F2F), Colors.transparent],
             ),
           ),
           child: SafeArea(
@@ -162,7 +162,7 @@ class _Tiles extends StatelessWidget {
     (
       Alignment(-1, -0.75),
       116,
-      Color(0xFF2A1028),
+      Color(0xFF2A1013),
       InIcons.tv,
       AppColors.pink,
       'Watch'
@@ -170,23 +170,23 @@ class _Tiles extends StatelessWidget {
     (
       Alignment(1, -1),
       104,
-      Color(0xFF1C1638),
+      Color(0xFF272727),
       InIcons.mic,
-      Color(0xFFB97CF8),
+      Color(0xFFF65A6D),
       'Talk'
     ),
     (
       Alignment(-0.15, 0.2),
       116,
-      Color(0xFF122046),
+      Color(0xFF2C2C2C),
       InIcons.game,
-      Color(0xFF6E95FD),
+      Color(0xFFFFFFFF),
       'Play'
     ),
     (
       Alignment(0.95, 0.05),
       88,
-      Color(0xFF2A1028),
+      Color(0xFF2A1013),
       InIcons.flame,
       AppColors.pink,
       'Match'
@@ -194,9 +194,9 @@ class _Tiles extends StatelessWidget {
     (
       Alignment(-0.92, 1),
       92,
-      Color(0xFF1C1638),
+      Color(0xFF272727),
       InIcons.blend,
-      Color(0xFFB97CF8),
+      Color(0xFFF65A6D),
       'Blend'
     ),
   ];

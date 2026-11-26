@@ -321,9 +321,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-          color: const Color(0xFF121216),
+          color: const Color(0xFF141414),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF1F1F24))),
+          border: Border.all(color: const Color(0xFF222222))),
       child: Row(children: [
         for (final (id, label) in opts)
           Expanded(
@@ -337,7 +337,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 7),
                   decoration: BoxDecoration(
                       color: _filter == id
-                          ? const Color(0xFF26262C)
+                          ? const Color(0xFF292929)
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(9)),
                   child: Text(label,
@@ -369,9 +369,9 @@ class _HomeScreenState extends State<HomeScreen> {
             height: 28,
             margin: const EdgeInsets.only(left: 4),
             decoration: BoxDecoration(
-                color: on ? const Color(0xFF26262C) : const Color(0xFF121216),
+                color: on ? const Color(0xFF292929) : const Color(0xFF141414),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFF1F1F24))),
+                border: Border.all(color: const Color(0xFF222222))),
             child: Center(
                 child: InIcon(icon,
                     size: 15,
@@ -560,7 +560,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _playComputer() async {
     final game = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: const Color(0xFF16151B),
+      backgroundColor: const Color(0xFF181818),
       builder: (sheet) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           const Padding(
@@ -655,7 +655,7 @@ class _EmptyRooms extends StatelessWidget {
           width: 52,
           height: 52,
           decoration: BoxDecoration(
-              color: const Color(0xFF1C1638),
+              color: const Color(0xFF272727),
               borderRadius: BorderRadius.circular(17)),
           child: const Center(
               child: InIcon(InIcons.tv, size: 26, color: AppColors.lilac)),
@@ -687,7 +687,7 @@ class _CreateRoomCard extends StatelessWidget {
       label: 'Create room',
       excludeSemantics: true,
       child: Material(
-        color: const Color(0xFF1D1B24),
+        color: const Color(0xFF202020),
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
             side: const BorderSide(color: AppColors.lilac, width: 1.5)),

@@ -87,7 +87,7 @@ class GroupPollBubble extends StatelessWidget {
                           value: total == 0 ? 0 : counts[i] / total,
                           minHeight: 5,
                           backgroundColor:
-                              mine ? Colors.white24 : const Color(0xFF2A2733),
+                              mine ? Colors.white24 : const Color(0xFF2D2D2D),
                           color: mine ? Colors.white : AppColors.lilac,
                         ),
                       ),
@@ -113,7 +113,7 @@ Future<Map<String, dynamic>?> showCreatePollSheet(BuildContext context) {
   return showModalBottomSheet<Map<String, dynamic>>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: const Color(0xFF15121D),
+    backgroundColor: const Color(0xFF181818),
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
     builder: (_) => const _CreatePoll(),
@@ -246,12 +246,12 @@ class GroupReactionChips extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: mine == e.key
                       ? AppColors.lilac.withValues(alpha: 0.25)
-                      : const Color(0xFF1F1C29),
+                      : const Color(0xFF232323),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                       color: mine == e.key
                           ? AppColors.lilac
-                          : const Color(0xFF2A2733)),
+                          : const Color(0xFF2D2D2D)),
                 ),
                 child: Text('${e.key} ${e.value}',
                     style: const TextStyle(fontSize: 12)),

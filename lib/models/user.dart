@@ -30,6 +30,10 @@ class User {
   bool get isCreator => accountType == 'creator';
   final bool hideOnlineStatus;
   final bool hideAgeOnMap;
+  // People map: hidden until this time (ghost mode), and who sees you
+  // otherwise: 'everyone' | 'matches' | 'friends'.
+  final DateTime? ghostUntil;
+  final String mapVisibility;
   // Monthly creator subscription price; null when not offered.
   final int? subscriptionPriceCoins;
   // Who sees the room I'm in: 'everyone' | 'friends' | 'nobody'.
@@ -99,6 +103,8 @@ class User {
     this.creatorCategory,
     this.hideOnlineStatus = false,
     this.hideAgeOnMap = false,
+    this.ghostUntil,
+    this.mapVisibility = 'everyone',
     this.subscriptionPriceCoins,
     this.roomActivityVisibility = 'everyone',
     this.showNowPlaying = true,
@@ -172,6 +178,8 @@ class User {
       creatorCategory: json['creatorCategory'] as String?,
       hideOnlineStatus: json['hideOnlineStatus'] as bool? ?? false,
       hideAgeOnMap: json['hideAgeOnMap'] as bool? ?? false,
+      ghostUntil: DateTime.tryParse('${json['ghostUntil'] ?? ''}'),
+      mapVisibility: json['mapVisibility'] as String? ?? 'everyone',
       subscriptionPriceCoins: (json['subscriptionPriceCoins'] as num?)?.toInt(),
       roomActivityVisibility:
           json['roomActivityVisibility'] as String? ?? 'everyone',
@@ -254,6 +262,14 @@ class DiscoverProfile {
   final int sharedInterests;
   final String? equippedFrameId;
   final bool isVerified;
+  // Redesign (Nov 2026): distance (null when either side hides it), the
+  // interests you both have, how you know them, height, and the lobby
+  // they're in when they let you see it (see lib/activeRoom.js).
+  final int? distanceKm;
+  final List<String> inCommon;
+  final String relation;
+  final int? height;
+  final Map<String, dynamic>? activeRoom;
 
   DiscoverProfile({
     required this.id,
@@ -272,6 +288,11 @@ class DiscoverProfile {
     this.sharedInterests = 0,
     this.equippedFrameId,
     this.isVerified = false,
+    this.distanceKm,
+    this.inCommon = const [],
+    this.relation = 'none',
+    this.height,
+    this.activeRoom,
   });
 
   factory DiscoverProfile.fromJson(Map<String, dynamic> json) {
@@ -296,6 +317,15 @@ class DiscoverProfile {
       sharedInterests: json['sharedInterests'] as int? ?? 0,
       equippedFrameId: json['equippedFrameId'] as String?,
       isVerified: json['isVerified'] as bool? ?? false,
+      distanceKm: (json['distanceKm'] as num?)?.toInt(),
+      inCommon:
+          (json['inCommon'] as List?)?.map((e) => e.toString()).toList() ??
+              const [],
+      relation: json['relation'] as String? ?? 'none',
+      height: (json['height'] as num?)?.toInt(),
+      activeRoom: json['activeRoom'] is Map
+          ? Map<String, dynamic>.from(json['activeRoom'] as Map)
+          : null,
     );
   }
 }

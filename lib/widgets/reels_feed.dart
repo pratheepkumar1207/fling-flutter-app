@@ -270,7 +270,7 @@ class _ReelCardState extends State<_ReelCard>
                 _ReelIconButton(
                   icon: post.likedByMe ? InIcons.heart : InIcons.heart,
                   active: post.likedByMe,
-                  activeColor: const Color(0xFFFF5C8A),
+                  activeColor: const Color(0xFFFF5266),
                   onTap: () => widget.onLike(post),
                   label: post.likesHidden ? null : '${post.likesCount}',
                   semantics: post.likedByMe ? 'Unlike' : 'Like',

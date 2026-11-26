@@ -261,7 +261,7 @@ class BlendsRowState extends State<BlendsRow> {
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w700,
                                   color: dashed
-                                      ? const Color(0xFFE2CCFF)
+                                      ? const Color(0xFFFFCCD2)
                                       : AppColors.text)),
                           if (sub != null)
                             Text(sub,
@@ -288,10 +288,10 @@ class BlendsRowState extends State<BlendsRow> {
               width: 38,
               height: 38,
               decoration: const BoxDecoration(
-                  color: Color(0xFF2B1640), shape: BoxShape.circle),
+                  color: Color(0xFF2B2B2B), shape: BoxShape.circle),
               child: const Center(
                   child:
-                      InIcon(InIcons.plus, color: Color(0xFFE2CCFF), size: 18)),
+                      InIcon(InIcons.plus, color: Color(0xFFFFCCD2), size: 18)),
             ),
             title: 'New Blend',
             onTap: () => startNewBlend(context, onCreated: reload),
@@ -322,7 +322,7 @@ class _DashedBorderPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF5A4A78)
+      ..color = const Color(0xFF616161)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2;
     final path = Path()

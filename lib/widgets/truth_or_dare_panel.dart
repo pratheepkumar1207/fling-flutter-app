@@ -5,12 +5,12 @@ import '../theme/app_colors.dart';
 import 'game_seat.dart';
 
 const _kSeatColors = [
-  Color(0xFFFF3D78),
+  Color(0xFFFF3D54),
   Color(0xFFFFC93C),
   Color(0xFF38E6C5),
-  Color(0xFF8B7BFF),
+  Color(0xFFFFFFFF),
   Color(0xFFFF8A3D),
-  Color(0xFF4DC4FF)
+  Color(0xFFFFFFFF)
 ];
 const _kSpinDuration = Duration(milliseconds: 3200);
 

@@ -67,7 +67,7 @@ class _CreatorAccountScreenState extends State<CreatorAccountScreen> {
   Widget _benefit(InIconData icon, String text) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 5),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          InIcon(icon, size: 18, color: const Color(0xFFB9A7FF)),
+          InIcon(icon, size: 18, color: const Color(0xFFFFA7B1)),
           const SizedBox(width: 10),
           Expanded(
               child: Text(text,
@@ -95,7 +95,7 @@ class _CreatorAccountScreenState extends State<CreatorAccountScreen> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(18),
                   gradient: const LinearGradient(
-                      colors: [Color(0xFF2A1E55), Color(0xFF3A1430)]),
+                      colors: [Color(0xFFB81427), Color(0xFF3A1418)]),
                 ),
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,7 +147,7 @@ class _CreatorAccountScreenState extends State<CreatorAccountScreen> {
                   leading: InIcon(r['ok'] == true ? InIcons.check : InIcons.close,
                       color: r['ok'] == true
                           ? AppColors.success
-                          : const Color(0xFFFF8AA0)),
+                          : const Color(0xFFFF5266)),
                   title: Text('${r['label']}'),
                   trailing: r['ok'] == true
                       ? null

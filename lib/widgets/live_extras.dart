@@ -274,7 +274,7 @@ class LiveUserVideo extends StatelessWidget {
           }
         }
         return Stack(fit: StackFit.expand, children: [
-          const ColoredBox(color: Color(0xFF15121D)),
+          const ColoredBox(color: Color(0xFF181818)),
           surface ??
               Center(
                   child:
@@ -613,13 +613,13 @@ class _PkBattleBarState extends State<PkBattleBar> {
                     width: c.maxWidth * share,
                     decoration: const BoxDecoration(
                         gradient: LinearGradient(
-                            colors: [Color(0xFFC41E45), AppColors.pink])),
+                            colors: [Color(0xFFCB172C), AppColors.pink])),
                   ),
                   Expanded(
                     child: Container(
                         decoration: const BoxDecoration(
                             gradient: LinearGradient(
-                                colors: [AppColors.blue, Color(0xFF2A4FD6)]))),
+                                colors: [AppColors.blue, Color(0xFFFFFFFF)]))),
                   ),
                 ]),
                 Positioned.fill(
@@ -983,7 +983,7 @@ Future<void> showLiveFansSheet(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                        colors: [Color(0xFF3A1430), Color(0xFF22143C)]),
+                        colors: [Color(0xFF3A1418), Color(0xFF282828)]),
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: AppColors.border),
                   ),
@@ -1224,7 +1224,7 @@ class LiveRankRow extends StatelessWidget {
     final medal = rank == 1
         ? AppColors.gold
         : rank == 2
-            ? const Color(0xFFC9CCD6)
+            ? const Color(0xFFD0D0D0)
             : rank == 3
                 ? const Color(0xFFD08A4E)
                 : AppColors.textFaint;
@@ -1263,7 +1263,7 @@ class LiveRankRow extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                   decoration: BoxDecoration(
-                      color: const Color(0xFF2B1640),
+                      color: const Color(0xFF2B2B2B),
                       borderRadius: BorderRadius.circular(6)),
                   child: Text('Lv $level',
                       style: const TextStyle(

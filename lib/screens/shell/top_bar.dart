@@ -98,12 +98,12 @@ class InsyncTopBar extends StatelessWidget implements PreferredSizeWidget {
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: n > 0
-                                      ? const Color(0xFFE53935)
+                                      ? const Color(0xFFE83247)
                                       : const Color(0xFF3A3A40),
                                   boxShadow: n > 0
                                       ? const [
                                           BoxShadow(
-                                              color: Color(0x40E53935),
+                                              color: Color(0x40E83247),
                                               spreadRadius: 4)
                                         ]
                                       : null,
@@ -125,7 +125,7 @@ class InsyncTopBar extends StatelessWidget implements PreferredSizeWidget {
                                       borderRadius: BorderRadius.circular(7)),
                                   child: Text(n > 99 ? '99+' : '$n',
                                       style: const TextStyle(
-                                          color: Color(0xFFE53935),
+                                          color: Color(0xFFE83247),
                                           fontSize: 9.5,
                                           fontWeight: FontWeight.w700)),
                                 ),
@@ -149,10 +149,10 @@ class InsyncTopBar extends StatelessWidget implements PreferredSizeWidget {
                         width: 34,
                         height: 34,
                         decoration: const BoxDecoration(
-                            color: Color(0xFF2A2140), shape: BoxShape.circle),
+                            color: Color(0xFF303030), shape: BoxShape.circle),
                         child: const Center(
                             child: InIcon(InIcons.swords,
-                                size: 18, color: Color(0xFFC9A6FF))),
+                                size: 18, color: Color(0xFFFFA6B0))),
                       ),
                     ),
                   ),

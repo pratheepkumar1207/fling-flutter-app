@@ -60,7 +60,7 @@ class PopcornLiveRow extends StatelessWidget {
                   child: Container(
                     width: _w,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1D1B24),
+                      color: const Color(0xFF202020),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: AppColors.lilac, width: 1.5),
                     ),
@@ -79,10 +79,10 @@ class PopcornLiveRow extends StatelessWidget {
                                 width: 22,
                                 height: 22,
                                 decoration: BoxDecoration(
-                                    color: const Color(0xFFE53935),
+                                    color: const Color(0xFFE83247),
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                        color: const Color(0xFF1D1B24),
+                                        color: const Color(0xFF202020),
                                         width: 2)),
                                 child: const Center(
                                     child: InIcon(InIcons.live,

@@ -10,7 +10,7 @@ import '../party/party_screen.dart';
 const _kRoomTypeStyles = {
   'watch': (
     icon: InIcons.play,
-    colors: [Color(0xFFE0836B), Color(0xFFB8422C)],
+    colors: [Color(0xFFE0836B), Color(0xFFCD172C)],
     label: 'Watch Party'
   ),
   'voice': (
@@ -20,12 +20,12 @@ const _kRoomTypeStyles = {
   ),
   'game': (
     icon: InIcons.dice,
-    colors: [Color(0xFF7FA8D9), Color(0xFF4272D9)],
+    colors: [Color(0xFFFFFFFF), Color(0xFFFFFFFF)],
     label: 'Game Room'
   ),
   'live': (
     icon: InIcons.live,
-    colors: [Color(0xFFED8B6B), Color(0xFFED4B43)],
+    colors: [Color(0xFFED8B6B), Color(0xFFED4357)],
     label: 'Live'
   ),
 };

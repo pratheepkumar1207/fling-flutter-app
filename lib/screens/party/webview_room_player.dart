@@ -1337,7 +1337,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
           FractionallySizedBox(
             alignment: Alignment.centerLeft,
             widthFactor: value,
-            child: const ColoredBox(color: Color(0xFFFF0033)),
+            child: const ColoredBox(color: Color(0xFFFF001E)),
           ),
         ]),
       ),
@@ -1446,7 +1446,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
             child: Slider(
               value: elapsed.clamp(0, max),
               max: max,
-              activeColor: const Color(0xFFFF0033),
+              activeColor: const Color(0xFFFF001E),
               inactiveColor: Colors.white24,
               onChanged: (v) {
                 _tapHide?.cancel();

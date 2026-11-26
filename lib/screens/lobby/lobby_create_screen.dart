@@ -22,7 +22,7 @@ const _kGames = [
     icon: InIcons.crown,
     label: 'Chess',
     subtitle: '1 vs 1 · classic',
-    colors: [Color(0xFF7FA8D9), Color(0xFF4272D9)]
+    colors: [Color(0xFFFFFFFF), Color(0xFFFFFFFF)]
   ),
   (
     value: 'ludo',
@@ -36,7 +36,7 @@ const _kGames = [
     icon: InIcons.close,
     label: 'Tic Tac Toe',
     subtitle: '1 vs 1 · quick',
-    colors: [Color(0xFFE0836B), Color(0xFFB8422C)]
+    colors: [Color(0xFFE0836B), Color(0xFFCD172C)]
   ),
   (
     value: 'uno',
@@ -50,7 +50,7 @@ const _kGames = [
     icon: InIcons.smile,
     label: 'Truth or Dare',
     subtitle: 'Group · party',
-    colors: [Color(0xFFE0836B), Color(0xFFB8422C)]
+    colors: [Color(0xFFE0836B), Color(0xFFCD172C)]
   ),
 ];
 
@@ -82,13 +82,13 @@ class _VisibilitySpec {
 
 const _roomTypes = [
   _RoomTypeSpec('watch', InIcons.tv, 'Watch party',
-      'YouTube, Netflix, Prime and more', AppColors.pink, Color(0xFF24102A)),
+      'YouTube, Netflix, Prime and more', AppColors.pink, Color(0xFF1D1D1D)),
   _RoomTypeSpec('voice', InIcons.mic, 'Voice room', 'Talk and sing together',
-      Color(0xFFB97CF8), Color(0xFF1C1638)),
+      Color(0xFFF65A6D), Color(0xFF272727)),
   _RoomTypeSpec('game', InIcons.game, 'Game room', 'Ludo, UNO, Chess…',
-      Color(0xFF6E95FD), Color(0xFF122046)),
+      Color(0xFFFFFFFF), Color(0xFF2C2C2C)),
   _RoomTypeSpec('live', InIcons.live, 'Go live',
-      'Stream to followers, earn gifts', AppColors.pink, Color(0xFF2A1028)),
+      'Stream to followers, earn gifts', AppColors.pink, Color(0xFF2A1013)),
 ];
 
 // Short labels so all four fit on one line; Private shows as a lock icon
@@ -317,20 +317,20 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
                             _micEnabled,
                             (v) => setState(() => _micEnabled = v)),
                         if (_micEnabled) ...[
-                          const Divider(height: 1, color: Color(0xFF221F2C)),
+                          const Divider(height: 1, color: Color(0xFF262626)),
                           _toggleRow(
                               InIcons.shield,
                               'Host approves mics',
                               _hostApprovesMics,
                               (v) => setState(() => _hostApprovesMics = v)),
                         ],
-                        const Divider(height: 1, color: Color(0xFF221F2C)),
+                        const Divider(height: 1, color: Color(0xFF262626)),
                         _toggleRow(
                             InIcons.music,
                             'Anyone can add songs',
                             _songPermission,
                             (v) => setState(() => _songPermission = v)),
-                        const Divider(height: 1, color: Color(0xFF221F2C)),
+                        const Divider(height: 1, color: Color(0xFF262626)),
                         InkWell(
                           onTap: () =>
                               setState(() => _moreOptions = !_moreOptions),
@@ -380,7 +380,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
         width: 32,
         height: 32,
         decoration: BoxDecoration(
-            color: const Color(0xFF1F1A2C),
+            color: const Color(0xFF232323),
             borderRadius: BorderRadius.circular(10)),
         child: Center(child: InIcon(icon, size: 17, color: AppColors.lilac)),
       );
@@ -497,7 +497,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
             border: Border.all(
                 color: selected ? AppColors.purple : AppColors.border,
                 width: selected ? 2 : 1),
-            color: selected ? const Color(0xFF1C1638) : AppColors.surface,
+            color: selected ? const Color(0xFF272727) : AppColors.surface,
           ),
           child: Row(
             children: [
@@ -506,10 +506,10 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
                 height: 44,
                 decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
-                    color: const Color(0xFF122046)),
+                    color: const Color(0xFF2C2C2C)),
                 alignment: Alignment.center,
                 child:
-                    InIcon(game.icon, size: 22, color: const Color(0xFF8FB0FF)),
+                    InIcon(game.icon, size: 22, color: const Color(0xFFC7C7C7)),
               ),
               const SizedBox(width: 12),
               Expanded(

@@ -656,7 +656,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       delegate: _TabBarHeader(TabBar(
                         indicatorColor: AppColors.text,
                         indicatorSize: TabBarIndicatorSize.tab,
-                        dividerColor: const Color(0xFF1E1B27),
+                        dividerColor: const Color(0xFF212121),
                         labelColor: AppColors.text,
                         unselectedLabelColor: AppColors.textFaint,
                         tabs: [
@@ -937,11 +937,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
                 gradient: const LinearGradient(
-                    colors: [Color(0xFF2A1E55), Color(0xFF16151B)]),
-                border: Border.all(color: const Color(0xFF3C3489)),
+                    colors: [Color(0xFFB81427), Color(0xFF181818)]),
+                border: Border.all(color: const Color(0xFF5E5E5E)),
               ),
               child: const Row(children: [
-                InIcon(InIcons.chart, size: 20, color: Color(0xFFB9A7FF)),
+                InIcon(InIcons.chart, size: 20, color: Color(0xFFFFA7B1)),
                 SizedBox(width: 10),
                 Expanded(
                   child: Text('Creator tools',

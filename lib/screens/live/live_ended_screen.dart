@@ -75,7 +75,7 @@ class _LiveEndedScreenState extends State<LiveEndedScreen> {
           gradient: RadialGradient(
               center: Alignment(0, -0.6),
               radius: 1,
-              colors: [Color(0xFF3A1A5A), AppColors.bg]),
+              colors: [Color(0xFFB81427), AppColors.bg]),
         ),
         child: SafeArea(
           child: Column(children: [

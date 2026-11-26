@@ -247,11 +247,11 @@ class _WalletKycScreenState extends State<WalletKycScreen> {
       case 'verified':
         return const [Color(0xFF43B966), Color(0xFF2C8A49)];
       case 'rejected':
-        return const [Color(0xFFED4B43), Color(0xFFB93A34)];
+        return const [Color(0xFFED4357), Color(0xFFD5182E)];
       case 'pending':
         return const [Color(0xFFDBB155), Color(0xFFB98A3D)];
       default:
-        return const [Color(0xFF676871), Color(0xFF4A4B54)];
+        return const [Color(0xFF676871), Color(0xFF4F4F4F)];
     }
   }
 

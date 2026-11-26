@@ -281,7 +281,7 @@ class _CallScreenState extends State<CallScreen> {
                       gradient: RadialGradient(
                           center: Alignment(0, -0.4),
                           radius: 1,
-                          colors: [Color(0xFF3A1A5A), AppColors.bg]),
+                          colors: [Color(0xFFB81427), AppColors.bg]),
                     ),
                   ),
                   if (widget.video && connected)
@@ -483,7 +483,7 @@ class _CallScreenState extends State<CallScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 16),
                         decoration: BoxDecoration(
-                          color: const Color(0xE616141D),
+                          color: const Color(0xE6181818),
                           borderRadius: BorderRadius.circular(28),
                           border: Border.all(color: AppColors.border),
                         ),
@@ -599,7 +599,7 @@ class _CallScreenState extends State<CallScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color:
-                    tile ?? (active ? Colors.white : const Color(0xFF2A2436)),
+                    tile ?? (active ? Colors.white : const Color(0xFF2D2D2D)),
               ),
               alignment: Alignment.center,
               child: InIcon(icon,

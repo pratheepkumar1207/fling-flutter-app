@@ -286,7 +286,7 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
               AppImage(source: thumb, fit: BoxFit.cover)
             else
               ColoredBox(
-                color: const Color(0xFF6D3FD0),
+                color: const Color(0xFFE7283E),
                 child: Align(
                   alignment: const Alignment(0, -0.6),
                   child: InIcon(InIcons.music,
@@ -389,11 +389,11 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
             width: playSize,
             height: playSize,
             decoration: const BoxDecoration(
-                color: Color(0xFFF3F0FA), shape: BoxShape.circle),
+                color: Color(0xFFFDECEE), shape: BoxShape.circle),
             alignment: Alignment.center,
             child: InIcon(_spinning ? InIcons.pause : InIcons.play,
                 size: playSize * 0.45,
-                color: const Color(0xFF17141F),
+                color: const Color(0xFF1A1A1A),
                 filled: true),
           ),
         ),
@@ -438,7 +438,7 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-            color: const Color(0xFF1F1A33),
+            color: const Color(0xFF272727),
             borderRadius: BorderRadius.circular(20)),
         child: Column(
           mainAxisSize: MainAxisSize.min,

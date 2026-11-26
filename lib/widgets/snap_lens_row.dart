@@ -180,7 +180,7 @@ Future<({SnapLens? lens, bool picked})> showSnapLensPicker(
   final result = await showModalBottomSheet<({SnapLens? lens})>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: const Color(0xFF15121D),
+    backgroundColor: const Color(0xFF181818),
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
     builder: (_) => _LensPicker(current: current),

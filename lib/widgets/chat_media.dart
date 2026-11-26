@@ -154,7 +154,7 @@ class _ChatVoiceNoteState extends State<ChatVoiceNote> {
     final played = widget.mine ? Colors.white : AppColors.lilac;
     final rest = widget.mine
         ? Colors.white.withValues(alpha: 0.35)
-        : const Color(0xFF5A5568);
+        : const Color(0xFF5E5E5E);
     return SizedBox(
       width: 214,
       child: Row(children: [

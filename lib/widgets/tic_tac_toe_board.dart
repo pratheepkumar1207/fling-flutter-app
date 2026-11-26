@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import 'game_seat.dart';
 
-const _kX = Color(0xFFFF7AA8);
-const _kO = Color(0xFF7AD7FF);
+const _kX = Color(0xFFFF5266);
+const _kO = Color(0xFFFFFFFF);
 
 /// Presentational only — all rules (whose turn, win/draw detection, illegal
 /// moves) are enforced server-side in src/games/tictactoe.js on the

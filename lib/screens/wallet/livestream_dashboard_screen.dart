@@ -260,9 +260,9 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
   }
 
   static const _thumbGradients = [
-    [Color(0xFFE0B58A), Color(0xFFC44A2E)],
-    [Color(0xFFCADCE8), Color(0xFF5A87B8)],
-    [Color(0xFFD8C6E8), Color(0xFF8A5AB8)],
+    [Color(0xFFE0B58A), Color(0xFFDA182F)],
+    [Color(0xFFD9D9D9), Color(0xFF898989)],
+    [Color(0xFFD7D7D7), Color(0xFF898989)],
   ];
 
   Widget _bottomCta(String status) {
@@ -331,7 +331,7 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
           'We review requests within a few days',
         ),
       'rejected' => (
-          const LinearGradient(colors: [Color(0xFF3D2320), Color(0xFF241614)]),
+          const LinearGradient(colors: [Color(0xFF3D2023), Color(0xFF241416)]),
           AppColors.danger,
           'Application rejected',
           'You can re-apply from below',

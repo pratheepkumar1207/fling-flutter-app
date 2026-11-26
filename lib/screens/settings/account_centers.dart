@@ -315,9 +315,9 @@ class _SafetyCenterScreenState extends State<SafetyCenterScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                        color: const Color(0xFF2A1018),
+                        color: const Color(0xFF2A1013),
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: const Color(0xFF5A2030))),
+                        border: Border.all(color: const Color(0xFFB81427))),
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [

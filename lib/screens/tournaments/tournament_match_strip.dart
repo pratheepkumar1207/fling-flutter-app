@@ -58,7 +58,7 @@ class _TournamentMatchStripState extends State<TournamentMatchStrip> {
     final others = live.currentMatches.where((m) => m['roomId'] != widget.roomId && m['bye'] != true).toList();
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xFF16151B),
+      backgroundColor: const Color(0xFF181818),
       builder: (sheet) => SafeArea(
         child: ListenableBuilder(
           listenable: live,
@@ -141,7 +141,7 @@ class _TournamentMatchStripState extends State<TournamentMatchStrip> {
                         child: ActionChip(
                           visualDensity: VisualDensity.compact,
                           onPressed: _peek,
-                          backgroundColor: const Color(0xFF1F1E26),
+                          backgroundColor: const Color(0xFF222222),
                           side: BorderSide(
                               color: m['status'] == 'done' ? const Color(0xFFBA7517) : AppColors.border),
                           label: Text(
@@ -169,7 +169,7 @@ class _TournamentMatchStripState extends State<TournamentMatchStrip> {
               Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Material(
-                  color: done['through'] == true ? const Color(0xFF1E1A10) : const Color(0xFF1A1A20),
+                  color: done['through'] == true ? const Color(0xFF1E1A10) : const Color(0xFF1D1D1D),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                       side: BorderSide(color: done['through'] == true ? const Color(0xFFBA7517) : AppColors.border)),

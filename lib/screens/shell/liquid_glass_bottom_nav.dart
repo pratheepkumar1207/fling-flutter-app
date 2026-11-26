@@ -44,10 +44,10 @@ class LiquidGlassBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final middle = (items.length / 2).ceil();
     return Material(
-      color: const Color(0xF50E0C14),
+      color: const Color(0xF5101010),
       child: DecoratedBox(
         decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: Color(0xFF1E1B27)))),
+            border: Border(top: BorderSide(color: Color(0xFF212121)))),
         child: SafeArea(
           top: false,
           child: Padding(
@@ -147,7 +147,7 @@ class _Tab extends StatelessWidget {
                             height: 16,
                             padding: const EdgeInsets.symmetric(horizontal: 4),
                             decoration: BoxDecoration(
-                                color: const Color(0xFFFF375F),
+                                color: const Color(0xFFFF374E),
                                 borderRadius: BorderRadius.circular(8)),
                             child: Center(
                               child: Text(n > 99 ? '99+' : '$n',

@@ -92,8 +92,8 @@ class _ShareBottomSheet extends StatelessWidget {
                   ),
                   _AppTile(
                     icon: Icon(BrandIcons.telegram,
-                        color: const Color(0xFF29A9EA), size: 24),
-                    bgColor: const Color(0xFF29A9EA),
+                        color: const Color(0xFFFFFFFF), size: 24),
+                    bgColor: const Color(0xFFFFFFFF),
                     label: 'Telegram',
                     onTap: () => _open(
                         context,

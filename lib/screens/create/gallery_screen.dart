@@ -96,7 +96,7 @@ class _CreateGalleryScreenState extends State<CreateGalleryScreen> {
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
         child: Material(
-          color: const Color(0xFF17141F),
+          color: const Color(0xFF1A1A1A),
           borderRadius: BorderRadius.circular(16),
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
@@ -109,7 +109,7 @@ class _CreateGalleryScreenState extends State<CreateGalleryScreen> {
                   height: 44,
                   alignment: Alignment.center,
                   decoration: const BoxDecoration(
-                      shape: BoxShape.circle, color: Color(0xFF2B2638)),
+                      shape: BoxShape.circle, color: Color(0xFF2F2F2F)),
                   child: Icon(icon, color: AppColors.lilac),
                 ),
                 const SizedBox(width: 14),
@@ -166,7 +166,7 @@ class _CreateGalleryScreenState extends State<CreateGalleryScreen> {
           child: Center(
             child: Container(
               decoration: BoxDecoration(
-                  color: const Color(0xD90B0912),
+                  color: const Color(0xD90E0E0E),
                   borderRadius: BorderRadius.circular(20)),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 TextButton(
