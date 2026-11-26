@@ -102,18 +102,34 @@ void main() {
     for (final tab in ['Updates', 'Communities', 'Blends', 'Calls']) {
       expect(find.bySemanticsLabel(tab), findsOneWidget);
     }
-    // Search opens from the header button.
-    await t.tap(find.byTooltip('Search'));
-    await t.pump();
+    // No title bar: search sits at the top of the chats list.
     expect(find.text('People, groups, communities'), findsOneWidget);
     // Each top tab switches the title.
     for (final tab in ['Updates', 'Communities', 'Blends', 'Calls']) {
+      await t.ensureVisible(find.bySemanticsLabel(tab));
       await t.tap(find.bySemanticsLabel(tab));
-      await t.pump();
+      await t.pumpAndSettle();
       expect(find.text(tab), findsWidgets);
       expect(t.takeException(), isNull);
     }
     await _snap(t, key, 'messages');
+  });
+
+  testWidgets('Chat tabs change with a swipe', (t) async {
+    await _render(t, const MessagesScreen());
+    bool selected(String tab) =>
+        t.getSemantics(find.bySemanticsLabel(tab)).getSemanticsData().hasFlag(ui.SemanticsFlag.isSelected);
+    expect(selected('Chats'), isTrue);
+    // Right to left: the next tab.
+    await t.fling(find.byType(PageView), const Offset(-300, 0), 1000);
+    await t.pumpAndSettle();
+    expect(selected('Updates'), isTrue);
+    expect(selected('Chats'), isFalse);
+    // And back.
+    await t.fling(find.byType(PageView), const Offset(300, 0), 1000);
+    await t.pumpAndSettle();
+    expect(selected('Chats'), isTrue);
+    expect(t.takeException(), isNull);
   });
 
   testWidgets('Incoming call shows both actions', (t) async {

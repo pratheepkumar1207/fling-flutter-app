@@ -197,6 +197,9 @@ class InIcons {
   static const chev = InIconData('chev', '<path d="M9 6l6 6-6 6"/>');
   static const qr = InIconData('qr',
       '<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2v2h-2zM18 14h2M14 18h2M18 18h2v2"/>');
+  // Status / Updates: a broken ring around a dot.
+  static const status = InIconData('status',
+      '<path d="M12 3a9 9 0 016.36 2.64M21 12a9 9 0 01-2.64 6.36M12 21a9 9 0 01-6.36-2.64M3 12a9 9 0 012.64-6.36"/><circle cx="12" cy="12" r="4"/>');
   static const streak = InIconData('streak',
       '<path d="M12 21c-4 0-7-2.8-7-6.6 0-3.6 2.6-5.6 3.8-8.4.4 2 1.6 3.2 2.7 3.6C11.5 6.5 13 4.2 15.5 3c-.4 2.8.6 4.6 2 6.2 1.3 1.5 1.5 3 1.5 4.9C19 18 16 21 12 21z"/>');
   static const mail = InIconData('mail',

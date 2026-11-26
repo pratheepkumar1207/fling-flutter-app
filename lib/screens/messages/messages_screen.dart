@@ -74,7 +74,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
   List<Map<String, dynamic>> _communities = [];
   // Top tabs: chats | updates | communities | blends | calls.
   String _tab = 'chats';
-  bool _searchOpen = false;
+  // Swipe left / right between the tabs.
+  final _pages = PageController();
   List<StoryEntry> _stories = const [];
   Set<String> _seenStories = const {};
   int _missedCalls = 0;
@@ -127,6 +128,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
   @override
   void dispose() {
+    _pages.dispose();
     _socket?.off('dm:typing', _onTyping);
     _socket?.off('dm:message', _onMessage);
     _socket?.off('call:incoming', _onCallEvent);
@@ -201,8 +203,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
         for (final c in _communities)
           if ((_filter != 'unread' || _groupUnread(c, 'unread') > 0) &&
               match(c['name'] as String? ?? ''))
-            _InboxEntry.community(c,
-                DateTime.tryParse('${c['lastAt'] ?? ''}') ?? DateTime(2000)),
+            _InboxEntry.community(
+                c, DateTime.tryParse('${c['lastAt'] ?? ''}') ?? DateTime(2000)),
     ];
     out.sort((a, b) {
       if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
@@ -237,8 +239,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 
   Future<void> _loadStories() async {
-    final results = await Future.wait(
-        [loadStoryEntries(), loadSeenStoryIds()]);
+    final results = await Future.wait([loadStoryEntries(), loadSeenStoryIds()]);
     if (!mounted) return;
     setState(() {
       _stories = results[0] as List<StoryEntry>;
@@ -252,8 +253,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
   Future<void> _loadMissedCalls() async {
     try {
       final p = await SharedPreferences.getInstance();
-      final since = DateTime.fromMillisecondsSinceEpoch(
-          p.getInt(_callsSeenKey) ?? 0);
+      final since =
+          DateTime.fromMillisecondsSinceEpoch(p.getInt(_callsSeenKey) ?? 0);
       final rows = (await ApiClient.get('/calls/history') as List)
           .cast<Map<String, dynamic>>();
       if (!mounted) return;
@@ -288,10 +289,19 @@ class _MessagesScreenState extends State<MessagesScreen> {
     }
   }
 
+  /// A tab was tapped: slide to its page (which then calls [_setTab]).
+  void _goTab(String t) {
+    final i = _kChatTabs.indexOf(t);
+    if (i < 0 || !_pages.hasClients) return;
+    if ((_pages.page ?? 0).round() == i) return;
+    _pages.animateToPage(i,
+        duration: const Duration(milliseconds: 260), curve: Curves.easeOut);
+  }
+
   Future<void> _setTab(String t) async {
+    if (_tab != t) _query = '';
     setState(() {
       _tab = t;
-      if (t != 'chats' && t != 'communities') _searchOpen = false;
       if (t == 'calls') _missedCalls = 0;
     });
     if (t == 'calls') {
@@ -312,8 +322,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
     try {
       final data = await ApiClient.get('/communities/chat');
       if (!mounted) return;
-      setState(() =>
-          _communities = (data as List).cast<Map<String, dynamic>>());
+      setState(
+          () => _communities = (data as List).cast<Map<String, dynamic>>());
     } catch (_) {
       // Communities are optional.
     }
@@ -337,14 +347,6 @@ class _MessagesScreenState extends State<MessagesScreen> {
   void _newCommunity() => Navigator.of(context)
       .push(MaterialPageRoute(builder: (_) => const NewCommunityScreen()))
       .then((_) => _loadCommunities());
-
-  String get _tabTitle => switch (_tab) {
-        'updates' => 'Updates',
-        'communities' => 'Communities',
-        'blends' => 'Blends',
-        'calls' => 'Calls',
-        _ => 'Chats',
-      };
 
   String get _actionTooltip => switch (_tab) {
         'updates' => 'Add to your story',
@@ -612,8 +614,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  /// One tab's page (the pages swipe left and right).
+  Widget _page(BuildContext context, String tab) {
     final entries = _entries;
     // Split "your turn" out only on the plain All view.
     final splitTurns = _filter == 'all' && _query.trim().isEmpty;
@@ -647,304 +649,292 @@ class _MessagesScreenState extends State<MessagesScreen> {
         if ((c['name'] as String? ?? '').toLowerCase().contains(q)) c
     ];
 
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () {
-            _bumpLists();
-            return Future.wait([
-              _load(), _loadMatches(), _loadGroups(), _loadCommunities(),
-              _loadLikes(), _loadStories(), _loadMissedCalls()
-            ]);
-          },
-          child: CustomScrollView(slivers: [
-            SliverAppBar(
-              floating: true,
-              snap: true,
-              automaticallyImplyLeading: false,
-              backgroundColor: AppColors.bg,
-              surfaceTintColor: Colors.transparent,
-              toolbarHeight: 58,
-              titleSpacing: 0,
-              title: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 0, 12, 0),
-                child: Row(children: [
-                  if (Navigator.of(context).canPop())
-                    InIconButton(InIcons.back,
-                        tooltip: 'Back',
-                        onPressed: () => Navigator.of(context).maybePop())
-                  else
-                    const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(_tabTitle,
-                        style: const TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5)),
-                  ),
-                  if (_tab == 'chats' || _tab == 'communities') ...[
-                    _CircleButton(
-                        icon: InIcons.search,
-                        tooltip: _searchOpen ? 'Close search' : 'Search',
-                        onTap: () => setState(() {
-                              _searchOpen = !_searchOpen;
-                              if (!_searchOpen) _query = '';
-                            })),
-                    const SizedBox(width: 8),
-                  ],
-                  _CircleButton(
-                      icon: _tab == 'chats'
-                          ? InIcons.edit
-                          : _tab == 'updates'
-                              ? InIcons.camera
-                              : _tab == 'calls'
-                                  ? InIcons.phone
-                                  : InIcons.plus,
-                      tooltip: _actionTooltip,
-                      filled: true,
-                      onTap: _headerAction),
-                ]),
-              ),
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(48),
-                child: _ChatTabs(
-                  tab: _tab,
-                  unread: _unreadChats,
-                  newStories: _hasNewStories,
-                  missedCalls: _missedCalls,
-                  onTap: _setTab,
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: () {
+        _bumpLists();
+        return Future.wait([
+          _load(),
+          _loadMatches(),
+          _loadGroups(),
+          _loadCommunities(),
+          _loadLikes(),
+          _loadStories(),
+          _loadMissedCalls()
+        ]);
+      },
+      child: CustomScrollView(key: PageStorageKey('chat-$tab'), slivers: [
+        if (tab == 'chats' || tab == 'communities')
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+              child: TextField(
+                onChanged: (v) => setState(() => _query = v),
+                style: const TextStyle(fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'People, groups, communities',
+                  isDense: true,
+                  filled: true,
+                  fillColor: AppColors.surface,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: const BorderSide(color: AppColors.border)),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: const BorderSide(color: AppColors.border)),
+                  prefixIcon: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 14),
+                      child: InIcon(InIcons.search,
+                          size: 18, color: AppColors.textDim)),
+                  prefixIconConstraints:
+                      const BoxConstraints(minWidth: 0, minHeight: 0),
                 ),
               ),
             ),
-            if (_searchOpen)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
-                  child: TextField(
-                    autofocus: true,
-                    onChanged: (v) => setState(() => _query = v),
-                    style: const TextStyle(fontSize: 14),
-                    decoration: InputDecoration(
-                      hintText: 'People, groups, communities',
-                      isDense: true,
-                      filled: true,
-                      fillColor: AppColors.surface,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(999),
-                          borderSide: const BorderSide(color: AppColors.border)),
-                      enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(999),
-                          borderSide: const BorderSide(color: AppColors.border)),
-                      prefixIcon: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 14),
-                          child: InIcon(InIcons.search,
-                              size: 18, color: AppColors.textDim)),
-                      prefixIconConstraints:
-                          const BoxConstraints(minWidth: 0, minHeight: 0),
+          ),
+        // Chats: likes and new matches, then the filters.
+        if (tab == 'chats' && (_likes > 0 || _matches.isNotEmpty)) ...[
+          SliverToBoxAdapter(
+            child: _SectionHeader(
+              title: 'New matches',
+              top: 12,
+              action: _matches.isEmpty ? null : 'See all',
+              onAction: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const DiscoverMatchesScreen())),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 94 + MediaQuery.textScalerOf(context).scale(12) * 1.6,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: [
+                  if (_likes > 0) _LikesTile(count: _likes, onTap: _openLikes),
+                  for (final m in _matches)
+                    _MatchTile(
+                      m: m,
+                      fresh: !talkedTo.contains(m['userId']),
+                      onTap: () => _openChat(
+                          m['userId'] as String,
+                          m['name'] as String? ?? '',
+                          m['avatarUrl'] as String?),
                     ),
-                  ),
-                ),
+                ],
               ),
-            // Chats: likes and new matches, then the filters.
-            if (_tab == 'chats' && (_likes > 0 || _matches.isNotEmpty)) ...[
-              SliverToBoxAdapter(
-                child: _SectionHeader(
-                  title: 'New matches',
-                  top: 12,
-                  action: _matches.isEmpty ? null : 'See all',
-                  onAction: () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => const DiscoverMatchesScreen())),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: 94 + MediaQuery.textScalerOf(context).scale(12) * 1.6,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    children: [
-                      if (_likes > 0)
-                        _LikesTile(count: _likes, onTap: _openLikes),
-                      for (final m in _matches)
-                        _MatchTile(
-                          m: m,
-                          fresh: !talkedTo.contains(m['userId']),
-                          onTap: () => _openChat(
-                              m['userId'] as String,
-                              m['name'] as String? ?? '',
-                              m['avatarUrl'] as String?),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-            if (_tab == 'chats')
-              SliverToBoxAdapter(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
-                  child: Row(children: [
-                    _FilterPill(
-                        label: 'All',
-                        selected: _filter == 'all',
-                        onTap: () => _setFilter('all')),
-                    _FilterPill(
-                        label: 'Unread',
-                        count: _unreadChats,
-                        selected: _filter == 'unread',
-                        onTap: () => _setFilter('unread')),
-                    _FilterPill(
-                        label: 'Groups',
-                        selected: _filter == 'groups',
-                        onTap: () => _setFilter('groups')),
-                    _FilterPill(
-                        label: 'Requests',
-                        count: _requestCount,
-                        alert: true,
-                        selected: false,
-                        onTap: _openRequests),
-                  ]),
-                ),
-              ),
-            if (_tab == 'chats' && _filter == 'all' && _requestCount > 0)
-              SliverToBoxAdapter(
-                child:
-                    _RequestsBanner(count: _requestCount, onTap: _openRequests),
-              ),
-            if (_tab == 'blends')
-              SliverToBoxAdapter(
-                  child: BlendsTabList(key: ValueKey('blends$_listsTick')))
-            else if (_tab == 'calls')
-              SliverToBoxAdapter(
-                  child: CallsTabList(key: ValueKey('calls$_listsTick')))
-            else if (_tab == 'updates')
-              SliverToBoxAdapter(
-                  child: UpdatesTab(
-                      stories: _stories,
-                      seen: _seenStories,
-                      onChanged: _loadStories))
-            else if (_tab == 'communities') ...[
-              SliverToBoxAdapter(
-                child: ListTile(
-                  onTap: _findCommunities,
-                  leading: const CircleAvatar(
-                      backgroundColor: Color(0xFF303030),
-                      child: InIcon(InIcons.search,
-                          size: 18, color: AppColors.lilac)),
-                  title: const Text('Find communities',
-                      style: TextStyle(
-                          color: AppColors.lilac, fontWeight: FontWeight.w700)),
-                  subtitle: const Text('Search, browse topics or use a code'),
-                ),
-              ),
-              if (_communities.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 32),
-                        child: Text(
-                            'A community keeps related groups together, with '
-                            'one Announcements group for everyone.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: AppColors.textFaint)),
-                      ),
-                      const SizedBox(height: 12),
-                      FilledButton.icon(
-                        onPressed: _newCommunity,
-                        icon: const InIcon(InIcons.plus,
-                            size: 18, color: Colors.white),
-                        label: const Text('New community'),
-                      ),
-                    ]),
-                  ),
-                )
-              else if (communities.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                      child: Text('No communities match “${_query.trim()}”.',
-                          style: const TextStyle(color: AppColors.textFaint))),
-                )
-              else
-                SliverList.builder(
-                  itemCount: communities.length,
-                  itemBuilder: (context, i) => _CommunityRow(
-                      c: communities[i],
-                      showLines: true,
-                      onTap: () => _openCommunity(communities[i])),
-                ),
-            ]
-            else if (_loading)
-              const SliverToBoxAdapter(child: SkeletonRows())
-            else if (_filter == 'groups' && entries.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    const Text('No groups yet.',
-                        style: TextStyle(color: AppColors.textFaint)),
-                    const SizedBox(height: 10),
-                    FilledButton.icon(
-                      onPressed: _newGroup,
-                      icon: const InIcon(InIcons.plus,
-                          size: 18, color: Colors.white),
-                      label: const Text('New group'),
-                    ),
-                  ]),
-                ),
-              )
-            else if (_conversations.isEmpty && _groups.isEmpty)
-              const SliverFillRemaining(
-                  hasScrollBody: false, child: _EmptyChats())
-            else if (entries.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
+            ),
+          ),
+        ],
+        if (tab == 'chats')
+          SliverToBoxAdapter(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+              child: Row(children: [
+                _FilterPill(
+                    label: 'All',
+                    selected: _filter == 'all',
+                    onTap: () => _setFilter('all')),
+                _FilterPill(
+                    label: 'Unread',
+                    count: _unreadChats,
+                    selected: _filter == 'unread',
+                    onTap: () => _setFilter('unread')),
+                _FilterPill(
+                    label: 'Groups',
+                    selected: _filter == 'groups',
+                    onTap: () => _setFilter('groups')),
+                _FilterPill(
+                    label: 'Requests',
+                    count: _requestCount,
+                    alert: true,
+                    selected: false,
+                    onTap: _openRequests),
+              ]),
+            ),
+          ),
+        if (tab == 'chats' && _filter == 'all' && _requestCount > 0)
+          SliverToBoxAdapter(
+            child: _RequestsBanner(count: _requestCount, onTap: _openRequests),
+          ),
+        if (tab == 'blends')
+          SliverToBoxAdapter(
+              child: BlendsTabList(key: ValueKey('blends$_listsTick')))
+        else if (tab == 'calls')
+          SliverToBoxAdapter(
+              child: CallsTabList(key: ValueKey('calls$_listsTick')))
+        else if (tab == 'updates')
+          SliverToBoxAdapter(
+              child: UpdatesTab(
+                  stories: _stories,
+                  seen: _seenStories,
+                  onChanged: _loadStories))
+        else if (tab == 'communities') ...[
+          SliverToBoxAdapter(
+            child: ListTile(
+              onTap: _findCommunities,
+              leading: const CircleAvatar(
+                  backgroundColor: Color(0xFF303030),
+                  child:
+                      InIcon(InIcons.search, size: 18, color: AppColors.lilac)),
+              title: const Text('Find communities',
+                  style: TextStyle(
+                      color: AppColors.lilac, fontWeight: FontWeight.w700)),
+              subtitle: const Text('Search, browse topics or use a code'),
+            ),
+          ),
+          if (_communities.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 32),
                     child: Text(
-                        _filter == 'unread'
-                            ? 'You’re all caught up.'
-                            : 'No chats here.',
-                        style: const TextStyle(color: AppColors.textFaint))),
-              )
-            else ...[
-              if (yourTurn.isNotEmpty) ...[
-                SliverToBoxAdapter(
-                  child: _SectionHeader(
-                    title: 'Your turn',
-                    count: yourTurn.length,
-                    trailing: 'They’re waiting on you',
-                    top: 12,
+                        'A community keeps related groups together, with '
+                        'one Announcements group for everyone.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppColors.textFaint)),
                   ),
-                ),
-                SliverList.builder(
-                  itemCount: yourTurn.length,
-                  itemBuilder: (context, i) {
-                    final c = yourTurn[i].chat!;
-                    return _YourTurnCard(
-                      c: c,
-                      typing: _isTyping(c.userId),
-                      onOpen: () => _openChat(c.userId, c.name, c.avatarUrl),
-                      onLongPress: () => _openChatOptions(c),
-                      onJoin: _joinRoom,
-                    );
-                  },
-                ),
-                if (rest.isNotEmpty)
-                  const SliverToBoxAdapter(
-                      child: _SectionHeader(title: 'Recent', top: 14)),
-              ],
-              SliverList.builder(
-                itemCount: rest.length,
-                itemBuilder: (context, i) => row(rest[i]),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: _newCommunity,
+                    icon: const InIcon(InIcons.plus,
+                        size: 18, color: Colors.white),
+                    label: const Text('New community'),
+                  ),
+                ]),
               ),
-            ],
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
-          ]),
+            )
+          else if (communities.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                  child: Text('No communities match “${_query.trim()}”.',
+                      style: const TextStyle(color: AppColors.textFaint))),
+            )
+          else
+            SliverList.builder(
+              itemCount: communities.length,
+              itemBuilder: (context, i) => _CommunityRow(
+                  c: communities[i],
+                  showLines: true,
+                  onTap: () => _openCommunity(communities[i])),
+            ),
+        ] else if (_loading)
+          const SliverToBoxAdapter(child: SkeletonRows())
+        else if (_filter == 'groups' && entries.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Text('No groups yet.',
+                    style: TextStyle(color: AppColors.textFaint)),
+                const SizedBox(height: 10),
+                FilledButton.icon(
+                  onPressed: _newGroup,
+                  icon:
+                      const InIcon(InIcons.plus, size: 18, color: Colors.white),
+                  label: const Text('New group'),
+                ),
+              ]),
+            ),
+          )
+        else if (_conversations.isEmpty && _groups.isEmpty)
+          const SliverFillRemaining(hasScrollBody: false, child: _EmptyChats())
+        else if (entries.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+                child: Text(
+                    _filter == 'unread'
+                        ? 'You’re all caught up.'
+                        : 'No chats here.',
+                    style: const TextStyle(color: AppColors.textFaint))),
+          )
+        else ...[
+          if (yourTurn.isNotEmpty) ...[
+            SliverToBoxAdapter(
+              child: _SectionHeader(
+                title: 'Your turn',
+                count: yourTurn.length,
+                trailing: 'They’re waiting on you',
+                top: 12,
+              ),
+            ),
+            SliverList.builder(
+              itemCount: yourTurn.length,
+              itemBuilder: (context, i) {
+                final c = yourTurn[i].chat!;
+                return _YourTurnCard(
+                  c: c,
+                  typing: _isTyping(c.userId),
+                  onOpen: () => _openChat(c.userId, c.name, c.avatarUrl),
+                  onLongPress: () => _openChatOptions(c),
+                  onJoin: _joinRoom,
+                );
+              },
+            ),
+            if (rest.isNotEmpty)
+              const SliverToBoxAdapter(
+                  child: _SectionHeader(title: 'Recent', top: 14)),
+          ],
+          SliverList.builder(
+            itemCount: rest.length,
+            itemBuilder: (context, i) => row(rest[i]),
+          ),
+        ],
+        // Room for the new-chat button.
+        const SliverToBoxAdapter(child: SizedBox(height: 96)),
+      ]),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      body: SafeArea(
+        child: Column(children: [
+          _ChatTabs(
+            tab: _tab,
+            unread: _unreadChats,
+            newStories: _hasNewStories,
+            missedCalls: _missedCalls,
+            onBack: Navigator.of(context).canPop()
+                ? () => Navigator.of(context).maybePop()
+                : null,
+            onTap: _goTab,
+          ),
+          Expanded(
+            child: PageView.builder(
+              controller: _pages,
+              itemCount: _kChatTabs.length,
+              onPageChanged: (i) => _setTab(_kChatTabs[i]),
+              itemBuilder: (context, i) => _page(context, _kChatTabs[i]),
+            ),
+          ),
+        ]),
+      ),
+      floatingActionButton: Semantics(
+        button: true,
+        label: _actionTooltip,
+        child: FloatingActionButton(
+          heroTag: 'chat-action',
+          tooltip: _actionTooltip,
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          onPressed: _headerAction,
+          child: InIcon(
+              _tab == 'chats'
+                  ? InIcons.edit
+                  : _tab == 'updates'
+                      ? InIcons.camera
+                      : _tab == 'calls'
+                          ? InIcons.phone
+                          : InIcons.plus,
+              color: Colors.white),
         ),
       ),
     );
@@ -979,96 +969,130 @@ class _InboxEntry {
         pinned = false;
 }
 
-/// Facebook-style icon tabs under the Chat title. The app's own bottom bar
-/// stays as it is; these switch what Chat shows.
-class _ChatTabs extends StatelessWidget {
+const _kChatTabs = ['chats', 'updates', 'communities', 'blends', 'calls'];
+
+/// The Chat screen's top: icon-and-name tabs (no title bar). Swipe the page
+/// below or tap a tab to switch.
+class _ChatTabs extends StatefulWidget {
   final String tab;
   final int unread;
   final bool newStories;
   final int missedCalls;
+  final VoidCallback? onBack;
   final ValueChanged<String> onTap;
   const _ChatTabs(
       {required this.tab,
       required this.unread,
       required this.newStories,
       required this.missedCalls,
-      required this.onTap});
+      required this.onTap,
+      this.onBack});
+
+  @override
+  State<_ChatTabs> createState() => _ChatTabsState();
+}
+
+class _ChatTabsState extends State<_ChatTabs> {
+  final _keys = {for (final t in _kChatTabs) t: GlobalKey()};
+
+  @override
+  void didUpdateWidget(covariant _ChatTabs old) {
+    super.didUpdateWidget(old);
+    // Keep the chosen tab in view when the page is swiped.
+    if (old.tab != widget.tab) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final c = _keys[widget.tab]?.currentContext;
+        if (c != null) {
+          Scrollable.ensureVisible(c,
+              alignment: 0.5, duration: const Duration(milliseconds: 220));
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    Widget item(String id, IconData icon, String label,
+    Widget item(String id, InIconData icon, String label,
         {int count = 0, bool dot = false}) {
-      final on = tab == id;
-      return Expanded(
+      final on = widget.tab == id;
+      final fg = on ? Colors.black : AppColors.textDim;
+      return Padding(
+        key: _keys[id],
+        padding: const EdgeInsets.only(right: 8),
         child: Semantics(
           button: true,
           selected: on,
           label: count > 0 ? '$label, $count new' : label,
-          child: InkWell(
-            onTap: () => onTap(id),
-            child: Container(
-              height: 48,
-              decoration: BoxDecoration(
-                border: Border(
-                    bottom: BorderSide(
-                        color: on ? AppColors.lilac : Colors.transparent,
-                        width: 3)),
-              ),
-              alignment: Alignment.center,
-              child: Stack(clipBehavior: Clip.none, children: [
-                Icon(icon,
-                    size: 25,
-                    color: on ? AppColors.lilac : AppColors.textFaint),
-                if (count > 0)
-                  Positioned(
-                    left: 16,
-                    top: -5,
-                    child: Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+          excludeSemantics: true,
+          child: Material(
+            color: on ? Colors.white : AppColors.surface,
+            borderRadius: BorderRadius.circular(999),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(999),
+              onTap: () => widget.onTap(id),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 14, 8),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  InIcon(icon, size: 18, color: fg),
+                  const SizedBox(width: 6),
+                  Text(label,
+                      style: TextStyle(
+                          color: on ? Colors.black : AppColors.text,
+                          fontSize: 14,
+                          fontWeight: on ? FontWeight.w700 : FontWeight.w500)),
+                  if (count > 0) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 1),
                       constraints: const BoxConstraints(minWidth: 18),
                       decoration: BoxDecoration(
-                          color: AppColors.danger,
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(color: AppColors.bg, width: 1.5)),
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(999)),
                       child: Text(count > 99 ? '99+' : '$count',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: FontWeight.w700)),
                     ),
-                  )
-                else if (dot)
-                  Positioned(
-                    right: -3,
-                    top: -1,
-                    child: Container(
-                      width: 9,
-                      height: 9,
-                      decoration: BoxDecoration(
-                          color: const Color(0xFFFF4F64),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.bg, width: 1.5)),
+                  ] else if (dot) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                          color: AppColors.primary, shape: BoxShape.circle),
                     ),
-                  ),
-              ]),
+                  ],
+                ]),
+              ),
             ),
           ),
         ),
       );
     }
 
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColors.border, width: 0.5))),
+    return SizedBox(
+      height: 56,
       child: Row(children: [
-        item('chats', Icons.chat_bubble_outline_rounded, 'Chats', count: unread),
-        item('updates', Icons.motion_photos_on_outlined, 'Updates',
-            dot: newStories),
-        item('communities', Icons.groups_outlined, 'Communities'),
-        item('blends', Icons.shuffle_rounded, 'Blends'),
-        item('calls', Icons.call_outlined, 'Calls', count: missedCalls),
+        if (widget.onBack != null)
+          InIconButton(InIcons.back, tooltip: 'Back', onPressed: widget.onBack),
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding:
+                EdgeInsets.fromLTRB(widget.onBack != null ? 4 : 14, 10, 6, 10),
+            child: Row(children: [
+              item('chats', InIcons.chat, 'Chats', count: widget.unread),
+              item('updates', InIcons.status, 'Updates',
+                  dot: widget.newStories),
+              item('communities', InIcons.community, 'Communities'),
+              item('blends', InIcons.blend, 'Blends'),
+              item('calls', InIcons.phone, 'Calls', count: widget.missedCalls),
+            ]),
+          ),
+        ),
       ]),
     );
   }
@@ -1120,8 +1144,8 @@ class _CommunityRow extends StatelessWidget {
                 Text(
                     '${c['groupCount'] ?? 0} groups · '
                     '${c['memberCount'] ?? 0} members',
-                    style: const TextStyle(
-                        color: AppColors.textDim, fontSize: 13))
+                    style:
+                        const TextStyle(color: AppColors.textDim, fontSize: 13))
               else
                 for (final l in lines)
                   Text(line(l),
@@ -1143,8 +1167,7 @@ class _CommunityRow extends StatelessWidget {
             if (unread > 0)
               Container(
                 margin: const EdgeInsets.only(top: 4),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
                     color: AppColors.lilac,
                     borderRadius: BorderRadius.circular(999)),
@@ -1440,43 +1463,6 @@ class _ChatOptionsSheet extends StatelessWidget {
                 onTap: onDelete),
             const SizedBox(height: 8),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CircleButton extends StatelessWidget {
-  final InIconData icon;
-  final String tooltip;
-  final VoidCallback onTap;
-  final bool filled;
-  const _CircleButton(
-      {required this.icon,
-      required this.tooltip,
-      required this.onTap,
-      this.filled = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: filled ? AppColors.primary : AppColors.surface,
-        shape: CircleBorder(
-            side: filled
-                ? BorderSide.none
-                : const BorderSide(color: AppColors.border)),
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: onTap,
-          child: SizedBox(
-            width: 44,
-            height: 44,
-            child: Center(
-                child: InIcon(icon,
-                    size: 20, color: filled ? Colors.white : AppColors.text)),
-          ),
         ),
       ),
     );
