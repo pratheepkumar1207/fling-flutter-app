@@ -17,7 +17,7 @@ class VerifiedTick extends StatelessWidget {
           height: size,
           child: Stack(alignment: Alignment.center, children: [
             InIcon(InIcons.verified, size: size, color: color, filled: true),
-            InIcon(InIcons.check, size: size * 0.6, color: Colors.white),
+            InIcon(InIcons.check, size: size * 0.6, color: Colors.black),
           ]),
         ),
       );

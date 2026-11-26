@@ -26,7 +26,7 @@ class PrivacyPickCard extends StatefulWidget {
 }
 
 class _PrivacyPickCardState extends State<PrivacyPickCard> {
-  static const _accent = Color(0xFFFFFFFF);
+  static const _accent = Color(0xFFE8112D);
   static const _accentText = Color(0xFFCBCBCB);
   Timer? _timer;
   String? _busy;

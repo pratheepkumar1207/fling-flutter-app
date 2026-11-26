@@ -22,7 +22,7 @@ const _kGames = [
     icon: InIcons.crown,
     label: 'Chess',
     subtitle: '1 vs 1 · classic',
-    colors: [Color(0xFFFFFFFF), Color(0xFFFFFFFF)]
+    colors: [Color(0xFF3A3A3A), Color(0xFF1F1F1F)]
   ),
   (
     value: 'ludo',

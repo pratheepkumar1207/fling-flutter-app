@@ -20,7 +20,7 @@ const _kRoomTypeStyles = {
   ),
   'game': (
     icon: InIcons.dice,
-    colors: [Color(0xFFFFFFFF), Color(0xFFFFFFFF)],
+    colors: [Color(0xFF3A3A3A), Color(0xFF1F1F1F)],
     label: 'Game Room'
   ),
   'live': (

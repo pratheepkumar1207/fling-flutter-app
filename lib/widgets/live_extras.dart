@@ -424,9 +424,9 @@ class PkSplitView extends StatelessWidget {
             decoration: BoxDecoration(
                 color: left ? AppColors.pink : AppColors.blue,
                 borderRadius: BorderRadius.circular(6)),
-            child: const Text('WINNING',
+            child: Text('WINNING',
                 style: TextStyle(
-                    color: Colors.white,
+                    color: left ? Colors.white : Colors.black,
                     fontSize: 9.5,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.4)),
