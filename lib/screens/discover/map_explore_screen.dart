@@ -63,6 +63,7 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
   LatLng? _center;
   bool _moved = false;
   double _zoom = 13;
+  bool _zoomSet = false;
 
   @override
   void initState() {
@@ -393,6 +394,11 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                 ? _at(_rooms.first)
                 : null));
     final center = first ?? const LatLng(20.5937, 78.9629); // India
+    // Group people at the zoom the map really opens at.
+    if (!_zoomSet) {
+      _zoomSet = true;
+      _zoom = first != null ? 13 : 4;
+    }
     Widget tiles = TileLayer(
         urlTemplate: _kTileUrl, userAgentPackageName: 'com.fling.app');
     if (_kDarken) {
@@ -408,12 +414,16 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
         onPositionChanged: (camera, hasGesture) {
           final zoomMoved = (camera.zoom - _zoom).abs() > 0.4;
           if (zoomMoved) _zoom = camera.zoom;
-          if (hasGesture) {
-            _center = camera.center;
-            if (!_moved || zoomMoved) setState(() => _moved = true);
-          } else if (zoomMoved) {
-            setState(() {});
-          }
+          if (hasGesture) _center = camera.center;
+          final show = hasGesture && !_moved;
+          if (!zoomMoved && !show) return;
+          // The map calls this while it updates itself: rebuild after.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            setState(() {
+              if (show) _moved = true;
+            });
+          });
         },
       ),
       children: [

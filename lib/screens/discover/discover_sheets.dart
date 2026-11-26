@@ -47,8 +47,8 @@ Future<void> showOutOfLikesSheet(BuildContext context, Map limits,
           const SizedBox(height: 12),
           Text(
               superLike
-                  ? 'You’ve used today’s ${perDay ?? ''} super likes'
-                  : 'You’ve used today’s ${perDay ?? ''} likes',
+                  ? 'You’ve used today’s ${perDay != null ? '$perDay ' : ''}super likes'
+                  : 'You’ve used today’s ${perDay != null ? '$perDay ' : ''}likes',
               textAlign: TextAlign.center,
               style:
                   const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
@@ -302,17 +302,24 @@ class BoostBanner extends StatefulWidget {
 }
 
 class _BoostBannerState extends State<BoostBanner> {
-  late final Timer _t = Timer.periodic(const Duration(seconds: 1), (_) {
-    if (!mounted) return;
-    if (DateTime.now().isAfter(widget.until)) {
-      widget.onEnded();
-    } else {
-      setState(() {});
-    }
-  });
+  Timer? _t;
+
+  @override
+  void initState() {
+    super.initState();
+    _t = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      if (DateTime.now().isAfter(widget.until)) {
+        widget.onEnded();
+      } else {
+        setState(() {});
+      }
+    });
+  }
+
   @override
   void dispose() {
-    _t.cancel();
+    _t?.cancel();
     super.dispose();
   }
 

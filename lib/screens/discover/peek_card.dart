@@ -80,8 +80,9 @@ class _PeekCardState extends State<_PeekCard> {
   String get _name => _p?['name'] as String? ?? '';
 
   void _openProfile() {
-    Navigator.of(context).pop();
-    Navigator.of(context).push(MaterialPageRoute(
+    final nav = Navigator.of(context);
+    nav.pop();
+    nav.push(MaterialPageRoute(
         builder: (_) => CreatorProfileScreen(userId: widget.userId)));
   }
 
@@ -140,8 +141,9 @@ class _PeekCardState extends State<_PeekCard> {
         'userIds': [widget.userId]
       });
       if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
       Navigator.of(context).pop();
-      _toast('Invite sent to $_name');
+      messenger.showSnackBar(SnackBar(content: Text('Invite sent to $_name')));
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
     } catch (_) {
@@ -404,8 +406,9 @@ class _PeekCardState extends State<_PeekCard> {
               _action(InIcons.heart, 'Like', _likeBusy ? null : _like,
                   primary: true),
             _action(InIcons.chat, 'Message', () {
-              Navigator.of(context).pop();
-              Navigator.of(context).push(MaterialPageRoute(
+              final nav = Navigator.of(context);
+              nav.pop();
+              nav.push(MaterialPageRoute(
                   builder: (_) => MessageThreadScreen(
                       userId: widget.userId,
                       name: _name,
@@ -413,8 +416,9 @@ class _PeekCardState extends State<_PeekCard> {
             }),
             if (close)
               _action(InIcons.phone, 'Call', () {
-                Navigator.of(context).pop();
-                startDirectCall(context,
+                final nav = Navigator.of(context);
+                nav.pop();
+                startDirectCall(nav.context,
                     userId: widget.userId,
                     name: _name,
                     avatarUrl: p['avatarUrl'] as String?,
@@ -512,8 +516,9 @@ class _PeekCardState extends State<_PeekCard> {
         const SizedBox(height: 10),
         if (canJoin)
           DButton('Join lobby', icon: InIcons.play, onPressed: () {
-            Navigator.of(context).pop();
-            Navigator.of(context).push(MaterialPageRoute(
+            final nav = Navigator.of(context);
+            nav.pop();
+            nav.push(MaterialPageRoute(
                 builder: (_) => PartyScreen(roomId: room['roomId'] as String)));
           })
         else if (_asked)

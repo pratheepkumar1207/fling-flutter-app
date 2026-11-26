@@ -30,7 +30,8 @@ class _PrivacySheetState extends State<_PrivacySheet> {
   late final _u = context.read<AuthProvider>().user;
   late bool _ghost =
       _u?.ghostUntil != null && _u!.ghostUntil!.isAfter(DateTime.now());
-  int _ghostMinutes = 480; // 8 hours
+  // 8 hours, unless ghost mode is already on until turned off.
+  late int _ghostMinutes = (_u?.ghostUntil?.year ?? 0) >= 2900 ? -1 : 480;
   late String _mapTo = _u?.mapVisibility ?? 'everyone';
   late String _lobbyTo = _u?.roomActivityVisibility ?? 'everyone';
   late bool _hideAge = _u?.hideAgeOnMap ?? false;

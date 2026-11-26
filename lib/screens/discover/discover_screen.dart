@@ -240,7 +240,10 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   icon: InIcons.heart,
                   tone: DTone.red,
                   fontSize: 13,
-                  onTap: () => _push(const LikedMeScreen())),
+                  onTap: () => Navigator.of(context)
+                      .push(MaterialPageRoute(
+                          builder: (_) => const LikedMeScreen()))
+                      .then((_) => _loadSide())),
               const SizedBox(width: 6),
               DChip('Matches',
                   icon: InIcons.chat,
