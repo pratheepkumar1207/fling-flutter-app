@@ -223,7 +223,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     if (_googleOn && !_phoneOn && !_passwordOn && !_fakeLoginMode) {
       return Scaffold(
-        backgroundColor: AppColors.bg,
+        backgroundColor: AppColors.primary, // login is red
         body: GoogleSignInView(
           loading: _loading,
           error: _error,
@@ -240,7 +240,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ? 'Log in'
             : (_devMode ? 'Continue (dev login)' : 'Send code'));
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: AppColors.primary, // login is red
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, box) => SingleChildScrollView(
@@ -285,9 +285,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
-                          color: AppColors.danger.withValues(alpha: 0.1),
+                          color: Colors.white,
                           border: Border.all(
-                              color: AppColors.danger.withValues(alpha: 0.3)),
+                              color: Colors.white),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(_error,
@@ -338,12 +338,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 16),
                       FilledButton.icon(
                         onPressed: _loading ? null : _handleSubmit,
+                        // White on the red login screen.
                         style: FilledButton.styleFrom(
-                            minimumSize: const Size.fromHeight(52)),
+                            minimumSize: const Size.fromHeight(52),
+                            backgroundColor: Colors.white,
+                            foregroundColor: AppColors.primary),
                         icon: _fakeLoginMode
                             ? const SizedBox.shrink()
                             : const InIcon(InIcons.phone,
-                                size: 18, color: Colors.white),
+                                size: 18, color: AppColors.primary),
                         label: Text(submitLabel),
                       ),
                     ],
@@ -484,7 +487,7 @@ class _LoginScreenState extends State<LoginScreen> {
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-              color: highlight ? AppColors.purple : AppColors.border)),
+              color: AppColors.border, width: highlight ? 2 : 1)),
       alignment: Alignment.center,
       child: TextField(
         controller: controller,

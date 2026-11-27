@@ -39,7 +39,7 @@ class GoogleSignInView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(fit: StackFit.expand, children: [
       const _Glow(Alignment(0.7, -0.88), Color(0xFFB81427)),
-      const _Glow(Alignment(-0.92, -0.12), Color(0xFFFFFFFF)),
+      const _Glow(Alignment(-0.92, -0.12), Color(0xFFB81427)),
       const _Glow(Alignment(0.5, 0.56), Color(0xFFB81427)),
       SafeArea(
         child: Column(children: [
@@ -65,7 +65,7 @@ class GoogleSignInView extends StatelessWidget {
                 Text(error,
                     textAlign: TextAlign.center,
                     style:
-                        const TextStyle(color: AppColors.danger, fontSize: 13)),
+                        const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 12),
               ],
               if (onApple != null) ...[
@@ -373,7 +373,7 @@ class AppleSignInButton extends StatelessWidget {
             backgroundColor: Colors.black,
             disabledBackgroundColor: Colors.black54,
             foregroundColor: Colors.white,
-            side: const BorderSide(color: Colors.white24)),
+            side: const BorderSide(color: Colors.white)),
         icon: const Icon(Icons.apple, size: 22),
         label: const Text('Sign in with Apple'),
       );
