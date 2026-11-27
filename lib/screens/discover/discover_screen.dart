@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/active_room_holder.dart';
 import '../../core/api_client.dart';
@@ -40,6 +41,13 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   DateTime? _boostedUntil;
   DiscoverFilters _filters = DiscoverFilters();
   int _likedYou = 0;
+  // Couldn't reach the server (not the same as nobody left to see).
+  bool _offline = false;
+  // Free likes left today; null = unlimited or unknown.
+  int? _likesLeft;
+  // First visit: how the cards work.
+  bool _showTip = false;
+  static const _tipKey = 'tip_discover_cards_v1';
 
   @override
   void initState() {
@@ -63,6 +71,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             until != null && until.isAfter(DateTime.now()) ? until : null;
       });
     } catch (_) {}
+    try {
+      final lim = await ApiClient.get('/swipe/limits') as Map;
+      if (mounted) {
+        setState(() => _likesLeft = (lim['likesLeft'] as num?)?.toInt());
+      }
+    } catch (_) {}
   }
 
   Future<void> _load() async {
@@ -79,10 +93,41 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             .reversed
             .toList();
         _loading = false;
+        _offline = false;
       });
+      if (_deck!.isNotEmpty) _maybeShowTip();
+    } on ApiException catch (e) {
+      // 0 = no connection; 5xx = the server is down or waking up.
+      final offline = e.status == null || e.status == 0 || e.status! >= 500;
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _offline = offline;
+        });
+      }
     } catch (_) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _offline = true;
+        });
+      }
     }
+  }
+
+  Future<void> _maybeShowTip() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      if (p.getBool(_tipKey) == true || !mounted) return;
+      setState(() => _showTip = true);
+    } catch (_) {}
+  }
+
+  Future<void> _tipDone() async {
+    setState(() => _showTip = false);
+    try {
+      (await SharedPreferences.getInstance()).setBool(_tipKey, true);
+    } catch (_) {}
   }
 
   void _snack(String text) =>
@@ -105,6 +150,10 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       final res = await ApiClient.post('/swipe',
           body: {'toUserId': top.id, 'action': action}) as Map<String, dynamic>;
       if (!mounted) return;
+      final lim = res['limits'];
+      if (lim is Map) {
+        setState(() => _likesLeft = (lim['likesLeft'] as num?)?.toInt());
+      }
       if (res['matched'] == true) {
         setState(() {
           _matched = top;
@@ -116,6 +165,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       // Not swiped after all: the card goes back on top.
       putBack();
       if (e.status == 429 && e.data is Map) {
+        if ((e.data as Map)['code'] == 'like_limit') {
+          setState(() => _likesLeft = 0);
+        }
         await showOutOfLikesSheet(context, e.data as Map,
             superLike: (e.data as Map)['code'] == 'superlike_limit');
       } else {
@@ -269,52 +321,74 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         Expanded(
           child: _loading
               ? const _LoadingDeck()
-              : (deck == null || deck.isEmpty)
-                  ? _EmptyDeck(
-                      onFilters: _openFilters,
-                      onLobbies: () =>
-                          _push(const MapExploreScreen(startOnRooms: true)),
-                      onMap: () => _push(const MapExploreScreen()),
-                    )
-                  : Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                      child: Stack(children: [
-                        if (deck.length > 1)
-                          Positioned.fill(
-                            top: 10,
-                            left: 14,
-                            right: 14,
-                            bottom: -6,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF141414),
-                                borderRadius: BorderRadius.circular(26),
-                                border: Border.all(color: DColors.line),
-                              ),
-                            ),
-                          ),
-                        ...deck
-                            .asMap()
-                            .entries
-                            .where((e) => e.key >= deck.length - 3)
-                            .map((e) => Positioned.fill(
-                                  child: SwipeCard(
-                                    key: ValueKey(e.value.id),
-                                    profile: e.value,
-                                    active: e.key == deck.length - 1,
-                                    onSwipe: _handleSwipe,
-                                    onOpen: () => _openProfile(e.value),
-                                    onLongPress: () =>
-                                        showPeekCard(context, e.value.id),
-                                    onJoinLobby: () => _joinLobby(e.value),
+              : _offline && (deck == null || deck.isEmpty)
+                  ? _Offline(onRetry: () {
+                      _load();
+                      _loadSide();
+                    })
+                  : (deck == null || deck.isEmpty)
+                      ? _EmptyDeck(
+                          onFilters: _openFilters,
+                          onLobbies: () =>
+                              _push(const MapExploreScreen(startOnRooms: true)),
+                          onMap: () => _push(const MapExploreScreen()),
+                        )
+                      : Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                          child: Stack(children: [
+                            if (deck.length > 1)
+                              Positioned.fill(
+                                top: 10,
+                                left: 14,
+                                right: 14,
+                                bottom: -6,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF141414),
+                                    borderRadius: BorderRadius.circular(26),
+                                    border: Border.all(color: DColors.line),
                                   ),
-                                )),
-                      ]),
-                    ),
+                                ),
+                              ),
+                            ...deck
+                                .asMap()
+                                .entries
+                                .where((e) => e.key >= deck.length - 3)
+                                .map((e) => Positioned.fill(
+                                      child: SwipeCard(
+                                        key: ValueKey(e.value.id),
+                                        profile: e.value,
+                                        active: e.key == deck.length - 1,
+                                        onSwipe: _handleSwipe,
+                                        onOpen: () => _openProfile(e.value),
+                                        onLongPress: () =>
+                                            showPeekCard(context, e.value.id),
+                                        onJoinLobby: () => _joinLobby(e.value),
+                                      ),
+                                    )),
+                            if (_showTip)
+                              Positioned.fill(
+                                  child: _CardTip(onDone: _tipDone)),
+                          ]),
+                        ),
         ),
         if (deck != null && deck.isNotEmpty)
+          if (_likesLeft != null && _likesLeft! <= 10)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Text(
+                  _likesLeft == 0
+                      ? 'No likes left today'
+                      : '$_likesLeft ${_likesLeft == 1 ? 'like' : 'likes'} left today',
+                  style: TextStyle(
+                      color: _likesLeft! <= 3 ? DColors.redSoft : DColors.dim,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600)),
+            ),
+        if (deck != null && deck.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
+            padding: EdgeInsets.fromLTRB(
+                12, _likesLeft != null && _likesLeft! <= 10 ? 8 : 14, 12, 12),
             // Five buttons need 316 px; narrow phones shrink them a little.
             child: FittedBox(
                 fit: BoxFit.scaleDown,
@@ -614,6 +688,101 @@ class _MatchOverlay extends StatelessWidget {
                   child: const Text('Keep swiping',
                       style: TextStyle(color: DColors.dim))),
             ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Couldn't reach the server: say so, instead of "no one left".
+class _Offline extends StatelessWidget {
+  final VoidCallback onRetry;
+  const _Offline({required this.onRetry});
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 86,
+            height: 86,
+            decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF444444))),
+            alignment: Alignment.center,
+            child:
+                const InIcon(InIcons.cloud, size: 36, color: Color(0xFF777777)),
+          ),
+          const SizedBox(height: 14),
+          const Text('Can\u2019t connect right now',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 6),
+          const Text(
+              'Check your internet and try again. If it keeps happening, we\u2019re probably fixing something.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: DColors.dim, fontSize: 13, height: 1.45)),
+          const SizedBox(height: 18),
+          DButton('Try again', icon: InIcons.sync, onPressed: onRetry),
+        ]),
+      ),
+    );
+  }
+}
+
+/// First visit: how a card works, over the card itself.
+class _CardTip extends StatelessWidget {
+  final VoidCallback onDone;
+  const _CardTip({required this.onDone});
+
+  Widget _row(InIconData icon, String text) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: const BoxDecoration(
+                color: Color(0xFF1A1A1A), shape: BoxShape.circle),
+            alignment: Alignment.center,
+            child: InIcon(icon, size: 17, color: Colors.white),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+              child: Text(text,
+                  style: const TextStyle(fontSize: 14, height: 1.3))),
+        ]),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onDone,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          color: Colors.black.withValues(alpha: 0.88),
+          padding: const EdgeInsets.all(22),
+          child: Center(
+            child: SingleChildScrollView(
+              child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('How cards work',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 10),
+                    _row(InIcons.heart, 'Swipe right to like, left to pass'),
+                    _row(InIcons.star, 'Swipe up for a super like'),
+                    _row(InIcons.image,
+                        'Tap the left or right side for more photos'),
+                    _row(InIcons.user, 'Tap the middle for the full profile'),
+                    _row(InIcons.eye, 'Press and hold for a quick look'),
+                    const SizedBox(height: 16),
+                    DButton('Got it', onPressed: onDone),
+                  ]),
+            ),
           ),
         ),
       ),

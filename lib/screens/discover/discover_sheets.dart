@@ -9,6 +9,7 @@ import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
 import '../../theme/insync_icons.dart';
 import '../wallet/vip_store_screen.dart';
+import '../wallet/wallet_buy_screen.dart';
 import 'discover_ui.dart';
 
 /// "You've used today's likes" (or super likes). [limits] is what the
@@ -192,6 +193,9 @@ class _BoostSheetState extends State<_BoostSheet> {
     final credits = (i['credits'] as num?)?.toInt() ?? 0;
     final minutes = i['minutes'] ?? 30;
     final until = DateTime.tryParse('${i['boostedUntil'] ?? ''}');
+    final balance = context.watch<AuthProvider>().user?.coinBalance ?? 0;
+    final need = credits > 0 ? 0 : asNumber(_pack ? i['packCost'] : i['cost']);
+    final short = balance < need;
     final label = credits > 0
         ? 'Boost now · use 1 of $credits'
         : _pack
@@ -243,7 +247,20 @@ class _BoostSheetState extends State<_BoostSheet> {
                 style: const TextStyle(color: DColors.redSoft, fontSize: 13)),
           ],
           const SizedBox(height: 16),
-          DButton(label, busy: _busy, onPressed: _buy),
+          if (short) ...[
+            Text('You have ${balance.floor()} coins. You need ${need.floor()}.',
+                style: const TextStyle(color: DColors.redSoft, fontSize: 13)),
+            const SizedBox(height: 10),
+            DButton('Buy coins', icon: InIcons.wallet, kind: DButtonKind.white,
+                onPressed: () async {
+              final auth = context.read<AuthProvider>();
+              await Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const WalletBuyScreen()));
+              await auth.refreshUser();
+              if (mounted) setState(() {});
+            }),
+          ] else
+            DButton(label, busy: _busy, onPressed: _buy),
           TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child:
@@ -352,3 +369,5 @@ class _BoostBannerState extends State<BoostBanner> {
     );
   }
 }
+
+num asNumber(Object? v) => v is num ? v : num.tryParse('$v') ?? 0;

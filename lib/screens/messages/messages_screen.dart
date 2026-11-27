@@ -76,6 +76,27 @@ class _MessagesScreenState extends State<MessagesScreen> {
   String _tab = 'chats';
   // Swipe left / right between the tabs.
   final _pages = PageController();
+  // First visit: tell people the tabs swipe.
+  bool _swipeTip = false;
+  static const _swipeTipKey = 'tip_chat_swipe_v1';
+
+  Future<void> _loadSwipeTip() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      if (p.getBool(_swipeTipKey) != true && mounted) {
+        setState(() => _swipeTip = true);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _swipeTipDone() async {
+    if (!_swipeTip) return;
+    setState(() => _swipeTip = false);
+    try {
+      (await SharedPreferences.getInstance()).setBool(_swipeTipKey, true);
+    } catch (_) {}
+  }
+
   List<StoryEntry> _stories = const [];
   Set<String> _seenStories = const {};
   int _missedCalls = 0;
@@ -96,6 +117,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
   @override
   void initState() {
     super.initState();
+    _loadSwipeTip();
     final initial = widget.initialConversations;
     if (initial != null) {
       _conversations = initial;
@@ -907,11 +929,37 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 : null,
             onTap: _goTab,
           ),
+          if (_swipeTip)
+            Container(
+              margin: const EdgeInsets.fromLTRB(14, 0, 14, 6),
+              padding: const EdgeInsets.fromLTRB(12, 6, 4, 6),
+              decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12)),
+              child: Row(children: [
+                const InIcon(InIcons.swap, size: 16, color: AppColors.textDim),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text('Swipe left or right to switch tabs',
+                      style: TextStyle(fontSize: 13, color: AppColors.textDim)),
+                ),
+                IconButton(
+                  tooltip: 'Got it',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: _swipeTipDone,
+                  icon: const InIcon(InIcons.close,
+                      size: 14, color: AppColors.textDim),
+                ),
+              ]),
+            ),
           Expanded(
             child: PageView.builder(
               controller: _pages,
               itemCount: _kChatTabs.length,
-              onPageChanged: (i) => _setTab(_kChatTabs[i]),
+              onPageChanged: (i) {
+                _swipeTipDone();
+                _setTab(_kChatTabs[i]);
+              },
               itemBuilder: (context, i) => _page(context, _kChatTabs[i]),
             ),
           ),
