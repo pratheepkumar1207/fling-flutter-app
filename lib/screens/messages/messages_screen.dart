@@ -1015,7 +1015,6 @@ class _ChatTabsState extends State<_ChatTabs> {
     Widget item(String id, InIconData icon, String label,
         {int count = 0, bool dot = false}) {
       final on = widget.tab == id;
-      final fg = on ? Colors.black : AppColors.textDim;
       return Padding(
         key: _keys[id],
         padding: const EdgeInsets.only(right: 8),
@@ -1024,48 +1023,61 @@ class _ChatTabsState extends State<_ChatTabs> {
           selected: on,
           label: count > 0 ? '$label, $count new' : label,
           excludeSemantics: true,
-          child: Material(
-            color: on ? Colors.white : AppColors.surface,
-            borderRadius: BorderRadius.circular(999),
-            child: InkWell(
+          child: Tooltip(
+            message: label,
+            child: Material(
+              color: on ? Colors.white : AppColors.surface,
               borderRadius: BorderRadius.circular(999),
-              onTap: () => widget.onTap(id),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 14, 8),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  InIcon(icon, size: 18, color: fg),
-                  const SizedBox(width: 6),
-                  Text(label,
-                      style: TextStyle(
-                          color: on ? Colors.black : AppColors.text,
-                          fontSize: 14,
-                          fontWeight: on ? FontWeight.w700 : FontWeight.w500)),
-                  if (count > 0) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 1),
-                      constraints: const BoxConstraints(minWidth: 18),
-                      decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(999)),
-                      child: Text(count > 99 ? '99+' : '$count',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700)),
-                    ),
-                  ] else if (dot) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                          color: AppColors.primary, shape: BoxShape.circle),
-                    ),
-                  ],
-                ]),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: () => widget.onTap(id),
+                child: AnimatedSize(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                  child: Padding(
+                    padding: on
+                        ? const EdgeInsets.fromLTRB(12, 8, 14, 8)
+                        : const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      InIcon(icon,
+                          size: 19, color: on ? Colors.black : AppColors.text),
+                      if (on) ...[
+                        const SizedBox(width: 6),
+                        Text(label,
+                            style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700)),
+                      ],
+                      if (count > 0) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 1),
+                          constraints: const BoxConstraints(minWidth: 18),
+                          decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(999)),
+                          child: Text(count > 99 ? '99+' : '$count',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700)),
+                        ),
+                      ] else if (dot) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                              color: AppColors.primary, shape: BoxShape.circle),
+                        ),
+                      ],
+                    ]),
+                  ),
+                ),
               ),
             ),
           ),

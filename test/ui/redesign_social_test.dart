@@ -120,6 +120,8 @@ void main() {
     bool selected(String tab) =>
         t.getSemantics(find.bySemanticsLabel(tab)).flagsCollection.isSelected == ui.Tristate.isTrue;
     expect(selected('Chats'), isTrue);
+    // All five tabs fit on a normal phone: no hidden Calls.
+    expect(t.getRect(find.bySemanticsLabel('Calls')).right, lessThanOrEqualTo(390));
     // Right to left: the next tab.
     await t.fling(find.byType(PageView), const Offset(-300, 0), 1000);
     await t.pumpAndSettle();

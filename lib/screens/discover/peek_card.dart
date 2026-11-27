@@ -47,7 +47,6 @@ class _PeekCard extends StatefulWidget {
 class _PeekCardState extends State<_PeekCard> {
   Map<String, dynamic>? _p;
   String? _error;
-  bool _asked = false;
   bool _askBusy = false;
   bool _inviteBusy = false;
   bool _likeBusy = false;
@@ -124,7 +123,8 @@ class _PeekCardState extends State<_PeekCard> {
     setState(() => _askBusy = true);
     try {
       await ApiClient.post('/rooms/ask-join', body: {'userId': widget.userId});
-      if (mounted) setState(() => _asked = true);
+      JoinAsks.mark(widget.userId);
+      if (mounted) setState(() {});
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
     } catch (_) {
@@ -521,20 +521,9 @@ class _PeekCardState extends State<_PeekCard> {
             nav.push(MaterialPageRoute(
                 builder: (_) => PartyScreen(roomId: room['roomId'] as String)));
           })
-        else if (_asked)
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-                color: DColors.card, borderRadius: BorderRadius.circular(12)),
-            child: const Row(children: [
-              InIcon(InIcons.hourglass, size: 16, color: Colors.white),
-              SizedBox(width: 8),
-              Expanded(
-                  child: Text(
-                      'Request sent. You’ll get a notification when the host lets you in.',
-                      style: TextStyle(fontSize: 12))),
-            ]),
-          )
+        else if (JoinAsks.askedAt(widget.userId) != null)
+          AskedNote(
+              userId: widget.userId, busy: _askBusy, onAskAgain: _askToJoin)
         else if (canAsk)
           DButton('Ask to join', busy: _askBusy, onPressed: _askToJoin),
       ]),

@@ -38,12 +38,11 @@ class _ProfileBody extends StatefulWidget {
 }
 
 class _ProfileBodyState extends State<_ProfileBody> {
-  bool _asked = false;
-
   Future<void> _ask() async {
     try {
       await ApiClient.post('/rooms/ask-join', body: {'userId': widget.p.id});
-      if (mounted) setState(() => _asked = true);
+      JoinAsks.mark(widget.p.id);
+      if (mounted) setState(() {});
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -182,10 +181,8 @@ class _ProfileBodyState extends State<_ProfileBody> {
                                 builder: (_) => PartyScreen(
                                     roomId: room['roomId'] as String)));
                           })
-                        else if (_asked)
-                          const Text(
-                              'Request sent. You’ll get a notification when the host lets you in.',
-                              style: TextStyle(fontSize: 12))
+                        else if (JoinAsks.askedAt(widget.p.id) != null)
+                          AskedNote(userId: widget.p.id, onAskAgain: _ask)
                         else
                           DButton('Ask to join', onPressed: _ask),
                       ]),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../theme/app_colors.dart';
@@ -325,4 +327,88 @@ String heightLabel(int? cm) {
   if (cm == null || cm <= 0) return '';
   final inches = (cm / 2.54).round();
   return "${inches ~/ 12}'${inches % 12}\"";
+}
+
+/// "Ask to join" requests sent this session, by the person whose lobby it
+/// is, so reopening their card still shows the request.
+class JoinAsks {
+  JoinAsks._();
+  static final _at = <String, DateTime>{};
+  static const quiet = Duration(minutes: 3); // then "No reply yet"
+  static const again =
+      Duration(minutes: 10); // the server allows one per 10 min
+
+  static DateTime? askedAt(String userId) => _at[userId];
+  static void mark(String userId) => _at[userId] = DateTime.now();
+}
+
+/// What a sent request looks like: sent, then "no reply yet" after a few
+/// minutes, then a way to ask again.
+class AskedNote extends StatefulWidget {
+  final String userId;
+  final VoidCallback onAskAgain;
+  final bool busy;
+  const AskedNote(
+      {super.key,
+      required this.userId,
+      required this.onAskAgain,
+      this.busy = false});
+  @override
+  State<AskedNote> createState() => _AskedNoteState();
+}
+
+class _AskedNoteState extends State<AskedNote> {
+  Timer? _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _tick = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final at = JoinAsks.askedAt(widget.userId);
+    final since = at == null ? Duration.zero : DateTime.now().difference(at);
+    final quiet = since >= JoinAsks.quiet;
+    final canAgain = since >= JoinAsks.again;
+    final mins = since.inMinutes;
+    return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+                color: DColors.card, borderRadius: BorderRadius.circular(12)),
+            child: Row(children: [
+              const InIcon(InIcons.hourglass, size: 16, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  quiet
+                      ? 'No reply yet. You asked $mins min ago; the host may be busy.'
+                      : 'Request sent. You\u2019ll get a notification when the host lets you in.',
+                  style: const TextStyle(fontSize: 12, height: 1.35),
+                ),
+              ),
+            ]),
+          ),
+          if (canAgain) ...[
+            const SizedBox(height: 8),
+            DButton('Ask again',
+                kind: DButtonKind.outline,
+                busy: widget.busy,
+                onPressed: widget.onAskAgain),
+          ],
+        ]);
+  }
 }

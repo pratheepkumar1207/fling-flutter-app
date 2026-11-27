@@ -447,14 +447,14 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
         MarkerLayer(markers: [
           if (_tab == _Tab.rooms)
             for (final r in _shownRooms)
-              Marker(point: _at(r), width: 90, height: 66, child: _roomPin(r))
+              Marker(point: _at(r), width: 100, height: 70, child: _roomPin(r))
           else
             for (final g in _clusters(people))
               g.length == 1
                   ? Marker(
                       point: _at(g.first),
-                      width: 110,
-                      height: 78,
+                      width: 124,
+                      height: 84,
                       child: _personPin(g.first))
                   : Marker(
                       point: LatLng(
@@ -519,7 +519,7 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-                fontSize: 11,
+                fontSize: 13,
                 color: close ? Colors.white : const Color(0xFFBBBBBB)),
           ),
         ),
@@ -565,7 +565,7 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                       color: DColors.red, fontWeight: FontWeight.w800)),
               TextSpan(text: '${r['memberCount'] ?? 0}'),
             ]),
-            style: const TextStyle(fontSize: 11),
+            style: const TextStyle(fontSize: 13),
           ),
         ),
       ]),
@@ -753,7 +753,7 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                               : '${p['distanceKm'] ?? '?'} km',
                           maxLines: 1,
                           style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               color: room != null
                                   ? DColors.redSoft
                                   : DColors.dim)),
@@ -825,7 +825,7 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                             '${r['memberCount'] ?? 0} in it'
                           ].join(' · '),
                           style: const TextStyle(
-                              fontSize: 11, color: DColors.dim)),
+                              fontSize: 12, color: DColors.dim)),
                     ]),
               ),
               const DChip('Join', tone: DTone.red, fontSize: 11),
@@ -864,7 +864,7 @@ class _Legend extends StatelessWidget {
         const SizedBox(width: 4),
         Text(text,
             style: TextStyle(
-                fontSize: 11,
+                fontSize: 13,
                 color: kind == RingKind.stranger ? DColors.dim : Colors.white)),
       ]);
 }
