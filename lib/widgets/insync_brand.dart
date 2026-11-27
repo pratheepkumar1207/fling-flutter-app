@@ -88,8 +88,7 @@ class _BarsPainter extends CustomPainter {
         ..color = color ??
             (i == 0 || i == _bars.length - 1 ? Colors.white : InsyncBrand.red);
       canvas.drawRRect(
-          RRect.fromRectAndRadius(
-              Rect.fromLTWH(x, mid - height / 2, 9, height),
+          RRect.fromRectAndRadius(Rect.fromLTWH(x, mid - height / 2, 9, height),
               const Radius.circular(4.5)),
           paint);
     }
@@ -174,13 +173,16 @@ class InsyncWordmarkText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final onLight = inColor.computeLuminance() < 0.4;
-    // The artwork is 2819 x 1389 with some air around the letters.
+    // Cropped to the letters (live dot to the tail of the y).
     return Semantics(
       label: 'Insync',
       excludeSemantics: true,
-      child: SvgPicture.asset(
-        onLight ? 'assets/brand/wordmark-light.svg' : 'assets/brand/wordmark-dark.svg',
-        height: size * 1.7,
+      child: Image.asset(
+        onLight
+            ? 'assets/brand/wordmark-light.png'
+            : 'assets/brand/wordmark-dark.png',
+        height: size * 1.25,
+        filterQuality: FilterQuality.medium,
       ),
     );
   }
@@ -194,26 +196,31 @@ class InsyncLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Large system text shrinks the words to fit rather than overflowing.
     return SizedBox(
       width: width,
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        InsyncSymbol(size: width * 0.5),
-        SizedBox(height: width * 0.05),
-        FittedBox(
-            fit: BoxFit.scaleDown,
-            child: InsyncWordmarkText(size: width * 0.24)),
+        // The lockup's square artwork has its content in the middle 80%;
+        // the empty top and bottom are trimmed so the logo centres right.
+        ClipRect(
+          child: Align(
+            heightFactor: 0.8,
+            child: SvgPicture.asset('assets/brand/lockup-dark.svg',
+                width: width, semanticsLabel: 'Insync'),
+          ),
+        ),
         if (tagline) ...[
-          SizedBox(height: width * 0.05),
-          Text('PLAY · WATCH · LISTEN · CONNECT',
-              maxLines: 1,
-              overflow: TextOverflow.fade,
-              softWrap: false,
-              style: _poppins(
-                  fontSize: width * 0.052,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: width * 0.016,
-                  color: InsyncBrand.muted)),
+          SizedBox(height: width * 0.04),
+          // Shrinks to fit instead of being cut off.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text('PLAY \u00b7 WATCH \u00b7 LISTEN \u00b7 CONNECT',
+                maxLines: 1,
+                style: _poppins(
+                    fontSize: width * 0.052,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: width * 0.012,
+                    color: InsyncBrand.muted)),
+          ),
         ],
       ]),
     );
@@ -470,13 +477,17 @@ class _InsyncSplashState extends State<InsyncSplash>
     return ColoredBox(
       color: InsyncBrand.night,
       child: Center(
-        child: Image.asset(
-          'assets/brand/logo-animation.gif',
-          fit: BoxFit.contain,
-          gaplessPlayback: true,
-          semanticLabel: 'Insync',
-          // Without the file (tests), the still logo.
-          errorBuilder: (_, __, ___) => const InsyncLogo(width: 180, tagline: false),
+        child: FractionallySizedBox(
+          widthFactor: 0.6,
+          child: Image.asset(
+            'assets/brand/logo-animation.gif',
+            fit: BoxFit.contain,
+            gaplessPlayback: true,
+            semanticLabel: 'Insync',
+            // Without the file (tests), the still logo.
+            errorBuilder: (_, __, ___) =>
+                const InsyncLogo(width: 180, tagline: false),
+          ),
         ),
       ),
     );

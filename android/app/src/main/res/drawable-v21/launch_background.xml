@@ -3,7 +3,7 @@
      splash icon (bars and wordmark), until the Flutter splash takes over. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/insync_night" />
-    <item android:width="240dp" android:height="240dp" android:gravity="center">
+    <item android:width="288dp" android:height="288dp" android:gravity="center">
         <bitmap android:gravity="fill" android:src="@drawable/launch_symbol" />
     </item>
 </layer-list>
