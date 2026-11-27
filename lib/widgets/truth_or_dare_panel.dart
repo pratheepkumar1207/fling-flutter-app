@@ -240,7 +240,7 @@ class _TruthOrDarePanelState extends State<TruthOrDarePanel>
                               height: 38,
                               decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(12),
-                                  color: Colors.white.withValues(alpha: 0.18)),
+                                  color: Colors.black),
                               alignment: Alignment.center,
                               child: InIcon(
                                   prompt['type'] == 'truth'
@@ -253,7 +253,7 @@ class _TruthOrDarePanelState extends State<TruthOrDarePanel>
                             Text(
                                 (prompt['type'] as String? ?? '').toUpperCase(),
                                 style: const TextStyle(
-                                    color: Colors.white70,
+                                    color: Colors.white,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w800,
                                     letterSpacing: 1.2)),
@@ -347,7 +347,7 @@ class _BottlePainter extends CustomPainter {
         RRect.fromRectAndRadius(
             Rect.fromLTWH(w * 0.2, h * 0.52, w * 0.14, h * 0.38),
             Radius.circular(w * 0.07)),
-        Paint()..color = Colors.white.withValues(alpha: 0.28));
+        Paint()..color = Colors.white);
   }
 
   @override

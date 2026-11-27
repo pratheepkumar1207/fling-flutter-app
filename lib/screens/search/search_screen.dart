@@ -168,7 +168,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
                   decoration: BoxDecoration(
-                      color: AppColors.surface2,
+                      color: AppColors.surface2, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                       borderRadius: BorderRadius.circular(999)),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,

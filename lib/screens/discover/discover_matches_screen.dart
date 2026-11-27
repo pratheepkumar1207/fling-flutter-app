@@ -185,7 +185,7 @@ class _DiscoverMatchesScreenState extends State<DiscoverMatchesScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
         decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: Color(0xFF1C1C1C)))),
+            border: Border(bottom: BorderSide(color: Color(0xFFFFFFFF)))),
         child: Row(children: [
           PersonFace(
             avatarUrl: m['avatarUrl'] as String?,

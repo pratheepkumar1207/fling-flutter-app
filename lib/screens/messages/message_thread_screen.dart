@@ -404,7 +404,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                   decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       color: m.reactions[myId] == e
-                                          ? const Color(0xFF404040)
+                                          ? const Color(0xFF000000)
                                           : Colors.transparent),
                                   child: Text(e,
                                       style: const TextStyle(fontSize: 24)),
@@ -422,7 +422,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: mine ? AppColors.primary : const Color(0xFF232323),
+                      color: mine ? AppColors.primary : const Color(0xFF000000),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(m.summary,
@@ -772,7 +772,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
           children: [
             if (widget.backToRoomTitle != null) _backToRoomBar(),
             if (widget.inRoomSheet) _sheetHeader() else _header(),
-            const Divider(height: 1, color: Color(0xFF212121)),
+            const Divider(height: 1, color: Color(0xFFFFFFFF)),
             Expanded(
               child: _loading
                   ? const Center(child: Spinner())
@@ -959,7 +959,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       top: false,
       child: Container(
         decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: Color(0xFF212121)))),
+            border: Border(top: BorderSide(color: Color(0xFFFFFFFF)))),
         padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -1294,7 +1294,7 @@ class _Bubble extends StatelessWidget {
       constraints:
           BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.76),
       decoration: BoxDecoration(
-        color: mine ? AppColors.primary : const Color(0xFF232323),
+        color: mine ? AppColors.primary : const Color(0xFF000000),
         borderRadius: radius,
       ),
       child: quoteText == null
@@ -1329,7 +1329,7 @@ class _Bubble extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                   color: mine
-                                      ? Colors.white.withValues(alpha: 0.8)
+                                      ? Colors.white
                                       : AppColors.textDim,
                                   fontSize: 12.5)),
                         ]),
@@ -1361,7 +1361,7 @@ class _Bubble extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                     decoration: BoxDecoration(
-                        color: const Color(0xFF232323),
+                        color: const Color(0xFF000000),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppColors.bg, width: 2)),
                     child: Text(reactions.toSet().join(),
@@ -1428,7 +1428,7 @@ class _TypingBubble extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: const BoxDecoration(
-                    color: Color(0xFF232323),
+                    color: Color(0xFF000000),
                     borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(20),
                         topRight: Radius.circular(20),
@@ -1460,8 +1460,8 @@ class _QuickAction extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: Material(
-        color: const Color(0xFF1C1C1C),
-        shape: const StadiumBorder(side: BorderSide(color: Color(0xFF404040))),
+        color: const Color(0xFF000000),
+        shape: const StadiumBorder(side: BorderSide(color: Color(0xFFFFFFFF))),
         child: InkWell(
           customBorder: const StadiumBorder(),
           onTap: onTap,
@@ -1527,8 +1527,8 @@ class _FileBubble extends StatelessWidget {
             height: 38,
             decoration: BoxDecoration(
                 color: mine
-                    ? Colors.white.withValues(alpha: 0.18)
-                    : const Color(0xFF2D2D2D),
+                    ? Colors.black
+                    : const Color(0xFF000000),
                 borderRadius: BorderRadius.circular(10)),
             child: Center(
                 child: InIcon(InIcons.doc,
@@ -1587,7 +1587,7 @@ class _LocationBubble extends StatelessWidget {
             height: 38,
             decoration: BoxDecoration(
                 color: mine
-                    ? Colors.white.withValues(alpha: 0.18)
+                    ? Colors.black
                     : const Color(0xFF1E2E2E),
                 shape: BoxShape.circle),
             child: Center(

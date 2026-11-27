@@ -52,7 +52,7 @@ class GlassPanel extends StatelessWidget {
                     ]),
             borderRadius: borderRadius,
             border: border ??
-                Border.all(color: Colors.white.withValues(alpha: 0.16)),
+                Border.all(color: Colors.white),
           ),
           child: child,
         ),
@@ -71,7 +71,7 @@ class GlassAppBarBackground extends StatelessWidget {
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-        child: Container(color: Colors.white.withValues(alpha: 0.05)),
+        child: Container(color: Colors.black),
       ),
     );
   }
@@ -118,7 +118,7 @@ class GlassCircleButton extends StatelessWidget {
               ],
               border: Border.all(
                   color: color?.withValues(alpha: 0.9) ??
-                      Colors.white.withValues(alpha: 0.22)),
+                      Colors.white),
             ),
             alignment: Alignment.center,
             child: child,

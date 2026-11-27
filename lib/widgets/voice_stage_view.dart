@@ -345,7 +345,7 @@ class _PersonSeat extends StatelessWidget {
                           size: badge * 0.6,
                           color: isHost
                               ? const Color(0xFF3A2A00)
-                              : const Color(0xFF262626)),
+                              : const Color(0xFFFFFFFF)),
                     ),
                   ),
                 if (muted)

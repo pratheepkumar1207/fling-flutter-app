@@ -21,7 +21,7 @@ const _look = {
   AttachKind.gallery: (
     InIcons.image,
     'Gallery',
-    Color(0xFF2B2B2B),
+    Color(0xFF000000),
     AppColors.lilac
   ),
   AttachKind.camera: (
@@ -33,7 +33,7 @@ const _look = {
   AttachKind.viewOnce: (
     InIcons.eye,
     'View once',
-    Color(0xFF2B2B2B),
+    Color(0xFF000000),
     AppColors.lilac
   ),
   AttachKind.audio: (
@@ -45,7 +45,7 @@ const _look = {
   AttachKind.document: (
     InIcons.doc,
     'Document',
-    Color(0xFF2D2D2D),
+    Color(0xFF000000),
     AppColors.diamond
   ),
   AttachKind.gif: (InIcons.gif, 'GIF', Color(0xFF3A2E10), AppColors.gold),
@@ -58,7 +58,7 @@ const _look = {
   AttachKind.poll: (
     InIcons.poll,
     'Poll',
-    Color(0xFF2D2D2D),
+    Color(0xFF000000),
     AppColors.inkMuted
   ),
   AttachKind.location: (
@@ -202,7 +202,7 @@ class _PhotoSendPreviewState extends State<_PhotoSendPreview> {
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
             child: Material(
-              color: _viewOnce ? const Color(0xFF2B2B2B) : AppColors.surface,
+              color: _viewOnce ? const Color(0xFF000000) : AppColors.surface,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(18),
                   side: BorderSide(

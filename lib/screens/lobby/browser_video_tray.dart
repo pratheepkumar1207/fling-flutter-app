@@ -63,7 +63,7 @@ class _Thumb extends StatelessWidget {
       height: height,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: const Color(0xFF2D2D2D),
+        color: const Color(0xFF000000),
         borderRadius: BorderRadius.circular(10),
         border: ticked == true
             ? Border.all(color: AppColors.lilac, width: 3)
@@ -101,7 +101,7 @@ class _Thumb extends StatelessWidget {
                     color: ticked! ? AppColors.lilac : Colors.white, width: 2),
               ),
               child: ticked!
-                  ? const Icon(Icons.check, size: 14, color: Color(0xFF8B8B8B))
+                  ? const Icon(Icons.check, size: 14, color: Color(0xFFFFFFFF))
                   : null,
             ),
           ),
@@ -154,7 +154,7 @@ class BrowserVideoCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.fromLTRB(5, 5, 14, 5),
                   decoration: BoxDecoration(
-                      color: const Color(0xFF191919),
+                      color: const Color(0xFF000000),
                       borderRadius: BorderRadius.circular(30),
                       border: border),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -177,7 +177,7 @@ class BrowserVideoCard extends StatelessWidget {
               width: 240,
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
-                  color: const Color(0xFF191919),
+                  color: const Color(0xFF000000),
                   borderRadius: BorderRadius.circular(16),
                   border: border),
               child: Material(
@@ -238,7 +238,7 @@ class BrowserVideoCard extends StatelessWidget {
                                     borderRadius: BorderRadius.circular(10)),
                                 child: const Text('Watch together',
                                     style: TextStyle(
-                                        color: Color(0xFF8B8B8B),
+                                        color: Color(0xFFFFFFFF),
                                         fontSize: 11,
                                         fontWeight: FontWeight.w700)),
                               ),
@@ -307,7 +307,7 @@ class _BrowserVideoTrayState extends State<BrowserVideoTray> {
     final result = await showModalBottomSheet<List<FoundVideo>>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF181818),
+      backgroundColor: const Color(0xFF000000),
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => _SeeAllSheet(
@@ -329,7 +329,7 @@ class _BrowserVideoTrayState extends State<BrowserVideoTray> {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       decoration: const BoxDecoration(
-        color: Color(0xFF191919),
+        color: Color(0xFF000000),
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
       child: SafeArea(
@@ -410,7 +410,7 @@ class _BrowserVideoTrayState extends State<BrowserVideoTray> {
                 onPressed: _submit,
                 style: FilledButton.styleFrom(
                     backgroundColor: AppColors.lilac,
-                    foregroundColor: const Color(0xFF8B8B8B),
+                    foregroundColor: const Color(0xFFFFFFFF),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12))),
                 child: Text(_action(n)),
@@ -476,7 +476,7 @@ class _SeeAllSheetState extends State<_SeeAllSheet> {
             IconButton(
               tooltip: 'Close',
               onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.close, color: Colors.white70),
+              icon: const Icon(Icons.close, color: Colors.white),
             ),
           ]),
         ),
@@ -529,7 +529,7 @@ class _SeeAllSheetState extends State<_SeeAllSheet> {
                             : on
                                 ? Icons.check_circle
                                 : Icons.radio_button_unchecked,
-                        color: on ? AppColors.lilac : Colors.white54),
+                        color: on ? AppColors.lilac : Colors.white),
                     const SizedBox(width: 10),
                     _Thumb(v, width: 112, height: 64),
                     const SizedBox(width: 10),
@@ -582,7 +582,7 @@ class _SeeAllSheetState extends State<_SeeAllSheet> {
                               .toList()),
                   style: FilledButton.styleFrom(
                       backgroundColor: AppColors.lilac,
-                      foregroundColor: const Color(0xFF8B8B8B)),
+                      foregroundColor: const Color(0xFFFFFFFF)),
                   child: Text(n == 0 ? 'Pick videos' : widget.action(n)),
                 ),
               ),

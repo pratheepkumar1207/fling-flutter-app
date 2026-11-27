@@ -290,7 +290,7 @@ class OttSyncPanelState extends State<OttSyncPanel>
       alignment: Alignment.center,
       child: Row(
         children: [
-          InIcon(icon, color: Colors.white70, size: 22),
+          InIcon(icon, color: Colors.white, size: 22),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -311,7 +311,7 @@ class OttSyncPanelState extends State<OttSyncPanel>
                       maxLines: large ? 1 : 2,
                       overflow: TextOverflow.ellipsis,
                       style:
-                          const TextStyle(color: Colors.white70, fontSize: 11)),
+                          const TextStyle(color: Colors.white, fontSize: 11)),
               ],
             ),
           ),

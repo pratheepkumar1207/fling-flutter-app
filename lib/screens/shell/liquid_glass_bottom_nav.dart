@@ -44,10 +44,10 @@ class LiquidGlassBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final middle = (items.length / 2).ceil();
     return Material(
-      color: const Color(0xF5101010),
+      color: const Color(0xF5000000),
       child: DecoratedBox(
         decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: Color(0xFF212121)))),
+            border: Border(top: BorderSide(color: Color(0xFFFFFFFF)))),
         child: SafeArea(
           top: false,
           child: Padding(

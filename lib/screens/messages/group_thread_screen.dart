@@ -151,7 +151,7 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
   Future<void> _pickReaction(Map<String, dynamic> m) async {
     final emoji = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: const Color(0xFF181818),
+      backgroundColor: const Color(0xFF000000),
       builder: (sheet) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -339,7 +339,7 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                    color: const Color(0xFF272727),
+                    color: const Color(0xFF000000),
                     borderRadius: BorderRadius.circular(12)),
                 child: const Center(
                     child: InIcon(InIcons.users,
@@ -395,7 +395,7 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
               ],
             ]),
           ),
-          const Divider(height: 1, color: Color(0xFF212121)),
+          const Divider(height: 1, color: Color(0xFFFFFFFF)),
           Expanded(
             child: _loading
                 ? const Center(child: Spinner())
@@ -417,7 +417,7 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
-                                      color: const Color(0xFF232323),
+                                      color: const Color(0xFF000000),
                                       borderRadius: BorderRadius.circular(10)),
                                   child: Text(m['text'] as String? ?? '',
                                       textAlign: TextAlign.center,
@@ -443,7 +443,7 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
                             decoration: BoxDecoration(
                               color: mine
                                   ? AppColors.primary
-                                  : const Color(0xFF232323),
+                                  : const Color(0xFF000000),
                               borderRadius: BorderRadius.only(
                                 topLeft: const Radius.circular(20),
                                 topRight: const Radius.circular(20),
@@ -521,7 +521,7 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
             Container(
               width: double.infinity,
               decoration: const BoxDecoration(
-                  border: Border(top: BorderSide(color: Color(0xFF212121)))),
+                  border: Border(top: BorderSide(color: Color(0xFFFFFFFF)))),
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
               child: const Text(
                   'Only admins post here · long-press a message to react',
@@ -531,7 +531,7 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
           else
           Container(
             decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: Color(0xFF212121)))),
+                border: Border(top: BorderSide(color: Color(0xFFFFFFFF)))),
             padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
             child: Row(children: [
               InIconButton(InIcons.poll,

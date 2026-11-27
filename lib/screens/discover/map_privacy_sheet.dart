@@ -92,7 +92,7 @@ class _PrivacySheetState extends State<_PrivacySheet> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-                color: DColors.chip, borderRadius: BorderRadius.circular(16)),
+                color: DColors.chip, border: Border.fromBorderSide(BorderSide(color: DColors.line, width: 0.8)), borderRadius: BorderRadius.circular(16)),
             child: Row(children: [
               const InIcon(InIcons.eyeoff, size: 22, color: Colors.white),
               const SizedBox(width: 10),
@@ -119,8 +119,8 @@ class _PrivacySheetState extends State<_PrivacySheet> {
                 value: _ghost,
                 activeTrackColor: DColors.red,
                 activeThumbColor: Colors.white,
-                inactiveTrackColor: const Color(0xFF333333),
-                inactiveThumbColor: const Color(0xFF888888),
+                inactiveTrackColor: const Color(0xFF000000),
+                inactiveThumbColor: const Color(0xFFFFFFFF),
                 onChanged: (v) {
                   setState(() => _ghost = v);
                   _save({'ghostMinutes': v ? _ghostMinutes : 0});
@@ -162,8 +162,8 @@ class _PrivacySheetState extends State<_PrivacySheet> {
               value: _hideAge,
               activeTrackColor: DColors.red,
               activeThumbColor: Colors.white,
-              inactiveTrackColor: const Color(0xFF333333),
-              inactiveThumbColor: const Color(0xFF888888),
+              inactiveTrackColor: const Color(0xFF000000),
+              inactiveThumbColor: const Color(0xFFFFFFFF),
               onChanged: (v) {
                 setState(() => _hideAge = v);
                 _save({'hideAgeOnMap': v});

@@ -97,7 +97,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
                           child: Text(initials(p.name),
                               style: const TextStyle(
                                   fontSize: 60,
-                                  color: Color(0xFF555555),
+                                  color: Color(0xFFFFFFFF),
                                   fontWeight: FontWeight.w800)),
                         ),
                 ),
@@ -125,7 +125,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
                 const SizedBox(height: 10),
                 Text(p.bio!,
                     style: const TextStyle(
-                        color: Color(0xFFD6D6D6), fontSize: 14, height: 1.5)),
+                        color: Color(0xFFFFFFFF), fontSize: 14, height: 1.5)),
               ],
               if (facts.isNotEmpty) ...[
                 const DLabel('About'),

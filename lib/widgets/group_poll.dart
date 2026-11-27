@@ -33,12 +33,12 @@ class GroupPollBubble extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Icon(Icons.bar_chart_rounded,
-              size: 16, color: mine ? Colors.white70 : AppColors.lilac),
+              size: 16, color: mine ? Colors.white : AppColors.lilac),
           const SizedBox(width: 4),
           Text('Poll',
               style: TextStyle(
                   fontSize: 11,
-                  color: mine ? Colors.white70 : AppColors.lilac,
+                  color: mine ? Colors.white : AppColors.lilac,
                   fontWeight: FontWeight.w600)),
         ]),
         const SizedBox(height: 4),
@@ -69,7 +69,7 @@ class GroupPollBubble extends StatelessWidget {
                             size: 18,
                             color: myVote == i
                                 ? (mine ? Colors.white : AppColors.lilac)
-                                : (mine ? Colors.white60 : AppColors.textFaint)),
+                                : (mine ? Colors.white : AppColors.textFaint)),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text('${options[i]}',
@@ -77,7 +77,7 @@ class GroupPollBubble extends StatelessWidget {
                         ),
                         Text('${counts[i]}',
                             style: TextStyle(
-                                color: mine ? Colors.white70 : AppColors.textDim,
+                                color: mine ? Colors.white : AppColors.textDim,
                                 fontSize: 12)),
                       ]),
                       const SizedBox(height: 4),
@@ -87,7 +87,7 @@ class GroupPollBubble extends StatelessWidget {
                           value: total == 0 ? 0 : counts[i] / total,
                           minHeight: 5,
                           backgroundColor:
-                              mine ? Colors.white24 : const Color(0xFF2D2D2D),
+                              mine ? Colors.white24 : const Color(0xFF000000),
                           color: mine ? Colors.white : AppColors.lilac,
                         ),
                       ),
@@ -101,7 +101,7 @@ class GroupPollBubble extends StatelessWidget {
                 ? 'No votes yet · tap to vote'
                 : '$total vote${total == 1 ? '' : 's'} · tap to change yours',
             style: TextStyle(
-                color: mine ? Colors.white60 : AppColors.textFaint,
+                color: mine ? Colors.white : AppColors.textFaint,
                 fontSize: 11)),
       ]),
     );
@@ -113,7 +113,7 @@ Future<Map<String, dynamic>?> showCreatePollSheet(BuildContext context) {
   return showModalBottomSheet<Map<String, dynamic>>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: const Color(0xFF181818),
+    backgroundColor: const Color(0xFF000000),
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
     builder: (_) => const _CreatePoll(),
@@ -246,12 +246,12 @@ class GroupReactionChips extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: mine == e.key
                       ? AppColors.lilac.withValues(alpha: 0.25)
-                      : const Color(0xFF232323),
+                      : const Color(0xFF000000),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                       color: mine == e.key
                           ? AppColors.lilac
-                          : const Color(0xFF2D2D2D)),
+                          : const Color(0xFFFFFFFF)),
                 ),
                 child: Text('${e.key} ${e.value}',
                     style: const TextStyle(fontSize: 12)),

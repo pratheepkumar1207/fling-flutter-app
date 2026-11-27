@@ -1232,7 +1232,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
         alignment: Alignment.center,
         child: Row(
           children: [
-            const InIcon(InIcons.lock, color: Colors.white70, size: 22),
+            const InIcon(InIcons.lock, color: Colors.white, size: 22),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -1254,7 +1254,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
                                 : 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            color: Colors.white70, fontSize: 11)),
+                            color: Colors.white, fontSize: 11)),
                 ],
               ),
             ),
@@ -1414,7 +1414,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.18),
+                      color: Colors.black,
                       borderRadius: BorderRadius.circular(14)),
                   child: Text(
                       'Vote skip ${widget.skipVoteCount}/${widget.skipVoteRequired}',
@@ -1606,7 +1606,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
                   tooltip: 'Dismiss',
                   onPressed: () => setState(() => _webTrouble = ''),
                   icon: const InIcon(InIcons.close,
-                      size: 16, color: Colors.white70),
+                      size: 16, color: Colors.white),
                 ),
               ]),
             ),
@@ -1703,7 +1703,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
                         'Everyone watches with their own account. Log in, '
                         'then you’ll catch up with the room.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        style: TextStyle(color: Colors.white, fontSize: 12)),
                     const SizedBox(height: 12),
                     FilledButton(
                       onPressed: _openLogin,

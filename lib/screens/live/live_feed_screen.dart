@@ -413,7 +413,7 @@ class LiveCover extends StatelessWidget {
                   gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [Color(0xFF3A1418), Color(0xFF101010)]),
+                      colors: [Color(0xFF3A1418), Color(0xFF000000)]),
                 ),
                 child: Align(
                   alignment: const Alignment(0, -0.25),

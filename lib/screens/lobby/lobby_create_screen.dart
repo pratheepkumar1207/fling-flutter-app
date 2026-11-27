@@ -22,7 +22,7 @@ const _kGames = [
     icon: InIcons.crown,
     label: 'Chess',
     subtitle: '1 vs 1 · classic',
-    colors: [Color(0xFF3A3A3A), Color(0xFF1F1F1F)]
+    colors: [Color(0xFF000000), Color(0xFF000000)]
   ),
   (
     value: 'ludo',
@@ -82,11 +82,11 @@ class _VisibilitySpec {
 
 const _roomTypes = [
   _RoomTypeSpec('watch', InIcons.tv, 'Watch party',
-      'YouTube, Netflix, Prime and more', AppColors.pink, Color(0xFF1D1D1D)),
+      'YouTube, Netflix, Prime and more', AppColors.pink, Color(0xFF000000)),
   _RoomTypeSpec('voice', InIcons.mic, 'Voice room', 'Talk and sing together',
-      Color(0xFFF65A6D), Color(0xFF272727)),
+      Color(0xFFF65A6D), Color(0xFF000000)),
   _RoomTypeSpec('game', InIcons.game, 'Game room', 'Ludo, UNO, Chess…',
-      Color(0xFFFFFFFF), Color(0xFF2C2C2C)),
+      Color(0xFFFFFFFF), Color(0xFF000000)),
   _RoomTypeSpec('live', InIcons.live, 'Go live',
       'Stream to followers, earn gifts', AppColors.pink, Color(0xFF2A1013)),
 ];
@@ -317,20 +317,20 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
                             _micEnabled,
                             (v) => setState(() => _micEnabled = v)),
                         if (_micEnabled) ...[
-                          const Divider(height: 1, color: Color(0xFF262626)),
+                          const Divider(height: 1, color: Color(0xFFFFFFFF)),
                           _toggleRow(
                               InIcons.shield,
                               'Host approves mics',
                               _hostApprovesMics,
                               (v) => setState(() => _hostApprovesMics = v)),
                         ],
-                        const Divider(height: 1, color: Color(0xFF262626)),
+                        const Divider(height: 1, color: Color(0xFFFFFFFF)),
                         _toggleRow(
                             InIcons.music,
                             'Anyone can add songs',
                             _songPermission,
                             (v) => setState(() => _songPermission = v)),
-                        const Divider(height: 1, color: Color(0xFF262626)),
+                        const Divider(height: 1, color: Color(0xFFFFFFFF)),
                         InkWell(
                           onTap: () =>
                               setState(() => _moreOptions = !_moreOptions),
@@ -380,7 +380,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
         width: 32,
         height: 32,
         decoration: BoxDecoration(
-            color: const Color(0xFF232323),
+            color: const Color(0xFF000000),
             borderRadius: BorderRadius.circular(10)),
         child: Center(child: InIcon(icon, size: 17, color: AppColors.lilac)),
       );
@@ -497,7 +497,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
             border: Border.all(
                 color: selected ? AppColors.purple : AppColors.border,
                 width: selected ? 2 : 1),
-            color: selected ? const Color(0xFF272727) : AppColors.surface,
+            color: selected ? const Color(0xFFFFFFFF) : AppColors.surface,
           ),
           child: Row(
             children: [
@@ -506,10 +506,10 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
                 height: 44,
                 decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
-                    color: const Color(0xFF2C2C2C)),
+                    color: const Color(0xFF000000)),
                 alignment: Alignment.center,
                 child:
-                    InIcon(game.icon, size: 22, color: const Color(0xFFC7C7C7)),
+                    InIcon(game.icon, size: 22, color: const Color(0xFFFFFFFF)),
               ),
               const SizedBox(width: 12),
               Expanded(

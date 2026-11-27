@@ -904,7 +904,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
                                         ),
                                         const Text('Playing via Drive',
                                             style: TextStyle(
-                                                color: Colors.white70,
+                                                color: Colors.white,
                                                 fontSize: 10.5)),
                                       ],
                                     ),

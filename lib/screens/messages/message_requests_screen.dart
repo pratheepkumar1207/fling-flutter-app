@@ -274,7 +274,7 @@ class _SafetyNote extends StatelessWidget {
               'These people haven’t matched with you. They won’t know you’ve '
               'read their message until you accept.',
               style: TextStyle(
-                  color: Color(0xFFDCDCDC), fontSize: 13, height: 1.45)),
+                  color: Color(0xFFFFFFFF), fontSize: 13, height: 1.45)),
         ),
       ]),
     );
@@ -364,7 +364,7 @@ class _RequestCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 10),
                     decoration: const BoxDecoration(
-                      color: Color(0xFF232323),
+                      color: Color(0xFF000000),
                       borderRadius: BorderRadius.only(
                           topLeft: Radius.circular(6),
                           topRight: Radius.circular(16),

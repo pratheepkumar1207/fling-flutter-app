@@ -120,7 +120,7 @@ class _BlendsTabListState extends State<BlendsTabList> {
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             onTap: () => startNewBlend(context, onCreated: _load),
             leading: const CircleAvatar(
-              backgroundColor: Color(0xFF303030),
+              backgroundColor: Color(0xFF000000),
               child: Icon(Icons.add_rounded, color: AppColors.lilac),
             ),
             title: const Text('Start a blend',

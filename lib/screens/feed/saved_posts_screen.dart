@@ -185,7 +185,7 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
       Padding(
         padding: const EdgeInsets.only(right: 10),
         child: Material(
-          color: selected ? const Color(0xFF2B2B2B) : AppColors.surface,
+          color: selected ? const Color(0xFF000000) : AppColors.surface,
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
               side: BorderSide(

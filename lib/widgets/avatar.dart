@@ -117,14 +117,14 @@ class Avatar extends StatelessWidget {
 /// Deep tones that keep white initials readable (4.5:1+), picked from the
 /// name so the same person always gets the same colour.
 const _avatarPalette = [
-  Color(0xFFB0306B),
-  Color(0xFF3B4DB8),
-  Color(0xFF2F7A5B),
-  Color(0xFF7A3FC0),
-  Color(0xFF8A5A1F),
-  Color(0xFF1F6E8A),
-  Color(0xFFB04A30),
-  Color(0xFF5A2F8A),
+  Color(0xFFE8112D),
+  Color(0xFFE8112D),
+  Color(0xFFE8112D),
+  Color(0xFFE8112D),
+  Color(0xFFE8112D),
+  Color(0xFFE8112D),
+  Color(0xFFE8112D),
+  Color(0xFFE8112D),
 ];
 
 Color avatarColorFor(String? name) {

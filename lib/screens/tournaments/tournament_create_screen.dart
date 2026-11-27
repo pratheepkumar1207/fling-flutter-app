@@ -7,7 +7,7 @@ import '../../theme/app_colors.dart';
 import 'tournament_live.dart';
 import 'tournament_screen.dart';
 
-const _purple = Color(0xFF808080);
+const _purple = Color(0xFFFFFFFF);
 const _purpleLine = Color(0xFFFFFFFF);
 
 /// New tournament: game, players, start time, who can join. Free to enter;
@@ -97,9 +97,9 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
         label: Text(label),
         selected: on,
         onSelected: (_) => onTap(),
-        selectedColor: const Color(0xFF8B8B8B),
-        backgroundColor: const Color(0xFF222222),
-        labelStyle: TextStyle(color: on ? const Color(0xFFE0E0E0) : AppColors.text, fontSize: 13),
+        selectedColor: const Color(0xFFFFFFFF),
+        backgroundColor: const Color(0xFFFFFFFF),
+        labelStyle: TextStyle(color: on ? const Color(0xFFFFFFFF) : AppColors.text, fontSize: 13),
         side: BorderSide(color: on ? _purpleLine : AppColors.border),
         showCheckmark: false,
       );
@@ -152,7 +152,7 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
           children: [
             for (final g in const ['uno', 'ludo', 'tictactoe', 'chess'])
               Material(
-                color: _game == g ? const Color(0xFF8B8B8B) : const Color(0xFF1D1D1D),
+                color: _game == g ? const Color(0xFFFFFFFF) : const Color(0xFF000000),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                     side: BorderSide(color: _game == g ? _purpleLine : AppColors.border)),
@@ -204,7 +204,7 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-              color: const Color(0xFF1D1D1D),
+              color: const Color(0xFF000000),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.border)),
           child: const Text(

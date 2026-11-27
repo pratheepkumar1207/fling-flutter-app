@@ -12,34 +12,34 @@ import '../../widgets/verified_tick.dart';
 import '../messages/message_thread_screen.dart';
 import '../party/room_person_sheets.dart';
 
-const _cardColor = Color(0xFF17141F);
-const _voiceColor = Color(0xFF1A2740);
+const _cardColor = Color(0xFF000000);
+const _voiceColor = Color(0xFF000000);
 const _hostGold = Color(0xFFE6B94A);
-const _coHostPurple = Color(0xFFC4A8FF);
-const _progress = Color(0xFFC4A8FF);
+const _coHostPurple = Color(0xFFFFFFFF);
+const _progress = Color(0xFFFFFFFF);
 
 /// Each game's name, icon and colour, on its card and around its room.
 ({String name, InIconData icon, Color color}) gameLook(String? type) =>
     switch (type) {
-      'chess' => (name: 'Chess', icon: InIcons.game, color: Color(0xFF172C27)),
+      'chess' => (name: 'Chess', icon: InIcons.game, color: Color(0xFF000000)),
       'tictactoe' => (
           name: 'Tic Tac Toe',
           icon: InIcons.game,
-          color: Color(0xFF221C38)
+          color: Color(0xFF000000)
         ),
-      'ludo' => (name: 'Ludo', icon: InIcons.game, color: Color(0xFF33261A)),
-      'uno' => (name: 'UNO', icon: InIcons.game, color: Color(0xFF351C1C)),
+      'ludo' => (name: 'Ludo', icon: InIcons.game, color: Color(0xFF000000)),
+      'uno' => (name: 'UNO', icon: InIcons.game, color: Color(0xFF000000)),
       'truth_or_dare' => (
           name: 'Truth or Dare',
           icon: InIcons.game,
-          color: Color(0xFF27143A)
+          color: Color(0xFF000000)
         ),
       'would_you_rather' => (
           name: 'Would You Rather',
           icon: InIcons.game,
-          color: Color(0xFF10283A)
+          color: Color(0xFF000000)
         ),
-      _ => (name: 'Game', icon: InIcons.game, color: Color(0xFF221C38)),
+      _ => (name: 'Game', icon: InIcons.game, color: Color(0xFF000000)),
     };
 
 String _clock(num seconds) {
@@ -123,7 +123,10 @@ class HomeLobbyCard extends StatelessWidget {
       label: '${room['title'] ?? 'Room'}, ${_countLine()}',
       child: Material(
         color: _cardColor,
-        borderRadius: BorderRadius.circular(20),
+        // Black card on a black page: a thin white edge.
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: Colors.white, width: 0.8)),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
@@ -139,7 +142,7 @@ class HomeLobbyCard extends StatelessWidget {
           const _Pill('Boosted',
               icon: InIcons.bolt,
               color: _hostGold,
-              textColor: Color(0xFF2E2100)),
+              textColor: Color(0xFF000000)),
         ...tags,
       ]);
 
@@ -153,9 +156,9 @@ class HomeLobbyCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style:
-                      const TextStyle(color: Color(0xFFC9C4D6), fontSize: 13)),
+                      const TextStyle(color: Color(0xFFFFFFFF), fontSize: 13)),
             ),
-            const InIcon(InIcons.right, size: 14, color: Color(0xFFC9C4D6)),
+            const InIcon(InIcons.right, size: 14, color: Color(0xFFFFFFFF)),
           ]),
         ),
       );
@@ -173,7 +176,7 @@ class HomeLobbyCard extends StatelessWidget {
         child: Stack(fit: StackFit.expand, children: [
           if (_song)
             ColoredBox(
-              color: const Color(0xFF211A38),
+              color: const Color(0xFF000000),
               child: Center(
                   child: _SpinningCd(
                       thumbnail: thumb, size: 88, spinning: _playing)),
@@ -181,7 +184,7 @@ class HomeLobbyCard extends StatelessWidget {
           else if (thumb != null && thumb.isNotEmpty)
             AppImage(source: thumb, fit: BoxFit.cover)
           else
-            const ColoredBox(color: Color(0xFF2A1F4D)),
+            const ColoredBox(color: Color(0xFF000000)),
           Positioned(
             top: 10,
             left: 10,
@@ -216,10 +219,10 @@ class HomeLobbyCard extends StatelessWidget {
             Text(roomName,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Color(0xFFC9C4D6), fontSize: 13)),
+                style: const TextStyle(color: Color(0xFFFFFFFF), fontSize: 13)),
           if (netflix)
             const Text('Plays in the Netflix app',
-                style: TextStyle(color: Color(0xFFC9C4D6), fontSize: 12)),
+                style: TextStyle(color: Color(0xFFFFFFFF), fontSize: 12)),
           _countButton(context),
         ]),
       ),
@@ -337,7 +340,7 @@ class HomeLobbyCard extends StatelessWidget {
           if (thumb != null && thumb.isNotEmpty)
             AppImage(source: thumb, fit: BoxFit.cover)
           else
-            const ColoredBox(color: Color(0xFF4A2036)),
+            const ColoredBox(color: Color(0xFF000000)),
           Positioned(
             top: 10,
             left: 10,
@@ -350,7 +353,7 @@ class HomeLobbyCard extends StatelessWidget {
                           : 'Battle')
                       : 'Live',
                   icon: room['inPk'] == true ? InIcons.bolt : InIcons.live,
-                  color: const Color(0xFFD8344A)),
+                  color: const Color(0xFFE8112D)),
             ]),
           ),
         ]),
@@ -395,14 +398,18 @@ class _Pill extends StatelessWidget {
   final Color textColor;
   const _Pill(this.text,
       {this.icon,
-      this.color = const Color(0xFF0B0912),
+      this.color = const Color(0xFF000000),
       this.textColor = Colors.white});
 
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-            color: color, borderRadius: BorderRadius.circular(13)),
+            color: color,
+            border: color == const Color(0xFF000000)
+                ? Border.all(color: Colors.white, width: 0.8)
+                : null,
+            borderRadius: BorderRadius.circular(13)),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           if (icon != null) ...[
             InIcon(icon!, size: 13, color: textColor),
@@ -608,7 +615,7 @@ class _SpinningCdState extends State<_SpinningCd>
             if (thumb != null && thumb.isNotEmpty)
               AppImage(source: thumb, fit: BoxFit.cover)
             else
-              const ColoredBox(color: Color(0xFF6D3FD0)),
+              const ColoredBox(color: Color(0xFFE8112D)),
             Center(
               child: Container(
                 width: s * 0.24,
@@ -776,11 +783,11 @@ class _VsBadge extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-                color: const Color(0xFFF5F2FB),
+                color: const Color(0xFFFFFFFF),
                 borderRadius: BorderRadius.circular(12)),
             child: const Text('VS',
                 style: TextStyle(
-                    color: Color(0xFF17141F),
+                    color: Color(0xFF000000),
                     fontSize: 12,
                     fontWeight: FontWeight.w700)),
           ),
@@ -802,7 +809,7 @@ class _Divider extends StatelessWidget {
             quarterTurns: 3,
             child: Text(label,
                 maxLines: 1,
-                style: const TextStyle(fontSize: 11, color: Color(0xFFC9C4D6))),
+                style: const TextStyle(fontSize: 11, color: Color(0xFFFFFFFF))),
           ),
         ]),
       );
@@ -815,7 +822,7 @@ Future<void> showRoomPeoplePopup(BuildContext context,
     context: context,
     barrierColor: Colors.black.withValues(alpha: 0.7),
     builder: (_) => Dialog(
-      backgroundColor: const Color(0xFF1D1A29),
+      backgroundColor: const Color(0xFF000000),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: _PeopleList(room: room, line: line),
     ),
@@ -890,7 +897,7 @@ class _PeopleListState extends State<_PeopleList> {
                         child: _Pill('Boosted',
                             icon: InIcons.bolt,
                             color: _hostGold,
-                            textColor: Color(0xFF2E2100)),
+                            textColor: Color(0xFF000000)),
                       ),
                     Text(title ?? 'Room',
                         maxLines: 1,
@@ -901,13 +908,13 @@ class _PeopleListState extends State<_PeopleList> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            color: Color(0xFFC9C4D6), fontSize: 13)),
+                            color: Color(0xFFFFFFFF), fontSize: 13)),
                   ]),
             ),
             IconButton(
               tooltip: 'Close',
               onPressed: () => Navigator.of(context).pop(),
-              icon: const InIcon(InIcons.close, color: Color(0xFFC9C4D6)),
+              icon: const InIcon(InIcons.close, color: Color(0xFFFFFFFF)),
             ),
           ]),
         ),
@@ -940,7 +947,7 @@ class _PeopleListState extends State<_PeopleList> {
                                 ? _hostGold
                                 : role == 'Co-host'
                                     ? _coHostPurple
-                                    : const Color(0xFFC9C4D6))),
+                                    : const Color(0xFFFFFFFF))),
                 ]),
               );
             },

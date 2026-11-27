@@ -59,7 +59,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             gradient: RadialGradient(
               center: Alignment(-0.8, 0),
               radius: 0.9,
-              colors: [Color(0xFF2F2F2F), Colors.transparent],
+              colors: [Color(0xFF000000), Colors.transparent],
             ),
           ),
           child: SafeArea(
@@ -170,7 +170,7 @@ class _Tiles extends StatelessWidget {
     (
       Alignment(1, -1),
       104,
-      Color(0xFF272727),
+      Color(0xFF000000),
       InIcons.mic,
       Color(0xFFF65A6D),
       'Talk'
@@ -178,7 +178,7 @@ class _Tiles extends StatelessWidget {
     (
       Alignment(-0.15, 0.2),
       116,
-      Color(0xFF2C2C2C),
+      Color(0xFF000000),
       InIcons.game,
       Color(0xFFFFFFFF),
       'Play'
@@ -194,7 +194,7 @@ class _Tiles extends StatelessWidget {
     (
       Alignment(-0.92, 1),
       92,
-      Color(0xFF272727),
+      Color(0xFF000000),
       InIcons.blend,
       Color(0xFFF65A6D),
       'Blend'

@@ -143,7 +143,7 @@ class _AppSongListTabState extends State<AppSongListTab> {
                 width: 56,
                 height: 40,
                 decoration: BoxDecoration(
-                    color: AppColors.surface3,
+                    color: AppColors.surface3, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                     borderRadius: BorderRadius.circular(8)),
                 clipBehavior: Clip.antiAlias,
                 child: s.thumbnail != null

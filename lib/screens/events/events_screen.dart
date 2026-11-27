@@ -20,7 +20,7 @@ const _kRoomTypeStyles = {
   ),
   'game': (
     icon: InIcons.dice,
-    colors: [Color(0xFF3A3A3A), Color(0xFF1F1F1F)],
+    colors: [Color(0xFF000000), Color(0xFF000000)],
     label: 'Game Room'
   ),
   'live': (
@@ -162,7 +162,7 @@ class _EventsScreenState extends State<EventsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
               constraints: const BoxConstraints(minWidth: 46),
               decoration: BoxDecoration(
-                  color: AppColors.surface2,
+                  color: AppColors.surface2, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                   borderRadius: BorderRadius.circular(8)),
               child: Column(
                 mainAxisSize: MainAxisSize.min,

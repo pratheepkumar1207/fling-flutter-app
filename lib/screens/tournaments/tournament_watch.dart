@@ -6,7 +6,7 @@ import '../../widgets/game_board_view.dart';
 import '../../widgets/game_seat.dart';
 import 'tournament_live.dart';
 
-const _lilac = Color(0xFFE0E0E0);
+const _lilac = Color(0xFFFFFFFF);
 const _purple = Color(0xFFFFFFFF);
 const _gold = Color(0xFFFAC775);
 const _goldLine = Color(0xFFBA7517);
@@ -95,7 +95,7 @@ class _TournamentWatchViewState extends State<TournamentWatchView> {
     final id = m['id'] as String;
     final pick = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: const Color(0xFF181818),
+      backgroundColor: const Color(0xFF000000),
       builder: (sheet) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           ListTile(title: Text(m['label'] as String? ?? 'Table',
@@ -246,7 +246,7 @@ class _BigBoard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: const Color(0xFF161616),
+          color: const Color(0xFF000000),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: done ? _goldLine : _purple, width: 1.5),
         ),
@@ -261,7 +261,7 @@ class _BigBoard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                  color: const Color(0xFF8B8B8B),
+                  color: const Color(0xFFFFFFFF),
                   borderRadius: BorderRadius.circular(99),
                   border: Border.all(color: _purple)),
               child: const Text('📌', style: TextStyle(fontSize: 11)),
@@ -442,7 +442,7 @@ class _SmallTile extends StatelessWidget {
     }
 
     return Material(
-      color: const Color(0xFF161616),
+      color: const Color(0xFF000000),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
         side: BorderSide(color: done ? _goldLine : (hot != null ? _purple : AppColors.border)),
@@ -458,7 +458,7 @@ class _SmallTile extends StatelessWidget {
               child: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                    color: const Color(0xFF222222), borderRadius: BorderRadius.circular(6)),
+                    color: const Color(0xFF000000), borderRadius: BorderRadius.circular(6)),
                 alignment: Alignment.center,
                 child: Text(done ? '🏆' : (kTourGames[live.gameType]?.$1 ?? '🎮'),
                     style: const TextStyle(fontSize: 18)),

@@ -10,7 +10,7 @@ BoxDecoration insyncClay({bool cobalt = false, double radius = 24}) =>
       color: cobalt ? null : AppColors.surface,
       gradient: cobalt ? AppGradients.hero : null,
       border: Border.all(
-          color: cobalt ? const Color(0xFF404040) : AppColors.border),
+          color: cobalt ? const Color(0xFFFFFFFF) : AppColors.border),
     );
 
 class InsyncClayIcon extends StatelessWidget {
@@ -23,7 +23,7 @@ class InsyncClayIcon extends StatelessWidget {
           width: size,
           height: size,
           decoration: BoxDecoration(
-              color: const Color(0xFF232323),
+              color: const Color(0xFF000000),
               borderRadius: BorderRadius.circular(size * .32)),
           child: InIcon(icon, size: size * .5, color: AppColors.lilac)));
 }
@@ -56,7 +56,7 @@ class InsyncSectionBanner extends StatelessWidget {
           const SizedBox(height: 6),
           Text(subtitle,
               style: const TextStyle(
-                  color: Color(0xFFD6D6D6), fontSize: 13, height: 1.45)),
+                  color: Color(0xFFFFFFFF), fontSize: 13, height: 1.45)),
         ])),
         const SizedBox(width: 14),
         InsyncClayIcon(icon, size: compact ? 48 : 62)

@@ -8,11 +8,11 @@ import '../../widgets/app_image.dart';
 // /rooms/browse payload (see routes/room.js): a wide list card, a grid
 // tile and the tall Boosted card. The whole card is the tap target.
 
-const _kCard = Color(0xFF111114);
-const _kLine = Color(0xFF1E1E22);
-const _kDim = Color(0xFF8E8E93);
-const _kGreen = Color(0xFF30D158);
-const _kLive = Color(0xFFFF375F);
+const _kCard = Color(0xFF000000);
+const _kLine = Color(0xFFFFFFFF);
+const _kDim = Color(0xFFFFFFFF);
+const _kGreen = Color(0xFFFFFFFF);
+const _kLive = Color(0xFFE8112D);
 
 String _type(Map r) => r['roomType'] as String? ?? 'watch';
 int _count(Map r) => asNum(r['memberCount']).toInt();
@@ -29,17 +29,17 @@ String? _friendHere(Map r) {
 }
 
 (Color, Color, InIconData, String) _gameLook(String? g) => switch (g) {
-      'chess' => (const Color(0xFF2B2216), const Color(0xFFE8C48A),
+      'chess' => (const Color(0xFF000000), const Color(0xFFE8C48A),
           InIcons.game, 'Chess'),
-      'ludo' => (const Color(0xFF14203D), const Color(0xFF64A0FF),
+      'ludo' => (const Color(0xFF000000), const Color(0xFFFFFFFF),
           InIcons.dice, 'Ludo'),
-      'uno' => (const Color(0xFF2A1418), const Color(0xFFFF6B6B),
+      'uno' => (const Color(0xFF000000), const Color(0xFFE8112D),
           InIcons.ticket, 'UNO'),
-      'tictactoe' => (const Color(0xFF1D1D24), const Color(0xFFBBBBBB),
+      'tictactoe' => (const Color(0xFF000000), const Color(0xFFFFFFFF),
           InIcons.hash, 'Tic Tac Toe'),
-      'truth_or_dare' => (const Color(0xFF2A1A10), const Color(0xFFFF9F43),
+      'truth_or_dare' => (const Color(0xFF000000), const Color(0xFFFFFFFF),
           InIcons.flame, 'Truth or Dare'),
-      _ => (const Color(0xFF14203D), const Color(0xFF64A0FF), InIcons.game,
+      _ => (const Color(0xFF000000), const Color(0xFFFFFFFF), InIcons.game,
           'Game'),
     };
 
@@ -95,7 +95,7 @@ class _Chip extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-            color: bg ?? const Color(0xC007070A),
+            color: bg ?? const Color(0xC0000000),
             borderRadius: BorderRadius.circular(6)),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           if (icon != null) ...[
@@ -126,7 +126,7 @@ class _Face extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: const Color(0xFF3A3550),
+        color: const Color(0xFF000000),
         border: Border.all(
             color: talking ? _kGreen : _kCard, width: talking ? 2 : 1.5),
       ),
@@ -181,7 +181,7 @@ class _Cover extends StatelessWidget {
       case 'voice':
         final talking = r['speakingName'] != null;
         return Container(
-          color: const Color(0xFF1A1630),
+          color: const Color(0xFF000000),
           child: Stack(children: [
             Center(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -199,12 +199,12 @@ class _Cover extends StatelessWidget {
                 left: 7,
                 top: 7,
                 child: _Chip('Talk',
-                    icon: InIcons.mic, color: Color(0xFFA98BFF))),
+                    icon: InIcons.mic, color: Color(0xFFFFFFFF))),
           ]),
         );
       case 'live':
         return Container(
-          color: const Color(0xFF2A171C),
+          color: const Color(0xFF000000),
           child: Stack(children: [
             Center(
                 child: _Face({
@@ -228,7 +228,7 @@ class _Cover extends StatelessWidget {
         final pos = asNum(r['playbackPosition']);
         final song = r['nowPlayingMediaMode'] == 'audio';
         return Container(
-          color: const Color(0xFF2B2230),
+          color: const Color(0xFF000000),
           child: Stack(fit: StackFit.expand, children: [
             if (thumb != null && thumb.isNotEmpty)
               AppImage(source: thumb, fit: BoxFit.cover),
@@ -238,13 +238,13 @@ class _Cover extends StatelessWidget {
                 child: _Chip(
                     song ? 'Music' : _sourceLabel(r['sourceType'] as String?),
                     icon: song ? InIcons.music : InIcons.film,
-                    color: const Color(0xFFFF6B9A))),
+                    color: const Color(0xFFE8112D))),
             Center(
               child: Container(
                 width: 26,
                 height: 26,
                 decoration: const BoxDecoration(
-                    color: Color(0x9907070A), shape: BoxShape.circle),
+                    color: Color(0x99000000), shape: BoxShape.circle),
                 child: Center(
                     child: InIcon(
                         r['isPlaying'] == true ? InIcons.play : InIcons.pause,
@@ -353,7 +353,7 @@ List<Widget> _details(Map<String, dynamic> r) {
         if (friend != null)
           line(friend, color: _kGreen)
         else if (song != null && song.isNotEmpty)
-          line('🎵 $song', color: const Color(0xFFC9BCFF)),
+          line('🎵 $song', color: const Color(0xFFFFFFFF)),
       ];
     case 'live':
       final gifts = asNum(r['giftsToday']).toInt();
@@ -366,7 +366,7 @@ List<Widget> _details(Map<String, dynamic> r) {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                      color: Color(0xFFC7C7CC), fontSize: 10.5))),
+                      color: Color(0xFFFFFFFF), fontSize: 10.5))),
         ]),
         if (r['hostFollowed'] == true)
           line('Your friend · ${_liveFor(r)} live', color: _kGreen)
@@ -383,7 +383,7 @@ List<Widget> _details(Map<String, dynamic> r) {
       return [
         if (playing != null && playing.isNotEmpty && playing != r['title'])
           line('${song ? '🎵' : '🎬'} $playing',
-              color: const Color(0xFFC7C7CC)),
+              color: const Color(0xFFFFFFFF)),
         facesLine(
             '$count ${song ? 'listening' : 'watching'}${ott ? ' · sign in to watch' : ''}'),
         if (friend != null) line(friend, color: _kGreen),
@@ -420,7 +420,7 @@ class PopcornRoomCard extends StatelessWidget {
         color: _kCard,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: live ? const Color(0xFF5A1F2A) : _kLine)),
+            side: BorderSide(color: live ? const Color(0xFFFFFFFF) : _kLine)),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
@@ -480,7 +480,7 @@ class PopcornRoomTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(
                 color: _type(room) == 'live'
-                    ? const Color(0xFF5A1F2A)
+                    ? const Color(0xFFFFFFFF)
                     : _kLine)),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -522,10 +522,10 @@ class PopcornBoostedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final type = _type(room);
     final (icon, color) = switch (type) {
-      'voice' => (InIcons.mic, const Color(0xFFA98BFF)),
-      'game' => (InIcons.game, const Color(0xFF64A0FF)),
+      'voice' => (InIcons.mic, const Color(0xFFFFFFFF)),
+      'game' => (InIcons.game, const Color(0xFFFFFFFF)),
       'live' => (InIcons.live, _kLive),
-      _ => (InIcons.film, const Color(0xFFFF6B9A)),
+      _ => (InIcons.film, const Color(0xFFE8112D)),
     };
     final game = room['game'] as Map?;
     final seats = game?['seats'] as int?;
@@ -545,7 +545,7 @@ class PopcornBoostedCard extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF2A2A2E)),
+            border: Border.all(color: const Color(0xFFFFFFFF)),
           ),
           child: Stack(fit: StackFit.expand, children: [
             _Cover(room, tall: true),
@@ -567,11 +567,11 @@ class PopcornBoostedCard extends StatelessWidget {
                     color: const Color(0xFFFFD60A),
                     borderRadius: BorderRadius.circular(6)),
                 child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                  InIcon(InIcons.bolt, size: 10, color: Color(0xFF1A1300)),
+                  InIcon(InIcons.bolt, size: 10, color: Color(0xFF000000)),
                   SizedBox(width: 2),
                   Text('Boosted',
                       style: TextStyle(
-                          color: Color(0xFF1A1300),
+                          color: Color(0xFFFFFFFF),
                           fontSize: 9,
                           fontWeight: FontWeight.w700)),
                 ]),
@@ -584,7 +584,7 @@ class PopcornBoostedCard extends StatelessWidget {
                 width: 22,
                 height: 22,
                 decoration: BoxDecoration(
-                    color: const Color(0xC007070A),
+                    color: const Color(0xC0000000),
                     borderRadius: BorderRadius.circular(7)),
                 child: Center(child: InIcon(icon, size: 12, color: color)),
               ),
@@ -614,7 +614,7 @@ class PopcornBoostedCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                                color: Color(0xFFD1D1D6), fontSize: 10)),
+                                color: Color(0xFFFFFFFF), fontSize: 10)),
                       ),
                     ]),
                   ]),
@@ -633,10 +633,10 @@ class PopcornBoostedCard extends StatelessWidget {
 // button on the right. [header] adds the host line used in the feed.
 
 const _ludoColors = [
-  Color(0xFFE53935),
-  Color(0xFF2E9E4F),
+  Color(0xFFE8112D),
+  Color(0xFFFFFFFF),
   Color(0xFFF6B21A),
-  Color(0xFF1E7BE0),
+  Color(0xFFFFFFFF),
 ];
 
 class PopcornPostCard extends StatelessWidget {
@@ -675,14 +675,14 @@ class PopcornPostCard extends StatelessWidget {
         final seats = (room['game'] as Map?)?['seats'] as int?;
         final open = seats == null || _playerIds.length < seats;
         return open
-            ? ('Play', const Color(0xFF2E9E4F))
-            : ('Watch', const Color(0xFF2C2B33));
+            ? ('Play', const Color(0xFFE8112D))
+            : ('Watch', const Color(0xFFE8112D));
       case 'voice':
-        return ('Join', const Color(0xFF2E9E4F));
+        return ('Join', const Color(0xFFE8112D));
       case 'live':
-        return ('Watch', const Color(0xFFE53935));
+        return ('Watch', const Color(0xFFE8112D));
       default:
-        return ('Join', const Color(0xFF7F77DD));
+        return ('Join', const Color(0xFFE8112D));
     }
   }
 
@@ -728,7 +728,7 @@ class PopcornPostCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style:
-                      const TextStyle(color: Color(0xFFDDDDDD), fontSize: 11)),
+                      const TextStyle(color: Color(0xFFFFFFFF), fontSize: 11)),
           ]),
         ),
       );
@@ -742,13 +742,13 @@ class PopcornPostCard extends StatelessWidget {
     return AspectRatio(
       aspectRatio: 16 / 9,
       child: Stack(fit: StackFit.expand, children: [
-        const ColoredBox(color: Color(0xFF26215C)),
+        const ColoredBox(color: Color(0xFF000000)),
         if (thumb != null && thumb.isNotEmpty)
           AppImage(source: thumb, fit: BoxFit.cover),
         Positioned(
             left: 8,
             top: 8,
-            child: _tag('Watch party', const Color(0xFF7F77DD),
+            child: _tag('Watch party', const Color(0xFFFFFFFF),
                 icon: InIcons.play)),
         Positioned(
             right: 8,
@@ -766,7 +766,7 @@ class PopcornPostCard extends StatelessWidget {
             child: FractionallySizedBox(
               alignment: Alignment.centerLeft,
               widthFactor: (pos / dur).clamp(0, 1).toDouble(),
-              child: const ColoredBox(color: Color(0xFFFF0033)),
+              child: const ColoredBox(color: Color(0xFFE8112D)),
             ),
           ),
       ]),
@@ -790,10 +790,10 @@ class PopcornPostCard extends StatelessWidget {
           aspectRatio: 1,
           child: Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF3A3550),
+              color: const Color(0xFF000000),
               borderRadius: BorderRadius.circular(16),
               border: talking
-                  ? Border.all(color: const Color(0xFF5DCAA5), width: 2.5)
+                  ? Border.all(color: const Color(0xFFFFFFFF), width: 2.5)
                   : null,
             ),
             clipBehavior: Clip.antiAlias,
@@ -820,7 +820,7 @@ class PopcornPostCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          const InIcon(InIcons.mic, size: 12, color: Color(0xFF5DCAA5)),
+          const InIcon(InIcons.mic, size: 12, color: Color(0xFFFFFFFF)),
           const SizedBox(width: 5),
           Flexible(
             child: Text(
@@ -930,14 +930,14 @@ class PopcornPostCard extends StatelessWidget {
                         ? Border.all(
                             color: _ludoColors[i % _ludoColors.length],
                             width: 3)
-                        : Border.all(color: const Color(0xFF777777)),
+                        : Border.all(color: const Color(0xFFFFFFFF)),
                   ),
                   child: i < players.length
                       ? ClipOval(
                           child: _Face(byId[players[i]] ?? const {}, size: 38))
                       : const Center(
                           child: InIcon(InIcons.plus,
-                              size: 16, color: Color(0xFFCCCCCC))),
+                              size: 16, color: Color(0xFFFFFFFF))),
                 ),
                 const SizedBox(height: 4),
                 Text(i < players.length ? seatName(i) : 'Open',
@@ -946,7 +946,7 @@ class PopcornPostCard extends StatelessWidget {
                     style: TextStyle(
                         color: i < players.length
                             ? Colors.white
-                            : const Color(0xFFCCCCCC),
+                            : const Color(0xFFFFFFFF),
                         fontSize: 10.5)),
               ]),
             ),
@@ -966,7 +966,7 @@ class PopcornPostCard extends StatelessWidget {
     return AspectRatio(
       aspectRatio: 4 / 5,
       child: Stack(fit: StackFit.expand, children: [
-        const ColoredBox(color: Color(0xFF2A171C)),
+        const ColoredBox(color: Color(0xFF000000)),
         if (url != null && url.isNotEmpty)
           AppImage(source: url, fit: BoxFit.cover),
         Positioned(
@@ -999,7 +999,7 @@ class PopcornPostCard extends StatelessWidget {
       button: true,
       label: _semantic(room),
       child: Material(
-        color: const Color(0xFF17161C),
+        color: const Color(0xFF000000),
         borderRadius: BorderRadius.circular(18),
         clipBehavior: Clip.antiAlias,
         child: InkWell(

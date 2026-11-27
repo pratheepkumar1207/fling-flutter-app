@@ -101,7 +101,7 @@ class _PollSheetState extends State<_PollSheet> {
       child: Container(
         padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
         decoration: const BoxDecoration(
-            color: AppColors.sheet,
+            color: AppColors.sheet, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
             borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -250,7 +250,7 @@ class _PollSheetState extends State<_PollSheet> {
                     child: Container(
                         color: leading
                             ? AppColors.accent2.withValues(alpha: 0.18)
-                            : Colors.white.withValues(alpha: 0.06)),
+                            : Colors.black),
                   ),
                 ),
               Row(

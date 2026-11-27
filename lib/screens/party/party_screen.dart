@@ -384,7 +384,7 @@ class _PartyScreenState extends State<PartyScreen>
 
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xE6181818),
+      backgroundColor: const Color(0xE6000000),
       barrierColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
@@ -405,7 +405,7 @@ class _PartyScreenState extends State<PartyScreen>
               ),
               const SizedBox(height: 6),
               const Text('Everyone watching sees your lens',
-                  style: TextStyle(color: Colors.white70, fontSize: 11)),
+                  style: TextStyle(color: Colors.white, fontSize: 11)),
             ]),
           ),
         ),
@@ -439,7 +439,7 @@ class _PartyScreenState extends State<PartyScreen>
                           ? AppColors.pink
                           : Colors.black.withValues(alpha: 0.42),
                   border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                      Border.all(color: Colors.white),
                 ),
                 alignment: Alignment.center,
                 child: InIcon(icon,
@@ -908,7 +908,7 @@ class _PartyScreenState extends State<PartyScreen>
       height: 32,
       margin: const EdgeInsets.only(left: 2),
       decoration: BoxDecoration(
-        color: const Color(0xFF343434),
+        color: const Color(0xFF000000),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFFFF5266)),
       ),
@@ -1847,7 +1847,7 @@ class _PartyScreenState extends State<PartyScreen>
               margin: const EdgeInsets.only(left: 3),
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
               decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.14),
+                  color: Colors.black,
                   borderRadius: BorderRadius.circular(10)),
               child: Text('+${onMic.length - maxShown}',
                   style: const TextStyle(color: Colors.white, fontSize: 10.5)),
@@ -1889,7 +1889,7 @@ class _PartyScreenState extends State<PartyScreen>
       }
       final ok = await showModalBottomSheet<bool>(
         context: context,
-        backgroundColor: const Color(0xFF181818),
+        backgroundColor: const Color(0xFF000000),
         builder: (sheet) => SafeArea(
           child: ListTile(
             leading: const BotAvatar(size: 26),
@@ -3374,7 +3374,7 @@ class _PartyScreenState extends State<PartyScreen>
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                  color: const Color(0xFF2B2B2B),
+                  color: const Color(0xFF000000),
                   borderRadius: BorderRadius.circular(20)),
               child: const Center(
                   child: InIcon(InIcons.mic, size: 28, color: AppColors.lilac)),
@@ -3696,7 +3696,7 @@ class _PartyScreenState extends State<PartyScreen>
       context: context,
       builder: (dialog) => StatefulBuilder(
         builder: (dialog, setDialog) => Dialog(
-          backgroundColor: const Color(0xFF141414),
+          backgroundColor: const Color(0xFF000000),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(28),
               side: const BorderSide(color: AppColors.border)),

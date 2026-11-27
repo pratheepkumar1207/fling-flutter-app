@@ -190,7 +190,7 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
                         height: 2,
                         margin: const EdgeInsets.symmetric(horizontal: 2),
                         decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.3),
+                            color: Colors.black,
                             borderRadius: BorderRadius.circular(2)),
                         child: AnimatedBuilder(
                           animation: _controller,
@@ -247,7 +247,7 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
                           Row(children: [
                             Text(formatRelativeTime(item.createdAt),
                                 style: const TextStyle(
-                                    color: Colors.white70, fontSize: 11)),
+                                    color: Colors.white, fontSize: 11)),
                             if (item.closeFriends) ...[
                               const SizedBox(width: 6),
                               Container(
@@ -329,10 +329,10 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
             height: 42,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
+              color: Colors.black,
               borderRadius: BorderRadius.circular(999),
               border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.3), width: 1.5),
+                  color: Colors.white, width: 1.5),
             ),
             alignment: Alignment.centerLeft,
             child: TextField(
@@ -347,7 +347,7 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
                 isDense: true,
                 hintText: 'Reply to ${_group.name ?? 'them'}…',
                 hintStyle:
-                    const TextStyle(color: Colors.white70, fontSize: 12.5),
+                    const TextStyle(color: Colors.white, fontSize: 12.5),
               ),
             ),
           ),

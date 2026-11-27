@@ -522,7 +522,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
                                   width: 64,
                                   height: 48,
                                   decoration: BoxDecoration(
-                                      color: AppColors.surface3,
+                                      color: AppColors.surface3, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                                       borderRadius: BorderRadius.circular(8)),
                                   clipBehavior: Clip.antiAlias,
                                   child: s.thumbnail != null
@@ -1058,7 +1058,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
     String? picked = mine ?? (offered.contains('gold') ? 'gold' : offered.firstOrNull);
     final action = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: const Color(0xFF141414),
+      backgroundColor: const Color(0xFF000000),
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) => SafeArea(
@@ -1242,7 +1242,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
           InIcons.play,
           const Color(0xFFFFFFFF),
           'IN A WATCH PARTY',
-          const [Color(0xFFC7C7C7), Color(0xFFFFFFFF)],
+          const [Color(0xFFFFFFFF), Color(0xFFFFFFFF)],
           'watching'
         ),
       'game' => (

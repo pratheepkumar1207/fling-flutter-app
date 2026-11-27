@@ -26,7 +26,7 @@ class _RoomType {
 
 const _types = [
   _RoomType('watch', InIcons.tv, 'Watch', 'Videos together',
-      [Color(0xFFFFFFFF), Color(0xFFA9A9A9)]),
+      [Color(0xFFFFFFFF), Color(0xFFFFFFFF)]),
   _RoomType('voice', InIcons.mic, 'Talk', 'Voice room',
       [Color(0xFF2FA37A), Color(0xFF1D6650)]),
   _RoomType('game', InIcons.game, 'Game', 'Ludo, UNO, Chess',
@@ -125,7 +125,7 @@ class _CreateRoomTypeScreenState extends State<CreateRoomTypeScreen> {
                           ? null
                           : AppGradients.brandDiagonal,
                       color: picked == null || _busy
-                          ? const Color(0xFF292929)
+                          ? const Color(0xFF000000)
                           : null,
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -186,7 +186,7 @@ class _CreateRoomTypeScreenState extends State<CreateRoomTypeScreen> {
                       width: 46,
                       height: 46,
                       decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.18),
+                          color: Colors.black,
                           borderRadius: BorderRadius.circular(14)),
                       child: Center(
                           child:
@@ -216,7 +216,7 @@ class _CreateRoomTypeScreenState extends State<CreateRoomTypeScreen> {
                     radius: 12,
                     backgroundColor: Colors.white,
                     child: Icon(Icons.check_rounded,
-                        size: 16, color: Color(0xFFA9A9A9)),
+                        size: 16, color: Color(0xFFFFFFFF)),
                   ),
                 ),
             ]),

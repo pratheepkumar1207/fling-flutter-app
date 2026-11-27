@@ -48,7 +48,7 @@ class _PostImagesState extends State<PostImages> {
               margin: const EdgeInsets.symmetric(horizontal: 2.5),
               decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: i == _page ? Colors.white : Colors.white54),
+                  color: i == _page ? Colors.white : Colors.white),
             ),
         ]),
       ),

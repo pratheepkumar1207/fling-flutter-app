@@ -168,7 +168,7 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                      color: AppColors.surface2,
+                      color: AppColors.surface2, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                       borderRadius: BorderRadius.circular(14)),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,

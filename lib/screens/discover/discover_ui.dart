@@ -13,12 +13,12 @@ class DColors {
   DColors._();
   static const red = AppColors.primary; // E8112D
   static const redSoft = Color(0xFFFF5C6E);
-  static const redTint = Color(0xFF140406);
-  static const card = Color(0xFF0E0E0E);
-  static const chip = Color(0xFF1A1A1A);
-  static const line = Color(0xFF2A2A2A);
-  static const dim = Color(0xFF8A8A8A);
-  static const photo = Color(0xFF1F1F1F);
+  static const redTint = Color(0xFF000000);
+  static const card = Color(0xFF000000);
+  static const chip = Color(0xFF000000);
+  static const line = Color(0xFFFFFFFF);
+  static const dim = Color(0xFFFFFFFF);
+  static const photo = Color(0xFF000000);
 }
 
 /// A small rounded label. [tone]: plain grey, red fill, red outline, white.
@@ -40,7 +40,7 @@ class DChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (bg, fg, border) = switch (tone) {
-      DTone.plain => (DColors.chip, const Color(0xFFE6E6E6), null),
+      DTone.plain => (DColors.chip, Colors.white, Colors.white),
       DTone.red => (DColors.red, Colors.white, null),
       DTone.outline => (Colors.transparent, DColors.redSoft, DColors.red),
       DTone.white => (Colors.white, Colors.black, null),
@@ -96,7 +96,7 @@ class PersonFace extends StatelessWidget {
     final color = switch (ring) {
       RingKind.close => Colors.white,
       RingKind.lobby => DColors.red,
-      RingKind.stranger => const Color(0xFF8A8A8A),
+      RingKind.stranger => const Color(0xFFFFFFFF),
       RingKind.none => Colors.transparent,
     };
     final face = ClipOval(
@@ -106,11 +106,11 @@ class PersonFace extends StatelessWidget {
         child: avatarUrl != null && avatarUrl!.isNotEmpty
             ? AppImage(source: avatarUrl, fit: BoxFit.cover)
             : Container(
-                color: const Color(0xFF262626),
+                color: const Color(0xFF000000),
                 alignment: Alignment.center,
                 child: Text(initials(name),
                     style: TextStyle(
-                        color: const Color(0xFF9A9A9A),
+                        color: const Color(0xFFFFFFFF),
                         fontWeight: FontWeight.w700,
                         fontSize: size * 0.36)),
               ),
@@ -201,7 +201,7 @@ class DButton extends StatelessWidget {
       DButtonKind.ghost => (
           Colors.transparent,
           Colors.white,
-          const Color(0xFF444444)
+          const Color(0xFFFFFFFF)
         ),
     };
     return Material(
@@ -254,7 +254,7 @@ class SheetHandle extends StatelessWidget {
           height: 4,
           margin: const EdgeInsets.only(top: 8, bottom: 12),
           decoration: BoxDecoration(
-              color: const Color(0xFF333333),
+              color: const Color(0xFF000000),
               borderRadius: BorderRadius.circular(4)),
         ),
       );
@@ -303,7 +303,7 @@ class _SkeletonBoxState extends State<SkeletonBox>
           height: widget.height,
           decoration: BoxDecoration(
             color: Color.lerp(
-                const Color(0xFF151515), const Color(0xFF222222), _c.value),
+                const Color(0xFF000000), const Color(0xFF000000), _c.value),
             borderRadius: BorderRadius.circular(widget.radius),
           ),
         ),
@@ -388,7 +388,7 @@ class _AskedNoteState extends State<AskedNote> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-                color: DColors.card, borderRadius: BorderRadius.circular(12)),
+                color: DColors.card, border: Border.fromBorderSide(BorderSide(color: DColors.line, width: 0.8)), borderRadius: BorderRadius.circular(12)),
             child: Row(children: [
               const InIcon(InIcons.hourglass, size: 16, color: Colors.white),
               const SizedBox(width: 8),

@@ -425,7 +425,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                      color: Colors.white60,
+                      color: Colors.white,
                       fontSize: 11,
                       shadows: _textShadow)),
             ),
@@ -510,7 +510,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
 
   /// Joins, leaves, removals and other room notes: small and centred.
   Widget _queuedLine(Map<String, dynamic> m) {
-    const dim = Color(0xFFB8B8B8);
+    const dim = Color(0xFFFFFFFF);
     final by = m['addedBy'] as String?;
     final name = by != null && by == widget.myUserId
         ? 'You'
@@ -534,7 +534,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                 const TextSpan(text: 'Queued · '),
                 TextSpan(
                     text: m['title'] as String? ?? 'A song',
-                    style: const TextStyle(color: Color(0xFFE6E6E6))),
+                    style: const TextStyle(color: Color(0xFFFFFFFF))),
                 if (name != null) TextSpan(text: ' · $name'),
               ],
             ),
@@ -591,7 +591,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
     }
     final text = m['text'] as String? ?? '';
     final removed = event == 'removed';
-    final color = removed ? const Color(0xFFEE6373) : const Color(0xFFB8B8B8);
+    final color = removed ? const Color(0xFFEE6373) : const Color(0xFFFFFFFF);
     final person = _person(m['userId'] as String?);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -750,7 +750,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                     height: 32,
                     margin: const EdgeInsets.only(top: 2),
                     decoration: BoxDecoration(
-                        color: const Color(0xFF222222),
+                        color: const Color(0xFF000000),
                         borderRadius: BorderRadius.circular(6)),
                     clipBehavior: Clip.antiAlias,
                     child: m['thumbnail'] is String
@@ -798,7 +798,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                               if (np && pinner != null) 'by $pinner',
                             ].join(' \u00B7 '),
                             style: const TextStyle(
-                                color: Color(0xFF939393), fontSize: 12)),
+                                color: Color(0xFFFFFFFF), fontSize: 12)),
                       ]),
                 ),
               ]),
@@ -990,7 +990,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
 
   void _openEmoji() => showModalBottomSheet(
         context: context,
-        backgroundColor: const Color(0xFF181818),
+        backgroundColor: const Color(0xFF000000),
         isScrollControlled: true,
         builder: (sheet) => Padding(
           padding:
@@ -1075,8 +1075,8 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                   decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: mine
-                          ? Colors.white.withValues(alpha: 0.18)
-                          : const Color(0xFF2B2B2B)),
+                          ? Colors.black
+                          : const Color(0xFF000000)),
                   child: Center(child: icon),
                 ),
                 const SizedBox(width: 9),
@@ -1293,7 +1293,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                     color: Colors.black.withValues(alpha: 0.45),
                     borderRadius: BorderRadius.circular(16),
                     border:
-                        Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                        Border.all(color: Colors.white),
                   ),
                   child: Material(
                     type: MaterialType.transparency,
@@ -1304,7 +1304,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                           alignment: Alignment.centerLeft,
                           child: Text('Tap someone to tag them',
                               style: TextStyle(
-                                  color: Colors.white60, fontSize: 11)),
+                                  color: Colors.white, fontSize: 11)),
                         ),
                       ),
                       Flexible(
@@ -1390,7 +1390,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                              color: Colors.white70, fontSize: 12)),
+                              color: Colors.white, fontSize: 12)),
                     ]),
               ),
               IconButton(
@@ -1398,7 +1398,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                 visualDensity: VisualDensity.compact,
                 onPressed: () => setState(() => _replyTo = null),
                 icon: const InIcon(InIcons.close,
-                    size: 16, color: Colors.white70),
+                    size: 16, color: Colors.white),
               ),
             ]),
           ),
@@ -1458,7 +1458,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                 constraints: const BoxConstraints(minHeight: 42),
                 padding: const EdgeInsets.only(left: 14, right: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.12),
+                  color: Colors.black,
                   borderRadius: BorderRadius.circular(100),
                 ),
                 child: Row(
@@ -1477,7 +1477,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                         onSubmitted: (_) => _send(),
                         decoration: const InputDecoration(
                           hintText: 'Message…',
-                          hintStyle: TextStyle(color: Colors.white54),
+                          hintStyle: TextStyle(color: Colors.white),
                           // No second box inside the bar: the app's
                           // filled field style is switched off here.
                           filled: false,
@@ -1548,7 +1548,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
         radius: 20,
         child: Padding(
           padding: const EdgeInsets.all(6),
-          child: InIcon(icon, color: Colors.white70, size: 19),
+          child: InIcon(icon, color: Colors.white, size: 19),
         ),
       ),
     );
@@ -1617,7 +1617,7 @@ class _NowPlayingLine extends StatelessWidget {
                   height: 1))
         ),
       'hotstar' => (
-          const Color(0xFF363636),
+          const Color(0xFF000000),
           const Text('JH',
               style: TextStyle(
                   color: Colors.white,
@@ -1630,7 +1630,7 @@ class _NowPlayingLine extends StatelessWidget {
           const InIcon(InIcons.cloud, size: 9, color: Colors.white)
         ),
       _ => (
-          const Color(0xFF525252),
+          const Color(0xFFFFFFFF),
           const InIcon(InIcons.tv, size: 9, color: Colors.white)
         ),
     };
@@ -1646,7 +1646,7 @@ class _NowPlayingLine extends StatelessWidget {
   }
 
   InlineSpan _spans(String title, {required bool cut}) {
-    const dim = Color(0xFF939393);
+    const dim = Color(0xFFFFFFFF);
     return TextSpan(
       style:
           const TextStyle(color: Colors.white, fontSize: 13, shadows: _shadow),
@@ -1683,7 +1683,7 @@ class _NowPlayingLine extends StatelessWidget {
               text: pinnerName!.length > 16
                   ? '${pinnerName!.substring(0, 15)}…'
                   : pinnerName,
-              style: const TextStyle(color: Color(0xFFC0C0C0))),
+              style: const TextStyle(color: Color(0xFFFFFFFF))),
         ],
       ],
     );
@@ -1758,7 +1758,7 @@ class _NowPlayingLine extends StatelessWidget {
                     child: InIcon(InIcons.heart,
                         size: 17,
                         filled: liked,
-                        color: liked ? AppColors.pink : Colors.white70),
+                        color: liked ? AppColors.pink : Colors.white),
                   ),
                 ),
               ),
@@ -1776,12 +1776,12 @@ class _NowPlayingLine extends StatelessWidget {
                     padding: const EdgeInsets.all(6),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       const InIcon(InIcons.skipNext,
-                          size: 17, color: Colors.white70),
+                          size: 17, color: Colors.white),
                       if (!isHost) ...[
                         const SizedBox(width: 2),
                         Text('$skipVoteCount/$skipVoteRequired',
                             style: const TextStyle(
-                                color: Color(0xFFC0C0C0), fontSize: 10.5)),
+                                color: Color(0xFFFFFFFF), fontSize: 10.5)),
                       ],
                     ]),
                   ),
@@ -1834,7 +1834,7 @@ class _GiftChatCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.fromLTRB(4, 4, 12, 4),
             decoration: BoxDecoration(
-              color: const Color(0xE6303030),
+              color: const Color(0xE6000000),
               borderRadius: BorderRadius.circular(22),
               border: Border.all(color: const Color(0x66FFA8B2)),
             ),

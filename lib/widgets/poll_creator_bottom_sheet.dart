@@ -60,7 +60,7 @@ class _PollCreatorSheetState extends State<_PollCreatorSheet> {
         child: Container(
           padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
           decoration: const BoxDecoration(
-              color: AppColors.sheet,
+              color: AppColors.sheet, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
               borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
           child: SingleChildScrollView(
             child: Column(

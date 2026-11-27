@@ -15,19 +15,19 @@ class VolaPartyColors {
   static const bgGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF393939), Color(0xFF191919)],
+    colors: [Color(0xFF000000), Color(0xFF000000)],
   );
 
-  static const surface = Color(0xFF2A2A2A);
-  static const surface2 = Color(0xFF393939);
+  static const surface = Color(0xFF000000);
+  static const surface2 = Color(0xFF000000);
   static const border = Color(0x33FFFFFF);
 
   static const primary = Color(0xFFFFFFFF);
-  static const primaryDim = Color(0xFF767676);
+  static const primaryDim = Color(0xFF000000);
   static const gold = Color(0xFFFFD54D);
   static const danger = Color(0xFFFF4D62);
 
-  static const text = Color(0xFFF5F5F5);
-  static const textDim = Color(0xFFC2C2C2);
-  static const textFaint = Color(0xFFAAAAAA);
+  static const text = Color(0xFFFFFFFF);
+  static const textDim = Color(0xFFFFFFFF);
+  static const textFaint = Color(0xFFFFFFFF);
 }

@@ -90,7 +90,7 @@ class ClayColors extends ThemeExtension<ClayColors> {
     danger: AppColorsLight.danger,
     warning: AppColorsLight.warning,
     shadowLight: Color(0xFFFFFFFF),
-    shadowDark: Color(0xFFBBBBBB),
+    shadowDark: Color(0xFFFFFFFF),
     gradient: AppGradients.brand,
   );
 

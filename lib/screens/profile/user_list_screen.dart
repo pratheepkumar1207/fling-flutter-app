@@ -99,7 +99,7 @@ class _UserListScreenState extends State<UserListScreen> {
               height: 38,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                  color: AppColors.surface2,
+                  color: AppColors.surface2, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                   borderRadius: BorderRadius.circular(12)),
               child: Row(
                 children: [

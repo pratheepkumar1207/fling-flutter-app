@@ -39,7 +39,7 @@ class GoogleSignInView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(fit: StackFit.expand, children: [
       const _Glow(Alignment(0.7, -0.88), Color(0xFFB81427)),
-      const _Glow(Alignment(-0.92, -0.12), Color(0xFF8C8C8C)),
+      const _Glow(Alignment(-0.92, -0.12), Color(0xFFFFFFFF)),
       const _Glow(Alignment(0.5, 0.56), Color(0xFFB81427)),
       SafeArea(
         child: Column(children: [
@@ -78,8 +78,8 @@ class GoogleSignInView extends StatelessWidget {
                     minimumSize: const Size.fromHeight(52),
                     shape: const StadiumBorder(),
                     backgroundColor: Colors.white,
-                    disabledBackgroundColor: Colors.white70,
-                    foregroundColor: const Color(0xFF131313)),
+                    disabledBackgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF000000)),
                 icon: googleMark,
                 label: Text(loading ? 'Signing in…' : 'Continue with Google'),
               ),

@@ -103,7 +103,7 @@ class _RoomModerationScreenState extends State<RoomModerationScreen> {
                 child: Text(
                     'Add friends first — co-hosts are picked from them.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white70)),
+                    style: TextStyle(color: Colors.white)),
               )
             : ListView(shrinkWrap: true, children: [
                 const Padding(
@@ -321,7 +321,7 @@ class _RoomModerationScreenState extends State<RoomModerationScreen> {
           Text(name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Color(0xFFDBDBDB), fontSize: 11)),
+              style: const TextStyle(color: Color(0xFFFFFFFF), fontSize: 11)),
         ]),
       ),
     );
@@ -407,10 +407,10 @@ class _RoomModerationScreenState extends State<RoomModerationScreen> {
                           _face(
                             avatar: Container(
                               decoration: BoxDecoration(
-                                  color: const Color(0xFF111111),
+                                  color: const Color(0xFF000000),
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                      color: const Color(0xFF555555))),
+                                      color: const Color(0xFFFFFFFF))),
                               child: const Center(
                                   child: InIcon(InIcons.plus,
                                       size: 20, color: Colors.white)),
@@ -432,7 +432,7 @@ class _RoomModerationScreenState extends State<RoomModerationScreen> {
                   ),
                   const SizedBox(height: 18),
                   Material(
-                    color: const Color(0xFF111111),
+                    color: const Color(0xFF000000),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                         side: const BorderSide(color: kSheetBorder)),
@@ -453,7 +453,7 @@ class _RoomModerationScreenState extends State<RoomModerationScreen> {
                                   color: kSheetDim, fontSize: 12)),
                           const SizedBox(width: 4),
                           const InIcon(InIcons.right,
-                              size: 16, color: Color(0xFF666666)),
+                              size: 16, color: Color(0xFFFFFFFF)),
                           const SizedBox(width: 10),
                         ]),
                       ),
@@ -483,7 +483,7 @@ class _RoomModerationScreenState extends State<RoomModerationScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
             decoration: BoxDecoration(
-              color: const Color(0xFF111111),
+              color: const Color(0xFF000000),
               borderRadius: BorderRadius.circular(999),
               border: Border.all(
                   color: dashed ? Colors.white : kSheetBorder),
@@ -497,7 +497,7 @@ class _RoomModerationScreenState extends State<RoomModerationScreen> {
                 Text(label,
                     style: TextStyle(
                         fontSize: 12,
-                        color: dashed ? Colors.white : const Color(0xFFDDDDDD))),
+                        color: dashed ? Colors.white : const Color(0xFFFFFFFF))),
                 if (trailing != null) ...[
                   const SizedBox(width: 4),
                   InIcon(trailing, size: 13, color: kSheetDim),

@@ -282,7 +282,7 @@ class _PersonCardState extends State<_PersonCard> {
               style:
                   const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           Text(label,
-              style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              style: const TextStyle(color: Colors.white, fontSize: 12)),
         ]),
       );
 
@@ -368,7 +368,7 @@ class _PersonCardState extends State<_PersonCard> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                              color: Colors.white70, fontSize: 12.5)),
+                              color: Colors.white, fontSize: 12.5)),
                     ]),
               ),
             ]),
@@ -392,7 +392,7 @@ class _PersonCardState extends State<_PersonCard> {
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                   style:
-                      const TextStyle(color: Colors.white70, fontSize: 12)),
+                      const TextStyle(color: Colors.white, fontSize: 12)),
             ],
             const SizedBox(height: 14),
             if (!widget.isMe && p != null) ..._buttons(),
@@ -451,7 +451,7 @@ Future<void> showListenersSheet(
                 const Padding(
                   padding: EdgeInsets.fromLTRB(20, 16, 20, 28),
                   child: Text('Nobody’s listening yet.',
-                      style: TextStyle(color: Colors.white70)),
+                      style: TextStyle(color: Colors.white)),
                 ),
               Flexible(
                 child: ListView.builder(

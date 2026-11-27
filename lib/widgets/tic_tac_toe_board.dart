@@ -91,7 +91,7 @@ class TicTacToeBoard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                      color: AppColors.surface.withValues(alpha: 0.7),
+                      color: AppColors.surface.withValues(alpha: 0.7), border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                       borderRadius: BorderRadius.circular(14)),
                   child: GridView.builder(
                     physics: const NeverScrollableScrollPhysics(),
@@ -108,7 +108,7 @@ class TicTacToeBoard extends StatelessWidget {
                             (isMyTurn && cell == null) ? () => onMove(i) : null,
                         child: Container(
                           decoration: BoxDecoration(
-                              color: AppColors.surface2,
+                              color: AppColors.surface2, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                               borderRadius: BorderRadius.circular(9)),
                           alignment: Alignment.center,
                           child: Text(

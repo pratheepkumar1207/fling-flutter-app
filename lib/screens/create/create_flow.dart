@@ -525,7 +525,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
               child: Text(
                   'Allow the camera to record here, or pick from your gallery.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white70)),
+                  style: TextStyle(color: Colors.white)),
             ),
           ),
         SafeArea(
@@ -659,14 +659,14 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
                         CreateMode.reel => 'Reel',
                       },
                       style: TextStyle(
-                          color: m == _mode ? AppColors.lilac : Colors.white70,
+                          color: m == _mode ? AppColors.lilac : Colors.white,
                           fontWeight:
                               m == _mode ? FontWeight.w700 : FontWeight.w400)),
                 ),
               TextButton(
                 onPressed: _recording ? null : _goLive,
                 child:
-                    const Text('Live', style: TextStyle(color: Colors.white70)),
+                    const Text('Live', style: TextStyle(color: Colors.white)),
               ),
             ]),
           ]),
@@ -711,7 +711,7 @@ class _ThirdsPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final line = Paint()
-      ..color = Colors.white54
+      ..color = Colors.white
       ..strokeWidth = 1;
     for (final t in const [1 / 3, 2 / 3]) {
       canvas.drawLine(
@@ -745,7 +745,7 @@ class _FilterChip extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20)),
             child: Text(label,
                 style: TextStyle(
-                    color: selected ? const Color(0xFF262626) : Colors.white,
+                    color: selected ? const Color(0xFFFFFFFF) : Colors.white,
                     fontSize: 13,
                     fontWeight: selected ? FontWeight.w700 : FontWeight.w400)),
           ),
@@ -942,7 +942,7 @@ class _CreateEditScreenState extends State<CreateEditScreen> {
         SizedBox(
             width: 82,
             child: Text(label,
-                style: const TextStyle(color: Colors.white70, fontSize: 12.5))),
+                style: const TextStyle(color: Colors.white, fontSize: 12.5))),
         Expanded(
           child: Slider(value: value, min: min, max: 1, onChanged: onChanged),
         ),
@@ -1197,7 +1197,7 @@ class _CreateEditScreenState extends State<CreateEditScreen> {
                 Expanded(
                   child: Text(
                       'Clip: ${((_range.end - _range.start) / 1000 / _speed).round()} seconds',
-                      style: const TextStyle(color: Colors.white70)),
+                      style: const TextStyle(color: Colors.white)),
                 ),
                 PopupMenuButton<double>(
                   tooltip: 'Speed',
@@ -1497,7 +1497,7 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
                           onTap: _chooseCover,
                           child: Stack(fit: StackFit.expand, children: [
                             _cover == null
-                                ? const ColoredBox(color: Color(0xFF363636))
+                                ? const ColoredBox(color: Color(0xFF000000))
                                 : Image.file(File(_cover!), fit: BoxFit.cover),
                             const Positioned(
                               left: 0,

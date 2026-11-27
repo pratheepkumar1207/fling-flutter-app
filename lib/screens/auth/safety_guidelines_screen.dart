@@ -11,7 +11,7 @@ const _kRules = [
   (
     icon: InIcons.verified,
     color: AppColors.blue,
-    tile: Color(0xFF2C2C2C),
+    tile: Color(0xFF000000),
     title: 'Be who you say you are',
     body: 'Use real photos and your real age. Fake profiles get suspended.',
   ),

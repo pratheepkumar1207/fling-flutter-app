@@ -221,7 +221,7 @@ class _RandomMatchScreenState extends State<RandomMatchScreen>
                             width: 76,
                             height: 76,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1A1A1A),
+                              color: const Color(0xFF000000),
                               shape: BoxShape.circle,
                               border: Border.all(color: DColors.red, width: 3),
                             ),
@@ -283,8 +283,8 @@ class _RandomMatchScreenState extends State<RandomMatchScreen>
           height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: red ? DColors.red : const Color(0xFF111111),
-            border: red ? null : Border.all(color: const Color(0xFF333333)),
+            color: red ? DColors.red : const Color(0xFF000000),
+            border: red ? null : Border.all(color: const Color(0xFFFFFFFF)),
           ),
           alignment: Alignment.center,
           child:

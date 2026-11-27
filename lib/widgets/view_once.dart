@@ -114,7 +114,7 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
                                 fontWeight: FontWeight.w700)),
                         Text('Closes in $_left second${_left == 1 ? '' : 's'}',
                             style: const TextStyle(
-                                color: Colors.white60, fontSize: 12.5)),
+                                color: Colors.white, fontSize: 12.5)),
                       ]),
                 ),
                 IconButton(
@@ -135,11 +135,11 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 10, 16, 14),
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              InIcon(InIcons.lock, size: 14, color: Colors.white54),
+              InIcon(InIcons.lock, size: 14, color: Colors.white),
               SizedBox(width: 6),
               Flexible(
                 child: Text('Can’t screenshot, save or forward',
-                    style: TextStyle(color: Colors.white54, fontSize: 12.5)),
+                    style: TextStyle(color: Colors.white, fontSize: 12.5)),
               ),
             ]),
           ),
@@ -176,8 +176,8 @@ class ViewOnceCard extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: mine
-                    ? Colors.white.withValues(alpha: 0.18)
-                    : const Color(0xFF2B2B2B),
+                    ? Colors.black
+                    : const Color(0xFF000000),
               ),
               child: Center(
                   child: InIcon(mine ? InIcons.send : InIcons.eye,
@@ -473,7 +473,7 @@ class _SeenBySheetState extends State<_SeenBySheet> {
                 for (final v in viewers)
                   ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: const Color(0xFF2B2B2B),
+                      backgroundColor: const Color(0xFF000000),
                       backgroundImage: (v['avatarUrl'] as String?) != null &&
                               (v['avatarUrl'] as String).startsWith('http')
                           ? NetworkImage(v['avatarUrl'] as String)

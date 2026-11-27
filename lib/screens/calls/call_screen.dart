@@ -302,7 +302,7 @@ class _CallScreenState extends State<CallScreen> {
                                             ? 'Calling…'
                                             : 'Connecting…')),
                                 style: const TextStyle(
-                                    color: Colors.white70,
+                                    color: Colors.white,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600),
                               ),
@@ -346,11 +346,11 @@ class _CallScreenState extends State<CallScreen> {
                             const SizedBox(height: 4),
                             if (connected)
                               _durationText(const TextStyle(
-                                  color: Colors.white70, fontSize: 14))
+                                  color: Colors.white, fontSize: 14))
                             else
                               const Text('Audio call',
                                   style: TextStyle(
-                                      color: Colors.white70, fontSize: 12.5)),
+                                      color: Colors.white, fontSize: 12.5)),
                           ] else
                             Padding(
                               padding: const EdgeInsets.only(top: 8),
@@ -422,7 +422,7 @@ class _CallScreenState extends State<CallScreen> {
                                               shape: BoxShape.circle)),
                                     if (connected)
                                       _durationText(const TextStyle(
-                                          color: Colors.white70,
+                                          color: Colors.white,
                                           fontSize: 11.5))
                                     else
                                       Text(
@@ -431,7 +431,7 @@ class _CallScreenState extends State<CallScreen> {
                                                 ? 'Calling…'
                                                 : 'Connecting…'),
                                         style: const TextStyle(
-                                            color: Colors.white70,
+                                            color: Colors.white,
                                             fontSize: 11.5),
                                       ),
                                   ],
@@ -446,7 +446,7 @@ class _CallScreenState extends State<CallScreen> {
                               height: 34,
                               decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: Colors.white.withValues(alpha: 0.12)),
+                                  color: Colors.black),
                               alignment: Alignment.center,
                               child: const InIcon(InIcons.flip,
                                   size: 16, color: Colors.white),
@@ -476,14 +476,14 @@ class _CallScreenState extends State<CallScreen> {
                           padding: const EdgeInsets.only(top: 4, bottom: 10),
                           child: Text('${widget.peerName} sees your lens',
                               style: const TextStyle(
-                                  color: Colors.white70, fontSize: 11)),
+                                  color: Colors.white, fontSize: 11)),
                         ),
                       ],
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 16),
                         decoration: BoxDecoration(
-                          color: const Color(0xE6181818),
+                          color: const Color(0xE6000000),
                           borderRadius: BorderRadius.circular(28),
                           border: Border.all(color: AppColors.border),
                         ),
@@ -599,7 +599,7 @@ class _CallScreenState extends State<CallScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color:
-                    tile ?? (active ? Colors.white : const Color(0xFF2D2D2D)),
+                    tile ?? (active ? Colors.white : const Color(0xFF000000)),
               ),
               alignment: Alignment.center,
               child: InIcon(icon,

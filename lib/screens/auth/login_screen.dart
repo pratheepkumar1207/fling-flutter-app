@@ -374,7 +374,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: FilledButton.styleFrom(
                             minimumSize: const Size.fromHeight(52),
                             backgroundColor: Colors.white,
-                            foregroundColor: const Color(0xFF131313)),
+                            foregroundColor: const Color(0xFF000000)),
                         icon: const _GoogleMark(),
                         label: const Text('Continue with Google'),
                       ),

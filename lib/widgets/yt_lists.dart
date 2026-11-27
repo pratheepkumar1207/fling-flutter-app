@@ -9,9 +9,9 @@ import 'app_image.dart';
 // YouTube-style lists for the source picker and profile: History, Liked
 // and Playlists. Black, big 16:9 thumbnails on the left, two-line titles.
 
-const _bg = Color(0xFF0F0F0F);
-const _chipBg = Color(0xFF272727);
-const _dim = Color(0xFFAAAAAA);
+const _bg = Color(0xFF000000);
+const _chipBg = Color(0xFF000000);
+const _dim = Color(0xFFFFFFFF);
 
 const kSourceNames = {
   'youtube': 'YouTube',
@@ -35,7 +35,7 @@ const _sourceColors = {
   'drive': Color(0xFF1E8E3E),
   'netflix': Color(0xFFE50923),
   'amazon': Color(0xFFFFFFFF),
-  'hotstar': Color(0xFF363636),
+  'hotstar': Color(0xFF000000),
 };
 
 String _sourceOf(Map<String, dynamic> m) {
@@ -48,7 +48,7 @@ Widget _sourceBadge(String source) => Container(
       height: 10,
       margin: const EdgeInsets.only(right: 5),
       decoration: BoxDecoration(
-          color: _sourceColors[source] ?? const Color(0xFF525252),
+          color: _sourceColors[source] ?? const Color(0xFF000000),
           borderRadius: BorderRadius.circular(2)),
     );
 
@@ -75,7 +75,7 @@ class YtThumb extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: Stack(fit: StackFit.expand, children: [
-          const ColoredBox(color: Color(0xFF222222)),
+          const ColoredBox(color: Color(0xFF000000)),
           if (src != null && src!.isNotEmpty)
             AppImage(source: src, fit: BoxFit.cover)
           else
@@ -289,7 +289,7 @@ class _YtSongListState extends State<YtSongList> {
             tooltip: 'More',
             visualDensity: VisualDensity.compact,
             onPressed: () => _menu(r),
-            icon: const InIcon(InIcons.more, size: 18, color: Colors.white70),
+            icon: const InIcon(InIcons.more, size: 18, color: Colors.white),
           ),
         ]),
       ),
@@ -378,7 +378,7 @@ class _YtSongListState extends State<YtSongList> {
                       _query.clear();
                     }),
                     icon: const InIcon(InIcons.back,
-                        size: 16, color: Colors.white70),
+                        size: 16, color: Colors.white),
                   ),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(18),
@@ -601,7 +601,7 @@ class YtPlaylistList extends StatelessWidget {
                 width: 128,
                 height: 72,
                 decoration: BoxDecoration(
-                    border: Border.all(color: const Color(0xFF555555)),
+                    border: Border.all(color: const Color(0xFFFFFFFF)),
                     borderRadius: BorderRadius.circular(8)),
                 alignment: Alignment.center,
                 child: const InIcon(InIcons.plus, size: 22, color: Colors.white),
@@ -653,7 +653,7 @@ class _YtPlaylistScreenState extends State<YtPlaylistScreen> {
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
-          backgroundColor: const Color(0xFF8B8B8B),
+          backgroundColor: const Color(0xFFFFFFFF),
           foregroundColor: Colors.white,
           elevation: 0),
       body: ListView(padding: const EdgeInsets.only(bottom: 24), children: [
@@ -662,7 +662,7 @@ class _YtPlaylistScreenState extends State<YtPlaylistScreen> {
             gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0xFF8B8B8B), _bg]),
+                colors: [Color(0xFFFFFFFF), _bg]),
           ),
           padding: const EdgeInsets.fromLTRB(14, 4, 14, 12),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -768,7 +768,7 @@ class _YtPlaylistScreenState extends State<YtPlaylistScreen> {
                       await widget.onRemoveSong!(s);
                     },
                     icon: const InIcon(InIcons.close,
-                        size: 16, color: Colors.white54),
+                        size: 16, color: Colors.white),
                   ),
               ]),
             ),

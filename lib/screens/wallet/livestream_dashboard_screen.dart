@@ -261,8 +261,8 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
 
   static const _thumbGradients = [
     [Color(0xFFE0B58A), Color(0xFFDA182F)],
-    [Color(0xFFD9D9D9), Color(0xFF898989)],
-    [Color(0xFFD7D7D7), Color(0xFF898989)],
+    [Color(0xFFFFFFFF), Color(0xFFFFFFFF)],
+    [Color(0xFFFFFFFF), Color(0xFFFFFFFF)],
   ];
 
   Widget _bottomCta(String status) {
@@ -371,7 +371,7 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
                         fontSize: 15)),
                 Text(subtitle,
                     style:
-                        const TextStyle(color: Colors.white70, fontSize: 11)),
+                        const TextStyle(color: Colors.white, fontSize: 11)),
               ],
             ),
           ),
@@ -385,7 +385,7 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-          color: AppColors.surface2, borderRadius: BorderRadius.circular(14)),
+          color: AppColors.surface2, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)), borderRadius: BorderRadius.circular(14)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

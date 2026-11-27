@@ -344,7 +344,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                                 bottom: -6,
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF141414),
+                                    color: const Color(0xFF000000),
                                     borderRadius: BorderRadius.circular(26),
                                     border: Border.all(color: DColors.line),
                                   ),
@@ -452,18 +452,18 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: red ? DColors.red : const Color(0xFF111111),
+            color: red ? DColors.red : const Color(0xFF000000),
             border: red
                 ? null
                 : Border.all(
-                    color: lit ? DColors.red : const Color(0xFF333333)),
+                    color: lit ? DColors.red : const Color(0xFFFFFFFF)),
           ),
           alignment: Alignment.center,
           child: InIcon(icon,
               size: iconSize,
               filled: red || lit,
               color: disabled
-                  ? Colors.white.withValues(alpha: 0.3)
+                  ? Colors.white
                   : lit
                       ? DColors.red
                       : Colors.white),
@@ -569,10 +569,10 @@ class _EmptyDeck extends StatelessWidget {
             height: 86,
             decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF444444))),
+                border: Border.all(color: const Color(0xFFFFFFFF))),
             alignment: Alignment.center,
             child:
-                const InIcon(InIcons.users, size: 36, color: Color(0xFF777777)),
+                const InIcon(InIcons.users, size: 36, color: Color(0xFFFFFFFF)),
           ),
           const SizedBox(height: 14),
           const Text('You’ve seen everyone nearby',
@@ -710,10 +710,10 @@ class _Offline extends StatelessWidget {
             height: 86,
             decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF444444))),
+                border: Border.all(color: const Color(0xFFFFFFFF))),
             alignment: Alignment.center,
             child:
-                const InIcon(InIcons.cloud, size: 36, color: Color(0xFF777777)),
+                const InIcon(InIcons.cloud, size: 36, color: Color(0xFFFFFFFF)),
           ),
           const SizedBox(height: 14),
           const Text('Can\u2019t connect right now',
@@ -743,7 +743,7 @@ class _CardTip extends StatelessWidget {
             width: 34,
             height: 34,
             decoration: const BoxDecoration(
-                color: Color(0xFF1A1A1A), shape: BoxShape.circle),
+                color: Color(0xFF000000), shape: BoxShape.circle),
             alignment: Alignment.center,
             child: InIcon(icon, size: 17, color: Colors.white),
           ),

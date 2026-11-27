@@ -45,7 +45,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
   // AchievementsDark.dc.html's glossy circular badge icons.
   static const _badgeGradients = [
     [Color(0xFFE8A26B), Color(0xFFC5522E)],
-    [Color(0xFFEE6373), Color(0xFF868686)],
+    [Color(0xFFEE6373), Color(0xFFFFFFFF)],
     [Color(0xFFE8C56B), Color(0xFFC28A38)],
     [Color(0xFF7ED9B0), Color(0xFF3F9E6E)],
   ];

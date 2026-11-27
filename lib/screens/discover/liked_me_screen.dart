@@ -169,12 +169,12 @@ class _LikeCard extends StatelessWidget {
         label: 'Hidden like. Get VIP to see who.',
         child: Container(
           decoration: BoxDecoration(
-              color: const Color(0xFF141414),
+              color: const Color(0xFF000000),
               borderRadius: BorderRadius.circular(16)),
           child: Stack(children: [
             const Center(
                 child:
-                    InIcon(InIcons.lock, size: 30, color: Color(0xFF3A3A3A))),
+                    InIcon(InIcons.lock, size: 30, color: Color(0xFFFFFFFF))),
             if (age != null)
               Positioned(
                   left: 8, bottom: 8, child: DChip('••••, $age', fontSize: 11)),

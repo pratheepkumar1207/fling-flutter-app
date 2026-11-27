@@ -510,7 +510,7 @@ class _BlendScreenState extends State<BlendScreen> {
                       style: TextStyle(
                           color: others.isNotEmpty && _synced
                               ? AppColors.success
-                              : Colors.white70,
+                              : Colors.white,
                           fontSize: 11.5)),
                 ],
               ),
@@ -573,7 +573,7 @@ class _BlendScreenState extends State<BlendScreen> {
                       focusedBorder: InputBorder.none,
                       hintText: 'Say something',
                       hintStyle:
-                          TextStyle(color: Colors.white54, fontSize: 13)),
+                          TextStyle(color: Colors.white, fontSize: 13)),
                 ),
               ),
             ),
@@ -649,7 +649,7 @@ class _BlendScreenState extends State<BlendScreen> {
                       child: Text(
                           '${_blend!.creator?.firstName ?? 'The host'} is swiping',
                           style: const TextStyle(
-                              color: Colors.white70, fontSize: 11)),
+                              color: Colors.white, fontSize: 11)),
                     ),
                   ),
                 // Chat lines float bottom-left, clear of the right rail.

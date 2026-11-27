@@ -166,7 +166,7 @@ class _SwipeCardState extends State<SwipeCard> {
                           decoration: BoxDecoration(
                             color: i == _photo
                                 ? Colors.white
-                                : Colors.white.withValues(alpha: 0.3),
+                                : Colors.black,
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -207,11 +207,11 @@ class _SwipeCardState extends State<SwipeCard> {
     final p = widget.profile;
     if (_photos.isEmpty) {
       return Container(
-        color: const Color(0xFF1F1F1F),
+        color: const Color(0xFF000000),
         alignment: Alignment.center,
         child: Text(initials(p.name),
             style: const TextStyle(
-                color: Color(0xFF555555),
+                color: Color(0xFFFFFFFF),
                 fontSize: 64,
                 fontWeight: FontWeight.w800)),
       );
@@ -312,7 +312,7 @@ class _SwipeCardState extends State<SwipeCard> {
                   const SizedBox(width: 3),
                   Text(where,
                       style: const TextStyle(
-                          color: Color(0xFFBBBBBB), fontSize: 13)),
+                          color: Color(0xFFFFFFFF), fontSize: 13)),
                 ]),
               ),
             if (chips.isNotEmpty || p.inCommon.isNotEmpty) ...[

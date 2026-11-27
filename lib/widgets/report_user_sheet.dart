@@ -133,7 +133,7 @@ class _ReportReasonSheetState extends State<_ReportReasonSheet> {
           constraints: BoxConstraints(
               maxHeight: MediaQuery.sizeOf(context).height * 0.9),
           decoration: const BoxDecoration(
-              color: AppColors.surface,
+              color: AppColors.surface, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
               borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),

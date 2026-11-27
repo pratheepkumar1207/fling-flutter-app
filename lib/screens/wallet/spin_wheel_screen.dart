@@ -135,7 +135,7 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
   Widget build(BuildContext context) {
     final canSpin = _canSpin && !_spinning;
     return Scaffold(
-      backgroundColor: const Color(0xFF282828),
+      backgroundColor: const Color(0xFF000000),
       appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -166,7 +166,7 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                                 _segmentColors.first
                               ]),
                               border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.15),
+                                  color: Colors.white,
                                   width: 6),
                               boxShadow: [
                                 BoxShadow(
@@ -212,12 +212,12 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                     Text(
                         'Next free spin in ${_formatCountdown(_timeUntilNextSpin)}',
                         style: const TextStyle(
-                            color: Colors.white70, fontSize: 12.5))
+                            color: Colors.white, fontSize: 12.5))
                   else
                     RichText(
                       text: TextSpan(
                         style: const TextStyle(
-                            color: Colors.white60, fontSize: 12.5),
+                            color: Colors.white, fontSize: 12.5),
                         children: const [
                           TextSpan(text: 'You have '),
                           TextSpan(
@@ -242,7 +242,7 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                             : null,
                         color: canSpin
                             ? null
-                            : Colors.white.withValues(alpha: 0.08),
+                            : Colors.black,
                         boxShadow: canSpin
                             ? [
                                 BoxShadow(
@@ -274,7 +274,7 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
               children: [
                 Text('RECENT WINS',
                     style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
+                        color: Colors.white,
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.6)),
@@ -295,7 +295,7 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                           margin: const EdgeInsets.only(right: 8),
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.08),
+                              color: Colors.black,
                               borderRadius: BorderRadius.circular(12)),
                           alignment: Alignment.center,
                           child: Column(
@@ -303,7 +303,7 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                               Text(date != null ? formatRelativeTime(date) : '',
                                   style: TextStyle(
                                       color:
-                                          Colors.white.withValues(alpha: 0.5),
+                                          Colors.white,
                                       fontSize: 9.5)),
                               Text('+$coins',
                                   style: const TextStyle(

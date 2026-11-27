@@ -275,7 +275,7 @@ class InIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? IconTheme.of(context).color ?? const Color(0xFFF5F5F5);
+    final c = color ?? IconTheme.of(context).color ?? const Color(0xFFFFFFFF);
     final hex =
         '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
     final fill =

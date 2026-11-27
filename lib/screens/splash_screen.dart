@@ -121,7 +121,7 @@ class _SplashScaffold extends StatelessWidget {
                 gradient: RadialGradient(
                   center: Alignment(0, -0.12),
                   radius: 0.9,
-                  colors: [Color(0xFF292929), AppColors.bg],
+                  colors: [Color(0xFF000000), AppColors.bg],
                   stops: [0, 0.62],
                 ),
               ),

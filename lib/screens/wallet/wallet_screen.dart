@@ -138,13 +138,13 @@ class _WalletScreenState extends State<WalletScreen> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(22),
               gradient: AppGradients.hero,
-              border: Border.all(color: const Color(0xFF404040)),
+              border: Border.all(color: const Color(0xFFFFFFFF)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Coin balance',
-                    style: TextStyle(color: Color(0xFFD6D6D6), fontSize: 13)),
+                    style: TextStyle(color: Color(0xFFFFFFFF), fontSize: 13)),
                 const SizedBox(height: 6),
                 Row(children: [
                   const CoinDot(size: 28),
@@ -184,9 +184,9 @@ class _WalletScreenState extends State<WalletScreen> {
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size.fromHeight(44),
                           foregroundColor: Colors.white,
-                          backgroundColor: Colors.white.withValues(alpha: 0.1),
+                          backgroundColor: Colors.black,
                           side: BorderSide(
-                              color: Colors.white.withValues(alpha: 0.22)),
+                              color: Colors.white),
                         ),
                         icon: const InIcon(InIcons.cash,
                             size: 18, color: Colors.white),
@@ -203,24 +203,24 @@ class _WalletScreenState extends State<WalletScreen> {
               padding: EdgeInsets.only(top: 14), child: TrophyCoinsCard()),
           const SizedBox(height: 14),
           Row(children: [
-            _quickTile(InIcons.wheel, 'Daily spin', const Color(0xFFFF9F5A),
-                const Color(0xFF2A1A10), () => const SpinWheelScreen()),
+            _quickTile(InIcons.wheel, 'Daily spin', Colors.white,
+                Colors.black, () => const SpinWheelScreen()),
             const SizedBox(width: 8),
             _quickTile(
                 InIcons.crown,
                 user?.isVip == true ? 'VIP active' : 'VIP store',
-                AppColors.gold,
-                const Color(0xFF2A2310),
+                Colors.white,
+                Colors.black,
                 () => const VipStoreScreen()),
             const SizedBox(width: 8),
-            _quickTile(InIcons.ticket, 'Refer · 50', AppColors.success,
-                const Color(0xFF0F2216), () => const ReferralScreen()),
+            _quickTile(InIcons.ticket, 'Refer · 50', Colors.white,
+                Colors.black, () => const ReferralScreen()),
             const SizedBox(width: 8),
             _quickTile(
                 InIcons.live,
                 'Live earnings',
                 AppColors.pink,
-                const Color(0xFF2A1013),
+                Colors.black,
                 () => const LivestreamDashboardScreen()),
           ]),
           const SizedBox(height: 14),
@@ -278,7 +278,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       width: 38,
                       height: 38,
                       decoration: BoxDecoration(
-                          color: AppColors.surface2,
+                          color: AppColors.surface2, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                           borderRadius: BorderRadius.circular(11)),
                       alignment: Alignment.center,
                       child: InIcon(

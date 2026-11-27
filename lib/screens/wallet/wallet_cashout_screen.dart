@@ -192,7 +192,7 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                    color: AppColors.surface2,
+                                    color: AppColors.surface2, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                                     borderRadius: BorderRadius.circular(16)),
                                 child: Column(
                                   children: [
@@ -310,7 +310,7 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
                                         width: 34,
                                         height: 34,
                                         decoration: BoxDecoration(
-                                            color: AppColors.surface,
+                                            color: AppColors.surface, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                                             borderRadius:
                                                 BorderRadius.circular(9)),
                                         alignment: Alignment.center,

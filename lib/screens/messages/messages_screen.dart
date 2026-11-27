@@ -797,7 +797,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
             child: ListTile(
               onTap: _findCommunities,
               leading: const CircleAvatar(
-                  backgroundColor: Color(0xFF303030),
+                  backgroundColor: Color(0xFF000000),
                   child:
                       InIcon(InIcons.search, size: 18, color: AppColors.lilac)),
               title: const Text('Find communities',
@@ -934,7 +934,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
               margin: const EdgeInsets.fromLTRB(14, 0, 14, 6),
               padding: const EdgeInsets.fromLTRB(12, 6, 4, 6),
               decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: AppColors.surface, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                   borderRadius: BorderRadius.circular(12)),
               child: Row(children: [
                 const InIcon(InIcons.swap, size: 16, color: AppColors.textDim),
@@ -1417,7 +1417,7 @@ class _ChatOptionsSheet extends StatelessWidget {
                 shape: StadiumBorder(
                     side: selected
                         ? BorderSide.none
-                        : const BorderSide(color: Color(0xFF424242))),
+                        : const BorderSide(color: Color(0xFFFFFFFF))),
                 child: InkWell(
                   customBorder: const StadiumBorder(),
                   onTap: () => onMute(value),
@@ -1434,7 +1434,7 @@ class _ChatOptionsSheet extends StatelessWidget {
                                     : FontWeight.w600,
                                 color: selected
                                     ? Colors.white
-                                    : const Color(0xFFDCDCDC))),
+                                    : const Color(0xFFFFFFFF))),
                       ),
                     ),
                   ),
@@ -1634,7 +1634,7 @@ class _FilterPill extends StatelessWidget {
                         fontWeight:
                             selected ? FontWeight.w700 : FontWeight.w600,
                         color:
-                            selected ? AppColors.bg : const Color(0xFFDCDCDC))),
+                            selected ? AppColors.bg : const Color(0xFFFFFFFF))),
                 if (count > 0) ...[
                   const SizedBox(width: 6),
                   Container(
@@ -1688,7 +1688,7 @@ class _RequestsBanner extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: const BoxDecoration(
-                    color: Color(0xFF2B2B2B), shape: BoxShape.circle),
+                    color: Color(0xFF000000), shape: BoxShape.circle),
                 child: const Center(
                     child:
                         InIcon(InIcons.chat, size: 20, color: AppColors.lilac)),
@@ -1839,9 +1839,9 @@ class _ActivityChip extends StatelessWidget {
     final chip = Container(
       padding: const EdgeInsets.fromLTRB(8, 5, 10, 5),
       decoration: BoxDecoration(
-          color: const Color(0xFF1C1C1C),
+          color: const Color(0xFF000000),
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: const Color(0xFF404040))),
+          border: Border.all(color: const Color(0xFFFFFFFF))),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         InIcon(icon, size: 13, color: color),
         const SizedBox(width: 6),
@@ -2066,7 +2066,7 @@ class _UnreadBadge extends StatelessWidget {
           width: 12,
           height: 12,
           decoration: BoxDecoration(
-              color: muted ? const Color(0xFF4F4F4F) : AppColors.primary,
+              color: muted ? const Color(0xFF000000) : AppColors.primary,
               shape: BoxShape.circle),
         ),
       );
@@ -2080,7 +2080,7 @@ class _UnreadBadge extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 6),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-            color: muted ? const Color(0xFF4F4F4F) : AppColors.primary,
+            color: muted ? const Color(0xFF000000) : AppColors.primary,
             borderRadius: BorderRadius.circular(999)),
         child: Text(count > 99 ? '99+' : '$count',
             style: const TextStyle(
@@ -2105,7 +2105,7 @@ class _EmptyChats extends StatelessWidget {
           width: 64,
           height: 64,
           decoration: BoxDecoration(
-              color: const Color(0xFF272727),
+              color: const Color(0xFF000000),
               borderRadius: BorderRadius.circular(21)),
           child: const Center(
               child: InIcon(InIcons.chat, size: 30, color: AppColors.lilac)),

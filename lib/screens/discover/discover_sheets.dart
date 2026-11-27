@@ -67,7 +67,7 @@ Future<void> showOutOfLikesSheet(BuildContext context, Map limits,
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                  color: const Color(0xFF141414),
+                  color: const Color(0xFF000000),
                   borderRadius: BorderRadius.circular(14)),
               child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,7 +119,7 @@ class _UsedRing extends CustomPainter {
       ..strokeWidth = 5
       ..strokeCap = StrokeCap.round;
     canvas.drawArc(
-        r, 0, math.pi * 2, false, p..color = const Color(0xFF2A2A2A));
+        r, 0, math.pi * 2, false, p..color = const Color(0xFFFFFFFF));
     canvas.drawArc(
         r, -math.pi / 2, math.pi * 2 * 0.999, false, p..color = DColors.red);
   }
@@ -281,7 +281,7 @@ class _BoostSheetState extends State<_BoostSheet> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-                color: on ? DColors.red : const Color(0xFF333333),
+                color: on ? DColors.red : const Color(0xFFFFFFFF),
                 width: on ? 1.6 : 0.8),
           ),
           child: Column(children: [

@@ -90,7 +90,7 @@ void main() {
                   const SizedBox(height: 14),
                 ],
                 Container(
-                  color: const Color(0xFF16151B),
+                  color: Colors.black,
                   child: EmojiPanel(onPick: (_) {}),
                 ),
               ]),

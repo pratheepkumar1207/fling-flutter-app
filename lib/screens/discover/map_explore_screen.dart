@@ -410,7 +410,7 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
       options: MapOptions(
         initialCenter: center,
         initialZoom: first != null ? 13 : 4,
-        backgroundColor: const Color(0xFF0A0A0A),
+        backgroundColor: const Color(0xFF000000),
         onPositionChanged: (camera, hasGesture) {
           final zoomMoved = (camera.zoom - _zoom).abs() > 0.4;
           if (zoomMoved) _zoom = camera.zoom;
@@ -520,7 +520,7 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
                 fontSize: 13,
-                color: close ? Colors.white : const Color(0xFFBBBBBB)),
+                color: close ? Colors.white : const Color(0xFFFFFFFF)),
           ),
         ),
       ]),
@@ -587,9 +587,9 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                 height: 40,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
-                  color: const Color(0xEE111111),
+                  color: const Color(0xEE000000),
                   borderRadius: BorderRadius.circular(99),
-                  border: Border.all(color: const Color(0xFF333333)),
+                  border: Border.all(color: const Color(0xFFFFFFFF)),
                 ),
                 child: const Row(children: [
                   InIcon(InIcons.search, size: 17, color: DColors.dim),
@@ -627,10 +627,10 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
     return Tooltip(
       message: tip,
       child: Material(
-        color: const Color(0xEE111111),
+        color: const Color(0xEE000000),
         shape: CircleBorder(
             side:
-                BorderSide(color: lit ? DColors.red : const Color(0xFF333333))),
+                BorderSide(color: lit ? DColors.red : const Color(0xFFFFFFFF))),
         child: InkWell(
           customBorder: const CircleBorder(),
           onTap: onTap,
@@ -650,9 +650,9 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
     final people = _sorted(_shownPeople);
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFF0E0E0E),
+        color: Color(0xFF000000),
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-        border: Border(top: BorderSide(color: Color(0xFF222222))),
+        border: Border(top: BorderSide(color: Color(0xFFFFFFFF))),
       ),
       padding: EdgeInsets.fromLTRB(
           0, 0, 0, MediaQuery.paddingOf(context).bottom + 10),
@@ -728,7 +728,7 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
             width: 150,
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-                color: const Color(0xFF1A1A1A),
+                color: const Color(0xFF000000),
                 borderRadius: BorderRadius.circular(14)),
             child: Row(children: [
               PersonFace(
@@ -791,7 +791,7 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
             width: 220,
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-                color: const Color(0xFF1A1A1A),
+                color: const Color(0xFF000000),
                 borderRadius: BorderRadius.circular(14)),
             child: Row(children: [
               ClipRRect(
@@ -854,7 +854,7 @@ class _Legend extends StatelessWidget {
                 color: switch (kind) {
                   RingKind.close => Colors.white,
                   RingKind.lobby => DColors.red,
-                  _ => const Color(0xFF888888)
+                  _ => const Color(0xFFFFFFFF)
                 },
                 width: kind == RingKind.stranger ? 1.2 : 2,
               ),

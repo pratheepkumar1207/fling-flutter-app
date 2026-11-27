@@ -27,7 +27,7 @@ class PrivacyPickCard extends StatefulWidget {
 
 class _PrivacyPickCardState extends State<PrivacyPickCard> {
   static const _accent = Color(0xFFE8112D);
-  static const _accentText = Color(0xFFCBCBCB);
+  static const _accentText = Color(0xFFFFFFFF);
   Timer? _timer;
   String? _busy;
 
@@ -79,7 +79,7 @@ class _PrivacyPickCardState extends State<PrivacyPickCard> {
               border: Border.all(
                   color: value == 'public' || picked
                       ? _accent
-                      : Colors.white.withValues(alpha: 0.18)),
+                      : Colors.white),
             ),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               InIcon(icon, size: 17, color: Colors.white),
@@ -108,18 +108,18 @@ class _PrivacyPickCardState extends State<PrivacyPickCard> {
           const Padding(
             padding: EdgeInsets.only(bottom: 6),
             child: Row(children: [
-              InIcon(InIcons.lock, size: 13, color: Color(0xFFB8B8B8)),
+              InIcon(InIcons.lock, size: 13, color: Color(0xFFFFFFFF)),
               SizedBox(width: 5),
               Flexible(
                 child: Text('Room created. Hidden until you choose.',
-                    style: TextStyle(color: Color(0xFFB8B8B8), fontSize: 12)),
+                    style: TextStyle(color: Color(0xFFFFFFFF), fontSize: 12)),
               ),
             ]),
           ),
           Container(
             padding: const EdgeInsets.all(11),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.07),
+              color: Colors.black,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Column(
@@ -133,7 +133,7 @@ class _PrivacyPickCardState extends State<PrivacyPickCard> {
                 const SizedBox(height: 2),
                 Text('No one can see this room yet',
                     style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
+                        color: Colors.white,
                         fontSize: 12)),
                 const SizedBox(height: 9),
                 Row(children: [
@@ -149,7 +149,7 @@ class _PrivacyPickCardState extends State<PrivacyPickCard> {
                   child: LinearProgressIndicator(
                     value: frac,
                     minHeight: 3,
-                    backgroundColor: Colors.white.withValues(alpha: 0.12),
+                    backgroundColor: Colors.black,
                     valueColor: const AlwaysStoppedAnimation(_accentText),
                   ),
                 ),

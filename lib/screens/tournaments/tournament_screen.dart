@@ -15,7 +15,7 @@ import '../wallet/vip_store_screen.dart';
 import 'tournament_live.dart';
 import 'tournament_watch.dart';
 
-const _purple = Color(0xFF808080);
+const _purple = Color(0xFFFFFFFF);
 const _purpleLine = Color(0xFFFFFFFF);
 const _gold = Color(0xFFFAC775);
 const _goldLine = Color(0xFFBA7517);
@@ -86,7 +86,7 @@ class _TournamentScreenState extends State<TournamentScreen> {
     final go = await showModalBottomSheet<bool>(
       context: context,
       isDismissible: false,
-      backgroundColor: const Color(0xFF181818),
+      backgroundColor: const Color(0xFF000000),
       builder: (sheet) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(18),
@@ -152,7 +152,7 @@ class _TournamentScreenState extends State<TournamentScreen> {
     final round = live.currentRound;
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xFF181818),
+      backgroundColor: const Color(0xFF000000),
       isScrollControlled: true,
       builder: (sheet) => SafeArea(
         child: Padding(
@@ -223,7 +223,7 @@ class _TournamentScreenState extends State<TournamentScreen> {
     final others = live.players.where((p) => p['id'] != _me).toList();
     final pick = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: const Color(0xFF181818),
+      backgroundColor: const Color(0xFF000000),
       builder: (sheet) => SafeArea(
         child: ListView(shrinkWrap: true, children: [
           for (final p in others)
@@ -369,9 +369,9 @@ class _TournamentScreenState extends State<TournamentScreen> {
   Widget _card(Widget child, {Color? border, Color? color}) => Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: color ?? const Color(0xFF1D1D1D),
+          color: color ?? const Color(0xFF000000),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: border ?? const Color(0xFF2F2F2F)),
+          border: Border.all(color: border ?? const Color(0xFFFFFFFF)),
         ),
         child: child,
       );
@@ -391,7 +391,7 @@ class _TournamentScreenState extends State<TournamentScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
             decoration: BoxDecoration(
-              color: inBreak ? const Color(0xFF222222) : const Color(0xFF4F141B),
+              color: inBreak ? const Color(0xFF000000) : const Color(0xFF4F141B),
               borderRadius: BorderRadius.circular(99),
               border: Border.all(color: inBreak ? AppColors.border : const Color(0xFFBB1528)),
             ),
@@ -417,7 +417,7 @@ class _TournamentScreenState extends State<TournamentScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
           child: Material(
-            color: const Color(0xFF242424),
+            color: const Color(0xFF000000),
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12), side: const BorderSide(color: _purpleLine)),
             child: ListTile(
@@ -442,9 +442,9 @@ class _TournamentScreenState extends State<TournamentScreen> {
                 label: Text(tabs[i]),
                 selected: _tab == i,
                 onSelected: (_) => setState(() => _tab = i),
-                selectedColor: const Color(0xFF8B8B8B),
-                backgroundColor: const Color(0xFF222222),
-                labelStyle: TextStyle(color: _tab == i ? const Color(0xFFE0E0E0) : AppColors.text, fontSize: 12.5),
+                selectedColor: const Color(0xFFFFFFFF),
+                backgroundColor: const Color(0xFFFFFFFF),
+                labelStyle: TextStyle(color: _tab == i ? const Color(0xFFFFFFFF) : AppColors.text, fontSize: 12.5),
                 side: BorderSide(color: _tab == i ? _purpleLine : AppColors.border),
                 showCheckmark: false,
               ),
@@ -502,7 +502,7 @@ class _TournamentScreenState extends State<TournamentScreen> {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: const Color(0xFF1D1D1D),
+          color: const Color(0xFF000000),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: live_ ? _purpleLine : AppColors.border),
         ),
@@ -528,7 +528,7 @@ class _TournamentScreenState extends State<TournamentScreen> {
           if (live_)
             const Align(
                 alignment: Alignment.centerRight,
-                child: Text('● live · watch', style: TextStyle(color: Color(0xFFE0E0E0), fontSize: 10.5))),
+                child: Text('● live · watch', style: TextStyle(color: Color(0xFFFFFFFF), fontSize: 10.5))),
           if (m['note'] != null)
             Text(m['note'] as String, style: const TextStyle(color: AppColors.textFaint, fontSize: 10.5)),
         ]),
@@ -564,7 +564,7 @@ class _TournamentScreenState extends State<TournamentScreen> {
         margin: const EdgeInsets.only(bottom: 6),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: const Color(0xFF1D1D1D),
+          color: const Color(0xFF000000),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: done ? _goldLine : _purpleLine),
         ),
@@ -572,7 +572,7 @@ class _TournamentScreenState extends State<TournamentScreen> {
           Row(children: [
             Expanded(child: Text(m['label'] as String, style: const TextStyle(fontWeight: FontWeight.w700))),
             Text(done ? 'Done' : '● live · watch',
-                style: TextStyle(fontSize: 11.5, color: done ? _gold : const Color(0xFFE0E0E0))),
+                style: TextStyle(fontSize: 11.5, color: done ? _gold : const Color(0xFFFFFFFF))),
           ]),
           const SizedBox(height: 4),
           Wrap(spacing: 10, children: [
@@ -675,7 +675,7 @@ class _TournamentScreenState extends State<TournamentScreen> {
           alignment: Alignment.topCenter,
           padding: const EdgeInsets.only(top: 6),
           decoration: BoxDecoration(
-            color: place == 1 ? _goldBg : const Color(0xFF2F2F2F),
+            color: place == 1 ? _goldBg : const Color(0xFF000000),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
           ),
           child: Text('$medal\n${uid == null ? '—' : (uid == _me ? 'You' : live.nameOf(uid).split(' ').first)}',

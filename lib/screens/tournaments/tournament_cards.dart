@@ -82,7 +82,7 @@ class TournamentCard extends StatelessWidget {
     final joined = t['joined'] == true;
     void open() => openTournament(context, t['id'] as String).then((_) => onReturn?.call());
     return Material(
-      color: running ? const Color(0xFF1D1D1D) : const Color(0xFF242424),
+      color: running ? const Color(0xFF000000) : const Color(0xFF000000),
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
           side: BorderSide(color: running ? AppColors.border : const Color(0xFFFFFFFF))),
@@ -151,7 +151,7 @@ class TournamentCard extends StatelessWidget {
               width: double.infinity,
               child: FilledButton(
                 style: FilledButton.styleFrom(
-                    backgroundColor: running ? const Color(0xFF2F2F2F) : const Color(0xFF808080),
+                    backgroundColor: running ? const Color(0xFF000000) : const Color(0xFFFFFFFF),
                     foregroundColor: Colors.white,
                     visualDensity: VisualDensity.compact),
                 onPressed: open,

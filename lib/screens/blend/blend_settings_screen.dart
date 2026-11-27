@@ -169,7 +169,7 @@ class _BlendSettingsScreenState extends State<BlendSettingsScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-          color: AppColors.surface2, borderRadius: BorderRadius.circular(14)),
+          color: AppColors.surface2, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)), borderRadius: BorderRadius.circular(14)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -357,7 +357,7 @@ class _BlendSettingsScreenState extends State<BlendSettingsScreen> {
                     onTap: () => Navigator.of(context).pop(p.id),
                     child: Container(
                       decoration: BoxDecoration(
-                          color: AppColors.surface2,
+                          color: AppColors.surface2, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                           borderRadius: BorderRadius.circular(8)),
                       padding: const EdgeInsets.all(8),
                       child: Column(

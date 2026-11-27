@@ -456,9 +456,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             },
             visibilityChip: DropdownButton<String>(
               value: p.visibility,
-              dropdownColor: const Color(0xFF272727),
+              dropdownColor: const Color(0xFF000000),
               underline: const SizedBox.shrink(),
-              style: const TextStyle(color: Colors.white70, fontSize: 12.5),
+              style: const TextStyle(color: Colors.white, fontSize: 12.5),
               items: kVisibilityLabels.entries
                   .map((e) =>
                       DropdownMenuItem(value: e.key, child: Text(e.value)))
@@ -583,7 +583,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 13, vertical: 6),
                           decoration: BoxDecoration(
-                              color: AppColors.surface2,
+                              color: AppColors.surface2, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                               borderRadius: BorderRadius.circular(999)),
                           child: Text(i,
                               style: const TextStyle(
@@ -656,7 +656,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       delegate: _TabBarHeader(TabBar(
                         indicatorColor: AppColors.text,
                         indicatorSize: TabBarIndicatorSize.tab,
-                        dividerColor: const Color(0xFF212121),
+                        dividerColor: const Color(0xFFFFFFFF),
                         labelColor: AppColors.text,
                         unselectedLabelColor: AppColors.textFaint,
                         tabs: [
@@ -847,7 +847,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Container(
                     height: 40,
                     decoration: BoxDecoration(
-                        color: AppColors.surface2,
+                        color: AppColors.surface2, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                         borderRadius: BorderRadius.circular(12)),
                     alignment: Alignment.center,
                     child: const Text('Edit profile',
@@ -865,7 +865,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Container(
                     height: 40,
                     decoration: BoxDecoration(
-                        color: AppColors.surface2,
+                        color: AppColors.surface2, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                         borderRadius: BorderRadius.circular(12)),
                     alignment: Alignment.center,
                     child: const Text('Share profile',
@@ -886,7 +886,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                        color: AppColors.surface2,
+                        color: AppColors.surface2, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                         borderRadius: BorderRadius.circular(12)),
                     child: const InIcon(InIcons.feed,
                         color: AppColors.textDim, size: 18),
@@ -937,8 +937,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
                 gradient: const LinearGradient(
-                    colors: [Color(0xFFB81427), Color(0xFF181818)]),
-                border: Border.all(color: const Color(0xFF5E5E5E)),
+                    colors: [Color(0xFFB81427), Color(0xFF000000)]),
+                border: Border.all(color: const Color(0xFFFFFFFF)),
               ),
               child: const Row(children: [
                 InIcon(InIcons.chart, size: 20, color: Color(0xFFFFA7B1)),
@@ -1134,7 +1134,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Positioned.fill(
                             child: Container(
                               decoration: BoxDecoration(
-                                  color: AppColors.surface3,
+                                  color: AppColors.surface3, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                                   borderRadius: BorderRadius.circular(8)),
                               clipBehavior: Clip.antiAlias,
                               child: s.thumbnail != null

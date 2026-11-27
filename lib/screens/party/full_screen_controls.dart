@@ -248,7 +248,7 @@ class _RoomFullScreenControlsState extends State<RoomFullScreenControls> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.18),
+                              color: Colors.black,
                               borderRadius: BorderRadius.circular(16)),
                           child: Text(
                               'Vote skip ${w.skipVoteCount}/${w.skipVoteRequired}',

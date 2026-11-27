@@ -76,7 +76,9 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: clay.surface2,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: clay.border, width: 0.8)),
       ),
       filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
@@ -99,8 +101,9 @@ class AppTheme {
               textStyle: buttonText.copyWith(fontSize: 14))),
       dialogTheme: DialogThemeData(
           backgroundColor: clay.surface,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(26))),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(26),
+              side: BorderSide(color: clay.border, width: 0.8))),
       // Every sheet: black, white icons and text.
       bottomSheetTheme: BottomSheetThemeData(
           backgroundColor:
@@ -169,7 +172,9 @@ class AppTheme {
         backgroundColor: clay.surface3,
         contentTextStyle: TextStyle(color: clay.text),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: clay.border, width: 0.8)),
       ),
     );
   }

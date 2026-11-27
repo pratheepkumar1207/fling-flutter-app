@@ -44,7 +44,7 @@ class PickBannerState extends State<PickBanner> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
       decoration: BoxDecoration(
-        color: const Color(0xFF2B2B2B),
+        color: const Color(0xFF000000),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.lilac.withValues(alpha: 0.6)),
       ),

@@ -53,7 +53,7 @@ class VolumeDots extends StatelessWidget {
                     shape: BoxShape.circle,
                     color: lit
                         ? AppColors.primary
-                        : Colors.white.withValues(alpha: 0.15)),
+                        : Colors.black),
               ),
             );
           }),

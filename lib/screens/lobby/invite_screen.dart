@@ -265,7 +265,7 @@ class _InviteScreenState extends State<InviteScreen>
             Container(
               padding: const EdgeInsets.fromLTRB(10, 4, 4, 4),
               decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.06),
+                  color: Colors.black,
                   borderRadius: BorderRadius.circular(10)),
               child: Row(children: [
                 const InIcon(InIcons.link, size: 14, color: AppColors.textDim),
@@ -416,7 +416,7 @@ class _InviteScreenState extends State<InviteScreen>
           margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
           padding: const EdgeInsets.only(top: 6, bottom: 6),
           decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.04),
+              color: Colors.black,
               borderRadius: BorderRadius.circular(12)),
           child: Column(children: [
             Padding(

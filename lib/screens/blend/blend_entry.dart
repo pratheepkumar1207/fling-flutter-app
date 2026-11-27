@@ -288,7 +288,7 @@ class BlendsRowState extends State<BlendsRow> {
               width: 38,
               height: 38,
               decoration: const BoxDecoration(
-                  color: Color(0xFF2B2B2B), shape: BoxShape.circle),
+                  color: Color(0xFF000000), shape: BoxShape.circle),
               child: const Center(
                   child:
                       InIcon(InIcons.plus, color: Color(0xFFFFCCD2), size: 18)),
@@ -322,7 +322,7 @@ class _DashedBorderPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF616161)
+      ..color = const Color(0xFFFFFFFF)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2;
     final path = Path()

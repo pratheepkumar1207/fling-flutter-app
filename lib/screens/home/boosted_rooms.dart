@@ -79,7 +79,7 @@ class BoostedRoomPost extends StatelessWidget {
               height: 32,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF424242),
+                color: const Color(0xFF000000),
                 border: type == 'live'
                     ? Border.all(color: const Color(0xFFE83247), width: 2)
                     : null,
@@ -124,7 +124,7 @@ class BoostedRoomPost extends StatelessWidget {
                     ]),
                     Text(doing,
                         style: const TextStyle(
-                            color: Color(0xFF939393), fontSize: 11)),
+                            color: Color(0xFFFFFFFF), fontSize: 11)),
                   ]),
             ),
           ]),
@@ -170,7 +170,7 @@ class BoostedRoomsReelPage extends StatelessWidget {
             ),
             const Center(
               child: Text('Swipe up for more reels',
-                  style: TextStyle(color: Color(0xFF939393), fontSize: 11.5)),
+                  style: TextStyle(color: Color(0xFFFFFFFF), fontSize: 11.5)),
             ),
           ]),
         ),

@@ -257,7 +257,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                               child: Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                    color: AppColors.surface2,
+                                    color: AppColors.surface2, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                                     borderRadius: BorderRadius.circular(10)),
                                 child: const Row(children: [
                                   InIcon(InIcons.wave,

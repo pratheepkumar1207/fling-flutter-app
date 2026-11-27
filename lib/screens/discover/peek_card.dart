@@ -222,7 +222,7 @@ class _PeekCardState extends State<_PeekCard> {
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(26),
-                  border: Border.all(color: DColors.line, width: 0.8),
+                  border: Border.fromBorderSide(BorderSide(color: DColors.line, width: 0.8)),
                 ),
                 constraints: BoxConstraints(
                     maxHeight: MediaQuery.sizeOf(context).height * 0.86,
@@ -374,7 +374,7 @@ class _PeekCardState extends State<_PeekCard> {
             const SizedBox(height: 12),
             Text(p['bio'] as String,
                 style: const TextStyle(
-                    color: Color(0xFFD6D6D6), fontSize: 13, height: 1.45)),
+                    color: Color(0xFFFFFFFF), fontSize: 13, height: 1.45)),
           ],
           if (facts.isNotEmpty || interests.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -434,7 +434,7 @@ class _PeekCardState extends State<_PeekCard> {
           const SizedBox(height: 4),
           const Center(
               child: Text('Swipe up for the full profile',
-                  style: TextStyle(color: Color(0xFF5A5A5A), fontSize: 11))),
+                  style: TextStyle(color: Color(0xFFFFFFFF), fontSize: 11))),
         ]);
   }
 

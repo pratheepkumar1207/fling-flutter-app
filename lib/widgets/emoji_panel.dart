@@ -208,7 +208,7 @@ class _EmojiPanelState extends State<EmojiPanel> {
         height: 36,
         padding: const EdgeInsets.symmetric(horizontal: 4),
         decoration: BoxDecoration(
-          color: const Color(0xFF272727),
+          color: const Color(0xFF000000),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: const Color(0xFFFFFFFF)),
         ),
@@ -220,7 +220,7 @@ class _EmojiPanelState extends State<EmojiPanel> {
               _searching = false;
               _query.clear();
             }),
-            icon: const InIcon(InIcons.back, size: 16, color: Colors.white70),
+            icon: const InIcon(InIcons.back, size: 16, color: Colors.white),
           ),
           Expanded(
             child: TextField(
@@ -232,7 +232,7 @@ class _EmojiPanelState extends State<EmojiPanel> {
                 isDense: true,
                 border: InputBorder.none,
                 hintText: 'Search emoji',
-                hintStyle: TextStyle(color: Color(0xFF939393)),
+                hintStyle: TextStyle(color: Color(0xFFFFFFFF)),
               ),
             ),
           ),
@@ -242,7 +242,7 @@ class _EmojiPanelState extends State<EmojiPanel> {
               visualDensity: VisualDensity.compact,
               onPressed: _query.clear,
               icon:
-                  const InIcon(InIcons.close, size: 15, color: Colors.white70),
+                  const InIcon(InIcons.close, size: 15, color: Colors.white),
             ),
         ]),
       );
@@ -259,7 +259,7 @@ class _EmojiPanelState extends State<EmojiPanel> {
               width: 32,
               height: 32,
               decoration: const BoxDecoration(
-                  color: Color(0xFF2F2F2F), shape: BoxShape.circle),
+                  color: Color(0xFF000000), shape: BoxShape.circle),
               alignment: Alignment.center,
               child: const InIcon(InIcons.search, size: 16, color: Colors.white),
             ),
@@ -334,7 +334,7 @@ class _EmojiPanelState extends State<EmojiPanel> {
           Padding(
             padding: const EdgeInsets.fromLTRB(10, 4, 10, 0),
             child: Text(label,
-                style: const TextStyle(color: Color(0xFF939393), fontSize: 11)),
+                style: const TextStyle(color: Color(0xFFFFFFFF), fontSize: 11)),
           ),
           SizedBox(
             height: rowH * EmojiPanel.rows,
@@ -438,7 +438,7 @@ class _EmojiSheetGridState extends State<EmojiSheetGrid> {
               ),
               prefixIconConstraints: BoxConstraints(minWidth: 30),
               hintText: 'Search',
-              hintStyle: TextStyle(color: Color(0xFF939393), fontSize: 15),
+              hintStyle: TextStyle(color: Color(0xFFFFFFFF), fontSize: 15),
             ),
           ),
         ),
@@ -448,7 +448,7 @@ class _EmojiSheetGridState extends State<EmojiSheetGrid> {
           child: items.isEmpty
               ? const Center(
                   child: Text('No emoji found',
-                      style: TextStyle(color: Color(0xFF939393))))
+                      style: TextStyle(color: Color(0xFFFFFFFF))))
               : GridView.builder(
                   padding: EdgeInsets.zero,
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

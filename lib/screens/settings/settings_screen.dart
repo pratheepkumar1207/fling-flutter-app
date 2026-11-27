@@ -370,7 +370,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             borderRadius: BorderRadius.circular(18)),
         child: Column(children: [
           for (var i = 0; i < rows.length; i++) ...[
-            if (i > 0) const Divider(height: 1, color: Color(0xFF262626)),
+            if (i > 0) const Divider(height: 1, color: Color(0xFFFFFFFF)),
             rows[i],
           ],
         ]),
@@ -380,7 +380,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         width: 34,
         height: 34,
         decoration: BoxDecoration(
-            color: const Color(0xFF232323),
+            color: const Color(0xFF000000),
             borderRadius: BorderRadius.circular(11)),
         alignment: Alignment.center,
         child: InIcon(icon, size: 18, color: color),

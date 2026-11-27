@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// Insync palette: black, white and red (changed 26 Nov 2026 from the
+/// Insync palette: black, white and red, no grey (27 Nov 2026: cards and
+/// fields are black with white outlines, all text is white) (changed 26 Nov 2026 from the
 /// logo's pink → purple → blue). Black ground, white text and icons, red for
 /// the main actions, likes, lobbies and LIVE. Gold stays for coins and green
 /// for success, as plain status colours.
@@ -10,15 +11,15 @@ class AppColors {
   // [accent], so it stays white.
   static const paper = Color(0xFFE8112D);
   static const ink = Color(0xFFFFFFFF);
-  static const inkMuted = Color(0xFFE6E6E6);
+  static const inkMuted = Color(0xFFFFFFFF);
 
   static const bg = Color(0xFF000000);
-  static const surface = Color(0xFF111111);
+  static const surface = Color(0xFF000000);
   // Bottom sheets: plain black, matching the black room.
   static const sheet = Color(0xFF000000);
-  static const surface2 = Color(0xFF1A1A1A);
-  static const surface3 = Color(0xFF262626);
-  static const border = Color(0xFF2A2A2A);
+  static const surface2 = Color(0xFF000000);
+  static const surface3 = Color(0xFF000000);
+  static const border = Color(0xFFFFFFFF);
   static const primary = Color(0xFFE8112D);
   static const primaryDim = Color(0xFFB00D22);
   static const accent = Color(0xFFE8112D);
@@ -29,12 +30,12 @@ class AppColors {
   static const pink = Color(0xFFE8112D);
   static const purple = Color(0xFFFF5C6E);
   static const blue = Color(0xFFFFFFFF);
-  static const lilac = Color(0xFFFFB3BC);
-  static const diamond = Color(0xFFE6E6E6);
+  static const lilac = Color(0xFFFFFFFF);
+  static const diamond = Color(0xFFFFFFFF);
 
   static const text = Color(0xFFFFFFFF);
-  static const textDim = Color(0xFFA3A3A3);
-  static const textFaint = Color(0xFF8A8A8A);
+  static const textDim = Color(0xFFFFFFFF);
+  static const textFaint = Color(0xFFFFFFFF);
 
   static const success = Color(0xFF43B966);
   static const danger = Color(0xFFE8112D);
@@ -91,7 +92,7 @@ class AppGradients {
   static const LinearGradient hero = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF3A0A12), Color(0xFF1A1A1A), Color(0xFF0D0D0D)],
+    colors: [Color(0xFF3A0A12), Color(0xFF000000), Color(0xFF000000)],
     stops: [0, 0.55, 1],
   );
 }

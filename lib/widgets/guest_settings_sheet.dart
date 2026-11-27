@@ -128,7 +128,7 @@ class RoomPersonalSettings extends StatelessWidget {
               SliderTheme(
                 data: SliderTheme.of(context).copyWith(
                   activeTrackColor: kSheetOnBorder,
-                  inactiveTrackColor: const Color(0xFF333333),
+                  inactiveTrackColor: const Color(0xFF000000),
                   thumbColor: Colors.white,
                   overlayShape: SliderComponentShape.noOverlay,
                   trackHeight: 4,

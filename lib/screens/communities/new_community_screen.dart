@@ -129,7 +129,7 @@ class _NewCommunityScreenState extends State<NewCommunityScreen> {
               height: 76,
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: AppColors.surface, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                   borderRadius: BorderRadius.circular(22)),
               child: _photo != null
                   ? AppImage(source: _photo, fit: BoxFit.cover)

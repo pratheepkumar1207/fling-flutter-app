@@ -141,8 +141,8 @@ class _FiltersSheetState extends State<_FiltersSheet> {
           onChanged: (v) => _changed(() => set(v)),
           activeTrackColor: DColors.red,
           activeThumbColor: Colors.white,
-          inactiveTrackColor: const Color(0xFF333333),
-          inactiveThumbColor: const Color(0xFF888888),
+          inactiveTrackColor: const Color(0xFF000000),
+          inactiveThumbColor: const Color(0xFFFFFFFF),
         ),
       ]),
     );
@@ -152,7 +152,7 @@ class _FiltersSheetState extends State<_FiltersSheet> {
   Widget build(BuildContext context) {
     final sliderTheme = SliderTheme.of(context).copyWith(
       activeTrackColor: DColors.red,
-      inactiveTrackColor: const Color(0xFF2A2A2A),
+      inactiveTrackColor: const Color(0xFF000000),
       thumbColor: Colors.white,
       overlayColor: DColors.red.withValues(alpha: 0.15),
       trackHeight: 4,

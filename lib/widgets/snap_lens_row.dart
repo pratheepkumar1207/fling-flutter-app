@@ -26,14 +26,14 @@ class SnapLensIcon extends StatelessWidget {
             width: selected ? 3 : 1),
       ),
       child: lens == null
-          ? const Icon(Icons.block_rounded, color: Colors.white70)
+          ? const Icon(Icons.block_rounded, color: Colors.white)
           : icon != null && icon.startsWith('http')
               ? Image.network(icon,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => const Icon(
                       Icons.auto_awesome_rounded,
-                      color: Colors.white70))
-              : const Icon(Icons.auto_awesome_rounded, color: Colors.white70),
+                      color: Colors.white))
+              : const Icon(Icons.auto_awesome_rounded, color: Colors.white),
     );
   }
 }
@@ -180,7 +180,7 @@ Future<({SnapLens? lens, bool picked})> showSnapLensPicker(
   final result = await showModalBottomSheet<({SnapLens? lens})>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: const Color(0xFF181818),
+    backgroundColor: const Color(0xFF000000),
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
     builder: (_) => _LensPicker(current: current),
@@ -237,7 +237,7 @@ class _LensPickerState extends State<_LensPicker> {
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               hintText: 'Search lenses',
-              prefixIcon: const Icon(Icons.search, color: Colors.white54),
+              prefixIcon: const Icon(Icons.search, color: Colors.white),
               filled: true,
               fillColor: Colors.white10,
               border: OutlineInputBorder(
@@ -311,7 +311,7 @@ class _LensPickerState extends State<_LensPicker> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                  color: Colors.white70, fontSize: 11)),
+                                  color: Colors.white, fontSize: 11)),
                         ]),
                       );
                     },

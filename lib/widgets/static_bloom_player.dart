@@ -301,7 +301,7 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
                   shape: BoxShape.circle,
                   color: AppColors.bg,
                   border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.55), width: 2),
+                      color: Colors.white, width: 2),
                 ),
               ),
             ),
@@ -358,9 +358,9 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
       const SizedBox(height: 3),
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         Text(_formatTime(widget.currentTime),
-            style: const TextStyle(color: Colors.white70, fontSize: 11)),
+            style: const TextStyle(color: Colors.white, fontSize: 11)),
         Text(hasTime ? _formatTime(widget.duration) : '--:--',
-            style: const TextStyle(color: Colors.white70, fontSize: 11)),
+            style: const TextStyle(color: Colors.white, fontSize: 11)),
       ]),
     ]);
   }
@@ -393,7 +393,7 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
             alignment: Alignment.center,
             child: InIcon(_spinning ? InIcons.pause : InIcons.play,
                 size: playSize * 0.45,
-                color: const Color(0xFF1A1A1A),
+                color: const Color(0xFFFFFFFF),
                 filled: true),
           ),
         ),
@@ -427,7 +427,7 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
         ),
       if (more > 0)
         Text(' +$more',
-            style: const TextStyle(color: Colors.white70, fontSize: 11)),
+            style: const TextStyle(color: Colors.white, fontSize: 11)),
     ]);
   }
 
@@ -438,7 +438,7 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-            color: const Color(0xFF272727),
+            color: const Color(0xFF000000),
             borderRadius: BorderRadius.circular(20)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -463,7 +463,7 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                              color: Colors.white70, fontSize: 12)),
+                              color: Colors.white, fontSize: 12)),
                     const SizedBox(height: 8),
                     _equalizer(),
                   ],
@@ -491,7 +491,7 @@ class _StaticBloomPlayerState extends State<StaticBloomPlayer>
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style:
-                          const TextStyle(color: Colors.white70, fontSize: 12)),
+                          const TextStyle(color: Colors.white, fontSize: 12)),
                 ),
               ),
           ],

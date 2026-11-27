@@ -6,7 +6,7 @@ import 'insync_brand.dart';
 // grey blocks with the brand shimmer running over them. Each screen picks
 // the one that matches its layout.
 
-const _kBlock = Color(0xFF2F2F2F);
+const _kBlock = Color(0xFF000000);
 
 Widget _box({double? width, double height = 10, double radius = 6}) =>
     Container(

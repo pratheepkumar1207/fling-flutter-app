@@ -544,7 +544,7 @@ class _GiftAnimationState extends State<_GiftAnimation>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
                     decoration: BoxDecoration(
-                        color: const Color(0xCC0E0E0E),
+                        color: const Color(0xCC000000),
                         borderRadius: BorderRadius.circular(16)),
                     child: Text(
                         '${g.fromName} sent ${g.emoji} ${g.name}$count$who',

@@ -172,7 +172,7 @@ class _GiftSheetState extends State<_GiftSheet> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                      color: selected ? Colors.white : const Color(0xFFCDCDCD),
+                      color: selected ? Colors.white : const Color(0xFFFFFFFF),
                       fontSize: 11,
                       fontWeight:
                           selected ? FontWeight.w700 : FontWeight.w400)),
@@ -202,7 +202,7 @@ class _GiftSheetState extends State<_GiftSheet> {
     final pick = widget.requirePick;
     return Container(
       decoration: const BoxDecoration(
-        color: AppColors.sheet,
+        color: AppColors.sheet, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
       child: SafeArea(
@@ -287,7 +287,7 @@ class _GiftSheetState extends State<_GiftSheet> {
                               style: TextStyle(
                                   color: _tab == id
                                       ? Colors.white
-                                      : const Color(0xFFAEAEAE),
+                                      : const Color(0xFFFFFFFF),
                                   fontSize: 13,
                                   fontWeight: _tab == id
                                       ? FontWeight.w700
@@ -365,7 +365,7 @@ class _GiftSheetState extends State<_GiftSheet> {
                         : _send,
                     style: FilledButton.styleFrom(
                         backgroundColor: AppColors.lilac,
-                        foregroundColor: const Color(0xFF262626),
+                        foregroundColor: const Color(0xFF000000),
                         minimumSize: const Size(0, 38),
                         padding: const EdgeInsets.symmetric(horizontal: 14)),
                     child: Text(_combo >= 2

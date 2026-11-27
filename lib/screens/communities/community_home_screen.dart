@@ -22,7 +22,7 @@ class CommunityAvatar extends StatelessWidget {
     Color(0xFFFF5266),
     Color(0xFF2F8F6B),
     Color(0xFFCD172C),
-    Color(0xFFB2B2B2),
+    Color(0xFFFFFFFF),
     Color(0xFFB81427),
     Color(0xFF8A6A1E),
   ];
@@ -207,7 +207,7 @@ class _CommunityHomeScreenState extends State<CommunityHomeScreen> {
         radius: 20,
         backgroundColor: g['isAnnouncements'] == true
             ? const Color(0xFF5A3A2A)
-            : const Color(0xFF333333),
+            : const Color(0xFF000000),
         child: InIcon(
             g['isAnnouncements'] == true ? InIcons.bell : InIcons.users,
             size: 18,
@@ -228,7 +228,7 @@ class _CommunityHomeScreenState extends State<CommunityHomeScreen> {
                       borderRadius: BorderRadius.circular(10)),
                   child: Text('$unread',
                       style: const TextStyle(
-                          color: Color(0xFF8B8B8B),
+                          color: Color(0xFFFFFFFF),
                           fontSize: 11,
                           fontWeight: FontWeight.w800)),
                 )

@@ -6,9 +6,9 @@ import '../theme/insync_icons.dart';
 // video at [halfFraction] of the screen, swipe up for full screen and swipe
 // down to close. The pieces below keep every row in the same style.
 
-const kSheetTile = Color(0xFF141414);
-const kSheetBorder = Color(0xFF262626);
-const kSheetOn = Color(0xFF343434);
+const kSheetTile = Color(0xFF000000);
+const kSheetBorder = Color(0xFF000000);
+const kSheetOn = Color(0xFF000000);
 const kSheetOnBorder = Color(0xFFFF5266);
 const kSheetDim = Color(0xB3FFFFFF);
 const _kOnDot = Color(0xFF3AD17A);
@@ -93,7 +93,7 @@ class RoomSheetHandle extends StatelessWidget {
           height: 4,
           margin: const EdgeInsets.only(top: 10, bottom: 14),
           decoration: BoxDecoration(
-              color: const Color(0xFF444444),
+              color: const Color(0xFF000000),
               borderRadius: BorderRadius.circular(2)),
         ),
       );
@@ -139,7 +139,7 @@ class RoomChoiceRow extends StatelessWidget {
               button: true,
               selected: value == key,
               child: Material(
-                color: value == key ? kSheetOn : const Color(0xFF111111),
+                color: value == key ? kSheetOn : const Color(0xFF000000),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                     side: BorderSide(
@@ -230,8 +230,8 @@ class RoomQuickTile extends StatelessWidget {
                     fontSize: 10.5,
                     height: 1.2,
                     color: on == false
-                        ? const Color(0xFF888888)
-                        : const Color(0xFFDBDBDB))),
+                        ? const Color(0xFFFFFFFF)
+                        : const Color(0xFFFFFFFF))),
           ]),
         ),
       ),
@@ -260,7 +260,7 @@ class RoomToggleCard extends StatelessWidget {
       button: true,
       label: label,
       child: Material(
-        color: on ? kSheetOn : const Color(0xFF111111),
+        color: on ? kSheetOn : const Color(0xFF000000),
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
             side: BorderSide(color: on ? kSheetOnBorder : kSheetBorder)),
@@ -322,7 +322,7 @@ class RoomSheetButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = danger ? const Color(0xFFFF5266) : Colors.white;
     return Material(
-      color: danger ? const Color(0xFF1A0A0C) : const Color(0xFF111111),
+      color: danger ? const Color(0xFF1A0A0C) : const Color(0xFF000000),
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(

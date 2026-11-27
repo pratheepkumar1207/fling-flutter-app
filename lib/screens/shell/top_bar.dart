@@ -99,7 +99,7 @@ class InsyncTopBar extends StatelessWidget implements PreferredSizeWidget {
                                   shape: BoxShape.circle,
                                   color: n > 0
                                       ? const Color(0xFFE83247)
-                                      : const Color(0xFF3A3A40),
+                                      : const Color(0xFF000000),
                                   boxShadow: n > 0
                                       ? const [
                                           BoxShadow(
@@ -149,7 +149,7 @@ class InsyncTopBar extends StatelessWidget implements PreferredSizeWidget {
                         width: 34,
                         height: 34,
                         decoration: const BoxDecoration(
-                            color: Color(0xFF303030), shape: BoxShape.circle),
+                            color: Color(0xFF000000), shape: BoxShape.circle),
                         child: const Center(
                             child: InIcon(InIcons.swords,
                                 size: 18, color: Color(0xFFFFA6B0))),

@@ -96,7 +96,7 @@ class _CreateGalleryScreenState extends State<CreateGalleryScreen> {
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
         child: Material(
-          color: const Color(0xFF1A1A1A),
+          color: const Color(0xFF000000),
           borderRadius: BorderRadius.circular(16),
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
@@ -109,7 +109,7 @@ class _CreateGalleryScreenState extends State<CreateGalleryScreen> {
                   height: 44,
                   alignment: Alignment.center,
                   decoration: const BoxDecoration(
-                      shape: BoxShape.circle, color: Color(0xFF2F2F2F)),
+                      shape: BoxShape.circle, color: Color(0xFF000000)),
                   child: Icon(icon, color: AppColors.lilac),
                 ),
                 const SizedBox(width: 14),
@@ -125,7 +125,7 @@ class _CreateGalleryScreenState extends State<CreateGalleryScreen> {
                         const SizedBox(height: 2),
                         Text(sub,
                             style: const TextStyle(
-                                color: Colors.white60, fontSize: 12.5)),
+                                color: Colors.white, fontSize: 12.5)),
                       ]),
                 ),
               ]),
@@ -166,7 +166,7 @@ class _CreateGalleryScreenState extends State<CreateGalleryScreen> {
           child: Center(
             child: Container(
               decoration: BoxDecoration(
-                  color: const Color(0xD90E0E0E),
+                  color: const Color(0xD9000000),
                   borderRadius: BorderRadius.circular(20)),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 TextButton(
@@ -177,18 +177,18 @@ class _CreateGalleryScreenState extends State<CreateGalleryScreen> {
                 TextButton(
                     onPressed: () => _toCamera(CreateMode.story),
                     child: const Text('Story',
-                        style: TextStyle(color: Colors.white70))),
+                        style: TextStyle(color: Colors.white))),
                 TextButton(
                     onPressed: () => _toCamera(CreateMode.reel),
                     child: const Text('Reel',
-                        style: TextStyle(color: Colors.white70))),
+                        style: TextStyle(color: Colors.white))),
                 TextButton(
                     onPressed: () => Navigator.of(context).pushReplacement(
                         MaterialPageRoute(
                             builder: (_) => const LobbyCreateScreen(
                                 initialRoomType: 'live'))),
                     child: const Text('Live',
-                        style: TextStyle(color: Colors.white70))),
+                        style: TextStyle(color: Colors.white))),
               ]),
             ),
           ),

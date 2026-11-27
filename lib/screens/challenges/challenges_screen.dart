@@ -22,7 +22,7 @@ const _kChallengeStyles = [
   (icon: InIcons.star, colors: [Color(0xFFE0836B), Color(0xFFCD172C)]),
   (icon: InIcons.gift, colors: [Color(0xFF6ED9A0), Color(0xFF2E9B5F)]),
   (icon: InIcons.bolt, colors: [Color(0xFFDBB155), Color(0xFFB98A3D)]),
-  (icon: InIcons.trophy, colors: [Color(0xFF3A3A3A), Color(0xFF1F1F1F)]),
+  (icon: InIcons.trophy, colors: [Color(0xFF000000), Color(0xFF000000)]),
 ];
 
 class ChallengesScreen extends StatefulWidget {

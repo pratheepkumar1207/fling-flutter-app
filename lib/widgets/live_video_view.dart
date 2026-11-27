@@ -73,7 +73,7 @@ class LiveVideoView extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const InIcon(InIcons.video,
-                        size: 44, color: Colors.white54),
+                        size: 44, color: Colors.white),
                     const SizedBox(height: 8),
                     Text(
                       cameraOff
@@ -84,7 +84,7 @@ class LiveVideoView extends StatelessWidget {
                                   ? 'Turning on your camera…'
                                   : 'Waiting for the host to go live'),
                       style:
-                          const TextStyle(color: Colors.white70, fontSize: 13),
+                          const TextStyle(color: Colors.white, fontSize: 13),
                     ),
                   ],
                 ),

@@ -251,7 +251,7 @@ class _WalletKycScreenState extends State<WalletKycScreen> {
       case 'pending':
         return const [Color(0xFFDBB155), Color(0xFFB98A3D)];
       default:
-        return const [Color(0xFF676871), Color(0xFF4F4F4F)];
+        return const [Color(0xFF000000), Color(0xFF000000)];
     }
   }
 
@@ -351,7 +351,7 @@ class _WalletKycScreenState extends State<WalletKycScreen> {
           const SizedBox(height: 6),
           Container(
             decoration: BoxDecoration(
-                color: AppColors.surface2,
+                color: AppColors.surface2, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                 borderRadius: BorderRadius.circular(12)),
             child: TextField(
               controller: controller,

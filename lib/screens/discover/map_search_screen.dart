@@ -100,7 +100,7 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
                   decoration: InputDecoration(
                     hintText: 'Search people or places',
                     filled: true,
-                    fillColor: const Color(0xFF111111),
+                    fillColor: const Color(0xFF000000),
                     isDense: true,
                     prefixIcon: const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 10),

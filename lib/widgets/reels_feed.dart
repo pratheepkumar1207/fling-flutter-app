@@ -365,7 +365,7 @@ class _ReelCardState extends State<_ReelCard>
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
-                                          color: Colors.white70,
+                                          color: Colors.white,
                                           fontSize: 11.5)),
                               ]),
                         ),
@@ -416,7 +416,7 @@ class _ReelCardState extends State<_ReelCard>
               child: Center(
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   const InIcon(InIcons.play,
-                      filled: true, color: Colors.white70, size: 64),
+                      filled: true, color: Colors.white, size: 64),
                   if (c != null && c.value.isInitialized)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),

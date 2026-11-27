@@ -60,7 +60,7 @@ class _FriendsInRoomsStripState extends State<FriendsInRoomsStrip> {
           padding: EdgeInsets.fromLTRB(18, 2, 18, 8),
           child: Text('FRIENDS IN ROOMS NOW',
               style: TextStyle(
-                  color: Color(0xFF9A9AA5),
+                  color: Color(0xFFFFFFFF),
                   fontSize: 11,
                   letterSpacing: 0.5,
                   fontWeight: FontWeight.w600)),
@@ -83,8 +83,8 @@ class _FriendsInRoomsStripState extends State<FriendsInRoomsStrip> {
   Widget _card(Map<String, dynamic> r) {
     final type = r['roomType'] as String? ?? 'watch';
     final (icon, fg, bg) = switch (type) {
-      'voice' => (InIcons.mic, const Color(0xFFF65A6D), const Color(0xFF272727)),
-      'game' => (InIcons.game, const Color(0xFFFFFFFF), const Color(0xFF2C2C2C)),
+      'voice' => (InIcons.mic, const Color(0xFFF65A6D), const Color(0xFF000000)),
+      'game' => (InIcons.game, const Color(0xFFFFFFFF), const Color(0xFF000000)),
       'live' => (InIcons.live, const Color(0xFFFF5266), const Color(0xFF2A0F12)),
       _ => (InIcons.film, const Color(0xFFFF5266), const Color(0xFF2A1013)),
     };
@@ -105,10 +105,10 @@ class _FriendsInRoomsStripState extends State<FriendsInRoomsStrip> {
       label: '${r['title'] ?? 'Room'}, $who',
       excludeSemantics: true,
       child: Material(
-        color: const Color(0xFF141414),
+        color: const Color(0xFF000000),
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: const BorderSide(color: Color(0xFF262626))),
+            side: const BorderSide(color: Color(0xFFFFFFFF))),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () => Navigator.of(context).push(MaterialPageRoute(
@@ -145,7 +145,7 @@ class _FriendsInRoomsStripState extends State<FriendsInRoomsStrip> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                              color: Color(0xFF888888), fontSize: 10.5)),
+                              color: Color(0xFFFFFFFF), fontSize: 10.5)),
                     ],
                   ),
                 ),

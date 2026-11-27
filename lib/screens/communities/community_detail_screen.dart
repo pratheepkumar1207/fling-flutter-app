@@ -31,7 +31,7 @@ const _bannerGradients = [
   [Color(0xFFE82E44), Color(0xFFD2172D)],
   [Color(0xFF4FB98A), Color(0xFF2E8C64)],
   [Color(0xFFE8A23F), Color(0xFFC66B2E)],
-  [Color(0xFFFFFFFF), Color(0xFFB5B5B5)],
+  [Color(0xFFFFFFFF), Color(0xFFFFFFFF)],
 ];
 
 class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
@@ -493,7 +493,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-                color: AppColors.surface2,
+                color: AppColors.surface2, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                 borderRadius: BorderRadius.circular(14)),
             child: Row(
               children: [

@@ -341,7 +341,7 @@ class _PlaylistTile extends StatelessWidget {
               width: 64,
               height: 44,
               decoration: BoxDecoration(
-                  color: AppColors.surface3,
+                  color: AppColors.surface3, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                   borderRadius: BorderRadius.circular(8)),
               clipBehavior: Clip.antiAlias,
               child: item['thumbnail'] != null
@@ -481,7 +481,7 @@ class _VideoTile extends StatelessWidget {
               width: 64,
               height: 44,
               decoration: BoxDecoration(
-                  color: AppColors.surface3,
+                  color: AppColors.surface3, border: Border.fromBorderSide(BorderSide(color: AppColors.border, width: 0.8)),
                   borderRadius: BorderRadius.circular(8)),
               clipBehavior: Clip.antiAlias,
               child: item['thumbnail'] != null

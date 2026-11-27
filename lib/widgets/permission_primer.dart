@@ -142,7 +142,7 @@ class _PrimerSheet extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-                color: const Color(0xFF2B2B2B),
+                color: const Color(0xFF000000),
                 borderRadius: BorderRadius.circular(14)),
             child:
                 Center(child: InIcon(icon, size: 20, color: AppColors.lilac)),

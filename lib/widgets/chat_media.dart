@@ -153,8 +153,8 @@ class _ChatVoiceNoteState extends State<ChatVoiceNote> {
     // Played part of the waveform in the accent, the rest dimmed.
     final played = widget.mine ? Colors.white : AppColors.lilac;
     final rest = widget.mine
-        ? Colors.white.withValues(alpha: 0.35)
-        : const Color(0xFF5E5E5E);
+        ? Colors.black
+        : const Color(0xFF000000);
     return SizedBox(
       width: 214,
       child: Row(children: [

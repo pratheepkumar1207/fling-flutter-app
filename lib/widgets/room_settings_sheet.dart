@@ -333,7 +333,7 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
         margin: const EdgeInsets.only(top: 10),
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
-            color: const Color(0xFF111111),
+            color: const Color(0xFF000000),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: kSheetBorder)),
         child: Wrap(
@@ -398,11 +398,11 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
             counterText: '',
             isDense: true,
             filled: true,
-            fillColor: const Color(0xFF111111),
+            fillColor: const Color(0xFF000000),
             suffixIcon: const Padding(
                 padding: EdgeInsets.all(12),
                 child:
-                    InIcon(InIcons.edit, size: 16, color: Color(0xFF888888))),
+                    InIcon(InIcons.edit, size: 16, color: Color(0xFFFFFFFF))),
             border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: kSheetBorder)),

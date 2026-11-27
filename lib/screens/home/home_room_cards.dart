@@ -28,8 +28,8 @@ class HomeInviteCard extends StatelessWidget {
         child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFF1C1C1C),
-            border: Border.all(color: const Color(0xFF404040)),
+            color: const Color(0xFF000000),
+            border: Border.all(color: const Color(0xFFFFFFFF)),
             borderRadius: BorderRadius.circular(18),
           ),
           child: Row(children: [
@@ -118,8 +118,8 @@ class _HomeEventCardState extends State<HomeEventCard> {
         child: Ink(
           padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
           decoration: BoxDecoration(
-            color: const Color(0xFF1C1C1C),
-            border: Border.all(color: const Color(0xFF404040)),
+            color: const Color(0xFF000000),
+            border: Border.all(color: const Color(0xFFFFFFFF)),
             borderRadius: BorderRadius.circular(18),
           ),
           child: Row(children: [
@@ -190,7 +190,7 @@ class HomeInRoomBanner extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-                colors: [Color(0xFFB81427), Color(0xFF2A2A2A)]),
+                colors: [Color(0xFFB81427), Color(0xFF000000)]),
             border: Border.all(color: AppColors.primary.withValues(alpha: 0.6)),
             borderRadius: BorderRadius.circular(18),
           ),
@@ -253,8 +253,8 @@ class HomeBlendCard extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-                colors: [Color(0xFF2B2B2B), Color(0xFF1C1C1C)]),
-            border: Border.all(color: const Color(0xFF404040)),
+                colors: [Color(0xFF000000), Color(0xFF000000)]),
+            border: Border.all(color: const Color(0xFFFFFFFF)),
             borderRadius: BorderRadius.circular(18),
           ),
           child: Row(children: [
