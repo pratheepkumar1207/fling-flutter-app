@@ -4,22 +4,25 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/insync_icons.dart';
 
-/// The insync brand (brand guide 1.0): the symbol — two sync arrows around
-/// a play button — the wordmark ("in" solid, "sync" in the gradient), and
-/// the loaders built from them.
+/// The insync brand (brand pack, Nov 2026): the vibe bars (white, red,
+/// red, red, white) and the "insync" wordmark ("in" white, "sync" red, with
+/// a red live dot). Red #E8112D, white, black #0B0B0B.
 class InsyncBrand {
   InsyncBrand._();
 
-  static const violet = Color(0xFF6A2CFF);
-  static const pink = Color(0xFFE5179B);
-  static const orange = Color(0xFFFF8A1F);
-  static const ink = Color(0xFF17112B);
-  static const night = Color(0xFF0E0A1C);
-  static const muted = Color(0xFF8F86AE);
+  static const red = Color(0xFFE8112D);
+  // Kept names, now inside the brand's red / white / black.
+  static const violet = Color(0xFFFF3B52);
+  static const pink = Color(0xFFE8112D);
+  static const orange = Color(0xFFB00D22);
+  static const ink = Color(0xFF0B0B0B);
+  static const night = Color(0xFF0B0B0B);
+  static const muted = Color(0xFFFFFFFF);
 
   static const gradient = LinearGradient(
     begin: Alignment.topLeft,
@@ -49,84 +52,56 @@ TextStyle _poppins(
   return _inTest ? base : GoogleFonts.poppins(textStyle: base);
 }
 
-/// Paints the symbol on a 200-unit grid. [spin] turns the arrows (0..1 is a
-/// full turn); [beat] scales the play button.
-class _SymbolPainter extends CustomPainter {
-  final double spin;
-  final double beat;
+/// Paints the vibe bars on a 100-unit grid, as in the brand pack:
+/// x, top, height of each bar; the outer two white, the middle three red.
+/// [phase] 0..1 makes them move like a sound meter (the loader); null
+/// draws them still. [color] paints all five in one colour.
+class _BarsPainter extends CustomPainter {
+  final double? phase;
   final Color? color;
-  final bool showPlay;
-  const _SymbolPainter(
-      {this.spin = 0, this.beat = 1, this.color, this.showPlay = true});
+  const _BarsPainter({this.phase, this.color});
+
+  static const _bars = [
+    (21.5, 38.0, 24.0),
+    (33.5, 28.0, 44.0),
+    (45.5, 19.0, 62.0),
+    (57.5, 28.0, 44.0),
+    (69.5, 38.0, 24.0),
+  ];
 
   @override
   void paint(Canvas canvas, Size size) {
-    final s = size.shortestSide / 200;
+    final s = size.shortestSide / 100;
     canvas.save();
-    canvas.translate((size.width - 200 * s) / 2, (size.height - 200 * s) / 2);
+    canvas.translate((size.width - 100 * s) / 2, (size.height - 100 * s) / 2);
     canvas.scale(s);
-    final shader = color == null
-        ? InsyncBrand.gradient
-            .createShader(const Rect.fromLTRB(20, 20, 180, 180))
-        : null;
-    Paint stroke(double w) => Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = w
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..color = color ?? Colors.white
-      ..shader = shader;
-    Paint fill() => Paint()
-      ..style = PaintingStyle.fill
-      ..color = color ?? Colors.white
-      ..shader = shader;
-
-    // Arrows, turned around the centre.
-    canvas.save();
-    canvas.translate(100, 100);
-    canvas.rotate(spin * 2 * math.pi);
-    canvas.translate(-100, -100);
-    const rect = Rect.fromLTRB(32, 32, 168, 168);
-    double rad(double d) => d * math.pi / 180;
-    canvas.drawArc(rect, rad(200), rad(130), false, stroke(15));
-    canvas.drawArc(rect, rad(20), rad(130), false, stroke(15));
-    Path tri(List<Offset> p) => Path()
-      ..moveTo(p[0].dx, p[0].dy)
-      ..lineTo(p[1].dx, p[1].dy)
-      ..lineTo(p[2].dx, p[2].dy)
-      ..close();
-    for (final head in [
-      tri(const [Offset(146.8, 73), Offset(171, 59), Offset(167.9, 81.6)]),
-      tri(const [Offset(53.2, 127), Offset(29, 141), Offset(32.1, 118.4)]),
-    ]) {
-      canvas.drawPath(head, fill());
-      canvas.drawPath(head, stroke(6));
-    }
-    canvas.restore();
-
-    if (showPlay) {
-      canvas.save();
-      canvas.translate(108, 100);
-      canvas.scale(beat);
-      canvas.translate(-108, -100);
-      final play =
-          tri(const [Offset(87, 75), Offset(87, 125), Offset(130, 100)]);
-      canvas.drawPath(play, fill());
-      canvas.drawPath(play, stroke(11));
-      canvas.restore();
+    for (var i = 0; i < _bars.length; i++) {
+      final (x, top, h) = _bars[i];
+      var height = h;
+      if (phase != null) {
+        // Each bar bounces a little out of step with the next.
+        final w = math.sin((phase! * 2 + i * 0.22) * math.pi).abs();
+        height = h * (0.45 + 0.55 * w);
+      }
+      final mid = top + h / 2;
+      final paint = Paint()
+        ..color = color ??
+            (i == 0 || i == _bars.length - 1 ? Colors.white : InsyncBrand.red);
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              Rect.fromLTWH(x, mid - height / 2, 9, height),
+              const Radius.circular(4.5)),
+          paint);
     }
     canvas.restore();
   }
 
   @override
-  bool shouldRepaint(covariant _SymbolPainter old) =>
-      old.spin != spin ||
-      old.beat != beat ||
-      old.color != color ||
-      old.showPlay != showPlay;
+  bool shouldRepaint(covariant _BarsPainter old) =>
+      old.phase != phase || old.color != color;
 }
 
-/// The symbol, still. [color] null draws it in the brand gradient.
+/// The vibe bars, still. [color] null draws them in brand red and white.
 class InsyncSymbol extends StatelessWidget {
   final double size;
   final Color? color;
@@ -137,12 +112,12 @@ class InsyncSymbol extends StatelessWidget {
         label: 'Insync',
         image: true,
         child: CustomPaint(
-            size: Size.square(size), painter: _SymbolPainter(color: color)),
+            size: Size.square(size), painter: _BarsPainter(color: color)),
       );
 }
 
-/// The brand loader: the arrows turn once and rest (the "sync" beat) while
-/// the play button pulses. Use anywhere something is loading.
+/// The brand loader: the vibe bars moving like a sound meter. Use anywhere
+/// something is loading.
 class InsyncSpinner extends StatefulWidget {
   final double size;
   final Color? color;
@@ -170,13 +145,6 @@ class _InsyncSpinnerState extends State<InsyncSpinner>
     super.dispose();
   }
 
-  double _beat(double t) {
-    if (t < 0.6) return 1;
-    if (t < 0.75) return 1 - 0.18 * ((t - 0.6) / 0.15);
-    if (t < 0.88) return 0.82 + 0.26 * ((t - 0.75) / 0.13);
-    return 1.08 - 0.08 * ((t - 0.88) / 0.12);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Semantics(
@@ -184,26 +152,19 @@ class _InsyncSpinnerState extends State<InsyncSpinner>
       child: RepaintBoundary(
         child: AnimatedBuilder(
           animation: _c,
-          builder: (context, _) {
-            final spin = _c.value < 0.7
-                ? Curves.easeInOut.transform(_c.value / 0.7)
-                : 1.0;
-            return CustomPaint(
-              size: Size.square(widget.size),
-              painter: _SymbolPainter(
-                  spin: spin,
-                  beat: _beat(_c.value),
-                  color: widget.color,
-                  showPlay: widget.showPlay),
-            );
-          },
+          builder: (context, _) => CustomPaint(
+            size: Size.square(widget.size),
+            painter: _BarsPainter(phase: _c.value, color: widget.color),
+          ),
         ),
       ),
     );
   }
 }
 
-/// "insync": "in" in solid ink (white on dark), "sync" in the gradient.
+/// "insync": the brand wordmark ("in" white, "sync" red, live dot), from
+/// the brand pack. [size] is about the letter height of the old text one.
+/// [inColor] dark draws the version for light backgrounds.
 class InsyncWordmarkText extends StatelessWidget {
   final double size;
   final Color inColor;
@@ -212,22 +173,15 @@ class InsyncWordmarkText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = _poppins(
-        fontSize: size,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -size * 0.025,
-        height: 1);
+    final onLight = inColor.computeLuminance() < 0.4;
+    // The artwork is 2819 x 1389 with some air around the letters.
     return Semantics(
       label: 'Insync',
       excludeSemantics: true,
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Text('in', style: style.copyWith(color: inColor)),
-        ShaderMask(
-          shaderCallback: (r) => InsyncBrand.gradient.createShader(r),
-          blendMode: BlendMode.srcIn,
-          child: Text('sync', style: style.copyWith(color: Colors.white)),
-        ),
-      ]),
+      child: SvgPicture.asset(
+        onLight ? 'assets/brand/wordmark-light.svg' : 'assets/brand/wordmark-dark.svg',
+        height: size * 1.7,
+      ),
     );
   }
 }
@@ -244,7 +198,7 @@ class InsyncLogo extends StatelessWidget {
     return SizedBox(
       width: width,
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        InsyncSymbol(size: width * 0.36),
+        InsyncSymbol(size: width * 0.5),
         SizedBox(height: width * 0.05),
         FittedBox(
             fit: BoxFit.scaleDown,
@@ -479,9 +433,9 @@ class _InsyncShimmerState extends State<InsyncShimmer>
       );
 }
 
-/// The start-up screen: glowing orbit with the features circling the
-/// turning symbol, the wordmark, tagline and a gradient progress bar with
-/// what's loading. Calls [onDone] once the bar is full (about 2.4 s).
+/// The start-up screen: the brand pack's 3.2 s logo reveal (the bars rise,
+/// then "insync" with the live dot) on brand black. Calls [onDone] when it
+/// has played.
 class InsyncSplash extends StatefulWidget {
   final VoidCallback? onDone;
   const InsyncSplash({super.key, this.onDone});
@@ -491,188 +445,43 @@ class InsyncSplash extends StatefulWidget {
 }
 
 class _InsyncSplashState extends State<InsyncSplash>
-    with TickerProviderStateMixin {
-  late final AnimationController _loop =
-      AnimationController(vsync: this, duration: const Duration(seconds: 12))
-        ..repeat();
-  late final AnimationController _breathe = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 2400))
-    ..repeat(reverse: true);
-  late final AnimationController _progress = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 2400))
-    ..addStatusListener((s) {
-      if (s == AnimationStatus.completed) widget.onDone?.call();
-    })
-    ..forward();
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _clock;
 
-  static const _steps = [
-    (0.0, 'Starting up…'),
-    (0.15, 'Warming up games…'),
-    (0.32, 'Syncing your chats…'),
-    (0.48, 'Loading reels & posts…'),
-    (0.64, 'Tuning voice rooms…'),
-    (0.80, 'Finding new matches…'),
-    (0.94, 'Almost in sync…'),
-  ];
-
-  static const _features = [
-    InIcons.game,
-    InIcons.tv,
-    InIcons.mic,
-    InIcons.chat,
-    InIcons.reels,
-    InIcons.video,
-    InIcons.heart,
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _clock = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 3200))
+      ..addStatusListener((s) {
+        if (s == AnimationStatus.completed) widget.onDone?.call();
+      })
+      ..forward();
+  }
 
   @override
   void dispose() {
-    _loop.dispose();
-    _breathe.dispose();
-    _progress.dispose();
+    _clock.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: RadialGradient(
-          center: Alignment(0, -0.1),
-          radius: 0.9,
-          colors: [Color(0xFF2A1150), Color(0xFF170D2E), InsyncBrand.night],
-          stops: [0, 0.35, 0.7],
-        ),
-      ),
+    return ColoredBox(
+      color: InsyncBrand.night,
       child: Center(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          SizedBox(
-            width: 260,
-            height: 260,
-            child: AnimatedBuilder(
-              animation: Listenable.merge([_loop, _breathe]),
-              builder: (context, _) {
-                final b = _breathe.value;
-                return Stack(alignment: Alignment.center, children: [
-                  // Glow
-                  Transform.scale(
-                    scale: 0.95 + 0.1 * b,
-                    child: Opacity(
-                      opacity: 0.6 + 0.4 * b,
-                      child: Container(
-                        width: 270,
-                        height: 270,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(colors: [
-                            Color(0x666A2CFF),
-                            Color(0x22E5179B),
-                            Color(0x00000000)
-                          ], stops: [
-                            0,
-                            0.45,
-                            0.7
-                          ]),
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Features circling the symbol
-                  for (var i = 0; i < _features.length; i++)
-                    Builder(builder: (context) {
-                      final a = -math.pi / 2 +
-                          i * 2 * math.pi / _features.length +
-                          _loop.value * 2 * math.pi;
-                      return Transform.translate(
-                        offset: Offset(110 * math.cos(a), 110 * math.sin(a)),
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: InsyncBrand.gradient,
-                            boxShadow: [
-                              BoxShadow(
-                                  color: Color(0x55E5179B), blurRadius: 16)
-                            ],
-                          ),
-                          child: Center(
-                              child: InIcon(_features[i],
-                                  size: 18, color: Colors.white)),
-                        ),
-                      );
-                    }),
-                  const InsyncSpinner(size: 120),
-                ]);
-              },
-            ),
-          ),
-          const SizedBox(height: 24),
-          const InsyncWordmarkText(size: 42),
-          const SizedBox(height: 8),
-          Text('PLAY · WATCH · LISTEN · CONNECT',
-              style: _poppins(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 3.5,
-                  color: InsyncBrand.muted)),
-          const SizedBox(height: 28),
-          SizedBox(
-            width: 260,
-            child: AnimatedBuilder(
-              animation: _progress,
-              builder: (context, _) {
-                final v = Curves.easeOut.transform(_progress.value);
-                final msg = _progress.isCompleted
-                    ? 'Ready!'
-                    : _steps.lastWhere((s) => v >= s.$1).$2;
-                return Column(children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(99),
-                    child: Container(
-                      height: 6,
-                      color: const Color(0x14FFFFFF),
-                      alignment: Alignment.centerLeft,
-                      child: FractionallySizedBox(
-                        widthFactor: v,
-                        child: Container(
-                          decoration: const BoxDecoration(
-                              gradient: LinearGradient(colors: [
-                            InsyncBrand.violet,
-                            InsyncBrand.pink,
-                            InsyncBrand.orange
-                          ], stops: [
-                            0,
-                            0.55,
-                            1
-                          ])),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(children: [
-                    Expanded(
-                      child: Text(msg,
-                          style:
-                              _poppins(fontSize: 13, color: InsyncBrand.muted)),
-                    ),
-                    Text('${(v * 100).round()}%',
-                        style: _poppins(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFFE9E4F7))),
-                  ]),
-                ]);
-              },
-            ),
-          ),
-        ]),
+        child: Image.asset(
+          'assets/brand/logo-animation.gif',
+          fit: BoxFit.contain,
+          gaplessPlayback: true,
+          semanticLabel: 'Insync',
+          // Without the file (tests), the still logo.
+          errorBuilder: (_, __, ___) => const InsyncLogo(width: 180, tagline: false),
+        ),
       ),
     );
   }
 }
-
 
 /// Buffering: a soft white light sweeping along the video's bottom line,
 /// again and again, until it plays. Covers nothing.

@@ -147,7 +147,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Brand splash fills its bar and reports done', (tester) async {
+  testWidgets('Brand splash plays the logo reveal and reports done', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -163,11 +163,12 @@ void main() {
         ),
       ),
     ));
-    await tester.pump(const Duration(milliseconds: 1200));
+    // The brand pack's logo animation runs 3.2 s.
+    await tester.pump(const Duration(milliseconds: 2000));
     expect(done, isFalse);
-    await tester.pump(const Duration(milliseconds: 1400));
+    await tester.pump(const Duration(milliseconds: 1300));
     expect(done, isTrue);
-    expect(find.text('Ready!'), findsOneWidget);
+    expect(find.bySemanticsLabel('Insync'), findsWidgets);
     await _snap(tester, key, 'splash-final');
   });
 }

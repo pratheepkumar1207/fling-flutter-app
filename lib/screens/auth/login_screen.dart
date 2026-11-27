@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../widgets/insync_brand.dart';
 import '../../core/apple_auth_service.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
@@ -223,7 +224,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     if (_googleOn && !_phoneOn && !_passwordOn && !_fakeLoginMode) {
       return Scaffold(
-        backgroundColor: AppColors.primary, // login is red
+        backgroundColor: AppColors.bg,
         body: GoogleSignInView(
           loading: _loading,
           error: _error,
@@ -240,7 +241,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ? 'Log in'
             : (_devMode ? 'Continue (dev login)' : 'Send code'));
     return Scaffold(
-      backgroundColor: AppColors.primary, // login is red
+      backgroundColor: AppColors.bg,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, box) => SingleChildScrollView(
@@ -260,8 +261,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ? InIconButton(InIcons.back,
                                 tooltip: 'Back',
                                 onPressed: () => Navigator.of(context).pop())
-                            : Image.asset('assets/icon/insync-symbol.png',
-                                height: 28, semanticLabel: 'Insync'),
+                            : const InsyncSymbol(size: 34),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -338,15 +338,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 16),
                       FilledButton.icon(
                         onPressed: _loading ? null : _handleSubmit,
-                        // White on the red login screen.
                         style: FilledButton.styleFrom(
-                            minimumSize: const Size.fromHeight(52),
-                            backgroundColor: Colors.white,
-                            foregroundColor: AppColors.primary),
+                            minimumSize: const Size.fromHeight(52)),
                         icon: _fakeLoginMode
                             ? const SizedBox.shrink()
                             : const InIcon(InIcons.phone,
-                                size: 18, color: AppColors.primary),
+                                size: 18, color: Colors.white),
                         label: Text(submitLabel),
                       ),
                     ],

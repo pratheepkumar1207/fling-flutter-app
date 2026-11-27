@@ -2,5 +2,6 @@
 <resources>
     <!-- insync brand (brand guide 1.0) -->
     <color name="insync_pink">#E5179B</color>
-    <color name="insync_night">#0E0A1C</color>
+    <color name="insync_night">#0B0B0B</color>
+    <color name="ic_launcher_background">#0B0B0B</color>
 </resources>

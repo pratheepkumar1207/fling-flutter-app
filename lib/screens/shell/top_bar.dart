@@ -57,8 +57,7 @@ class InsyncTopBar extends StatelessWidget implements PreferredSizeWidget {
               ),
               const SizedBox(width: 10),
               if (!popcorn) ...[
-                Image.asset('assets/icon/insync-symbol.png',
-                    height: 24, semanticLabel: 'Insync'),
+                const InsyncSymbol(size: 26),
                 const SizedBox(width: 6),
               ],
               const Expanded(
@@ -176,7 +175,7 @@ class InsyncTopBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-/// "insync" with the purple y, as in the logo.
+/// The brand wordmark: "in" white, "sync" red, with the live dot.
 class InsyncWordmark extends StatelessWidget {
   final double size;
   const InsyncWordmark({super.key, this.size = 20});

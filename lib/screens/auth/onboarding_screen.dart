@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/insync_brand.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
@@ -73,14 +74,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Row(children: [
-                          Image.asset('assets/icon/insync-symbol.png',
-                              height: 30, semanticLabel: 'Insync'),
-                          const SizedBox(width: 8),
-                          const Text('insync',
-                              style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: -0.5)),
+                          const InsyncSymbol(size: 34),
+                          const SizedBox(width: 6),
+                          const InsyncWordmarkText(size: 18),
                         ]),
                         const Expanded(child: _Tiles()),
                         const Text('Your people.\nYour kind of moment.',
