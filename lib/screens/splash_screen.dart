@@ -7,6 +7,7 @@ import '../core/app_navigator.dart';
 import '../core/location_service.dart';
 import '../theme/app_colors.dart';
 import 'auth/complete_profile_screen.dart';
+import 'auth/intro_video_screen.dart';
 import 'auth/login_screen.dart';
 import 'auth/onboarding_screen.dart';
 import 'auth/safety_guidelines_screen.dart';
@@ -26,6 +27,8 @@ class _SplashScreenState extends State<SplashScreen> {
   bool _locationPinged = false;
   bool _frameCacheLoaded = false;
   bool? _hasSeenOnboarding;
+  // First time only, before signing in: the 16 s features intro video.
+  bool? _hasSeenIntroVideo;
 
   @override
   void initState() {
@@ -35,6 +38,9 @@ class _SplashScreenState extends State<SplashScreen> {
     });
     OnboardingScreen.hasSeenOnboarding().then((seen) {
       if (mounted) setState(() => _hasSeenOnboarding = seen);
+    });
+    IntroVideoScreen.hasSeen().then((seen) {
+      if (mounted) setState(() => _hasSeenIntroVideo = seen);
     });
   }
 
@@ -61,8 +67,12 @@ class _SplashScreenState extends State<SplashScreen> {
           case AuthStatus.loading:
             return const _SplashScaffold();
           case AuthStatus.anon:
-            if (_hasSeenOnboarding == null) {
+            if (_hasSeenOnboarding == null || _hasSeenIntroVideo == null) {
               return const _SplashScaffold();
+            }
+            if (!_hasSeenIntroVideo!) {
+              return IntroVideoScreen(
+                  onDone: () => setState(() => _hasSeenIntroVideo = true));
             }
             return _hasSeenOnboarding!
                 ? const LoginScreen()
