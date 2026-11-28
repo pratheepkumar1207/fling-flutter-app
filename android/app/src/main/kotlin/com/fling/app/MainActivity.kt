@@ -58,6 +58,7 @@ class MainActivity : AudioServiceActivity() {
     }
 
     private var callRing: CallRingChannel? = null
+    private var pushOpen: PushOpenChannel? = null
     private var snapLenses: SnapLensChannel? = null
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -80,6 +81,7 @@ class MainActivity : AudioServiceActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        pushOpen?.take(intent, announce = true)
         pendingCallFrom(intent)?.let { call ->
             callRing?.pendingCall = call
             callRing?.announcePendingCall()
@@ -132,6 +134,9 @@ class MainActivity : AudioServiceActivity() {
         VideoEditChannel(this, flutterEngine.dartExecutor.binaryMessenger)
         snapLenses = SnapLensChannel(this, flutterEngine.dartExecutor.binaryMessenger)
         SnapLensEngine(this, flutterEngine.dartExecutor.binaryMessenger, flutterEngine.renderer)
+        pushOpen = PushOpenChannel(this, flutterEngine.dartExecutor.binaryMessenger).also {
+            it.take(intent, announce = false)
+        }
         callRing = CallRingChannel(this, flutterEngine.dartExecutor.binaryMessenger).also { ring ->
             pendingCallFrom(intent)?.let { ring.pendingCall = it }
         }

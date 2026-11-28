@@ -54,6 +54,8 @@
                 <action android:name="com.google.android.c2dm.intent.RECEIVE" />
             </intent-filter>
         </receiver>
+        <!-- "Not now" / "No" on a notification; see InsyncPush.kt. -->
+        <receiver android:name=".InsyncPushDismiss" android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

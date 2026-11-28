@@ -67,12 +67,20 @@ InIconData notificationIcon(String type) => switch (type) {
       'friend_request' || 'friend_accept' => InIcons.users,
       'match' => InIcons.flame,
       'blend_invite' || 'blend_watch' => InIcons.blend,
-      'broadcast' => InIcons.bell,
+      'gift' || 'gift_received' => InIcons.gift,
+      'new_subscriber' => InIcons.crown,
+      'friend_online' => InIcons.live,
+      'story_reply' => InIcons.reply,
+      'tournament' || 'tournament_match' => InIcons.trophy,
+      'broadcast' || 'admin_broadcast' => InIcons.bell,
       _ => InIcons.bell,
     };
 
 List<Color> notificationColors(String type) => switch (type) {
-      'room_invite' || 'room_join_ask' => const [AppColors.accent2, AppColors.primary],
+      'room_invite' || 'room_join_ask' => const [
+          AppColors.accent2,
+          AppColors.primary
+        ],
       'mention' => const [AppColors.gold, Color(0xFFC98F3A)],
       'like' || 'match' => const [AppColors.danger, Color(0xFFEB4B5E)],
       'friend_request' || 'friend_accept' || 'follow' => const [

@@ -28,6 +28,11 @@ class CallPushReceiver : BroadcastReceiver() {
                 val channel = intent.getStringExtra("channelName")
                 if (channel == null || channel == ringingChannel) cancel(context)
             }
+            // Everything else from the server: drawn by InsyncPush. Open on
+            // screen, the bell and pop-ups already show it.
+            else -> if (intent.getStringExtra("insync") == "1" && !inForeground) {
+                InsyncPush.show(context, intent, goAsync())
+            }
         }
     }
 
@@ -61,7 +66,7 @@ class CallPushReceiver : BroadcastReceiver() {
         val video = push.getStringExtra("mode") == "video"
         val notification = NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_insync)
-            .setColor(0xFFE5179B.toInt())
+            .setColor(0xFFE8112D.toInt())
             .setContentTitle(push.getStringExtra("fromName") ?: "Someone")
             .setContentText(if (video) "Incoming video call" else "Incoming voice call")
             .setCategory(NotificationCompat.CATEGORY_CALL)

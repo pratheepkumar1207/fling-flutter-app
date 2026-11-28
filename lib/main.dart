@@ -13,6 +13,7 @@ import 'core/auth_provider.dart';
 import 'core/background_audio_handler.dart';
 import 'core/firebase_service.dart';
 import 'core/push_notifications.dart';
+import 'core/push_open.dart';
 import 'core/socket_service.dart';
 import 'screens/splash_screen.dart';
 import 'theme/app_theme.dart';
@@ -55,6 +56,8 @@ void main() async {
   // delay the app's own startup; both listeners it registers stay valid
   // however long the actual setup takes to complete.
   unawaited(setupNotificationTapHandling());
+  // Phone notifications InSync draws itself (and their buttons).
+  PushOpen.init();
   runApp(const InsyncApp());
 }
 

@@ -7,6 +7,10 @@ class NotificationItem {
   final bool isRead;
   final DateTime createdAt;
 
+  /// Who it's from (name and photo), when the server knows.
+  final String? actorName;
+  final String? actorAvatarUrl;
+
   NotificationItem({
     required this.id,
     required this.type,
@@ -15,6 +19,8 @@ class NotificationItem {
     this.data,
     this.isRead = false,
     required this.createdAt,
+    this.actorName,
+    this.actorAvatarUrl,
   });
 
   factory NotificationItem.fromJson(Map<String, dynamic> json) {
@@ -27,6 +33,8 @@ class NotificationItem {
       isRead: json['isRead'] as bool? ?? false,
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
           DateTime.now(),
+      actorName: (json['actor'] as Map?)?['name'] as String?,
+      actorAvatarUrl: (json['actor'] as Map?)?['avatarUrl'] as String?,
     );
   }
 }
