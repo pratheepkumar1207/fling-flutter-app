@@ -77,7 +77,10 @@ class GoogleSignInView extends StatelessWidget {
                     shape: const StadiumBorder(),
                     backgroundColor: Colors.white,
                     disabledBackgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF000000)),
+                    foregroundColor: const Color(0xFF000000),
+                    // While signing in the button is disabled: keep
+                    // "Signing in…" readable (it was white on white).
+                    disabledForegroundColor: const Color(0xFF000000)),
                 icon: googleMark,
                 label: Text(loading ? 'Signing in…' : 'Continue with Google'),
               ),

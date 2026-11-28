@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The very first moment the app opens: brand black and the insync
-     splash icon (bars and wordmark), until the Flutter splash takes over. -->
+<!-- The very first moment the app opens: plain brand black. The logo comes
+     with the start-up animation right after (a still image here looked
+     soft next to it). -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/insync_night" />
-    <item android:width="288dp" android:height="288dp" android:gravity="center">
-        <bitmap android:gravity="fill" android:src="@drawable/launch_symbol" />
-    </item>
 </layer-list>

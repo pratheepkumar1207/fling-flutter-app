@@ -99,7 +99,9 @@ class _IntroVideoScreenState extends State<IntroVideoScreen> {
       body: Stack(fit: StackFit.expand, children: [
         if (ready)
           FittedBox(
-            fit: BoxFit.cover,
+            // Whole video, black above and below on tall phones (cover cut the
+            // sides off: "together" lost its last letter).
+            fit: BoxFit.contain,
             child: SizedBox(
               width: v.value.size.width,
               height: v.value.size.height,
