@@ -126,6 +126,7 @@ class _PartyScreenState extends State<PartyScreen>
   String? _error;
   RoomSocketController? _rs;
   bool _leftCardShown = false;
+  String? _lastHostId;
   // Host: tells the server what the lobby suggests next, for Autoplay.
   AutoplayFeed? _autoplayFeed;
   VoiceChatController? _voice;
@@ -503,6 +504,27 @@ class _PartyScreenState extends State<PartyScreen>
     final watching = rs.memberCount - 1;
     if (watching > _livePeak) _livePeak = watching;
 
+    // The host left and the role passed to me.
+    if (_lastHostId != null &&
+        _lastHostId != rs.hostId &&
+        rs.hostId != null &&
+        rs.hostId == rs.myUserId) {
+      final room = _room;
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
+        title: 'You\u2019re the host now',
+        icon: InIcons.star,
+        duration: const Duration(seconds: 6),
+        content: const Text('The host left. You run the lobby.'),
+        action: room == null
+            ? null
+            : SnackBarAction(
+                label: 'Settings',
+                textColor: const Color(0xFFFF9AA6),
+                onPressed: () => _openHostSettings(rs, room,
+                    hasVideo: room['roomType'] == 'watch')),
+      ));
+    }
+    _lastHostId = rs.hostId;
     // Removed, or the lobby ended: one full card with where to go next.
     if (rs.kicked || (rs.endedBy != null && !rs.isHost)) {
       if (_leftCardShown) return;
@@ -2441,6 +2463,8 @@ class _PartyScreenState extends State<PartyScreen>
                                   child: ChatOverlay(
                                     newestCard: privacyCard,
                                     compact: _peopleOpen,
+                                    poll: rs.poll,
+                                    onVotePoll: rs.votePoll,
                                     showMic: false,
                                     showGiftCards: false,
                                     fanIds: extras.fanIds,
@@ -2772,6 +2796,8 @@ class _PartyScreenState extends State<PartyScreen>
                                   chat: ChatOverlay(
                                     newestCard: privacyCard,
                                     compact: _peopleOpen,
+                                    poll: rs.poll,
+                                    onVotePoll: rs.votePoll,
                                     messages: rs.messages,
                                     typingUserIds: rs.typingUserIds,
                                     onTyping: rs.sendTyping,
@@ -2904,6 +2930,8 @@ class _PartyScreenState extends State<PartyScreen>
                                             child: ChatOverlay(
                                               newestCard: privacyCard,
                                               compact: _peopleOpen,
+                                              poll: rs.poll,
+                                              onVotePoll: rs.votePoll,
                                               messages: rs.messages,
                                               typingUserIds: rs.typingUserIds,
                                               onTyping: rs.sendTyping,
@@ -3051,6 +3079,8 @@ class _PartyScreenState extends State<PartyScreen>
                                         child: ChatOverlay(
                                           newestCard: privacyCard,
                                           compact: _peopleOpen,
+                                          poll: rs.poll,
+                                          onVotePoll: rs.votePoll,
                                           messages: rs.messages,
                                           typingUserIds: rs.typingUserIds,
                                           onTyping: rs.sendTyping,
@@ -3249,6 +3279,8 @@ class _PartyScreenState extends State<PartyScreen>
                                               child: ChatOverlay(
                                                 newestCard: privacyCard,
                                                 compact: _peopleOpen,
+                                                poll: rs.poll,
+                                                onVotePoll: rs.votePoll,
                                                 messages: rs.messages,
                                                 typingUserIds: rs.typingUserIds,
                                                 onTyping: rs.sendTyping,

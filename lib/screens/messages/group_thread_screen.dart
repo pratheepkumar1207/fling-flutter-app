@@ -104,7 +104,8 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
     socket.on('group:reaction', _onReaction);
   }
 
-  void _patch(String id, Map<String, dynamic> Function(Map<String, dynamic>) f) {
+  void _patch(
+      String id, Map<String, dynamic> Function(Map<String, dynamic>) f) {
     setState(() => _messages = [
           for (final m in _messages) m['id'] == id ? f(Map.of(m)) : m
         ]);
@@ -112,7 +113,8 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
 
   void _onPoll(dynamic data) {
     if (!mounted || data is! Map || data['groupId'] != widget.groupId) return;
-    _patch('${data['messageId']}', (m) => m..['pollCounts'] = data['pollCounts']);
+    _patch(
+        '${data['messageId']}', (m) => m..['pollCounts'] = data['pollCounts']);
   }
 
   void _onReaction(dynamic data) {
@@ -126,9 +128,11 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
       final r = await ApiClient.post('/groups/messages/$id/vote',
           body: {'option': option}) as Map<String, dynamic>;
       if (!mounted) return;
-      _patch(id, (x) => x
-        ..['pollCounts'] = r['pollCounts']
-        ..['myVote'] = r['myVote']);
+      _patch(
+          id,
+          (x) => x
+            ..['pollCounts'] = r['pollCounts']
+            ..['myVote'] = r['myVote']);
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -143,9 +147,11 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
       final r = await ApiClient.post('/groups/messages/$id/react',
           body: {'emoji': emoji}) as Map<String, dynamic>;
       if (!mounted) return;
-      _patch(id, (x) => x
-        ..['reactions'] = r['reactions']
-        ..['myReaction'] = r['myReaction']);
+      _patch(
+          id,
+          (x) => x
+            ..['reactions'] = r['reactions']
+            ..['myReaction'] = r['myReaction']);
     } catch (_) {}
   }
 
@@ -156,19 +162,18 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
       builder: (sheet) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                for (final e in groupReactions)
-                  Semantics(
-                    button: true,
-                    label: 'React $e',
-                    child: InkResponse(
-                      onTap: () => Navigator.of(sheet).pop(e),
-                      child: Text(e, style: const TextStyle(fontSize: 30)),
-                    ),
-                  ),
-              ]),
+          child:
+              Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+            for (final e in groupReactions)
+              Semantics(
+                button: true,
+                label: 'React $e',
+                child: InkResponse(
+                  onTap: () => Navigator.of(sheet).pop(e),
+                  child: Text(e, style: const TextStyle(fontSize: 30)),
+                ),
+              ),
+          ]),
         ),
       ),
     );
@@ -366,7 +371,8 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
                                 MaterialPageRoute(
                                     builder: (_) => CommunityHomeScreen(
                                         communityId: _communityId!))),
-                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            child:
+                                Row(mainAxisSize: MainAxisSize.min, children: [
                               const InIcon(InIcons.community,
                                   size: 12, color: AppColors.lilac),
                               const SizedBox(width: 4),
@@ -430,30 +436,40 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
                             );
                           }
                           final mine = m['senderId'] == myId;
-                          final showName = !mine &&
-                              (i == 0 ||
-                                  _messages[i - 1]['senderId'] !=
-                                      m['senderId']);
-                          final bubble = Container(
-                            margin: const EdgeInsets.symmetric(vertical: 3),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 10),
-                            constraints: BoxConstraints(
-                                maxWidth:
-                                    MediaQuery.sizeOf(context).width * 0.68),
-                            decoration: BoxDecoration(
-                              color: mine
-                                  ? AppColors.primary
-                                  : const Color(0xFF000000),
-                              borderRadius: BorderRadius.only(
-                                topLeft: const Radius.circular(20),
-                                topRight: const Radius.circular(20),
-                                bottomLeft: Radius.circular(mine ? 20 : 6),
-                                bottomRight: Radius.circular(mine ? 6 : 20),
-                              ),
-                            ),
-                            child: _content(m, mine),
-                          );
+                          // Same as lobby chat: theirs on the left, photo
+                          // and name once per run, text under the name;
+                          // yours on the right in a red bubble.
+                          bool same(int j) =>
+                              j >= 0 &&
+                              j < _messages.length &&
+                              _messages[j]['messageType'] != 'system' &&
+                              _messages[j]['senderId'] == m['senderId'];
+                          final continued = same(i - 1);
+                          final nextContinues = same(i + 1);
+                          final type = m['messageType'] as String? ?? 'text';
+                          final plainText = type == 'text';
+                          final maxW = MediaQuery.sizeOf(context).width * 0.72;
+                          final Widget body = mine && plainText
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 13, vertical: 9),
+                                  constraints: BoxConstraints(maxWidth: maxW),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary,
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: const Radius.circular(18),
+                                      bottomLeft: const Radius.circular(18),
+                                      topRight:
+                                          Radius.circular(continued ? 6 : 18),
+                                      bottomRight: Radius.circular(
+                                          nextContinues ? 6 : 18),
+                                    ),
+                                  ),
+                                  child: _content(m, mine),
+                                )
+                              : ConstrainedBox(
+                                  constraints: BoxConstraints(maxWidth: maxW),
+                                  child: _content(m, mine));
                           // Long-press any message to react.
                           final reactable = GestureDetector(
                             onLongPress: () => _pickReaction(m),
@@ -463,57 +479,65 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
                                     : CrossAxisAlignment.start,
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  bubble,
+                                  body,
                                   GroupReactionChips(
-                                      message: m,
-                                      onTap: (e) => _react(m, e)),
+                                      message: m, onTap: (e) => _react(m, e)),
                                 ]),
                           );
+                          final gap =
+                              EdgeInsets.only(bottom: nextContinues ? 3 : 12);
                           if (mine) {
-                            return Align(
-                                alignment: Alignment.centerRight,
-                                child: reactable);
+                            return Padding(
+                              padding: gap,
+                              child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: reactable),
+                            );
                           }
-                          return Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              SizedBox(
-                                width: 32,
-                                child: showName
-                                    ? SizedBox(
-                                        width: 28,
-                                        height: 28,
-                                        child: FittedBox(
-                                          child: Avatar(
-                                              src: m['senderAvatarUrl']
-                                                  as String?,
-                                              name: m['senderName'] as String?,
-                                              size: AvatarSize.sm),
+                          final name = m['senderName'] as String? ?? '';
+                          return Padding(
+                            padding: gap,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SizedBox(
+                                  width: 30,
+                                  child: continued
+                                      ? null
+                                      : SizedBox(
+                                          width: 30,
+                                          height: 30,
+                                          child: FittedBox(
+                                            child: Avatar(
+                                                src: m['senderAvatarUrl']
+                                                    as String?,
+                                                name: name,
+                                                size: AvatarSize.sm),
+                                          ),
                                         ),
-                                      )
-                                    : null,
-                              ),
-                              const SizedBox(width: 6),
-                              Flexible(
-                                child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      if (showName)
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                              left: 4, top: 6),
-                                          child: Text(
-                                              m['senderName'] as String? ?? '',
-                                              style: const TextStyle(
-                                                  color: AppColors.lilac,
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w600)),
-                                        ),
-                                      reactable,
-                                    ]),
-                              ),
-                            ],
+                                ),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        if (!continued)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                bottom: 2),
+                                            child: Text(name.split(' ').first,
+                                                style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 12.5,
+                                                    fontWeight:
+                                                        FontWeight.w700)),
+                                          ),
+                                        reactable,
+                                      ]),
+                                ),
+                              ],
+                            ),
                           );
                         },
                       ),
@@ -530,74 +554,74 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
                   style: TextStyle(color: AppColors.textFaint, fontSize: 13)),
             )
           else
-          Container(
-            decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: Color(0xFFFFFFFF)))),
-            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-            child: Row(children: [
-              InIconButton(InIcons.poll,
-                  tooltip: 'Create a poll',
-                  size: 38,
-                  iconSize: 21,
-                  onPressed: _sending ? null : _newPoll),
-              InIconButton(InIcons.image,
-                  tooltip: 'Send a photo',
-                  size: 38,
-                  iconSize: 21,
-                  onPressed: _sending
-                      ? null
-                      : () async {
-                          final uri = await pickChatPhoto();
-                          if (uri != null) {
-                            _send({'messageType': 'image', 'mediaUrl': uri});
-                          }
-                        }),
-              const SizedBox(width: 2),
-              Expanded(
-                child: TextField(
-                  controller: _text,
-                  minLines: 1,
-                  maxLines: 4,
-                  textInputAction: TextInputAction.send,
-                  decoration: const InputDecoration(
-                      hintText: 'Message the group…', isDense: true),
-                  onSubmitted: (v) {
-                    if (v.trim().isNotEmpty) {
-                      _send({'text': v.trim()}, clear: true);
-                    }
-                  },
-                ),
-              ),
-              VoiceRecordButton(
-                  onRecorded: (uri) =>
-                      _send({'messageType': 'voice', 'mediaUrl': uri})),
-              const SizedBox(width: 4),
-              Semantics(
-                button: true,
-                label: 'Send',
-                child: InkResponse(
-                  onTap: _sending
-                      ? null
-                      : () {
-                          final v = _text.text.trim();
-                          if (v.isNotEmpty) _send({'text': v}, clear: true);
-                        },
-                  radius: 26,
-                  child: Container(
-                    width: 46,
-                    height: 46,
-                    decoration: const BoxDecoration(
-                        color: AppColors.primary, shape: BoxShape.circle),
-                    alignment: Alignment.center,
-                    child: _sending
-                        ? const Spinner(size: 16)
-                        : const InIcon(InIcons.send,
-                            size: 20, color: Colors.white),
+            Container(
+              decoration: const BoxDecoration(
+                  border: Border(top: BorderSide(color: Color(0xFFFFFFFF)))),
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              child: Row(children: [
+                InIconButton(InIcons.poll,
+                    tooltip: 'Create a poll',
+                    size: 38,
+                    iconSize: 21,
+                    onPressed: _sending ? null : _newPoll),
+                InIconButton(InIcons.image,
+                    tooltip: 'Send a photo',
+                    size: 38,
+                    iconSize: 21,
+                    onPressed: _sending
+                        ? null
+                        : () async {
+                            final uri = await pickChatPhoto();
+                            if (uri != null) {
+                              _send({'messageType': 'image', 'mediaUrl': uri});
+                            }
+                          }),
+                const SizedBox(width: 2),
+                Expanded(
+                  child: TextField(
+                    controller: _text,
+                    minLines: 1,
+                    maxLines: 4,
+                    textInputAction: TextInputAction.send,
+                    decoration: const InputDecoration(
+                        hintText: 'Message the group…', isDense: true),
+                    onSubmitted: (v) {
+                      if (v.trim().isNotEmpty) {
+                        _send({'text': v.trim()}, clear: true);
+                      }
+                    },
                   ),
                 ),
-              ),
-            ]),
-          ),
+                VoiceRecordButton(
+                    onRecorded: (uri) =>
+                        _send({'messageType': 'voice', 'mediaUrl': uri})),
+                const SizedBox(width: 4),
+                Semantics(
+                  button: true,
+                  label: 'Send',
+                  child: InkResponse(
+                    onTap: _sending
+                        ? null
+                        : () {
+                            final v = _text.text.trim();
+                            if (v.isNotEmpty) _send({'text': v}, clear: true);
+                          },
+                    radius: 26,
+                    child: Container(
+                      width: 46,
+                      height: 46,
+                      decoration: const BoxDecoration(
+                          color: AppColors.primary, shape: BoxShape.circle),
+                      alignment: Alignment.center,
+                      child: _sending
+                          ? const Spinner(size: 16)
+                          : const InIcon(InIcons.send,
+                              size: 20, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ]),
+            ),
         ]),
       ),
     );

@@ -111,6 +111,10 @@ class ChatOverlay extends StatefulWidget {
   /// Shown as the newest line in chat (the host's "Who can join?" card).
   final Widget? newestCard;
 
+  /// The lobby's live poll, so a "started a poll" line can show the votes.
+  final Map<String, dynamic>? poll;
+  final void Function(int optionIndex)? onVotePoll;
+
   /// Narrow (the people panel is open): gift, invite and attach hide.
   final bool compact;
 
@@ -150,6 +154,8 @@ class ChatOverlay extends StatefulWidget {
     this.onVoteSkip,
     this.skipVoteCount = 0,
     this.skipVoteRequired = 1,
+    this.poll,
+    this.onVotePoll,
     this.newestCard,
     this.compact = false,
   });
@@ -675,6 +681,211 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
     );
   }
 
+  Widget _badgedFace(Map<String, dynamic> m, InIconData badge) {
+    final id = m['userId'] as String?;
+    final p = _person(id);
+    return GestureDetector(
+      onTap: id == null ? null : () => openRoomPerson(context, id),
+      child: SizedBox(
+        width: 28,
+        height: 26,
+        child: Stack(clipBehavior: Clip.none, children: [
+          SizedBox.square(
+            dimension: 24,
+            child: FittedBox(
+                child: Avatar(
+                    src: p?.avatarUrl ?? m['avatarUrl'] as String?,
+                    name: p?.name ?? m['name'] as String? ?? '',
+                    size: AvatarSize.sm)),
+          ),
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.black, width: 1.5)),
+              alignment: Alignment.center,
+              child: InIcon(badge, size: 8, color: Colors.white),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  /// "Dev is the host now" / "Dev let Arjun on the mic": a chat row with
+  /// the person's photo and a small red badge.
+  Widget _roleLine(Map<String, dynamic> m) {
+    final host = m['event'] == 'hostChanged';
+    final text = m['text'] as String? ?? '';
+    final p = _person(m['userId'] as String?);
+    final actor = p?.name ??
+        RegExp(host ? r'^(.*?) is ' : r'^(.*?) let ')
+            .firstMatch(text)
+            ?.group(1) ??
+        '';
+    final rest = actor.isNotEmpty && text.startsWith(actor)
+        ? text.substring(actor.length)
+        : ' $text';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(children: [
+        _badgedFace(m, host ? InIcons.star : InIcons.mic),
+        const SizedBox(width: 7),
+        Flexible(
+          child: Text.rich(
+            TextSpan(children: [
+              TextSpan(
+                  text: actor,
+                  style: const TextStyle(fontWeight: FontWeight.w700)),
+              if (m['coHost'] == true)
+                const WidgetSpan(
+                  alignment: PlaceholderAlignment.middle,
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 4),
+                    child: _Tag('co-host'),
+                  ),
+                ),
+              TextSpan(text: rest),
+            ]),
+            style: const TextStyle(
+                color: Colors.white, fontSize: 12.5, shadows: _textShadow),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  /// "Riya started a poll": a chat row with the poll's live votes. Tap an
+  /// answer to vote. Older polls show as closed.
+  Widget _pollLine(Map<String, dynamic> m) {
+    final poll = widget.poll;
+    final question = m['question'] as String? ?? '';
+    final live =
+        poll != null && poll['active'] == true && poll['question'] == question;
+    final options = live
+        ? (poll['options'] as List? ?? const []).map((o) => '$o').toList()
+        : const <String>[];
+    final votes = live
+        ? Map<String, dynamic>.from(poll['votes'] as Map? ?? const {})
+        : const <String, dynamic>{};
+    final total = votes.length;
+    final mineVote = votes[widget.myUserId];
+    final name = _person(m['userId'] as String?)?.name ??
+        m['name'] as String? ??
+        'Someone';
+    final footer = live
+        ? '$total vote${total == 1 ? '' : 's'}${mineVote == null ? ' · tap to vote' : ''}'
+        : 'Poll closed';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _badgedFace(m, InIcons.poll),
+        const SizedBox(width: 7),
+        Flexible(
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text.rich(
+                    TextSpan(children: [
+                      TextSpan(
+                          text: name.split(' ').first,
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                      const TextSpan(text: ' started a poll'),
+                    ]),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        shadows: _textShadow)),
+                const SizedBox(height: 3),
+                Container(
+                  constraints: const BoxConstraints(maxWidth: 260),
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.white),
+                  ),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(question,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700)),
+                        for (var k = 0; k < options.length; k++)
+                          _pollOption(options[k], k,
+                              share: total == 0
+                                  ? 0
+                                  : votes.values.where((v) => v == k).length /
+                                      total,
+                              picked: mineVote == k),
+                        const SizedBox(height: 5),
+                        Text(footer,
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 11)),
+                      ]),
+                ),
+              ]),
+        ),
+      ]),
+    );
+  }
+
+  Widget _pollOption(String label, int index,
+      {required double share, required bool picked}) {
+    final pct = (share * 100).round();
+    return Padding(
+      padding: const EdgeInsets.only(top: 5),
+      child: Semantics(
+        button: true,
+        selected: picked,
+        label: '$label, $pct percent',
+        child: GestureDetector(
+          onTap: widget.onVotePoll == null
+              ? null
+              : () => widget.onVotePoll!(index),
+          child: Container(
+            height: 30,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border:
+                  Border.all(color: picked ? AppColors.primary : Colors.white),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Stack(children: [
+              FractionallySizedBox(
+                widthFactor: share.clamp(0, 1).toDouble(),
+                heightFactor: 1,
+                child: Container(
+                    color:
+                        picked ? AppColors.primary : const Color(0xFF3A0A12)),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 9),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('$label · $pct%',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          const TextStyle(color: Colors.white, fontSize: 12)),
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _eventLine(Map<String, dynamic> m) {
     final event = m['event'] as String?;
     // A Platinum subscriber joining: a purple banner, not a small note.
@@ -721,6 +932,10 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
       );
     }
     if (event == 'joined' || event == 'joinedMany') return _joinLine(m);
+    if (event == 'hostChanged' || event == 'micApproved') {
+      return _roleLine(m);
+    }
+    if (event == 'poll') return _pollLine(m);
     final text = m['text'] as String? ?? '';
     final removed = event == 'removed';
     final color = removed ? const Color(0xFFEE6373) : const Color(0xFFFFFFFF);
@@ -1385,8 +1600,13 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                           ));
                     }
                     if (m['system'] == true) {
-                      final join =
-                          m['event'] == 'joined' || m['event'] == 'joinedMany';
+                      final join = const {
+                        'joined',
+                        'joinedMany',
+                        'hostChanged',
+                        'micApproved',
+                        'poll'
+                      }.contains(m['event']);
                       return _systemLine(m, _eventLine(m),
                           centered: !join || m['subTier'] == 'platinum');
                     }
@@ -2071,4 +2291,20 @@ class _SwipeToReplyState extends State<_SwipeToReply> {
       ]),
     );
   }
+}
+
+class _Tag extends StatelessWidget {
+  final String label;
+  const _Tag(this.label);
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 5),
+        decoration: BoxDecoration(
+            color: Colors.white, borderRadius: BorderRadius.circular(6)),
+        child: Text(label,
+            style: const TextStyle(
+                color: Colors.black,
+                fontSize: 10,
+                fontWeight: FontWeight.w700)),
+      );
 }

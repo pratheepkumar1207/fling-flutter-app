@@ -49,13 +49,14 @@ class _HostRequestTrayState extends State<HostRequestTray> {
       animation: widget.rs,
       builder: (context, _) {
         final rs = widget.rs;
-        if (!rs.isHost) return const SizedBox.shrink();
+        // Mic requests: host and co-hosts. Who gets into a private lobby: host.
+        if (!rs.canApproveMics) return const SizedBox.shrink();
         final pending = [
           for (final id in (rs.call['pendingRequests'] as List? ?? const [])
               .cast<String>())
             if (!_hiddenMic.contains(id)) id
         ];
-        final asks = rs.joinAsks;
+        final asks = rs.isHost ? rs.joinAsks : const <Map<String, dynamic>>[];
         if (pending.isEmpty && asks.isEmpty) return const SizedBox.shrink();
         final cards = <Widget>[
           for (final a in asks.take(2))
