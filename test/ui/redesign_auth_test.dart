@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 
 import 'package:insync/core/auth_provider.dart';
 import 'package:insync/screens/auth/login_screen.dart';
-import 'package:insync/screens/auth/onboarding_screen.dart';
 import 'package:insync/screens/auth/otp_screen.dart';
 import 'package:insync/screens/auth/safety_guidelines_screen.dart';
 import 'package:insync/theme/app_theme.dart';
@@ -61,8 +60,6 @@ void main() {
     await loader.load();
   });
 
-  testWidgets(
-      'Front page', (t) => _render(t, const OnboardingScreen(), 'auth-front'));
   testWidgets('Sign in', (t) => _render(t, const LoginScreen(), 'auth-signin'));
   testWidgets(
       'Enter code',
@@ -74,7 +71,6 @@ void main() {
           t, const SafetyGuidelinesScreen(previewOnly: true), 'auth-safety'));
 
   for (final entry in {
-    'front': const OnboardingScreen(),
     'sign in': const LoginScreen(),
     'code': const OtpScreen(phone: '+91 98765 43210'),
     'safety': const SafetyGuidelinesScreen(previewOnly: true),

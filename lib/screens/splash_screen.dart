@@ -8,7 +8,6 @@ import '../core/location_service.dart';
 import 'auth/complete_profile_screen.dart';
 import 'auth/intro_video_screen.dart';
 import 'auth/login_screen.dart';
-import 'auth/onboarding_screen.dart';
 import 'auth/safety_guidelines_screen.dart';
 import 'shell/app_shell.dart';
 
@@ -25,7 +24,6 @@ class _SplashScreenState extends State<SplashScreen> {
   static bool _introPlayed = false;
   bool _locationPinged = false;
   bool _frameCacheLoaded = false;
-  bool? _hasSeenOnboarding;
   // First time only, before signing in: the 16 s features intro video.
   // Signed out: the intro video plays once per app opening. Signed in:
   // never.
@@ -36,9 +34,6 @@ class _SplashScreenState extends State<SplashScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AuthProvider>().bootstrap();
-    });
-    OnboardingScreen.hasSeenOnboarding().then((seen) {
-      if (mounted) setState(() => _hasSeenOnboarding = seen);
     });
   }
 
@@ -65,16 +60,13 @@ class _SplashScreenState extends State<SplashScreen> {
           case AuthStatus.loading:
             return const _SplashScaffold();
           case AuthStatus.anon:
-            if (_hasSeenOnboarding == null) {
-              return const _SplashScaffold();
-            }
+            // Signed out: the intro video, then straight to sign-in (the
+            // old "Get started" page repeated both).
             if (!_introVideoPlayed) {
               return IntroVideoScreen(
                   onDone: () => setState(() => _introVideoPlayed = true));
             }
-            return _hasSeenOnboarding!
-                ? const LoginScreen()
-                : const OnboardingScreen();
+            return const LoginScreen();
           case AuthStatus.authed:
             // New (or not-yet-finished) accounts must fill in "looking
             // for", interests, and a real gallery before anything else —
