@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The vibe bars as vector shapes (sharp on any screen), half size in a
+     288 dp square: exactly where the start-up animation begins. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="288dp" android:height="288dp"
+    android:viewportWidth="100" android:viewportHeight="100">
+    <group android:scaleX="0.5" android:scaleY="0.5" android:pivotX="50" android:pivotY="50">
+        <path android:fillColor="#FFFFFF" android:pathData="M21.5,42.5 a4.5,4.5 0 0 1 9,0 v15 a4.5,4.5 0 0 1 -9,0 z" />
+        <path android:fillColor="#E8112D" android:pathData="M33.5,32.5 a4.5,4.5 0 0 1 9,0 v35 a4.5,4.5 0 0 1 -9,0 z" />
+        <path android:fillColor="#E8112D" android:pathData="M45.5,23.5 a4.5,4.5 0 0 1 9,0 v53 a4.5,4.5 0 0 1 -9,0 z" />
+        <path android:fillColor="#E8112D" android:pathData="M57.5,32.5 a4.5,4.5 0 0 1 9,0 v35 a4.5,4.5 0 0 1 -9,0 z" />
+        <path android:fillColor="#FFFFFF" android:pathData="M69.5,42.5 a4.5,4.5 0 0 1 9,0 v15 a4.5,4.5 0 0 1 -9,0 z" />
+    </group>
+</vector>

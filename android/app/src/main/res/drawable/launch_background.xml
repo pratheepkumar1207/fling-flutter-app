@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The very first moment the app opens: plain brand black. The logo comes
-     with the start-up animation right after (a still image here looked
-     soft next to it). -->
+<!-- The very first moment: brand black and the vibe bars (vector, sharp),
+     exactly where the start-up animation starts, so it flows on. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/insync_night" />
+    <item android:width="288dp" android:height="288dp" android:gravity="center"
+        android:drawable="@drawable/launch_bars" />
 </layer-list>

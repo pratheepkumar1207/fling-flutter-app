@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:video_player/video_player.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/insync_icons.dart';
@@ -60,7 +59,9 @@ TextStyle _poppins(
 class _BarsPainter extends CustomPainter {
   final double? phase;
   final Color? color;
-  const _BarsPainter({this.phase, this.color});
+  // 1 = full bounce, 0 = still (the reveal settles from 1 to 0).
+  final double amount;
+  const _BarsPainter({this.phase, this.color, this.amount = 1});
 
   static const _bars = [
     (21.5, 38.0, 24.0),
@@ -82,7 +83,7 @@ class _BarsPainter extends CustomPainter {
       if (phase != null) {
         // Each bar bounces a little out of step with the next.
         final w = math.sin((phase! * 2 + i * 0.22) * math.pi).abs();
-        height = h * (0.45 + 0.55 * w);
+        height = h * (1 - amount * 0.55 * (1 - w));
       }
       final mid = top + h / 2;
       final paint = Paint()
@@ -98,7 +99,7 @@ class _BarsPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _BarsPainter old) =>
-      old.phase != phase || old.color != color;
+      old.phase != phase || old.color != color || old.amount != amount;
 }
 
 /// The vibe bars, still. [color] null draws them in brand red and white.
@@ -441,84 +442,110 @@ class _InsyncShimmerState extends State<InsyncShimmer>
       );
 }
 
-/// The start-up screen: the brand pack's 3.2 s logo reveal (the bars rise,
-/// then "insync" with the live dot) on brand black. Calls [onDone] when it
-/// has played.
-class InsyncSplash extends StatefulWidget {
+/// The logo reveal: the vibe bars bounce like a sound meter and settle,
+/// then "insync" with the live dot fades up underneath. Drawn, not a video,
+/// so it starts on the first frame and is sharp on any screen. The bars sit
+/// exactly where the system launch screen draws them ([size] square,
+/// centred), so the launch screen flows straight into it.
+class InsyncLogoReveal extends StatefulWidget {
+  final double size;
   final VoidCallback? onDone;
-  const InsyncSplash({super.key, this.onDone});
+  const InsyncLogoReveal({super.key, this.size = 144, this.onDone});
 
   @override
-  State<InsyncSplash> createState() => _InsyncSplashState();
+  State<InsyncLogoReveal> createState() => _InsyncLogoRevealState();
 }
 
-class _InsyncSplashState extends State<InsyncSplash>
+class _InsyncLogoRevealState extends State<InsyncLogoReveal>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _clock;
-  // The brand pack's 1080 x 1920 MP4: sharp on any phone (the GIF was
-  // 540 px wide and looked soft when stretched).
-  VideoPlayerController? _video;
-  bool _videoFailed = false;
+  late final AnimationController _c;
 
   @override
   void initState() {
     super.initState();
-    _clock = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 3200))
+    _c = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 2600))
       ..addStatusListener((s) {
         if (s == AnimationStatus.completed) widget.onDone?.call();
       })
       ..forward();
-    _startVideo();
-  }
-
-  Future<void> _startVideo() async {
-    final v = VideoPlayerController.asset('assets/brand/logo-animation.mp4');
-    try {
-      await v.initialize();
-      await v.setVolume(0);
-      if (!mounted) {
-        await v.dispose();
-        return;
-      }
-      setState(() => _video = v);
-      await v.play();
-    } catch (_) {
-      await v.dispose();
-      if (mounted) setState(() => _videoFailed = true);
-    }
   }
 
   @override
   void dispose() {
-    _clock.dispose();
-    _video?.dispose();
+    _c.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final v = _video;
+    final size = widget.size;
     return Semantics(
       label: 'Insync',
       image: true,
-      child: ColoredBox(
-        color: InsyncBrand.night,
-        child: Center(
-          child: FractionallySizedBox(
-            widthFactor: 0.6,
-            child: v != null && v.value.isInitialized
-                ? AspectRatio(
-                    aspectRatio: v.value.aspectRatio,
-                    child: VideoPlayer(v),
-                  )
-                : _videoFailed
-                    // No video (tests, or a device that can't play it):
-                    // the still logo.
-                    ? const InsyncLogo(width: 180, tagline: false)
-                    : const SizedBox.shrink(),
-          ),
+      excludeSemantics: true,
+      child: SizedBox(
+        width: size * 1.3,
+        height: size * 1.6,
+        child: AnimatedBuilder(
+          animation: _c,
+          builder: (context, _) {
+            final t = _c.value;
+            // Bars: bounce for the first half, fading to still.
+            final bounce = t < 0.55 ? 1 - t / 0.55 : 0.0;
+            final phase = bounce > 0 ? (t * 3.2) % 1.0 : null;
+            // Wordmark: fades and rises in from 45% to 80%.
+            final w = ((t - 0.45) / 0.35).clamp(0.0, 1.0);
+            final word = Curves.easeOut.transform(w);
+            return Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.center,
+                children: [
+                  // Bars: centred in the square, like the launch screen.
+                  Positioned(
+                    left: size * 0.15,
+                    top: (size * 1.6 - size) / 2,
+                    width: size,
+                    height: size,
+                    child: CustomPaint(
+                      painter: _BarsPainter(phase: phase, amount: bounce),
+                    ),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: (size * 1.6 - size) / 2 +
+                        size * 0.86 +
+                        (1 - word) * size * 0.08,
+                    child: Opacity(
+                      opacity: word,
+                      child:
+                          Center(child: InsyncWordmarkText(size: size * 0.2)),
+                    ),
+                  ),
+                ]);
+          },
         ),
+      ),
+    );
+  }
+}
+
+/// The start-up screen: the logo reveal on brand black, then [onDone].
+class InsyncSplash extends StatelessWidget {
+  final VoidCallback? onDone;
+  const InsyncSplash({super.key, this.onDone});
+
+  /// Matches the bars on the system launch screen (288 dp icon, bars
+  /// scaled to half: a 144 dp square).
+  static const barsSize = 144.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: InsyncBrand.night,
+      child: Center(
+        child: InsyncLogoReveal(size: barsSize, onDone: onDone),
       ),
     );
   }

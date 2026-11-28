@@ -185,7 +185,7 @@ class _FloatingLogoState extends State<_FloatingLogo>
             builder: (context, child) => Transform.translate(
                 offset: Offset(0, math.sin(_clock.value * 2 * math.pi * 6) * 6),
                 child: child),
-            child: const InsyncLogo(width: 240, tagline: false),
+            child: const InsyncLogoReveal(size: 170),
           ),
         ),
       ),
