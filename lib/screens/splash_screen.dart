@@ -27,7 +27,9 @@ class _SplashScreenState extends State<SplashScreen> {
   bool _frameCacheLoaded = false;
   bool? _hasSeenOnboarding;
   // First time only, before signing in: the 16 s features intro video.
-  bool? _hasSeenIntroVideo;
+  // Signed out: the intro video plays once per app opening. Signed in:
+  // never.
+  static bool _introVideoPlayed = false;
 
   @override
   void initState() {
@@ -37,9 +39,6 @@ class _SplashScreenState extends State<SplashScreen> {
     });
     OnboardingScreen.hasSeenOnboarding().then((seen) {
       if (mounted) setState(() => _hasSeenOnboarding = seen);
-    });
-    IntroVideoScreen.hasSeen().then((seen) {
-      if (mounted) setState(() => _hasSeenIntroVideo = seen);
     });
   }
 
@@ -66,12 +65,12 @@ class _SplashScreenState extends State<SplashScreen> {
           case AuthStatus.loading:
             return const _SplashScaffold();
           case AuthStatus.anon:
-            if (_hasSeenOnboarding == null || _hasSeenIntroVideo == null) {
+            if (_hasSeenOnboarding == null) {
               return const _SplashScaffold();
             }
-            if (!_hasSeenIntroVideo!) {
+            if (!_introVideoPlayed) {
               return IntroVideoScreen(
-                  onDone: () => setState(() => _hasSeenIntroVideo = true));
+                  onDone: () => setState(() => _introVideoPlayed = true));
             }
             return _hasSeenOnboarding!
                 ? const LoginScreen()

@@ -7,9 +7,10 @@ import 'package:video_player/video_player.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
 
-/// First time only, before signing in: the brand pack's 16 s features intro
-/// (watch, live, chat, call, play and win, match, then the logo), with
-/// music. Skip any time; mute with the speaker button.
+/// Signed out, each time the app opens (never once signed in): the brand
+/// pack's 16 s features intro (watch, live, chat, call, play and win,
+/// match, then the logo), with music. Skip any time; mute with the speaker
+/// button.
 class IntroVideoScreen extends StatefulWidget {
   final VoidCallback onDone;
   const IntroVideoScreen({super.key, required this.onDone});
