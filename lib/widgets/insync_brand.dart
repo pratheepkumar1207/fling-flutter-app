@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:video_player/video_player.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/insync_icons.dart';
@@ -454,6 +455,10 @@ class InsyncSplash extends StatefulWidget {
 class _InsyncSplashState extends State<InsyncSplash>
     with SingleTickerProviderStateMixin {
   late final AnimationController _clock;
+  // The brand pack's 1080 x 1920 MP4: sharp on any phone (the GIF was
+  // 540 px wide and looked soft when stretched).
+  VideoPlayerController? _video;
+  bool _videoFailed = false;
 
   @override
   void initState() {
@@ -464,29 +469,54 @@ class _InsyncSplashState extends State<InsyncSplash>
         if (s == AnimationStatus.completed) widget.onDone?.call();
       })
       ..forward();
+    _startVideo();
+  }
+
+  Future<void> _startVideo() async {
+    final v = VideoPlayerController.asset('assets/brand/logo-animation.mp4');
+    try {
+      await v.initialize();
+      await v.setVolume(0);
+      if (!mounted) {
+        await v.dispose();
+        return;
+      }
+      setState(() => _video = v);
+      await v.play();
+    } catch (_) {
+      await v.dispose();
+      if (mounted) setState(() => _videoFailed = true);
+    }
   }
 
   @override
   void dispose() {
     _clock.dispose();
+    _video?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: InsyncBrand.night,
-      child: Center(
-        child: FractionallySizedBox(
-          widthFactor: 0.6,
-          child: Image.asset(
-            'assets/brand/logo-animation.gif',
-            fit: BoxFit.contain,
-            gaplessPlayback: true,
-            semanticLabel: 'Insync',
-            // Without the file (tests), the still logo.
-            errorBuilder: (_, __, ___) =>
-                const InsyncLogo(width: 180, tagline: false),
+    final v = _video;
+    return Semantics(
+      label: 'Insync',
+      image: true,
+      child: ColoredBox(
+        color: InsyncBrand.night,
+        child: Center(
+          child: FractionallySizedBox(
+            widthFactor: 0.6,
+            child: v != null && v.value.isInitialized
+                ? AspectRatio(
+                    aspectRatio: v.value.aspectRatio,
+                    child: VideoPlayer(v),
+                  )
+                : _videoFailed
+                    // No video (tests, or a device that can't play it):
+                    // the still logo.
+                    ? const InsyncLogo(width: 180, tagline: false)
+                    : const SizedBox.shrink(),
           ),
         ),
       ),
