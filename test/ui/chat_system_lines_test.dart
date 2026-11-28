@@ -71,7 +71,8 @@ void main() {
     ));
     await t.pump();
     // Long-press Now Playing: Share, Copy, Reply, Report and search.
-    await t.longPress(find.textContaining('Ithanundu', findRichText: true).first);
+    await t
+        .longPress(find.textContaining('Ithanundu', findRichText: true).first);
     await t.pumpAndSettle();
     for (final a in ['Share', 'Copy', 'Reply', 'Report', 'Search']) {
       expect(find.text(a), findsWidgets, reason: a);
@@ -91,7 +92,8 @@ void main() {
     expect(find.text('Replying to Now Playing'), findsOneWidget);
 
     // Long-press the join note: Copy and Reply, no Share or Report.
-    await t.longPress(find.text('Chitra joined'));
+    await t.longPress(
+        find.textContaining('Chitra joined the lobby', findRichText: true));
     await t.pumpAndSettle();
     expect(find.text('Share'), findsNothing);
     expect(find.text('Reply'), findsOneWidget);

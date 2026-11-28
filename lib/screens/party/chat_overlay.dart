@@ -355,9 +355,10 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
             : _nameColor(senderId);
     const style =
         TextStyle(fontSize: 13, color: Colors.white, shadows: _textShadow);
-    // Only the first of back-to-back messages carries the name.
+    // Only the first of back-to-back messages carries the name, on its own
+    // line above. Your own messages sit on the right with no name.
     final nameSpans = <InlineSpan>[
-      if (!continued) ...[
+      if (!continued && !mine) ...[
         if (vip)
           WidgetSpan(
             alignment: PlaceholderAlignment.middle,
@@ -390,7 +391,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
             ),
           ),
         TextSpan(
-            text: '$first: ',
+            text: first,
             style: m['subTier'] == 'platinum'
                 ? const TextStyle(
                     fontWeight: FontWeight.w700,
@@ -400,22 +401,43 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
       ],
     ];
     // 1–3 emoji alone: big and animated after the name.
-    final Widget textLine = ChatEmojiText.isBigEmoji(text)
-        ? Row(mainAxisSize: MainAxisSize.min, children: [
-            if (nameSpans.isNotEmpty)
-              Text.rich(TextSpan(children: nameSpans), style: style),
-            ChatEmojiText(text,
-                style: const TextStyle(fontSize: 13, color: Colors.white)),
-          ])
-        : Text.rich(
-            TextSpan(children: [
-              ...nameSpans,
-              ...animateEmojiSpans(_textSpans(text), 13),
-            ]),
-            style: style,
+    final Widget header = nameSpans.isEmpty
+        ? const SizedBox.shrink()
+        : Padding(
+            padding: const EdgeInsets.only(bottom: 1),
+            child: Text.rich(TextSpan(children: nameSpans),
+                style: style.copyWith(fontSize: 12)),
           );
+    final Widget message = ChatEmojiText.isBigEmoji(text)
+        ? ChatEmojiText(text,
+            style: const TextStyle(fontSize: 13, color: Colors.white))
+        : Text.rich(
+            TextSpan(children: animateEmojiSpans(_textSpans(text), 13)),
+            style: mine ? style.copyWith(shadows: const []) : style,
+          );
+    // Yours: a red bubble on the right, tighter corners between messages
+    // of one run.
+    final Widget textLine = mine
+        ? Container(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.only(
+                topLeft: const Radius.circular(16),
+                bottomLeft: const Radius.circular(16),
+                topRight: Radius.circular(continued ? 5 : 16),
+                bottomRight: Radius.circular(nextContinues ? 5 : 16),
+              ),
+            ),
+            child: message,
+          )
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [header, message]);
     final body = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           if (quote != null)
@@ -426,46 +448,47 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      shadows: _textShadow)),
+                      color: Colors.white, fontSize: 11, shadows: _textShadow)),
             ),
           textLine,
           if (m['reactions'] is Map && (m['reactions'] as Map).isNotEmpty)
             _reactionChips(m, false),
         ]);
-    final line = Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (continued)
-          const SizedBox(width: 24)
-        else
-          GestureDetector(
-            onTap: mine ? null : () => openRoomPerson(context, senderId),
-            child: SizedBox.square(
-              dimension: 24,
-              child: FittedBox(
-                  child: Avatar(
-                      src: person?.avatarUrl ?? m['avatarUrl'] as String?,
-                      name: name,
-                      size: AvatarSize.sm)),
-            ),
-          ),
-        const SizedBox(width: 7),
-        Flexible(
-            child: Padding(
-                padding: const EdgeInsets.only(top: 3), child: body)),
-      ],
-    );
+    final maxW = MediaQuery.sizeOf(context).width * 0.72;
+    final line = mine
+        ? ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxW), child: body)
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (continued)
+                const SizedBox(width: 24)
+              else
+                GestureDetector(
+                  onTap: mine ? null : () => openRoomPerson(context, senderId),
+                  child: SizedBox.square(
+                    dimension: 24,
+                    child: FittedBox(
+                        child: Avatar(
+                            src: person?.avatarUrl ?? m['avatarUrl'] as String?,
+                            name: name,
+                            size: AvatarSize.sm)),
+                  ),
+                ),
+              const SizedBox(width: 7),
+              Flexible(child: body),
+            ],
+          );
     return Padding(
       padding: EdgeInsets.only(bottom: nextContinues ? 3 : 8),
       child: _SwipeToReply(
         mine: mine,
         onReply: () => _startReply(m),
         child: Align(
-          alignment: Alignment.centerLeft,
+          alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
           child: Semantics(
-            label: '$first: $text. Long-press to react or reply',
+            label:
+                '${mine ? 'You' : first}: $text. Long-press to react or reply',
             child: Builder(
               builder: (lineContext) => GestureDetector(
                 onLongPress: () => _openMessageSheet(m,
@@ -547,6 +570,111 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
     );
   }
 
+  // Joins whose "Say hi" was tapped (by message ts), so it shows once.
+  final Set<Object?> _saidHi = {};
+
+  /// Someone joined: a chat row like a message (photo, bold name, "joined
+  /// the lobby") with a "Say hi" chip. A burst of joins: two photos
+  /// stacked and "X, Y and N more joined the lobby".
+  Widget _joinLine(Map<String, dynamic> m) {
+    final many = m['event'] == 'joinedMany';
+    final people = [
+      for (final p in (m['people'] as List? ?? const []))
+        if (p is Map) Map<String, dynamic>.from(p)
+    ];
+    final text = m['text'] as String? ?? '';
+    final userId = m['userId'] as String?;
+    final person = _person(userId);
+    final name = many
+        ? text.replaceFirst(RegExp(r' joined$'), '')
+        : (person?.name ?? text.replaceFirst(RegExp(r' joined$'), ''));
+    final first = name.trim().split(RegExp(r'\s+')).first;
+    Widget face(String? src, String n) => Container(
+          decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [BoxShadow(color: Colors.black, spreadRadius: 1.5)]),
+          child: SizedBox.square(
+              dimension: 24,
+              child: FittedBox(
+                  child: Avatar(src: src, name: n, size: AvatarSize.sm))),
+        );
+    final Widget photo = many
+        ? SizedBox(
+            width: 34,
+            height: 24,
+            child: Stack(children: [
+              if (people.length > 1)
+                Positioned(
+                    left: 10,
+                    child: face(people[1]['avatarUrl'] as String?,
+                        '${people[1]['name'] ?? ''}')),
+              face(people.isNotEmpty ? people[0]['avatarUrl'] as String? : null,
+                  people.isNotEmpty ? '${people[0]['name'] ?? ''}' : name),
+            ]),
+          )
+        : GestureDetector(
+            onTap:
+                userId == null ? null : () => openRoomPerson(context, userId),
+            child: face(person?.avatarUrl ?? m['avatarUrl'] as String?, name),
+          );
+    final canWave = !many &&
+        userId != null &&
+        userId != widget.myUserId &&
+        !_saidHi.contains(m['ts']);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        photo,
+        const SizedBox(width: 7),
+        Flexible(
+          child: Text.rich(
+            TextSpan(children: [
+              TextSpan(
+                  text: name,
+                  style: const TextStyle(fontWeight: FontWeight.w700)),
+              const TextSpan(text: ' joined the lobby'),
+            ]),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+                color: Colors.white, fontSize: 12.5, shadows: _textShadow),
+          ),
+        ),
+        if (canWave) ...[
+          const SizedBox(width: 8),
+          Semantics(
+            button: true,
+            label: 'Say hi to $first',
+            child: Material(
+              color: Colors.black,
+              shape: const StadiumBorder(
+                  side: BorderSide(color: AppColors.primary)),
+              child: InkWell(
+                customBorder: const StadiumBorder(),
+                onTap: () {
+                  setState(() => _saidHi.add(m['ts']));
+                  widget.onSend('Hi @$name 👋', [userId]);
+                },
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    InIcon(InIcons.wave, size: 13, color: Colors.white),
+                    SizedBox(width: 4),
+                    Text('Say hi',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ]),
+    );
+  }
+
   Widget _eventLine(Map<String, dynamic> m) {
     final event = m['event'] as String?;
     // A Platinum subscriber joining: a purple banner, not a small note.
@@ -566,7 +694,9 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
             Container(
               decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: Color(0xFFFFCCD2), spreadRadius: 2)]),
+                  boxShadow: [
+                    BoxShadow(color: Color(0xFFFFCCD2), spreadRadius: 2)
+                  ]),
               child: SizedBox.square(
                 dimension: 26,
                 child: FittedBox(
@@ -590,6 +720,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
         ),
       );
     }
+    if (event == 'joined' || event == 'joinedMany') return _joinLine(m);
     final text = m['text'] as String? ?? '';
     final removed = event == 'removed';
     final color = removed ? const Color(0xFFEE6373) : const Color(0xFFFFFFFF);
@@ -693,7 +824,8 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
         ? ''
         : TimeOfDay.fromDateTime(DateTime.fromMillisecondsSinceEpoch(ts))
             .format(context);
-    final pinner = m['pinnedByName'] as String? ?? _person(m['pinnedBy'] as String?)?.name;
+    final pinner =
+        m['pinnedByName'] as String? ?? _person(m['pinnedBy'] as String?)?.name;
     void reply() => _startReply(np
         ? {
             'id': id,
@@ -723,12 +855,10 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
           'Report',
           () => showReportReasonSheet(context,
               userName: 'this video',
-              onSubmit: (reason) => ApiClient.post(
-                      '/social/report/${m['pinnedBy']}',
-                      body: {
-                        'reason':
-                            'Video "$title" ${m['videoUrl'] ?? ''}: $reason'
-                      }).catchError((_) => null))
+              onSubmit: (reason) =>
+                  ApiClient.post('/social/report/${m['pinnedBy']}', body: {
+                    'reason': 'Video "$title" ${m['videoUrl'] ?? ''}: $reason'
+                  }).catchError((_) => null))
         ),
     ];
     showModalBottomSheet(
@@ -738,7 +868,8 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
       builder: (sheet) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(sheet).viewInsets.bottom),
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(sheet).viewInsets.bottom),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(14, 16, 14, 6),
@@ -768,8 +899,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                     dimension: 40,
                     child: FittedBox(
                         child: Avatar(
-                            src: person?.avatarUrl ??
-                                m['avatarUrl'] as String?,
+                            src: person?.avatarUrl ?? m['avatarUrl'] as String?,
                             name: event ? body : (m['name'] as String?),
                             size: AvatarSize.md)),
                   ),
@@ -817,7 +947,8 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                       },
                       child: Padding(
                         padding: const EdgeInsets.all(6),
-                        child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        child:
+                            Column(mainAxisSize: MainAxisSize.min, children: [
                           InIcon(icon, size: 22, color: Colors.white),
                           const SizedBox(height: 5),
                           Text(label,
@@ -880,8 +1011,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Transform.translate(
                     offset: const Offset(0, -4),
-                    child: _reactionChips(m, false,
-                        center: centered)),
+                    child: _reactionChips(m, false, center: centered)),
               ),
           ],
         ),
@@ -965,9 +1095,10 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                             child: Avatar(
                                 src: _person((e.value as List).first as String?)
                                     ?.avatarUrl,
-                                name: _person((e.value as List).first as String?)
-                                        ?.name ??
-                                    '?',
+                                name:
+                                    _person((e.value as List).first as String?)
+                                            ?.name ??
+                                        '?',
                                 size: AvatarSize.sm),
                           ),
                         ),
@@ -1075,9 +1206,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                   height: 32,
                   decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: mine
-                          ? Colors.black
-                          : const Color(0xFF000000)),
+                      color: mine ? Colors.black : const Color(0xFF000000)),
                   child: Center(child: icon),
                 ),
                 const SizedBox(width: 9),
@@ -1234,27 +1363,32 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                       final pinnerId = m['pinnedBy'] as String?;
                       final onRoster = _person(pinnerId);
                       final playing = m['ts'] == current;
-                      return _systemLine(m, _NowPlayingLine(
-                        message: m,
-                        playing: playing,
-                        pinnerName:
-                            m['pinnedByName'] as String? ?? onRoster?.name,
-                        pinnerAvatar: m['pinnedByAvatar'] as String? ??
-                            onRoster?.avatarUrl,
-                        liked:
-                            widget.likedUrls.contains(m['videoUrl'] as String?),
-                        onToggleLike: widget.onToggleLike == null
-                            ? null
-                            : () => widget.onToggleLike!(m),
-                        isHost: widget.isHost,
-                        onSkip: playing ? widget.onSkip : null,
-                        onVoteSkip: playing ? widget.onVoteSkip : null,
-                        skipVoteCount: widget.skipVoteCount,
-                        skipVoteRequired: widget.skipVoteRequired,
-                      ));
+                      return _systemLine(
+                          m,
+                          _NowPlayingLine(
+                            message: m,
+                            playing: playing,
+                            pinnerName:
+                                m['pinnedByName'] as String? ?? onRoster?.name,
+                            pinnerAvatar: m['pinnedByAvatar'] as String? ??
+                                onRoster?.avatarUrl,
+                            liked: widget.likedUrls
+                                .contains(m['videoUrl'] as String?),
+                            onToggleLike: widget.onToggleLike == null
+                                ? null
+                                : () => widget.onToggleLike!(m),
+                            isHost: widget.isHost,
+                            onSkip: playing ? widget.onSkip : null,
+                            onVoteSkip: playing ? widget.onVoteSkip : null,
+                            skipVoteCount: widget.skipVoteCount,
+                            skipVoteRequired: widget.skipVoteRequired,
+                          ));
                     }
                     if (m['system'] == true) {
-                      return _systemLine(m, _eventLine(m), centered: true);
+                      final join =
+                          m['event'] == 'joined' || m['event'] == 'joinedMany';
+                      return _systemLine(m, _eventLine(m),
+                          centered: !join || m['subTier'] == 'platinum');
                     }
                     final name = m['name'] as String? ?? 'Someone';
                     final senderId = m['senderId'] as String?;
@@ -1293,8 +1427,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.45),
                     borderRadius: BorderRadius.circular(16),
-                    border:
-                        Border.all(color: Colors.white),
+                    border: Border.all(color: Colors.white),
                   ),
                   child: Material(
                     type: MaterialType.transparency,
@@ -1304,8 +1437,8 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text('Tap someone to tag them',
-                              style: TextStyle(
-                                  color: Colors.white, fontSize: 11)),
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 11)),
                         ),
                       ),
                       Flexible(
@@ -1398,8 +1531,8 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                 tooltip: 'Cancel reply',
                 visualDensity: VisualDensity.compact,
                 onPressed: () => setState(() => _replyTo = null),
-                icon: const InIcon(InIcons.close,
-                    size: 16, color: Colors.white),
+                icon:
+                    const InIcon(InIcons.close, size: 16, color: Colors.white),
               ),
             ]),
           ),

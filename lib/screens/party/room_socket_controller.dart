@@ -179,6 +179,31 @@ class RoomSocketController extends ChangeNotifier {
     });
   }
 
+  /// People asking the host to let them into this lobby, newest first:
+  /// {userId, name, avatarUrl}. From 'notification:new' (room_join_ask).
+  List<Map<String, dynamic>> joinAsks = [];
+
+  void dismissJoinAsk(String userId) {
+    joinAsks = [
+      for (final a in joinAsks)
+        if (a['userId'] != userId) a
+    ];
+    notifyListeners();
+  }
+
+  void _onNotification(dynamic data) {
+    if (data is! Map || data['type'] != 'room_join_ask') return;
+    final d = data['data'];
+    if (d is! Map || d['roomId'] != roomId || d['userId'] is! String) return;
+    final id = d['userId'] as String;
+    joinAsks = [
+      {'userId': id, 'name': d['name'], 'avatarUrl': d['avatarUrl']},
+      for (final a in joinAsks)
+        if (a['userId'] != id) a
+    ];
+    notifyListeners();
+  }
+
   RoomSocketController(
       {required this.socket, required this.roomId, required this.myUserId}) {
     _bind();
@@ -261,7 +286,10 @@ class RoomSocketController extends ChangeNotifier {
       messages = [
         for (final m in messages)
           m['id'] == id
-              ? {...m, 'reactions': r is Map ? Map<String, dynamic>.from(r) : {}}
+              ? {
+                  ...m,
+                  'reactions': r is Map ? Map<String, dynamic>.from(r) : {}
+                }
               : m
       ];
     }
@@ -427,6 +455,7 @@ class RoomSocketController extends ChangeNotifier {
       joinError = data['error'] as String?;
       notifyListeners();
     });
+    s.on('notification:new', _onNotification);
     s.on('room:kicked', (_) {
       kicked = true;
       notifyListeners();
@@ -537,6 +566,7 @@ class RoomSocketController extends ChangeNotifier {
   void leave() {
     socket?.emit('room:leave', {'roomId': roomId});
     socket?.off('connect', _onSocketConnect);
+    socket?.off('notification:new', _onNotification);
     socket?.off('disconnect', _onSocketDisconnect);
     socket?.off('presence:roster');
     socket?.off('presence:count');
@@ -925,7 +955,9 @@ class RoomSocketController extends ChangeNotifier {
   }
 
   void gameFillBots(String level) {
-    if (isHost) socket?.emit('game:fillBots', {'roomId': roomId, 'level': level});
+    if (isHost) {
+      socket?.emit('game:fillBots', {'roomId': roomId, 'level': level});
+    }
   }
 
   void gamePlayComputer(String level) {
