@@ -46,11 +46,15 @@ class MainActivity : AudioServiceActivity() {
     // nothing worth watching in it.
     private var autoPipEnabled = false
 
-    // Screenshots and screen recordings of Insync are blocked everywhere
-    // (they come out black), to protect people's chats, photos and profiles.
+    // Screenshots and screen recordings of Insync are blocked (they come out
+    // black), to protect people's chats, photos and profiles. Debug builds
+    // only (never on the Play Store) allow them, so the app can be tested.
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+        val debuggable = (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        if (!debuggable) {
+            window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+        }
     }
 
     private var callRing: CallRingChannel? = null
