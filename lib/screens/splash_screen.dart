@@ -5,7 +5,6 @@ import '../core/auth_provider.dart';
 import '../core/avatar_frame_cache.dart';
 import '../core/app_navigator.dart';
 import '../core/location_service.dart';
-import '../theme/app_colors.dart';
 import 'auth/complete_profile_screen.dart';
 import 'auth/intro_video_screen.dart';
 import 'auth/login_screen.dart';
@@ -113,8 +112,9 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 }
 
-/// Black ground, soft purple glow, the animated logo and a gradient
-/// loading bar — the approved splash design.
+/// Start-up on the sign-in design: the logo reveal on the brand backdrop.
+/// While signing in takes longer (the server waking up), the same logo,
+/// still, with a small loader under it.
 class _SplashScaffold extends StatelessWidget {
   final VoidCallback? onIntroDone;
   const _SplashScaffold({this.onIntroDone});
@@ -122,37 +122,19 @@ class _SplashScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
-      body: Stack(
-        children: [
-          const Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment(0, -0.12),
-                  radius: 0.9,
-                  colors: [Color(0xFF000000), AppColors.bg],
-                  stops: [0, 0.62],
-                ),
+      backgroundColor: InsyncBrand.night,
+      body: onIntroDone != null
+          ? InsyncSplash(onDone: onIntroDone)
+          : Stack(fit: StackFit.expand, children: [
+              const BrandBackdrop(),
+              const Center(
+                  child: InsyncLogoReveal(
+                      size: InsyncSplash.barsSize, animate: false)),
+              Align(
+                alignment: const Alignment(0, 0.6),
+                child: InsyncSpinner(size: 28, showPlay: false),
               ),
-            ),
-          ),
-          // The brand splash: orbiting features, turning symbol, wordmark
-          // and progress. After the intro (still signing in), the logo
-          // with the spinner.
-          Positioned.fill(
-            child: onIntroDone != null
-                ? InsyncSplash(onDone: onIntroDone)
-                : const Center(
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      InsyncLogo(width: 220),
-                      SizedBox(height: 28),
-                      InsyncSpinner(size: 32, showPlay: false),
-                    ]),
-                  ),
-          ),
-        ],
-      ),
+            ]),
     );
   }
 }

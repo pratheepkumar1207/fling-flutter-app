@@ -450,7 +450,11 @@ class _InsyncShimmerState extends State<InsyncShimmer>
 class InsyncLogoReveal extends StatefulWidget {
   final double size;
   final VoidCallback? onDone;
-  const InsyncLogoReveal({super.key, this.size = 144, this.onDone});
+
+  /// false: the finished logo, still (it already played).
+  final bool animate;
+  const InsyncLogoReveal(
+      {super.key, this.size = 144, this.onDone, this.animate = true});
 
   @override
   State<InsyncLogoReveal> createState() => _InsyncLogoRevealState();
@@ -467,8 +471,12 @@ class _InsyncLogoRevealState extends State<InsyncLogoReveal>
         vsync: this, duration: const Duration(milliseconds: 2600))
       ..addStatusListener((s) {
         if (s == AnimationStatus.completed) widget.onDone?.call();
-      })
-      ..forward();
+      });
+    if (widget.animate) {
+      _c.forward();
+    } else {
+      _c.value = 1;
+    }
   }
 
   @override
@@ -531,7 +539,46 @@ class _InsyncLogoRevealState extends State<InsyncLogoReveal>
   }
 }
 
-/// The start-up screen: the logo reveal on brand black, then [onDone].
+/// The brand backdrop shared by start-up and sign-in: black with a soft
+/// red glow. [fadeIn] brings the glow up gently (start-up, so it follows
+/// the plain black system launch screen without a pop).
+class BrandBackdrop extends StatelessWidget {
+  final bool fadeIn;
+  const BrandBackdrop({super.key, this.fadeIn = false});
+
+  static Widget _glow(Alignment c, Color color) => DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+              center: c,
+              radius: 0.8,
+              colors: [color, color.withValues(alpha: 0)]),
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final glows = Stack(fit: StackFit.expand, children: [
+      _glow(const Alignment(0, -0.2), const Color(0x66E8112D)),
+      _glow(const Alignment(0.9, -0.9), const Color(0x33E8112D)),
+    ]);
+    return ColoredBox(
+      color: InsyncBrand.night,
+      child: fadeIn
+          ? TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: 1),
+              duration: const Duration(milliseconds: 700),
+              curve: Curves.easeOut,
+              builder: (_, v, child) => Opacity(opacity: v, child: child),
+              child: glows,
+            )
+          : glows,
+    );
+  }
+}
+
+/// The start-up screen: the sign-in design (brand backdrop) with the logo
+/// reveal in the middle, exactly where the system launch screen drew the
+/// bars; then [onDone]. Sign-in carries on from here with the same logo.
 class InsyncSplash extends StatelessWidget {
   final VoidCallback? onDone;
   const InsyncSplash({super.key, this.onDone});
@@ -542,12 +589,10 @@ class InsyncSplash extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: InsyncBrand.night,
-      child: Center(
-        child: InsyncLogoReveal(size: barsSize, onDone: onDone),
-      ),
-    );
+    return Stack(fit: StackFit.expand, children: [
+      const BrandBackdrop(fadeIn: true),
+      Center(child: InsyncLogoReveal(size: barsSize, onDone: onDone)),
+    ]);
   }
 }
 
