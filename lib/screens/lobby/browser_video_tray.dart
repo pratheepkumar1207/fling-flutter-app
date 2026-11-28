@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
 import '../../widgets/app_image.dart';
+import '../../widgets/insync_snack.dart';
 
 /// A video the Browser found on the page (see webview_browse_screen.dart's
 /// _findVideosJs): something on the page itself, or an embedded YouTube or
@@ -379,7 +380,7 @@ class _BrowserVideoTrayState extends State<BrowserVideoTray> {
                       } else if (!v.locked) {
                         widget.onPick([v]);
                       } else {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
                             content: Text(
                                 'This site doesn’t allow playing this video in other apps.')));
                       }

@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/push_notifications.dart';
 import '../theme/app_colors.dart';
 import '../theme/insync_icons.dart';
+import 'insync_snack.dart';
 
 const _kSeenKey = 'startupPermissionsSeen';
 
@@ -111,7 +112,7 @@ Future<bool> checkPermissionsOrExplain(BuildContext context,
           ? 'camera'
           : 'microphone';
   final blocked = asked.values.any((s) => s.isPermanentlyDenied);
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+  ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
     content: Text(blocked
         ? 'Allow $what for Insync in your phone settings.'
         : 'Insync needs your $what for this.'),

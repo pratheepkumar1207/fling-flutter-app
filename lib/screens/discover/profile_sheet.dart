@@ -9,6 +9,7 @@ import '../../widgets/app_image.dart';
 import '../../widgets/report_user_sheet.dart';
 import '../party/party_screen.dart';
 import 'discover_ui.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Tap a Discover card: the whole profile, then Pass or Like. Returns
 /// 'pass' / 'like' when one was chosen.
@@ -46,7 +47,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     } catch (_) {}
   }

@@ -14,6 +14,7 @@ import '../party/party_screen.dart';
 import '../profile/creator_profile_screen.dart';
 import 'discover_sheets.dart';
 import 'discover_ui.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Long-press on someone (map, Discover, lists): a card with their details
 /// and, when they're in a lobby they let you see, that lobby with Join or
@@ -73,7 +74,7 @@ class _PeekCardState extends State<_PeekCard> {
   }
 
   void _toast(String text) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+    ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text(text)));
   }
 
   String get _name => _p?['name'] as String? ?? '';
@@ -143,7 +144,7 @@ class _PeekCardState extends State<_PeekCard> {
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);
       Navigator.of(context).pop();
-      messenger.showSnackBar(SnackBar(content: Text('Invite sent to $_name')));
+      messenger.showSnackBar(insyncSnackBar(content: Text('Invite sent to $_name')));
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
     } catch (_) {

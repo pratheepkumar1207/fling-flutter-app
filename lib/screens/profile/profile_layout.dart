@@ -6,6 +6,7 @@ import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/insync_clay.dart';
+import '../../widgets/insync_snack.dart';
 
 /// One arrangeable part of a profile — a section above the tabs, or a tab.
 class ProfileLayoutEntry {
@@ -136,7 +137,7 @@ class _ArrangeProfileScreenState extends State<ArrangeProfileScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
           content: Text(e is ApiException
               ? e.message
               : "Couldn't save — check your connection")));

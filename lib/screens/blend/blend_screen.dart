@@ -16,6 +16,7 @@ import '../../widgets/reels_feed.dart';
 import '../../widgets/spinner.dart';
 import '../party/voice_chat_controller.dart';
 import 'blend_settings_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 const _reactions = ['😂', '🔥', '😍', '😮'];
 
@@ -278,7 +279,7 @@ class _BlendScreenState extends State<BlendScreen> {
   void _onRemoved(dynamic data) {
     if (!mounted || !_mine(data)) return;
     ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('This Blend has ended')));
+        .showSnackBar(insyncSnackBar(content: Text('This Blend has ended')));
     Navigator.of(context).maybePop();
   }
 
@@ -343,7 +344,7 @@ class _BlendScreenState extends State<BlendScreen> {
   }
 
   void _snack(String msg) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text(msg)));
 
   void _replaceReel(Post next) => setState(() {
         final i = _reels.indexWhere((r) => r.id == next.id);

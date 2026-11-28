@@ -10,6 +10,7 @@ import '../../widgets/avatar.dart';
 import '../../widgets/insync_clay.dart';
 import '../../widgets/people_picker_sheet.dart';
 import 'profile_post_grid.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Close friends — who sees the stories and notes you share to "Close
 /// friends". They aren't told when you add or remove them.
@@ -171,7 +172,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
       _load();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Back on your profile')));
+            insyncSnackBar(content: Text('Back on your profile')));
       }
     } catch (_) {}
   }

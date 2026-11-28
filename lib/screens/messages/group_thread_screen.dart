@@ -14,6 +14,7 @@ import '../../widgets/people_picker_sheet.dart';
 import '../../widgets/spinner.dart';
 import '../../widgets/group_poll.dart';
 import '../communities/community_home_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Create a group: name it, pick people. Returns the new group's id.
 Future<String?> createGroupChat(BuildContext context) async {
@@ -52,7 +53,7 @@ Future<String?> createGroupChat(BuildContext context) async {
   } on ApiException catch (e) {
     if (context.mounted) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+          .showSnackBar(insyncSnackBar(content: Text(e.message)));
     }
     return null;
   }
@@ -131,7 +132,7 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     }
   }
@@ -250,7 +251,7 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -269,7 +270,7 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     }
   }
@@ -298,7 +299,7 @@ class _GroupThreadScreenState extends State<GroupThreadScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     }
   }

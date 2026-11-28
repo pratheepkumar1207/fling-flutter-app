@@ -4,6 +4,7 @@ import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/insync_snack.dart';
 
 const _gold = Color(0xFFFAC775);
 const _goldLine = Color(0xFFBA7517);
@@ -42,13 +43,13 @@ class _TrophyCoinsCardState extends State<TrophyCoinsCard> {
       final d = await ApiClient.post('/tournaments/trophy/buy-vip', body: {'days': days});
       if (!mounted) return;
       setState(() => _w = {...?_w, ...Map<String, dynamic>.from(d as Map)});
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('VIP added · $days days')));
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text('VIP added · $days days')));
       await context.read<AuthProvider>().refreshUser();
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text(e.message)));
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Something went wrong. Try again.')));
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text('Something went wrong. Try again.')));
       }
     } finally {
       if (mounted) setState(() => _busy = null);

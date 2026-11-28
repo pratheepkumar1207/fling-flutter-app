@@ -11,6 +11,7 @@ import '../communities/community_detail_screen.dart';
 import '../feed/hashtag_screen.dart';
 import '../messages/message_thread_screen.dart';
 import '../profile/creator_profile_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 /// "In Movie night" / "Active now" / "Active 5m ago" for a friend row.
 String? friendActivity(Map<String, dynamic> f) {
@@ -79,7 +80,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Couldn’t follow')));
+            insyncSnackBar(content: Text('Couldn’t follow')));
       }
     }
   }
@@ -575,7 +576,7 @@ class _FindPeopleTabState extends State<_FindPeopleTab> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Couldn’t follow')));
+            insyncSnackBar(content: Text('Couldn’t follow')));
       }
     }
   }

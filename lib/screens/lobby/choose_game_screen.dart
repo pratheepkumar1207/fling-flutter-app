@@ -6,6 +6,7 @@ import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../theme/app_colors.dart';
 import '../party/party_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Create a room → Game → Continue: pick a game (each card shows its
 /// board), then Start game opens a game room with it ready. Public, with
@@ -73,12 +74,12 @@ class _ChooseGameScreenState extends State<ChooseGameScreen>
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
         setState(() => _busy = false);
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
             content: Text('Couldn’t start the game. Try again.')));
         setState(() => _busy = false);
       }

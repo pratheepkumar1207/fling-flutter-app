@@ -8,6 +8,7 @@ import '../../core/auth_provider.dart';
 import '../../core/format.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/spinner.dart';
+import '../../widgets/insync_snack.dart';
 
 const _kCooldown = Duration(hours: 24);
 
@@ -113,12 +114,12 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Spin failed')));
+            .showSnackBar(insyncSnackBar(content: Text('Spin failed')));
       }
     } finally {
       if (mounted) setState(() => _spinning = false);

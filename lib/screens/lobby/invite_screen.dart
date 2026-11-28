@@ -11,6 +11,7 @@ import '../../core/api_client.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/spinner.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Friends / Recents (people who've joined this room before, via
 /// GET /rooms/:id/recent-participants) / Communities tabs, plus a
@@ -145,7 +146,7 @@ class _InviteScreenState extends State<InviteScreen>
     if (!mounted) return;
     setState(() => _shareOpen = false);
     ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Link copied')));
+        .showSnackBar(insyncSnackBar(content: Text('Link copied')));
   }
 
   Future<void> _openApp(Uri uri) async {
@@ -161,7 +162,7 @@ class _InviteScreenState extends State<InviteScreen>
     await Clipboard.setData(ClipboardData(text: '$_shareText $_link'));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Link copied — paste it in Instagram')));
+        insyncSnackBar(content: Text('Link copied — paste it in Instagram')));
     await _openApp(Uri.parse('https://www.instagram.com/direct/inbox/'));
   }
 
@@ -550,7 +551,7 @@ class _InviteScreenState extends State<InviteScreen>
             body: {'userIds': _selected.toList()});
       }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
             content: Text(_selected.isEmpty
                 ? 'Posted to ${_postTo.length == 1 ? 'the community' : '${_postTo.length} communities'}'
                 : 'Invites sent')));
@@ -559,7 +560,7 @@ class _InviteScreenState extends State<InviteScreen>
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to send invites')));
+            insyncSnackBar(content: Text('Failed to send invites')));
       }
     } finally {
       if (mounted) setState(() => _inviting = false);

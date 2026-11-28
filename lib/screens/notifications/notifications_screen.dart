@@ -7,6 +7,7 @@ import '../../models/notification_item.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
 import 'notification_actions.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Full notifications list — the bell dropdown only ever shows the 10 most
 /// recent, this is the "see all" screen matching NotificationsDark.dc.html.
@@ -131,13 +132,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Invite sent to ${n.data?['name'] ?? 'them'}')));
+            insyncSnackBar(content: Text('Invite sent to ${n.data?['name'] ?? 'them'}')));
       }
     } catch (_) {
       if (mounted) {
         setState(() => _letIn.remove(n.id));
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Couldn\u2019t send the invite. The lobby may have ended.')));
+            insyncSnackBar(content: Text('Couldn\u2019t send the invite. The lobby may have ended.')));
       }
     }
   }

@@ -23,6 +23,7 @@ import 'peek_card.dart';
 import 'profile_sheet.dart';
 import 'random_match_screen.dart';
 import 'swipe_card.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Discover: the swipe deck (black / white / red redesign, Nov 2026).
 class DiscoverScreen extends StatefulWidget {
@@ -131,7 +132,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   }
 
   void _snack(String text) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text(text)));
 
   Future<void> _handleSwipe(String action) async {
     final deck = _deck;

@@ -7,6 +7,7 @@ import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/spinner.dart';
+import '../../widgets/insync_snack.dart';
 
 const _kTopics = [
   'Account & login',
@@ -89,13 +90,13 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
       if (!mounted) return;
       _messageController.clear();
       setState(() => _screenshotDataUri = null);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
           content: Text('Submitted — thanks for letting us know.')));
       _loadPast();
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     } finally {
       if (mounted) setState(() => _submitting = false);

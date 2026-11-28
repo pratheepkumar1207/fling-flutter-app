@@ -6,6 +6,7 @@ import '../theme/brand_icons.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_colors.dart';
+import 'insync_snack.dart';
 
 /// "Share to" bottom sheet: a row of direct app targets (deep-linked via
 /// url_launcher, so no need for the OS picker for the common ones) plus a
@@ -51,7 +52,7 @@ class _ShareBottomSheet extends StatelessWidget {
     if (!context.mounted) return;
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Link copied')));
+        .showSnackBar(insyncSnackBar(content: Text('Link copied')));
   }
 
   @override

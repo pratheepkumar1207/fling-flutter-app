@@ -5,6 +5,7 @@ import '../../core/format.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/spinner.dart';
+import '../../widgets/insync_snack.dart';
 
 // Deterministic per-user gradient for the initials fallback, matching
 // BlockedAccountsDark.dc.html's colorful avatars — scoped to this screen
@@ -63,7 +64,7 @@ class _BlockedAccountsScreenState extends State<BlockedAccountsScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Failed to unblock')));
+            .showSnackBar(insyncSnackBar(content: Text('Failed to unblock')));
       }
     } finally {
       if (mounted) setState(() => _unblocking.remove(userId));

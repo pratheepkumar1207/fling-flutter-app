@@ -15,6 +15,7 @@ import '../../core/video_edit.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/mention_text_field.dart';
 import '../../widgets/story_stickers.dart';
+import '../../widgets/insync_snack.dart';
 
 /// The last step of a story: place stickers, text and drawing on it, save it
 /// to the phone, or share it.
@@ -201,10 +202,10 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
         storyShape: true,
       );
       messenger
-          .showSnackBar(const SnackBar(content: Text('Saved to your phone')));
+          .showSnackBar(insyncSnackBar(content: Text('Saved to your phone')));
     } catch (_) {
       messenger.showSnackBar(
-          const SnackBar(content: Text('Couldn’t save this to your phone.')));
+          insyncSnackBar(content: Text('Couldn’t save this to your phone.')));
     }
     if (mounted) setState(() => _busy = false);
   }
@@ -220,7 +221,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
           ? 'data:video/mp4;base64,${base64Encode(bytes)}'
           : 'data:image/jpeg;base64,${base64Encode(bytes)}';
       if (data.length > (widget.isVideo ? 12000000 : 4000000)) {
-        messenger.showSnackBar(SnackBar(
+        messenger.showSnackBar(insyncSnackBar(
             content: Text(widget.isVideo
                 ? 'This clip is too large. Trim it a little and try again.'
                 : 'This photo is too large. Try another.')));
@@ -238,9 +239,9 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
       });
       widget.onPosted?.call();
       navigator.popUntil((r) => r.isFirst);
-      messenger.showSnackBar(const SnackBar(content: Text('Shared')));
+      messenger.showSnackBar(insyncSnackBar(content: Text('Shared')));
     } catch (_) {
-      messenger.showSnackBar(const SnackBar(
+      messenger.showSnackBar(insyncSnackBar(
           content: Text(
               'Couldn’t share this. Check your connection and try again.')));
       if (mounted) setState(() => _busy = false);

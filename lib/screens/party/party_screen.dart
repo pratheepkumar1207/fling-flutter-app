@@ -71,6 +71,7 @@ import 'voice_chat_controller.dart';
 import 'webview_room_player.dart';
 import '../../widgets/live_extras.dart';
 import '../../theme/room_themes.dart';
+import '../../widgets/insync_snack.dart';
 
 class PartyScreen extends StatefulWidget {
   final String roomId;
@@ -363,7 +364,7 @@ class _PartyScreenState extends State<PartyScreen>
     if (bridge == null) return;
     if (!await bridge.supported()) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
           content: Text('Lenses aren’t available on this phone.')));
       return;
     }
@@ -376,7 +377,7 @@ class _PartyScreenState extends State<PartyScreen>
         await bridge.choose(lens);
       } catch (_) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
               content: Text('That lens couldn’t start. Try another.')));
         }
       }
@@ -500,7 +501,7 @@ class _PartyScreenState extends State<PartyScreen>
 
     if (rs.kicked) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('You were removed from this room')));
+          insyncSnackBar(content: Text('You were removed from this room')));
       _didLeaveRoom =
           true; // A real removal, not a minimize — tear the connection down too.
       Navigator.of(context).pop();
@@ -508,7 +509,7 @@ class _PartyScreenState extends State<PartyScreen>
     }
     if (rs.endedBy != null && !rs.isHost) {
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${rs.endedBy} ended the room')));
+          insyncSnackBar(content: Text('${rs.endedBy} ended the room')));
       _didLeaveRoom = true;
       Navigator.of(context).pop();
       return;
@@ -537,22 +538,26 @@ class _PartyScreenState extends State<PartyScreen>
     }
     if (rs.chatDenied != null) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(rs.chatDenied!)));
+          .showSnackBar(insyncSnackBar(
+              title: 'Chat is off', icon: InIcons.chat, content: Text(rs.chatDenied!)));
       rs.chatDenied = null;
     }
     if (rs.joinError != null) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(rs.joinError!)));
+          .showSnackBar(insyncSnackBar(
+              title: 'Couldn’t join', icon: InIcons.block, content: Text(rs.joinError!)));
     }
     if (rs.stageInvite && !_stageInviteOpen) _showStageInvite(rs);
     if (rs.micDenied != null) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(rs.micDenied!)));
+          .showSnackBar(insyncSnackBar(
+              title: 'Mic request declined', icon: InIcons.micoff, content: Text(rs.micDenied!)));
       rs.clearMicDenied();
     }
     if (rs.queueDenied != null) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(rs.queueDenied!)));
+          .showSnackBar(insyncSnackBar(
+              title: 'Song not added', icon: InIcons.music, content: Text(rs.queueDenied!)));
       rs.clearQueueDenied();
     }
     if (widget.vsComputerLevel != null &&
@@ -564,7 +569,8 @@ class _PartyScreenState extends State<PartyScreen>
     }
     if (rs.gameSeatDenied != null) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(rs.gameSeatDenied!)));
+          .showSnackBar(insyncSnackBar(
+              title: 'Seat not available', icon: InIcons.game, content: Text(rs.gameSeatDenied!)));
       rs.clearGameSeatDenied();
     }
     // @mention pop-up/sound is handled globally now (see
@@ -677,7 +683,7 @@ class _PartyScreenState extends State<PartyScreen>
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     }
   }
@@ -858,12 +864,12 @@ class _PartyScreenState extends State<PartyScreen>
             _ => 'Public',
           };
           ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text('Room is now $label')));
+              .showSnackBar(insyncSnackBar(content: Text('Room is now $label')));
           _refreshRoom();
         } on ApiException catch (e) {
           if (!mounted) return;
           ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(e.message)));
+              .showSnackBar(insyncSnackBar(content: Text(e.message)));
         }
       },
     );
@@ -1026,7 +1032,7 @@ class _PartyScreenState extends State<PartyScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Couldn't change the room: $e")));
+            insyncSnackBar(content: Text("Couldn't change the room: $e")));
       }
     }
   }
@@ -1054,7 +1060,7 @@ class _PartyScreenState extends State<PartyScreen>
             } catch (e) {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Couldn't switch the room: $e")));
+                    insyncSnackBar(content: Text("Couldn't switch the room: $e")));
               }
             }
           },
@@ -1156,7 +1162,7 @@ class _PartyScreenState extends State<PartyScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Could not refresh room: $e')));
+            insyncSnackBar(content: Text('Could not refresh room: $e')));
       }
     }
   }
@@ -1166,7 +1172,7 @@ class _PartyScreenState extends State<PartyScreen>
   void _openYoutubeMusic() {
     final rs = _rs!;
     if (rs.settings['songPermission'] == 'host' && !rs.isHost) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
           content: Text('Only the host can add songs right now')));
       return;
     }
@@ -1645,7 +1651,7 @@ class _PartyScreenState extends State<PartyScreen>
       if (!mounted) return;
       if (myMicForceMuted) {
         messenger.showSnackBar(
-            const SnackBar(content: Text('The host has muted you')));
+            insyncSnackBar(content: Text('The host has muted you')));
       } else if (myMicOn) {
         rs.micOff();
       } else if (rs.canApproveMics) {
@@ -1653,7 +1659,7 @@ class _PartyScreenState extends State<PartyScreen>
       } else if (myMicRequested) {
         _showRaiseHand(rs, place: pendingRequests.indexOf(myId) + 1);
       } else if (rs.settings['micEnabled'] == false) {
-        messenger.showSnackBar(const SnackBar(
+        messenger.showSnackBar(insyncSnackBar(
             content: Text('The host has disabled mics for now')));
       } else if (rs.settings['micApproval'] == 'everyone') {
         rs.requestMic(); // goes straight onto the stage
@@ -1883,7 +1889,7 @@ class _PartyScreenState extends State<PartyScreen>
 
     Future<void> removeBot(String botId, String name) async {
       if (gameStatus == 'playing') {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
             content: Text('You can remove a computer after this game')));
         return;
       }
@@ -1983,7 +1989,7 @@ class _PartyScreenState extends State<PartyScreen>
           onSit: rs.gameJoin,
           onRequest: () {
             rs.gameRequest();
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
                 content: Text('Asked the host to let you play')));
           },
           onCancelRequest: rs.gameCancelRequest,
@@ -2330,7 +2336,7 @@ class _PartyScreenState extends State<PartyScreen>
                                             } else {
                                               rs.requestMic();
                                               ScaffoldMessenger.of(context)
-                                                  .showSnackBar(SnackBar(
+                                                  .showSnackBar(insyncSnackBar(
                                                       content: Text(
                                                           'Asked $hostName to join the live')));
                                             }
@@ -3436,13 +3442,13 @@ class _PartyScreenState extends State<PartyScreen>
             'reason': 'Room ${room['id']} (${room['title']}): $reason'
           });
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
                 content: Text('Thanks — we’ll review this room')));
           }
         } on ApiException catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text(e.message)));
+                .showSnackBar(insyncSnackBar(content: Text(e.message)));
           }
         }
       },
@@ -3602,7 +3608,7 @@ class _PartyScreenState extends State<PartyScreen>
           } catch (_) {
             if (mounted) {
               ScaffoldMessenger.of(context)
-                  .showSnackBar(const SnackBar(content: Text('Action failed')));
+                  .showSnackBar(insyncSnackBar(content: Text('Action failed')));
             }
           }
         }

@@ -15,6 +15,7 @@ import 'avatar.dart';
 import 'story_bar.dart';
 import 'report_user_sheet.dart';
 import 'story_stickers.dart';
+import 'insync_snack.dart';
 
 /// Full-screen tap-through story viewer — Dart port of StoryViewer.jsx.
 /// Auto-advances through the current user's items on a timer, tap left/
@@ -135,13 +136,13 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
           body: {'text': text.trim()});
       if (!mounted) return;
       _replyController.clear();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
           content: Text(
               text.trim().runes.length <= 2 ? 'Reaction sent' : 'Reply sent')));
       if (_replying) _stopReplying();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
             content:
                 Text(e is ApiException ? e.message : 'Failed to send reply')));
       }

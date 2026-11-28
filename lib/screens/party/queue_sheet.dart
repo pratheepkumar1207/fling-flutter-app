@@ -8,6 +8,7 @@ import '../../theme/app_colors.dart';
 import '../../widgets/app_image.dart';
 import '../lobby/source_picker_screen.dart';
 import '../lobby/youtube_browse_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Full-screen (not a bottom sheet) — "Now playing" (current track,
 /// play-icon thumbnail) and "Up next" section labels, drag-handle +
@@ -147,7 +148,7 @@ class _QueueSheetScreenState extends State<QueueSheetScreen> {
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
-      SnackBar(
+      insyncSnackBar(
         duration: const Duration(seconds: 4),
         behavior: SnackBarBehavior.floating,
         content: Row(

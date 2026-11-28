@@ -7,6 +7,7 @@ import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/spinner.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Matches KYCDark.dc.html: the info banner, "1. Government ID" and
 /// "2. Selfie verification" upload cards (base64 data-URI submission, same
@@ -99,12 +100,12 @@ class _WalletKycScreenState extends State<WalletKycScreen> {
       });
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Submitted for review')));
+          .showSnackBar(insyncSnackBar(content: Text('Submitted for review')));
       _load();
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     } finally {
       if (mounted) setState(() => _submitting = false);

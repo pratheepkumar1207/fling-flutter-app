@@ -14,6 +14,7 @@ import '../party/party_screen.dart';
 import '../wallet/vip_store_screen.dart';
 import 'tournament_live.dart';
 import 'tournament_watch.dart';
+import '../../widgets/insync_snack.dart';
 
 const _purple = Color(0xFFFFFFFF);
 const _purpleLine = Color(0xFFFFFFFF);
@@ -76,7 +77,7 @@ class _TournamentScreenState extends State<TournamentScreen> {
     if (fin != null) {
       live.finished = null;
       final trophy = fin['trophy'] as int? ?? 0;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
           content: Text('You finished #${fin['place']}${trophy > 0 ? ' · +$trophy Trophy coins' : ''}')));
     }
   }
@@ -125,13 +126,13 @@ class _TournamentScreenState extends State<TournamentScreen> {
       await ApiClient.post('/tournaments/${widget.tournamentId}/$path', body: body ?? {});
       await live.refresh();
       if (ok != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ok)));
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text(ok)));
       }
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text(e.message)));
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Something went wrong. Try again.')));
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text('Something went wrong. Try again.')));
       }
     } finally {
       if (mounted) setState(() => _busy = false);

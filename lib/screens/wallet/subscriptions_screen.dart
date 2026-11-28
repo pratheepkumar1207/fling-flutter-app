@@ -10,6 +10,7 @@ import '../../theme/app_colors.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/spinner.dart';
 import '../../widgets/sub_tiers.dart';
+import '../../widgets/insync_snack.dart';
 
 /// For creators: offer a monthly subscription at your own price, and see
 /// who's subscribed. Subscribers can see your subscriber-only stories.
@@ -74,9 +75,9 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       await ApiClient.post('/creators/me/subscription', body: {'tiers': tiers});
       if (mounted) await context.read<AuthProvider>().refreshUser();
       await _load();
-      messenger.showSnackBar(const SnackBar(content: Text('Levels saved')));
+      messenger.showSnackBar(insyncSnackBar(content: Text('Levels saved')));
     } on ApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.showSnackBar(insyncSnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _saving = false);
     }

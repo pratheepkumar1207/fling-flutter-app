@@ -18,6 +18,7 @@ import 'discover_ui.dart';
 import 'map_privacy_sheet.dart';
 import 'map_search_screen.dart';
 import 'peek_card.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Map tiles. Defaults to OpenStreetMap drawn dark; a dark tile provider
 /// (MapTiler, Stadia…) can be set at build time:
@@ -127,7 +128,7 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
     setState(() => _turningOn = true);
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
-        messenger.showSnackBar(const SnackBar(
+        messenger.showSnackBar(insyncSnackBar(
             content: Text('Turn on location on your phone first.')));
         return;
       }
@@ -137,7 +138,7 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
       }
       if (permission == LocationPermission.denied) return;
       if (permission == LocationPermission.deniedForever) {
-        messenger.showSnackBar(SnackBar(
+        messenger.showSnackBar(insyncSnackBar(
             content: const Text('Allow location for Insync in your settings.'),
             action: SnackBarAction(
                 label: 'Settings', onPressed: Geolocator.openAppSettings)));
@@ -147,14 +148,14 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
       final saved = await LocationService.requestPermissionAndPing();
       auth.refreshUser();
       if (!saved) {
-        messenger.showSnackBar(const SnackBar(
+        messenger.showSnackBar(insyncSnackBar(
             content: Text('Couldn’t get your location. Try again outside.')));
         return;
       }
       _me = await _myPosition();
       await _load();
     } on ApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.showSnackBar(insyncSnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _turningOn = false);
     }

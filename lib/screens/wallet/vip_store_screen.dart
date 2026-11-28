@@ -11,6 +11,7 @@ import '../../models/admission_car.dart';
 import '../../models/avatar_frame.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/spinner.dart';
+import '../../widgets/insync_snack.dart';
 
 /// VIP cosmetic store — two categories: purchasable avatar frames (GET/POST
 /// /store/avatar-frames) and admission cars (GET/POST
@@ -54,13 +55,13 @@ class _VipStoreScreenState extends State<VipStoreScreen> {
       await ApiClient.post('/wallet/buy-vip', body: {'months': _months});
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('VIP activated!')));
+            .showSnackBar(insyncSnackBar(content: Text('VIP activated!')));
       }
       if (mounted) await context.read<AuthProvider>().refreshUser();
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     } finally {
       if (mounted) setState(() => _buyingVip = false);
@@ -118,7 +119,7 @@ class _VipStoreScreenState extends State<VipStoreScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     } finally {
       if (mounted) setState(() => _busyId = null);
@@ -141,7 +142,7 @@ class _VipStoreScreenState extends State<VipStoreScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     } finally {
       if (mounted) setState(() => _busyId = null);

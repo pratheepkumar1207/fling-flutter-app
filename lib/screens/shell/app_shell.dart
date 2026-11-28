@@ -29,6 +29,7 @@ import '../settings/account_removal_screen.dart';
 import '../../core/push_notifications.dart';
 import '../../core/call_ring.dart';
 import '../../widgets/permission_primer.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Bottom tabs Home, Feed, Live and Discover with the "+" Create sheet in
 /// the middle; Messages lives in the top bar (see InsyncTopBar).
@@ -194,7 +195,7 @@ class _AppShellState extends State<AppShell> {
     final age = DateTime.now().millisecondsSinceEpoch - sent;
     if (age > _ringFor.inMilliseconds) {
       CallRing.callFinished();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
           content:
               Text('You missed a call from ${call['fromName'] ?? 'someone'}')));
       return;
@@ -287,11 +288,11 @@ class _AppShellState extends State<AppShell> {
                 name: fromName,
                 avatarUrl: data['fromAvatarUrl'] as String?)));
       } else if (answer == CallAnswer.remind && fromId != null) {
-        scaffoldMessengerKey.currentState?.showSnackBar(SnackBar(
+        scaffoldMessengerKey.currentState?.showSnackBar(insyncSnackBar(
             content: Text('We’ll remind you to call $fromName in 10 minutes')));
         Timer(const Duration(minutes: 10), () {
           if (!mounted) return;
-          scaffoldMessengerKey.currentState?.showSnackBar(SnackBar(
+          scaffoldMessengerKey.currentState?.showSnackBar(insyncSnackBar(
             duration: const Duration(seconds: 12),
             content: Text('Call $fromName back?'),
             action: SnackBarAction(

@@ -13,6 +13,7 @@ import '../core/media_source.dart';
 import '../theme/app_colors.dart';
 import 'app_image.dart';
 import '../theme/insync_icons.dart';
+import 'insync_snack.dart';
 
 /// Photos and voice notes in chats (direct and group). They're sent as
 /// data: URIs; the backend stores them in cloud storage and hands back a
@@ -263,7 +264,7 @@ class _VoiceRecordButtonState extends State<VoiceRecordButton> {
   Future<void> _start() async {
     if (!await _rec.hasPermission()) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
             content: Text('Allow the microphone to send voice notes.')));
       }
       return;
@@ -372,7 +373,7 @@ class _VoiceRecordButtonState extends State<VoiceRecordButton> {
         },
         onLongPressEnd: (_) => _stop(),
         onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Hold to record, release to send.'))),
+            insyncSnackBar(content: Text('Hold to record, release to send.'))),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           width: widget.size,

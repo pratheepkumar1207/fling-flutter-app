@@ -11,6 +11,7 @@ import '../../theme/app_colors.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/spinner.dart';
 import '../party/party_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Matches CommunityDetailDark.dc.html: banner header with an overlapping
 /// logo, name + Join/Joined button, then a Pinned/Chat/Members tab row —
@@ -116,7 +117,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No active room for this community')));
+            insyncSnackBar(content: Text('No active room for this community')));
       }
     }
   }
@@ -145,12 +146,12 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
           body: {'days': 7}) as Map<String, dynamic>;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Boosted until ${res['boostedUntil']}')));
+            insyncSnackBar(content: Text('Boosted until ${res['boostedUntil']}')));
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Failed to boost')));
+            .showSnackBar(insyncSnackBar(content: Text('Failed to boost')));
       }
     }
   }
@@ -167,7 +168,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to pin message')));
+            insyncSnackBar(content: Text('Failed to pin message')));
       }
     } finally {
       if (mounted) setState(() => _pinning = false);
@@ -180,13 +181,13 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
           '/communities/${widget.communityId}/moderators/$userId');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Promoted to moderator')));
+            insyncSnackBar(content: Text('Promoted to moderator')));
       }
       _loadMembers();
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to update role')));
+            insyncSnackBar(content: Text('Failed to update role')));
       }
     }
   }

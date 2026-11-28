@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'insync_snack.dart';
 
 /// Picks when a post goes out: from a few minutes ahead, up to 30 days.
 Future<DateTime?> pickPostTime(BuildContext context,
@@ -19,7 +20,7 @@ Future<DateTime?> pickPostTime(BuildContext context,
       DateTime(date.year, date.month, date.day, time.hour, time.minute);
   if (picked.isBefore(now.add(const Duration(minutes: 2)))) {
     ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pick a time later than now.')));
+        insyncSnackBar(content: Text('Pick a time later than now.')));
     return null;
   }
   return picked;

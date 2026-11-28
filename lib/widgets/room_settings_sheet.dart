@@ -9,6 +9,7 @@ import 'guest_settings_sheet.dart';
 import 'room_sheet.dart';
 import '../core/room_prefs.dart';
 import '../theme/room_themes.dart';
+import 'insync_snack.dart';
 
 const _kGameTypes = [
   ['tictactoe', 'Tic Tac Toe'],
@@ -153,12 +154,12 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
       return false;
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
             content: Text("Couldn't save — check your connection")));
       }
       return false;
@@ -286,11 +287,11 @@ class _RoomSettingsSheetState extends State<_RoomSettingsSheet> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
             content: Text("Couldn't boost — check your connection")));
       }
     } finally {

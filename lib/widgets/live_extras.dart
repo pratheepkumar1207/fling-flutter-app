@@ -15,6 +15,7 @@ import '../theme/app_colors.dart';
 import '../theme/insync_icons.dart';
 import 'avatar.dart';
 import 'spinner.dart';
+import 'insync_snack.dart';
 
 /// Live extras on top of the broadcast: diamonds (gift coins this stream),
 /// top fans, the host's fan club, PK battles and the video guest stage.
@@ -706,10 +707,10 @@ class _PkResultCardState extends State<PkResultCard> {
     try {
       await ApiClient.post('/live/pk/${widget.pk['id']}/rematch');
       messenger.showSnackBar(
-          const SnackBar(content: Text('Rematch sent. Waiting for them.')));
+          insyncSnackBar(content: Text('Rematch sent. Waiting for them.')));
       widget.onClose?.call();
     } on ApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.showSnackBar(insyncSnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _asking = false);
     }
@@ -1049,7 +1050,7 @@ Future<void> showLiveFansSheet(
                                   await extras.joinFanClub(context, hostId);
                               if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
+                                  insyncSnackBar(
                                       content: Text(
                                           err ?? 'Welcome to the fan club!')));
                             },
@@ -1350,7 +1351,7 @@ class _PkInviteSheetState extends State<_PkInviteSheet> {
 
   void _snack(String text) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text(text)));
     }
   }
 
@@ -1610,7 +1611,7 @@ Future<void> showIncomingPkDialog(BuildContext context,
     } on ApiException catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     } catch (_) {}
     extras.incomingInvite = null;

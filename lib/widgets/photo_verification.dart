@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../core/api_client.dart';
 import '../theme/app_colors.dart';
 import 'app_image.dart';
+import 'insync_snack.dart';
 
 const _kStatusLabel = {
   'pending': ['Pending review', AppColors.gold],
@@ -54,14 +55,14 @@ class _PhotoVerificationScreenState extends State<PhotoVerificationScreen> {
           body: {'selfieDataUri': dataUri});
       if (mounted) {
         setState(() => _localSelfieUrl = dataUri);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
             content: Text("Selfie submitted — we'll review it shortly.")));
       }
       widget.onSubmitted?.call();
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to submit selfie')));
+            insyncSnackBar(content: Text('Failed to submit selfie')));
       }
     } finally {
       if (mounted) setState(() => _submitting = false);

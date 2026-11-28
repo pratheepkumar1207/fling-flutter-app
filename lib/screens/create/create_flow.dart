@@ -30,6 +30,7 @@ import '../lobby/lobby_create_screen.dart';
 import 'gallery_screen.dart';
 import 'story_editor_screen.dart';
 import 'text_post_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 enum CreateMode { post, reel, story }
 
@@ -135,7 +136,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
         _lensTexture = id;
       });
       if (_snap.lenses.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
             content: Text(
                 'Couldn’t load lenses. Check your connection and try again.')));
       }
@@ -143,7 +144,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
       if (mounted) {
         setState(() => _baking = false);
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Lenses couldn’t start. Try again.')));
+            insyncSnackBar(content: Text('Lenses couldn’t start. Try again.')));
         try {
           await _openCamera();
         } catch (_) {
@@ -239,7 +240,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
       await _openCamera();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
             content: Text('Couldn’t switch camera. Try again.')));
       }
     }
@@ -320,7 +321,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
       if (!mounted) return;
       setState(() => _baking = false);
       if (path == null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
             content: Text('Couldn’t save that clip. Try again.')));
         return;
       }
@@ -342,7 +343,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
           _lensMode ? await _snap.takePhoto() : (await c!.takePicture()).path;
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
             content: Text('Couldn’t take that photo. Try again.')));
       }
       return;
@@ -397,7 +398,7 @@ class _CreateCameraScreenState extends State<CreateCameraScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _baking = false);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
           content: Text('Couldn’t get those photos ready. Try again.')));
     }
   }
@@ -1049,7 +1050,7 @@ class _CreateEditScreenState extends State<CreateEditScreen> {
     } catch (_) {
       if (mounted) {
         _filter = MediaFilter.none;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
             content:
                 Text('Couldn’t make a cartoon of this. Try another clip.')));
       }
@@ -1101,7 +1102,7 @@ class _CreateEditScreenState extends State<CreateEditScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _working = false);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
           content: Text('Couldn’t edit this. Try again or pick another.')));
     }
   }
@@ -1319,7 +1320,7 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
           ? 'data:video/mp4;base64,${base64Encode(bytes)}'
           : 'data:image/jpeg;base64,${base64Encode(bytes)}';
       if (data.length > (widget.isVideo ? _videoLimit : _photoLimit)) {
-        messenger.showSnackBar(SnackBar(
+        messenger.showSnackBar(insyncSnackBar(
             content: Text(widget.isVideo
                 ? 'This clip is too large. Trim it a little and try again.'
                 : 'This photo is too large. Try another.')));
@@ -1360,12 +1361,12 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
       });
       widget.onPosted?.call();
       navigator.popUntil((r) => r.isFirst);
-      messenger.showSnackBar(SnackBar(
+      messenger.showSnackBar(insyncSnackBar(
           content: Text(_publishAt == null
               ? 'Shared'
               : 'Scheduled. It waits in your archive.')));
     } catch (_) {
-      messenger.showSnackBar(const SnackBar(
+      messenger.showSnackBar(insyncSnackBar(
           content: Text(
               'Couldn’t share this. Check your connection and try again.')));
       if (mounted) setState(() => _sharing = false);
@@ -1439,7 +1440,7 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
       final place = await currentPlaceName();
       if (mounted) _location.text = place;
     } on PlaceLookupFailure catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.showSnackBar(insyncSnackBar(content: Text(e.message)));
     }
   }
 
@@ -1449,10 +1450,10 @@ class _CreateCaptionScreenState extends State<CreateCaptionScreen> {
       await VideoEdit.saveToGallery(
           input: widget.path, isVideo: widget.isVideo);
       messenger
-          .showSnackBar(const SnackBar(content: Text('Saved to your phone')));
+          .showSnackBar(insyncSnackBar(content: Text('Saved to your phone')));
     } catch (_) {
       messenger.showSnackBar(
-          const SnackBar(content: Text('Couldn’t save this to your phone.')));
+          insyncSnackBar(content: Text('Couldn’t save this to your phone.')));
     }
   }
 

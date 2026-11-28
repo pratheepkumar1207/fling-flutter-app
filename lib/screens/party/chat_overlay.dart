@@ -18,6 +18,7 @@ import '../../widgets/avatar.dart';
 import '../../widgets/insync_attach_sheet.dart';
 import '../../widgets/view_once.dart';
 import '../../widgets/glass.dart';
+import '../../widgets/insync_snack.dart';
 
 // Deterministic per-sender name color, cycling through a small palette —
 // matches WatchPartyDark.dc.html's floating chat, where each speaker's name
@@ -1419,7 +1420,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
                       size: 42,
                       onTap: ptt
                           ? () => ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              insyncSnackBar(
                                   content: Text(
                                       'Push to talk is on — hold the mic to speak.')))
                           : widget.onMicTap,

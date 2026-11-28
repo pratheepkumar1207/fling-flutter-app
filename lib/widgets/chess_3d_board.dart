@@ -9,6 +9,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../core/api_client.dart';
 import 'chess_board.dart';
 import 'game_seat.dart';
+import 'insync_snack.dart';
 
 /// Room chess on our own 3D board (public/chess/index.html on the backend,
 /// three.js pieces turned and lit in the page). The server owns every rule:
@@ -190,7 +191,7 @@ class _Chess3DBoardState extends State<Chess3DBoard> {
           widget.onReset();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('The host can start a new game')));
+              insyncSnackBar(content: Text('The host can start a new game')));
         }
     }
   }

@@ -8,6 +8,7 @@ import '../lobby/choose_game_screen.dart';
 import '../lobby/source_picker_screen.dart';
 import '../party/party_screen.dart';
 import '../tournaments/tournament_create_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Popcorn's centre + and the Create room card: pick a room type, then
 /// Continue into the usual flow for it. Going live has its own card on
@@ -67,11 +68,11 @@ class _CreateRoomTypeScreenState extends State<CreateRoomTypeScreen> {
         } on ApiException catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text(e.message)));
+                .showSnackBar(insyncSnackBar(content: Text(e.message)));
           }
         } catch (_) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
                 content: Text('Couldn’t create the room. Try again.')));
           }
         } finally {

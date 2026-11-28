@@ -12,6 +12,7 @@ import '../../widgets/in_icon_button.dart';
 import '../party/party_screen.dart';
 import 'source_picker_screen.dart';
 import 'watch_room_creator.dart';
+import '../../widgets/insync_snack.dart';
 
 // Plain line-icon-on-gradient treatment, matching GamePickerDark.dc.html's
 // game cards — inlined here (was its own GamePickerScreen/second page)
@@ -143,7 +144,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
           MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId)));
     } on ApiException catch (e) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+          .showSnackBar(insyncSnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -168,7 +169,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
           builder: (_) => PartyScreen(roomId: room['id'] as String)));
     } on ApiException catch (e) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+          .showSnackBar(insyncSnackBar(content: Text(e.message)));
       if (mounted) setState(() => _saving = false);
     } catch (_) {
       if (mounted) setState(() => _saving = false);
@@ -194,7 +195,7 @@ class _LobbyCreateScreenState extends State<LobbyCreateScreen> {
           builder: (_) => PartyScreen(roomId: room['id'] as String)));
     } on ApiException catch (e) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+          .showSnackBar(insyncSnackBar(content: Text(e.message)));
       if (mounted) setState(() => _saving = false);
     } catch (_) {
       if (mounted) setState(() => _saving = false);

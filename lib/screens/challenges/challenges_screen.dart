@@ -8,6 +8,7 @@ import '../../core/auth_provider.dart';
 import '../../core/format.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/spinner.dart';
+import '../../widgets/insync_snack.dart';
 
 const _scopeLabels = {
   'daily': 'Daily',
@@ -82,14 +83,14 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
           as Map<String, dynamic>;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('+${res['coinsAwarded']} coins!')));
+            insyncSnackBar(content: Text('+${res['coinsAwarded']} coins!')));
       }
       _load();
       if (mounted) context.read<AuthProvider>().refreshUser();
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     } finally {
       if (mounted) setState(() => _claiming = null);

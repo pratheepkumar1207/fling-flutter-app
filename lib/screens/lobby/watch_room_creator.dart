@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../party/party_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Shared "create the watch-party room, then jump straight into it"
 /// step used by both youtube_browse_screen.dart and drive_browse_screen
@@ -94,7 +95,7 @@ Future<void> createWatchRoomAndEnter(
   } on ApiException catch (e) {
     if (context.mounted) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+          .showSnackBar(insyncSnackBar(content: Text(e.message)));
     }
   }
 }

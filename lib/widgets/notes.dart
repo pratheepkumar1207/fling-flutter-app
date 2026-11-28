@@ -5,6 +5,7 @@ import '../core/api_exception.dart';
 import '../core/profile_nav.dart';
 import '../theme/app_colors.dart';
 import 'avatar.dart';
+import 'insync_snack.dart';
 
 /// Notes — a short status (or a song) above someone's avatar that lasts
 /// 24 hours. NotesRow sits at the top of Messages; NoteBubble shows one
@@ -216,7 +217,7 @@ class _NoteEditorState extends State<_NoteEditor> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
           content:
               Text(e is ApiException ? e.message : "Couldn't share note")));
     }

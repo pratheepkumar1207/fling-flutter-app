@@ -2,6 +2,7 @@ import '../theme/insync_icons.dart';
 import '../core/api_client.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import 'insync_snack.dart';
 
 const _kReportReasons = [
   'Spam or scam',
@@ -275,10 +276,10 @@ void showReportContentSheet(
           'reason': reason,
         });
         messenger
-            .showSnackBar(const SnackBar(content: Text('Report submitted')));
+            .showSnackBar(insyncSnackBar(content: Text('Report submitted')));
       } catch (_) {
         messenger.showSnackBar(
-            const SnackBar(content: Text('Couldn’t send your report')));
+            insyncSnackBar(content: Text('Couldn’t send your report')));
       }
     },
     onAlsoBlock: () => ApiClient.post('/social/block/$authorId'),

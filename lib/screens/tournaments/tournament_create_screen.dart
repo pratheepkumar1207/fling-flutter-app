@@ -6,6 +6,7 @@ import '../../core/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import 'tournament_live.dart';
 import 'tournament_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 const _purple = Color(0xFFFFFFFF);
 const _purpleLine = Color(0xFFFFFFFF);
@@ -83,10 +84,10 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
           settings: RouteSettings(name: 'tournament:${t['id']}'),
           builder: (_) => TournamentScreen(tournamentId: t['id'] as String)));
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text(e.message)));
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Couldn’t create it. Try again.')));
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text('Couldn’t create it. Try again.')));
       }
     } finally {
       if (mounted) setState(() => _saving = false);

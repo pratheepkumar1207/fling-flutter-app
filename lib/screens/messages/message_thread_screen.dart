@@ -35,6 +35,7 @@ import '../../widgets/spinner.dart';
 import '../blend/blend_entry.dart';
 import '../calls/start_call.dart';
 import '../lobby/lobby_create_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 /// The reactions offered on long-press, same list the backend accepts.
 const kChatReactions = ['❤️', '😂', '😮', '😢', '🔥', '👍'];
@@ -292,7 +293,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       if (!mounted) return;
       _setReactions(m.id, before);
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+          .showSnackBar(insyncSnackBar(content: Text(e.message)));
     }
   }
 
@@ -322,7 +323,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       if (!mounted) return;
       setState(() => _messages = previous);
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+          .showSnackBar(insyncSnackBar(content: Text(e.message)));
     }
   }
 
@@ -572,7 +573,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   }
 
   void _tooBig() => ScaffoldMessenger.of(context)
-      .showSnackBar(const SnackBar(content: Text('Files can be up to 6 MB')));
+      .showSnackBar(insyncSnackBar(content: Text('Files can be up to 6 MB')));
 
   static String _mimeFor(String? ext) => switch ((ext ?? '').toLowerCase()) {
         'pdf' => 'application/pdf',
@@ -615,7 +616,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       if (perm == LocationPermission.denied ||
           perm == LocationPermission.deniedForever) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
             content: const Text('Allow location for Insync to share it.'),
             action: SnackBarAction(
                 label: 'Settings', onPressed: Geolocator.openAppSettings),
@@ -632,7 +633,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Couldn’t get your location')));
+            insyncSnackBar(content: Text('Couldn’t get your location')));
       }
     }
   }

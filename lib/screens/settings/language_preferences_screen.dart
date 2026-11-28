@@ -7,6 +7,7 @@ import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
 import '../../core/language_options.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/insync_snack.dart';
 
 // Native-script label for the 7 languages LanguagePreferencesDark.dc.html
 // shows written out — the mockup is the source for these exact strings,
@@ -61,7 +62,7 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     } finally {
       if (mounted) setState(() => _saving = false);

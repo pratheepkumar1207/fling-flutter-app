@@ -7,6 +7,7 @@ import '../../theme/app_colors.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/story_bar.dart';
 import '../../widgets/story_viewer_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 /// A story highlight on a profile — a named set of the owner's stories.
 class Highlight {
@@ -239,7 +240,7 @@ class _NewHighlightScreenState extends State<NewHighlightScreen> {
   Future<void> _save() async {
     final title = _title.text.trim();
     if (title.isEmpty || _picked.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
           content: Text('Pick at least one story and give it a name')));
       return;
     }
@@ -251,7 +252,7 @@ class _NewHighlightScreenState extends State<NewHighlightScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
           content: Text(e is ApiException ? e.message : "Couldn't save")));
     }
   }

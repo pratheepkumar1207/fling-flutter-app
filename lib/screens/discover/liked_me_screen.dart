@@ -12,6 +12,7 @@ import '../wallet/vip_store_screen.dart';
 import 'discover_sheets.dart';
 import 'discover_ui.dart';
 import 'peek_card.dart';
+import '../../widgets/insync_snack.dart';
 
 /// People who liked you (GET /swipe/likes). VIPs see everyone and can like
 /// back to match; others see the first two and a blurred rest.
@@ -53,7 +54,7 @@ class _LikedMeScreenState extends State<LikedMeScreen> {
                 avatarUrl: p['avatarUrl'] as String?)));
       } else {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('You liked ${p['name']}')));
+            .showSnackBar(insyncSnackBar(content: Text('You liked ${p['name']}')));
       }
       _load();
     } on ApiException catch (e) {
@@ -62,7 +63,7 @@ class _LikedMeScreenState extends State<LikedMeScreen> {
         await showOutOfLikesSheet(context, e.data as Map);
       } else {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     }
   }

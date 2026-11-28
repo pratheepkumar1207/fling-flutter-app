@@ -9,9 +9,10 @@ import '../../theme/app_colors.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/spinner.dart';
 import 'community_home_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 void _toast(BuildContext context, String text) =>
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+    ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text(text)));
 
 Widget _radio<T>(
         {required T value,

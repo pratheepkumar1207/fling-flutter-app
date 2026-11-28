@@ -10,6 +10,7 @@ import '../theme/app_colors.dart';
 import 'avatar.dart';
 import 'gift_fx.dart';
 import 'spinner.dart';
+import 'insync_snack.dart';
 
 /// Someone a gift can go to, for the "To ▾" menu in a room.
 class GiftRecipient {
@@ -142,10 +143,10 @@ class _GiftSheetState extends State<_GiftSheet> {
         });
       }
     } on ApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.showSnackBar(insyncSnackBar(content: Text(e.message)));
     } catch (_) {
       messenger.showSnackBar(
-          const SnackBar(content: Text('Couldn’t send that. Try again.')));
+          insyncSnackBar(content: Text('Couldn’t send that. Try again.')));
     }
     await Future<void>.delayed(const Duration(milliseconds: 300));
     if (mounted) setState(() => _sending = false);

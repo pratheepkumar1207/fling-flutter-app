@@ -9,6 +9,7 @@ import '../../core/format.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/spinner.dart';
 import 'wallet_kyc_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Matches CashOutDark.dc.html: an "Available to redeem" balance card, an
 /// amount field with a Max shortcut, the KYC bank account on file, and a
@@ -100,7 +101,7 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
           await ApiClient.post('/wallet/cashout', body: {'diamonds': diamonds})
               as Map<String, dynamic>;
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
           content: Text(
               'Cashout queued for ₹${asNum(res['rupeesQueued']).toStringAsFixed(2)}')));
       await context.read<AuthProvider>().refreshUser();
@@ -108,7 +109,7 @@ class _WalletCashoutScreenState extends State<WalletCashoutScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     } finally {
       if (mounted) setState(() => _submitting = false);

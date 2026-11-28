@@ -4,6 +4,7 @@ import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../widgets/permission_primer.dart';
 import 'call_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Rings [userId] and opens the call screen as the caller. Used by a chat
 /// thread's call buttons and by Chat → Calls.
@@ -38,7 +39,7 @@ Future<void> startDirectCall(
   } on ApiException catch (e) {
     if (context.mounted) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+          .showSnackBar(insyncSnackBar(content: Text(e.message)));
     }
   }
 }

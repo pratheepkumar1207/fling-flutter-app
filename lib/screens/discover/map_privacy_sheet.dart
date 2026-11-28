@@ -6,6 +6,7 @@ import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
 import '../../theme/insync_icons.dart';
 import 'discover_ui.dart';
+import '../../widgets/insync_snack.dart';
 
 /// "Who can see me": ghost mode (with a timer), who sees you on the map,
 /// who sees which lobby you're in, and hiding your age on the map.
@@ -45,12 +46,12 @@ class _PrivacySheetState extends State<_PrivacySheet> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Couldn’t save. Try again.')));
+            insyncSnackBar(content: Text('Couldn’t save. Try again.')));
       }
     } finally {
       if (mounted) setState(() => _saving = false);

@@ -10,6 +10,7 @@ import '../theme/app_colors.dart';
 import 'avatar.dart';
 import 'mention_text_field.dart';
 import 'report_user_sheet.dart';
+import 'insync_snack.dart';
 
 /// Comments, Instagram-style: half-height sheet over the post/reel (which
 /// keeps playing behind), each comment with a like count and Reply,
@@ -106,7 +107,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
       widget.onCommented();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
             content:
                 Text(e is ApiException ? e.message : "Couldn't post comment")));
       }

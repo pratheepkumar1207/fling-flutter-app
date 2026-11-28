@@ -5,6 +5,7 @@ import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/insync_snack.dart';
 
 const _months = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', //
@@ -136,7 +137,7 @@ Future<bool> _confirmedRequest(
     return true;
   } on ApiException catch (e) {
     if (e.status != 428) {
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.showSnackBar(insyncSnackBar(content: Text(e.message)));
       return false;
     }
     if (!context.mounted) return false;
@@ -163,7 +164,7 @@ Future<bool> _confirmedRequest(
     return false;
   } catch (_) {
     messenger.showSnackBar(
-        const SnackBar(content: Text('Couldn’t do that. Try again.')));
+        insyncSnackBar(content: Text('Couldn’t do that. Try again.')));
     return false;
   }
 }
@@ -265,7 +266,7 @@ class _DeleteScreenState extends State<_DeleteScreen> {
     if (done) {
       await auth.clearSession();
       navigator.popUntil((r) => r.isFirst);
-      messenger.showSnackBar(SnackBar(
+      messenger.showSnackBar(insyncSnackBar(
           content:
               Text('Your account will be deleted on $on. Log in to cancel.')));
       return;

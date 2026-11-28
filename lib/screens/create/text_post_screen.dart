@@ -10,6 +10,7 @@ import 'package:record/record.dart';
 import '../../theme/app_colors.dart';
 import 'create_flow.dart';
 import 'story_editor_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Colours a text post can sit on; the name is what's saved on the post.
 const kTextPostColours = <String, Color>{
@@ -64,7 +65,7 @@ class _TextPostScreenState extends State<TextPostScreen> {
   }
 
   void _snack(String text) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text(text)));
 
   Future<void> _toggleRecording() async {
     if (_recording) {

@@ -8,6 +8,7 @@ import '../../theme/app_colors.dart';
 import '../../widgets/spinner.dart';
 import 'community_home_screen.dart';
 import 'new_community_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Chat → Communities → Find communities: search, topics, Join or Ask.
 /// Invite-only communities never show; they're joined with a code.
@@ -56,7 +57,7 @@ class _FindCommunitiesScreenState extends State<FindCommunitiesScreen> {
           as Map<String, dynamic>;
       if (!mounted) return;
       if (r['requested'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
             content: Text('Asked to join. An admin will approve you.')));
         _load();
       } else {
@@ -64,7 +65,7 @@ class _FindCommunitiesScreenState extends State<FindCommunitiesScreen> {
       }
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     }
   }
@@ -103,7 +104,7 @@ class _FindCommunitiesScreenState extends State<FindCommunitiesScreen> {
               CommunityHomeScreen(communityId: r['communityId'] as String)));
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     }
   }

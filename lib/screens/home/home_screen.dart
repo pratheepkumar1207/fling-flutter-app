@@ -29,6 +29,7 @@ import '../../core/auth_provider.dart';
 import '../../core/location_service.dart';
 import 'package:geolocator/geolocator.dart';
 import '../blend/blend_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -198,7 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     }
   }
@@ -210,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
       return null;
     }
@@ -600,12 +601,12 @@ class _HomeScreenState extends State<HomeScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Couldn’t start the game. Try again.')));
+            insyncSnackBar(content: Text('Couldn’t start the game. Try again.')));
       }
     }
   }

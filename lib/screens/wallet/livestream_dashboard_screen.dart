@@ -8,6 +8,7 @@ import '../../core/format.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/spinner.dart';
 import '../party/party_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Matches LivestreamDashboardDark.dc.html: an approval-status banner, a
 /// 2x2 stat grid (wallet / lifetime gifts / total streams / avg. length),
@@ -63,7 +64,7 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     } finally {
       if (mounted) setState(() => _applying = false);
@@ -85,7 +86,7 @@ class _LivestreamDashboardScreenState extends State<LivestreamDashboardScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to start a live broadcast')));
+            insyncSnackBar(content: Text('Failed to start a live broadcast')));
       }
     } finally {
       if (mounted) setState(() => _goingLive = false);

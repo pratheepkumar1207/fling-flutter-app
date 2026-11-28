@@ -6,6 +6,7 @@ import '../../core/api_client.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/spinner.dart';
 import '../party/party_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 const _kRoomTypeStyles = {
   'watch': (
@@ -80,7 +81,7 @@ class _EventsScreenState extends State<EventsScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to update reminder')));
+            insyncSnackBar(content: Text('Failed to update reminder')));
       }
     } finally {
       if (mounted) setState(() => _toggling.remove(roomId));

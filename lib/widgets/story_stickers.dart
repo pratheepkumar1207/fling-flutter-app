@@ -6,6 +6,7 @@ import '../core/profile_nav.dart';
 import '../screens/feed/hashtag_screen.dart';
 import '../theme/app_colors.dart';
 import 'avatar.dart';
+import 'insync_snack.dart';
 
 /// Stories are shown in one fixed shape, so a sticker sits in the same place
 /// on every phone. Sticker positions are shares of this frame.
@@ -501,7 +502,7 @@ class _StoryStickerLayerState extends State<StoryStickerLayer> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
             content: Text(e is ApiException
                 ? e.message
                 : 'Couldn’t send that. Try again.')));
@@ -544,7 +545,7 @@ class _StoryStickerLayerState extends State<StoryStickerLayer> {
     widget.onResume();
     if (text != null && text.isNotEmpty) {
       await _answer(s['id'] as String, text);
-      messenger.showSnackBar(const SnackBar(content: Text('Answer sent')));
+      messenger.showSnackBar(insyncSnackBar(content: Text('Answer sent')));
     }
   }
 

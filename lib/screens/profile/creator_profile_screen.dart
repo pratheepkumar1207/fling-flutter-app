@@ -28,6 +28,7 @@ import 'profile_layout.dart';
 import 'profile_post_grid.dart';
 import '../../widgets/verified_tick.dart';
 import '../../widgets/two_row_carousel.dart';
+import '../../widgets/insync_snack.dart';
 
 class CreatorProfileScreen extends StatefulWidget {
   final String userId;
@@ -334,7 +335,7 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
 
   void _snack(String msg) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text(msg)));
     }
   }
 
@@ -1201,12 +1202,12 @@ class _CreatorProfileScreenState extends State<CreatorProfileScreen> {
             ..._subscription,
             ...Map<String, dynamic>.from(res as Map),
           });
-      messenger.showSnackBar(SnackBar(
+      messenger.showSnackBar(insyncSnackBar(
           content: Text(action == 'subscribe'
               ? '${subTierName(picked ?? 'silver')} with $name'
               : 'Renewal cancelled. You keep access until $untilText.')));
     } on ApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.showSnackBar(insyncSnackBar(content: Text(e.message)));
     }
   }
 

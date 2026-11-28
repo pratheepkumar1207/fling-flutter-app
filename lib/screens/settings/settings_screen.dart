@@ -23,6 +23,7 @@ import 'privacy_screen.dart';
 import 'help_center_screen.dart';
 import 'language_preferences_screen.dart';
 import 'legal_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -46,7 +47,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         final result = await requestPushPermissionAndRegister();
         if (result == PushRequestResult.denied && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            insyncSnackBar(
                 content: Text(
                     'Notifications blocked — enable them for this app in your device settings.')),
           );
@@ -59,7 +60,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     } finally {
       if (mounted) setState(() => _savingNotifications = false);
@@ -76,7 +77,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     } finally {
       if (mounted) setState(() => _savingLocation = false);

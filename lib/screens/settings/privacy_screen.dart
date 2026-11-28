@@ -5,6 +5,7 @@ import '../../core/api_exception.dart';
 import '../../core/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/insync_clay.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Who sees the room you're in (the "IN ROOM" card on your profile) and
 /// what you liked. Every change saves straight away (PATCH /auth/me) and
@@ -42,7 +43,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(revert);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
           content: Text(e is ApiException
               ? e.message
               : "Couldn't save — check your connection")));

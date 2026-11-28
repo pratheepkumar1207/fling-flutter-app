@@ -12,6 +12,7 @@ import '../../core/format.dart';
 import '../../models/coin_package.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/spinner.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Creates a Razorpay order via the backend, opens Razorpay's native
 /// checkout with it, then sends the resulting payment id + signature to
@@ -110,14 +111,14 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
       if (!mounted) return;
       setState(() => _paying = false);
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Couldn’t open the payment. Try again.')));
+          insyncSnackBar(content: Text('Couldn’t open the payment. Try again.')));
     }
   }
 
   Future<void> _onOutcome(PurchaseOutcome o) async {
     if (!mounted) return;
     if (o.pending) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
           content: Text(
               'Payment pending. Your coins arrive when it goes through.')));
       setState(() => _paying = false);
@@ -127,14 +128,14 @@ class _WalletBuyScreenState extends State<WalletBuyScreen> {
     if (o.ok) {
       await context.read<AuthProvider>().refreshUser();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
           content: Text(o.coinBalance != null
               ? '🪙 Coins added! New balance: ${formatNumber(o.coinBalance)}'
               : '🪙 Coins added!'),
           backgroundColor: AppColors.success));
       Navigator.of(context).pop(true);
     } else if (o.message != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
           content: Text(o.message!), backgroundColor: AppColors.danger));
     }
   }

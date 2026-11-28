@@ -11,6 +11,7 @@ import '../../theme/insync_icons.dart';
 import '../wallet/vip_store_screen.dart';
 import '../wallet/wallet_buy_screen.dart';
 import 'discover_ui.dart';
+import '../../widgets/insync_snack.dart';
 
 /// "You've used today's likes" (or super likes). [limits] is what the
 /// server sent with the 429 (see GET /swipe/limits).
@@ -137,7 +138,7 @@ Future<DateTime?> showBoostSheet(BuildContext context) async {
   } catch (_) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Couldn’t load boosts. Try again.')));
+          insyncSnackBar(content: Text('Couldn’t load boosts. Try again.')));
     }
     return null;
   }

@@ -5,6 +5,7 @@ import '../../theme/app_colors.dart';
 import '../lobby/lobby_create_screen.dart';
 import 'create_flow.dart';
 import 'text_post_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 const _maxPhotos = 5;
 
@@ -79,7 +80,7 @@ class _CreateGalleryScreenState extends State<CreateGalleryScreen> {
       }
     } catch (_) {
       messenger.showSnackBar(
-          const SnackBar(content: Text('Couldn’t open that. Try another.')));
+          insyncSnackBar(content: Text('Couldn’t open that. Try another.')));
     } finally {
       if (mounted) setState(() => _working = false);
     }

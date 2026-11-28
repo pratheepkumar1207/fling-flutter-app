@@ -8,6 +8,7 @@ import '../../theme/app_colors.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/spinner.dart';
 import 'post_detail_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Saved posts: collection cards (All posts, Reels, your own collections)
 /// above a 3-column grid. Long-press a post to move it into a collection.
@@ -103,7 +104,7 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
   Future<void> _newCollection() async {
     final name = await _askName();
     if (name == null || name.isEmpty || !mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
         content: Text('Long-press any saved post to add it to “$name”.')));
     setState(() => _pendingName = name);
   }
@@ -169,7 +170,7 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     }
   }

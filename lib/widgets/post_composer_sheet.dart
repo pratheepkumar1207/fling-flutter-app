@@ -11,6 +11,7 @@ import '../theme/glass.dart';
 import 'app_image.dart';
 import 'mention_text_field.dart';
 import 'people_picker_sheet.dart';
+import 'insync_snack.dart';
 
 class _TypeDef {
   final String key;
@@ -127,7 +128,7 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
     }
     if (!mounted) return;
     if (tooLarge) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
           content: Text('Some photos were too large and were left out.')));
     }
     setState(() {
@@ -156,7 +157,7 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
     if (!mounted) return;
     if (bytes.length > 12000000) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Keep clips to about 15 seconds')));
+          insyncSnackBar(content: Text('Keep clips to about 15 seconds')));
       return;
     }
     setState(
@@ -222,7 +223,7 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
       widget.onPosted();
       if (mounted) {
         if (scheduled) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
               content: Text(
                   'Scheduled for ${postTimeLabel(context, _publishAt!)}. It waits in your archive.')));
         }
@@ -231,7 +232,7 @@ class _PostComposerSheetState extends State<_PostComposerSheet> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Failed to post')));
+            .showSnackBar(insyncSnackBar(content: Text('Failed to post')));
       }
     } finally {
       if (mounted) setState(() => _posting = false);

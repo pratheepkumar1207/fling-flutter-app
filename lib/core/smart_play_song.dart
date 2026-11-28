@@ -7,6 +7,7 @@ import '../models/song.dart';
 import '../screens/party/party_screen.dart';
 import 'api_client.dart';
 import 'socket_service.dart';
+import '../widgets/insync_snack.dart';
 
 /// Tapping a song from someone's History/Liked/Playlist (i.e. from outside
 /// any room screen — Profile, CreatorProfile) either drops it into whatever
@@ -35,7 +36,7 @@ Future<void> playSongSmart(BuildContext context, Song s) async {
       final socket = context.read<SocketService>().socket;
       final added = await _addToQueueAndConfirm(socket, activeRoomId, item);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
           content: Text(added
               ? 'Added to "${active['title'] ?? 'your room'}"'
               : 'Could not add — only the host can add songs right now')));
@@ -61,14 +62,14 @@ Future<void> playSongSmart(BuildContext context, Song s) async {
     }) as Map<String, dynamic>;
     if (context.mounted) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Started a new room')));
+          .showSnackBar(insyncSnackBar(content: Text('Started a new room')));
       Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => PartyScreen(roomId: room['id'] as String)));
     }
   } catch (e) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not play this song')));
+          insyncSnackBar(content: Text('Could not play this song')));
     }
   }
 }
@@ -110,7 +111,7 @@ Future<void> playPlaylistSmart(BuildContext context, List<Song> songs) async {
         }
       }
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
           content: Text(firstAdded
               ? 'Added ${songs.length} songs to "${active['title'] ?? 'your room'}"'
               : 'Could not add — only the host can add songs right now')));
@@ -135,13 +136,13 @@ Future<void> playPlaylistSmart(BuildContext context, List<Song> songs) async {
     if (!context.mounted) return;
     final roomId = room['id'] as String;
     ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Started a new room')));
+        .showSnackBar(insyncSnackBar(content: Text('Started a new room')));
     Navigator.of(context)
         .push(MaterialPageRoute(builder: (_) => PartyScreen(roomId: roomId)));
   } catch (e) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not play this playlist')));
+          insyncSnackBar(content: Text('Could not play this playlist')));
     }
   }
 }

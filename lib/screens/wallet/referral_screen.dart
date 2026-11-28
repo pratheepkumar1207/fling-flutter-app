@@ -7,6 +7,7 @@ import '../../core/api_client.dart';
 import '../../core/api_exception.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/spinner.dart';
+import '../../widgets/insync_snack.dart';
 
 /// "Invite friends" — matches ReferralDark.dc.html. All backend logic
 /// already existed (GET /gamification/me for the code, POST
@@ -99,7 +100,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
 
   void _snack(String msg) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text(msg)));
     }
   }
 

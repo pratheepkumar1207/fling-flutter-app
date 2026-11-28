@@ -9,6 +9,7 @@ import '../core/api_exception.dart';
 import '../theme/app_colors.dart';
 import '../theme/insync_icons.dart';
 import 'app_image.dart';
+import 'insync_snack.dart';
 
 /// Opens a view-once photo: asks the server for it (which only works once)
 /// and shows it full screen for [seconds], then closes. Returns false if it
@@ -30,7 +31,7 @@ Future<bool> openViewOncePhoto(BuildContext context, String openPath,
   } on ApiException catch (e) {
     if (context.mounted) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+          .showSnackBar(insyncSnackBar(content: Text(e.message)));
     }
     return false;
   }

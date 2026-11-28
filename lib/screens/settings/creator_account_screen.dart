@@ -8,6 +8,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
 import '../../widgets/spinner.dart';
 import 'account_centers.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Switch between a personal and a creator account. Creators can offer
 /// Silver/Gold/Platinum subscriptions, post subscriber-only content and go
@@ -53,12 +54,12 @@ class _CreatorAccountScreenState extends State<CreatorAccountScreen> {
           body: {'type': type, 'category': _category});
       await auth.refreshUser();
       await _load();
-      messenger.showSnackBar(SnackBar(
+      messenger.showSnackBar(insyncSnackBar(
           content: Text(type == 'creator'
               ? 'You’re a creator now. Going live is under review.'
               : 'Switched back to a personal account')));
     } on ApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.showSnackBar(insyncSnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _saving = false);
     }

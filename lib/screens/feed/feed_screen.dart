@@ -35,6 +35,7 @@ import 'hashtag_screen.dart';
 import '../create/text_post_screen.dart';
 import '../../widgets/post_images.dart';
 import 'post_detail_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -179,7 +180,7 @@ class _FeedScreenState extends State<FeedScreen> {
 
   void _snack(String msg) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text(msg)));
     }
   }
 

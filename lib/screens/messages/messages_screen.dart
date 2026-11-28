@@ -34,6 +34,7 @@ import '../discover/liked_me_screen.dart';
 import 'group_thread_screen.dart';
 import 'message_requests_screen.dart';
 import 'message_thread_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Messages, opened from the top bar: search; one strip with your note,
 /// Likes and new matches; Blends; All / Unread / Groups / Requests; then
@@ -517,7 +518,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       if (!mounted) return;
       _replace(before);
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+          .showSnackBar(insyncSnackBar(content: Text(e.message)));
     }
   }
 
@@ -551,7 +552,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       if (!mounted) return;
       setState(() => _conversations = before);
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+          .showSnackBar(insyncSnackBar(content: Text(e.message)));
     }
   }
 
@@ -582,11 +583,11 @@ class _MessagesScreenState extends State<MessagesScreen> {
               if (x.userId != c.userId) x
           ]);
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('${c.name} is blocked')));
+          .showSnackBar(insyncSnackBar(content: Text('${c.name} is blocked')));
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     }
   }

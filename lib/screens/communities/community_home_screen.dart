@@ -9,6 +9,7 @@ import '../../widgets/spinner.dart';
 import '../messages/group_thread_screen.dart';
 import '../party/party_screen.dart';
 import 'community_manage_screens.dart';
+import '../../widgets/insync_snack.dart';
 
 /// A community's picture, or its first letter on a colour.
 class CommunityAvatar extends StatelessWidget {
@@ -87,7 +88,7 @@ class _CommunityHomeScreenState extends State<CommunityHomeScreen> {
       Map<String, dynamic>.from(_data?['community'] as Map? ?? {});
 
   void _toast(String text) => ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(content: Text(text)));
+      .showSnackBar(insyncSnackBar(content: Text(text)));
 
   Future<void> _join() async {
     setState(() => _busy = true);

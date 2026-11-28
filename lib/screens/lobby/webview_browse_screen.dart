@@ -14,6 +14,7 @@ import '../../widgets/app_song_lists.dart';
 import '../../widgets/spinner.dart';
 import 'browser_video_tray.dart';
 import 'watch_room_creator.dart';
+import '../../widgets/insync_snack.dart';
 
 /// "Browse together" via a real embedded browser (not an <iframe>, which
 /// Netflix/Prime block via X-Frame-Options/CSP; a WebView is a top-level
@@ -287,7 +288,7 @@ class _WebviewBrowseScreenState extends State<WebviewBrowseScreen> {
         final messenger = ScaffoldMessenger.of(context);
         many([for (final v in ok) v.toQueueItem()]);
         Navigator.of(context).pop();
-        messenger.showSnackBar(SnackBar(
+        messenger.showSnackBar(insyncSnackBar(
             content: Text('Added ${ok.length} videos to the queue')));
         return;
       }

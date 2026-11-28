@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/snap_lens_engine.dart';
 import '../theme/app_colors.dart';
+import 'insync_snack.dart';
 
 /// A lens's round picture (or a plain sparkle while it loads).
 class SnapLensIcon extends StatelessWidget {
@@ -290,7 +291,7 @@ class _LensPickerState extends State<_LensPicker> {
                           final s = await SnapLensEngine.instance.savedIds();
                           if (!mounted) return;
                           setState(() => _saved = s);
-                          messenger.showSnackBar(SnackBar(
+                          messenger.showSnackBar(insyncSnackBar(
                               content: Text(saved
                                   ? 'Removed from saved'
                                   : 'Saved ${l.name}')));

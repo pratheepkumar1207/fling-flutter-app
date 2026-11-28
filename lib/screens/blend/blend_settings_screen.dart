@@ -9,6 +9,7 @@ import '../../models/post.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/people_picker_sheet.dart';
+import '../../widgets/insync_snack.dart';
 
 const _maxMembers = 8;
 
@@ -53,7 +54,7 @@ class _BlendSettingsScreenState extends State<BlendSettingsScreen> {
 
   void _snack(String msg) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text(msg)));
     }
   }
 

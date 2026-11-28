@@ -21,6 +21,7 @@ import '../wallet/livestream_dashboard_screen.dart';
 import '../wallet/subscriptions_screen.dart';
 import '../wallet/wallet_cashout_screen.dart';
 import '../wallet/wallet_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 void _push(BuildContext context, Widget screen) =>
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
@@ -488,7 +489,7 @@ class _CreatorStudioScreenState extends State<CreatorStudioScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     }
   }

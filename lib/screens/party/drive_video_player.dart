@@ -20,6 +20,7 @@ import '../../widgets/room_seek_ten_button.dart';
 import '../../widgets/spinner.dart';
 import '../../widgets/static_bloom_player.dart';
 import '../../widgets/volume_dots.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Drive-sourced sibling of sync_video_player.dart's SyncVideoPlayer — same
 /// constructor shape (party_screen.dart picks between the two purely by the
@@ -281,7 +282,7 @@ class _DriveVideoPlayerState extends State<DriveVideoPlayer>
   void _remindHost() {
     if (!widget.isHost || _remindedHost || !mounted) return;
     _remindedHost = true;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
       duration: Duration(seconds: 6),
       content: Text(
           'Anyone with this file\'s link can watch it. Turn sharing off in Drive after the movie.'),

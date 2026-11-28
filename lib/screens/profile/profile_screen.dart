@@ -47,6 +47,7 @@ import 'profile_layout.dart';
 import 'profile_post_grid.dart';
 import 'user_list_screen.dart';
 import '../wallet/referral_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -202,7 +203,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _showSnack(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text(msg)));
   }
 
   // ☰ More: Challenges, Achievements, daily bonus, saved posts, archive,
@@ -1416,7 +1417,7 @@ class EditProfileSheetState extends State<EditProfileSheet> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     } finally {
       if (mounted) setState(() => _saving = false);

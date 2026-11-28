@@ -6,6 +6,7 @@ import '../../core/room_prefs.dart';
 import '../../core/active_room_holder.dart';
 import '../../core/app_messenger.dart';
 import 'room_socket_controller.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Mounted once in AppShell (see persistent_room_audio.dart for the same
 /// pattern) — reacts to being @mentioned in the active room's chat
@@ -69,7 +70,7 @@ class _MentionNotifierState extends State<MentionNotifier> {
     final reply = rs.mention!['reply'] == true;
     rs.clearMention();
     if (!RoomPrefs.instance.muteAlerts) _ping();
-    scaffoldMessengerKey.currentState?.showSnackBar(SnackBar(
+    scaffoldMessengerKey.currentState?.showSnackBar(insyncSnackBar(
       content:
           Text(reply ? '$fromName replied to you' : '$fromName mentioned you'),
       behavior: SnackBarBehavior.floating,

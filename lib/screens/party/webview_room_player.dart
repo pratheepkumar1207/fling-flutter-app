@@ -26,6 +26,7 @@ import '../../core/hotstar_player_menu.dart';
 import '../../core/web_player_menu.dart';
 import 'full_screen_controls.dart';
 import 'player_settings_sheet.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Netflix/Prime "browse together" sibling of sync_video_player.dart /
 /// drive_video_player.dart. Unlike those two there is still no *real* sync
@@ -409,7 +410,7 @@ class _WebviewRoomPlayerState extends State<WebviewRoomPlayer> {
     if (!_signingIn || !mounted) return;
     _signingIn = false;
     _signInWatch?.cancel();
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(const SnackBar(
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(insyncSnackBar(
         content: Text('Signed in. Back to the show…'),
         duration: Duration(seconds: 2)));
     await _backToShow();

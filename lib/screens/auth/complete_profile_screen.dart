@@ -12,6 +12,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/insync_icons.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/interest_picker.dart';
+import '../../widgets/insync_snack.dart';
 
 const _kLookingForOptions = [
   ['long_term', 'Long-term'],
@@ -124,13 +125,13 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
           setState(() => _usernameError = e.message);
         } else {
           ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(e.message)));
+              .showSnackBar(insyncSnackBar(content: Text(e.message)));
         }
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to save your profile')));
+            insyncSnackBar(content: Text('Failed to save your profile')));
       }
     } finally {
       if (mounted) setState(() => _saving = false);

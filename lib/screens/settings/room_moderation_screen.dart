@@ -7,6 +7,7 @@ import '../../widgets/avatar.dart';
 import '../../widgets/in_icon_button.dart';
 import '../../widgets/room_sheet.dart';
 import '../../widgets/spinner.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Moderation for every room you host, in the room sheets' black style:
 /// slow mode (Off · 5s · 10s · 30s), links in chat (Allow · Hosts only ·
@@ -39,7 +40,7 @@ class _RoomModerationScreenState extends State<RoomModerationScreen> {
   }
 
   void _snack(String t) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text(t)));
 
   Future<void> _save(String key, dynamic value) async {
     final before = _data![key];

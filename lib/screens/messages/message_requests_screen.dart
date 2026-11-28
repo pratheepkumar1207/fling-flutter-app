@@ -10,6 +10,7 @@ import '../../widgets/avatar.dart';
 import '../../widgets/in_icon_button.dart';
 import '../../widgets/spinner.dart';
 import 'message_thread_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Message requests: chats from people you haven't matched or befriended.
 /// Accept moves one into your chats, Delete removes it (and stops them
@@ -66,7 +67,7 @@ class _MessageRequestsScreenState extends State<MessageRequestsScreen> {
   }
 
   void _snack(String text) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+      ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text(text)));
 
   Future<bool> _run(ConversationSummary c, Future<void> Function() call) async {
     setState(() => _busy.add(c.userId));

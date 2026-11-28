@@ -14,6 +14,7 @@ import '../../widgets/avatar.dart';
 import '../../widgets/gift_bottom_sheet.dart';
 import '../../widgets/snap_lens_row.dart';
 import 'direct_call_controller.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Full-screen 1:1 call UI — audio or video, direct (not room-scoped).
 /// Matches AudioCallDark.dc.html / VideoCallDark.dc.html: translucent
@@ -107,7 +108,7 @@ class _CallScreenState extends State<CallScreen> {
       await b.choose(lens, front: _frontCamera);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
             content: Text('That lens couldn’t start. Try another.')));
       }
     }

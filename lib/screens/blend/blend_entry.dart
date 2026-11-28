@@ -9,6 +9,7 @@ import '../../theme/app_colors.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/people_picker_sheet.dart';
 import 'blend_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 /// Ways into a Reels Blend: the card in a DM, Messages -> New Blend, and
 /// the Blends row at the top of Messages.
@@ -27,7 +28,7 @@ Future<Blend?> _createBlend(
   } on ApiException catch (e) {
     if (context.mounted) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+          .showSnackBar(insyncSnackBar(content: Text(e.message)));
     }
     return null;
   }
@@ -61,7 +62,7 @@ Future<void> startNewBlend(BuildContext context,
   if (picked == null || picked.isEmpty || !context.mounted) return;
   if (picked.length > 7) {
     ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('A Blend can have up to 8 people')));
+        insyncSnackBar(content: Text('A Blend can have up to 8 people')));
     return;
   }
   final blend = await _createBlend(context, picked.map((p) => p.id).toList());

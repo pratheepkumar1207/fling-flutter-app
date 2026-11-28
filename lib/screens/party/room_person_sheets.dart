@@ -9,6 +9,7 @@ import '../../theme/app_colors.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/verified_tick.dart';
 import '../messages/message_thread_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 // ---------------------------------------------------------------- long press
 
@@ -253,7 +254,7 @@ class _PersonCardState extends State<_PersonCard> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Action failed')));
+            .showSnackBar(insyncSnackBar(content: Text('Action failed')));
       }
     } finally {
       if (mounted) setState(() => _busy = false);

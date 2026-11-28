@@ -26,6 +26,7 @@ import 'blocked_accounts_screen.dart';
 import 'help_center_screen.dart';
 import 'legal_screen.dart';
 import 'privacy_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 // Safety centre, Privacy centre, Security and Verification — each backed
 // by the real settings (GET/PATCH /auth/me, /account/*, /social/blocklist).
@@ -391,7 +392,7 @@ class _PrivacyCenterScreenState extends State<PrivacyCenterScreen> {
       if (!mounted) return;
       setState(() => _u = {..._u!, key: before});
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+          .showSnackBar(insyncSnackBar(content: Text(e.message)));
     }
   }
 
@@ -407,7 +408,7 @@ class _PrivacyCenterScreenState extends State<PrivacyCenterScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Couldn’t prepare your data')));
+            insyncSnackBar(content: Text('Couldn’t prepare your data')));
       }
     } finally {
       if (mounted) setState(() => _exporting = false);
@@ -562,7 +563,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     }
   }
@@ -589,7 +590,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
       _load();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Other sessions ended')));
+            insyncSnackBar(content: Text('Other sessions ended')));
       }
     } catch (_) {}
   }
@@ -703,12 +704,12 @@ class _VerificationScreenState extends State<VerificationScreen> {
       _load();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('You’ve got the Creator badge')));
+            insyncSnackBar(content: Text('You’ve got the Creator badge')));
       }
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+            .showSnackBar(insyncSnackBar(content: Text(e.message)));
       }
     }
   }

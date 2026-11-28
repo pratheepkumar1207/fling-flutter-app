@@ -8,6 +8,7 @@ import '../../theme/app_colors.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/chat_media.dart';
 import 'community_home_screen.dart';
+import '../../widgets/insync_snack.dart';
 
 /// New community in two steps: 1) picture, name, description, rules, topic
 /// and who can join; 2) bring in groups you own (optional). An
@@ -83,7 +84,7 @@ class _NewCommunityScreenState extends State<NewCommunityScreen> {
           builder: (_) => CommunityHomeScreen(communityId: c['id'] as String)));
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(content: Text(e.message)));
         setState(() => _busy = false);
       }
     } catch (_) {
