@@ -734,7 +734,7 @@ class _ChatOverlayState extends State<ChatOverlay> with WidgetsBindingObserver {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(children: [
-        _badgedFace(m, host ? InIcons.star : InIcons.mic),
+        _badgedFace(m, host ? InIcons.crownMini : InIcons.mic),
         const SizedBox(width: 7),
         Flexible(
           child: Text.rich(

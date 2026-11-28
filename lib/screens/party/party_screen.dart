@@ -512,7 +512,7 @@ class _PartyScreenState extends State<PartyScreen>
       final room = _room;
       ScaffoldMessenger.of(context).showSnackBar(insyncSnackBar(
         title: 'You\u2019re the host now',
-        icon: InIcons.star,
+        icon: InIcons.crown,
         duration: const Duration(seconds: 6),
         content: const Text('The host left. You run the lobby.'),
         action: room == null

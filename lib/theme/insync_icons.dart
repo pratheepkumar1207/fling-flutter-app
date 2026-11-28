@@ -122,8 +122,13 @@ class InIcons {
   static const sync = InIconData('sync',
       '<path d="M20 11a8 8 0 00-14.3-4.3L4 9M4 4v5h5"/><path d="M4 13a8 8 0 0014.3 4.3L20 15M20 20v-5h-5"/>');
   static const check = InIconData('check', '<path d="M5 12.5l4.5 4.5L19 7"/>');
-  static const crown =
-      InIconData('crown', '<path d="M3.5 8l4.5 4 4-7 4 7 4.5-4-2 11h-13z"/>');
+  // Design B (2026-11-28): jewels on the tips and a base line.
+  static const crown = InIconData('crown',
+      '<path d="M5.2 17.5L3.8 9l4.7 3.6L12 6.5l3.5 6.1L20.2 9l-1.4 8.5z"/><path d="M5.5 21h13"/><circle cx="3.8" cy="7.2" r="1"/><circle cx="12" cy="4.5" r="1"/><circle cx="20.2" cy="7.2" r="1"/>');
+
+  /// The same crown without the jewels, for badges under ~12 px.
+  static const crownMini = InIconData('crownMini',
+      '<path d="M5.2 17.5L3.8 9l4.7 3.6L12 6.5l3.5 6.1L20.2 9l-1.4 8.5z"/>');
   static const wheel = InIconData('wheel',
       '<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17M3.5 12h17M6 6l12 12M18 6L6 18"/><circle cx="12" cy="12" r="2" fill="currentColor"/>');
   static const ticket = InIconData('ticket',
@@ -246,6 +251,7 @@ class InIcons {
   static const filledNames = {
     'bookmark',
     'crown',
+    'crownMini',
     'heart',
     'play',
     'star',

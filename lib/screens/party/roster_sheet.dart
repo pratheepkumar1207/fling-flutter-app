@@ -416,7 +416,7 @@ class _RosterSheetState extends State<RosterSheet> {
                         if (isRowHost)
                           const Padding(
                             padding: EdgeInsets.only(right: 3),
-                            child: InIcon(InIcons.crown,
+                            child: InIcon(InIcons.crownMini,
                                 color: AppColors.gold, size: 12),
                           )
                         else if (onMic)
